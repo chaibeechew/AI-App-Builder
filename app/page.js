@@ -42,13 +42,12 @@ export default function Home() {
   }
 
   const preview = result?.preview;
-  const previewApp = preview?.app;
-  const homePage = previewApp?.pages?.[0];
+  const app = preview?.app;
+  const homePage = app?.pages?.[0];
 
   return (
     <main className="app-shell">
 
-      {/* FOREST + OCEAN ATMOSPHERE */}
       <div className="forest-layer" />
       <div className="ocean-layer" />
       <div className="ambient ambient-forest" />
@@ -56,24 +55,28 @@ export default function Home() {
 
       <div className="container">
 
-        {/* NAVIGATION */}
+        {/* NAVBAR */}
         <nav className="navbar glass-card">
 
           <div className="logo">
-            🧠 <span>AI App Builder</span>
-            <small>Autonomous AI Engine</small>
+            🧠
+            <span>
+              AI App Builder
+              <small>Autonomous AI Engine</small>
+            </span>
           </div>
 
           <div className="nav-links">
             <span>✨ Create</span>
             <span>🛠️ Modify</span>
+            <span>👀 Preview</span>
             <span>🧪 Test</span>
             <span>🚀 Publish</span>
             <span>↩️ Rollback</span>
           </div>
 
           <div className="status">
-            🛡️ Safety Engine ON
+            🛡️ Safety ON
           </div>
 
         </nav>
@@ -82,7 +85,7 @@ export default function Home() {
         <section className="hero">
 
           <div className="eyebrow">
-            AUTONOMOUS AI ENGINE · V0.1
+            AUTONOMOUS AI ENGINE
           </div>
 
           <h1>
@@ -92,39 +95,41 @@ export default function Home() {
           </h1>
 
           <p className="hero-description">
-            Describe your idea.
+            🌲 From idea to application.
             <br />
-            AI builds the app.
+            🌊 Powered by an autonomous AI engine.
             <br />
-            No coding required.
+            🧠 No coding required.
           </p>
 
-          {/* AI CORE */}
+          {/* FOREST + OCEAN CORE */}
           <div className="ai-core">
-            <div className="ai-core-glow">
-              🧠
-            </div>
+
             <div className="energy energy-left">
               🌲
             </div>
+
+            <div className="ai-core-glow">
+              🧠
+            </div>
+
             <div className="energy energy-right">
               🌊
             </div>
+
           </div>
 
-          {/* BUILDER */}
+          {/* CREATE AREA */}
           <div className="builder-box glass-card">
 
             <div className="builder-heading">
-              🌱 Describe Your App Idea
+              🌱 Describe Your App
             </div>
 
             <textarea
               className="builder-input"
               value={prompt}
-              onChange={(event) =>
-                setPrompt(event.target.value)
-              }
+              onChange={(e) => setPrompt(e.target.value)}
               placeholder="Example: Create a property listing app for Malaysia with search, filters, map view, favorites and contact agent..."
             />
 
@@ -133,7 +138,8 @@ export default function Home() {
               <div className="builder-tags">
                 <span>🌲 Forest</span>
                 <span>🌊 Ocean</span>
-                <span>🛡️ Safety Enabled</span>
+                <span>🧠 AI Engine</span>
+                <span>🛡️ Safety</span>
               </div>
 
               <button
@@ -142,7 +148,7 @@ export default function Home() {
                 disabled={loading}
               >
                 {loading
-                  ? "🧠 AI is building..."
+                  ? "🧠 AI Building..."
                   : "✨ Create My App"}
               </button>
 
@@ -152,53 +158,27 @@ export default function Home() {
 
         </section>
 
-        {/* BLOCKED */}
-        {result?.blocked && (
-          <section className="result">
-
-            <h2>
-              🛡️ Creation Blocked
-            </h2>
-
-            <p className="result-error">
-              {result.reason}
-            </p>
-
-            <p>
-              The Safety Engine detected a request
-              that may involve phishing, credential
-              theft, impersonation, or fraud.
-            </p>
-
-          </section>
-        )}
-
         {/* GENERATED APP */}
         {result?.success && preview && (
           <section className="result">
 
-            <div className="preview-header">
-              <div>
-                <div className="eyebrow">
-                  AI GENERATED
-                </div>
-
-                <h2 className="result-success">
-                  🚀 Your App Preview
-                </h2>
-
-                <p>
-                  <strong>
-                    {previewApp?.name ||
-                      "AI Generated App"}
-                  </strong>
-                </p>
-
-                <p>
-                  {previewApp?.description}
-                </p>
-              </div>
+            <div className="eyebrow">
+              AI GENERATED APPLICATION
             </div>
+
+            <h2 className="result-success">
+              🚀 Your App Preview
+            </h2>
+
+            <p>
+              <strong>
+                {app?.name || "AI Generated App"}
+              </strong>
+            </p>
+
+            <p>
+              {app?.description}
+            </p>
 
             <div className="app-preview-card">
 
@@ -211,9 +191,7 @@ export default function Home() {
                 {homePage?.components?.map(
                   (component, index) => {
 
-                    if (
-                      component.type === "header"
-                    ) {
+                    if (component.type === "header") {
                       return (
                         <h2 key={index}>
                           {component.title}
@@ -221,9 +199,7 @@ export default function Home() {
                       );
                     }
 
-                    if (
-                      component.type === "content"
-                    ) {
+                    if (component.type === "content") {
                       return (
                         <p
                           key={index}
@@ -234,14 +210,11 @@ export default function Home() {
                       );
                     }
 
-                    if (
-                      component.type === "button"
-                    ) {
+                    if (component.type === "button") {
                       return (
                         <button
                           key={index}
                           className="create-button"
-                          type="button"
                         >
                           {component.label}
                         </button>
@@ -266,9 +239,23 @@ export default function Home() {
             </div>
 
             <div className="approval-note">
-              Human approval is required before
-              publishing.
+              Human approval is required before publishing.
             </div>
+
+          </section>
+        )}
+
+        {/* BLOCKED */}
+        {result?.blocked && (
+          <section className="result">
+
+            <h2 className="result-error">
+              🛡️ Creation Blocked
+            </h2>
+
+            <p>
+              {result.reason}
+            </p>
 
           </section>
         )}
@@ -294,79 +281,53 @@ export default function Home() {
         <section className="workflow">
 
           <div className="feature">
-            <div className="feature-icon">
-              🌱
-            </div>
-
-            <div className="feature-title">
-              ✨ Create
-            </div>
-
+            <div className="feature-icon">🌱</div>
+            <div className="feature-title">Create</div>
             <div className="feature-text">
               Describe your idea in natural language.
             </div>
           </div>
 
           <div className="feature">
-            <div className="feature-icon">
-              ⚙️
-            </div>
-
-            <div className="feature-title">
-              🛠️ Modify
-            </div>
-
+            <div className="feature-icon">🌿</div>
+            <div className="feature-title">Modify</div>
             <div className="feature-text">
-              Tell AI what you want to change.
+              Ask AI to change or improve your application.
             </div>
           </div>
 
           <div className="feature">
-            <div className="feature-icon">
-              🧪
-            </div>
-
-            <div className="feature-title">
-              🧪 Test
-            </div>
-
+            <div className="feature-icon">🌊</div>
+            <div className="feature-title">Preview & Test</div>
             <div className="feature-text">
-              Test the app before publishing.
+              See your application before publishing.
             </div>
           </div>
 
           <div className="feature">
-            <div className="feature-icon">
-              🛡️
-            </div>
-
-            <div className="feature-title">
-              🚀 Safe Publish
-            </div>
-
+            <div className="feature-icon">🚀</div>
+            <div className="feature-title">Publish</div>
             <div className="feature-text">
-              Security scan and human approval.
+              Security scan, approval and deployment.
             </div>
           </div>
 
         </section>
 
-        {/* HOW IT WORKS */}
+        {/* USER MANUAL */}
         <section className="guide glass-card">
 
           <div className="eyebrow">
-            AI APP BUILDER
+            USER GUIDE
           </div>
 
           <h2>
-            🌲🌊 HOW IT WORKS
+            📖 How It Works
           </h2>
 
           <p className="guide-intro">
-            从一个想法开始，到真正发布 App。
-            <br />
-            Create → Modify → Preview → Test
-            → Publish → Rollback
+            从一个想法开始，让 Autonomous AI Engine
+            帮你完成整个 App 制作流程。
           </p>
 
           <div className="guide-grid">
@@ -375,7 +336,8 @@ export default function Home() {
               <span>01</span>
               <h3>✨ Create</h3>
               <p>
-                描述你的 App 想法、功能、用户和目标。
+                输入你想制作的 App。
+                不需要写代码。
               </p>
             </div>
 
@@ -383,7 +345,8 @@ export default function Home() {
               <span>02</span>
               <h3>🌱 Modify</h3>
               <p>
-                让 AI 增加、删除或修改功能。
+                告诉 AI 需要增加、
+                删除或修改什么。
               </p>
             </div>
 
@@ -391,7 +354,7 @@ export default function Home() {
               <span>03</span>
               <h3>👀 Preview</h3>
               <p>
-                查看 AI 生成的 App Preview。
+                查看 AI 自动生成的 App。
               </p>
             </div>
 
@@ -399,23 +362,23 @@ export default function Home() {
               <span>04</span>
               <h3>🧪 Test</h3>
               <p>
-                测试页面、按钮、流程和 API。
+                测试功能和使用流程。
               </p>
             </div>
 
             <div className="guide-step">
               <span>05</span>
-              <h3>🚀 Publish</h3>
+              <h3>🛡️ Security</h3>
               <p>
-                通过安全检查和人工批准后发布。
+                发布之前进行安全检查。
               </p>
             </div>
 
             <div className="guide-step">
               <span>06</span>
-              <h3>↩️ Rollback</h3>
+              <h3>🚀 Publish</h3>
               <p>
-                出现问题时恢复到稳定版本。
+                通过检查并确认后发布。
               </p>
             </div>
 
@@ -424,12 +387,17 @@ export default function Home() {
           <div className="guide-note">
 
             🌲 <strong>Forest</strong>
-            {" "}代表成长、稳定与安全。
+            {" "}代表成长、创造、稳定。
 
             <br />
 
             🌊 <strong>Ocean</strong>
-            {" "}代表开放、连接与无限创造。
+            {" "}代表连接、开放、无限可能。
+
+            <br />
+
+            🧠 <strong>Autonomous AI</strong>
+            {" "}负责把你的想法变成真正的 App。
 
           </div>
 
@@ -438,18 +406,16 @@ export default function Home() {
         {/* FOOTER */}
         <footer className="footer">
 
-          <strong>
-            🧠 AI App Builder
-          </strong>
+          🧠 AI App Builder
 
           <br />
 
-          Autonomous AI Engine ·
-          Built for creators
+          Autonomous AI Engine
 
         </footer>
 
       </div>
+
     </main>
   );
 }
