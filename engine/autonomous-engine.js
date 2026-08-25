@@ -1,129 +1,116 @@
-import { securityScan } from "./security-engine.js";
-import { getProvider, getModel } from "./model-router.js";
-import { generateWithAI } from "./ai-provider.js";
+import { generateWithFallback } from "./ai-provider.js";
+import { createPreview } from "./preview-engine.js";
+import { runTest } from "./test-engine.js";
+import { securityCheck } from "./security-engine.js";
+import { checkPublishPermission } from "./publish-permission.js";
 
-export async function buildPlan(prompt) {
-  if (!prompt || typeof prompt !== "string") {
-    return {
-      blocked: true,
-      reason: "Invalid app description.",
-    };
+function extractJson(text) {
+  if (!text) {
+    throw new Error("AI returned an empty response");
   }
 
-  // 1. Security check
-  const scan = securityScan(prompt);
+  const cleaned = text
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
 
-  if (!scan.safe) {
-    return {
-      blocked: true,
-      reason:
-        "This request appears to involve phishing, credential theft, impersonation, or fraudulent behavior.",
-      scan,
-    };
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+
+  if (firstBrace === -1 || lastBrace === -1) {
+    throw new Error("AI did not return valid JSON");
   }
 
-  // 2. Provider
-  const provider = getProvider();
-  const model = getModel();
+  return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+}
 
-  // 3. Ask the AI to understand the app idea
-  let aiOutput = "";
+function buildPrompt(userIdea) {
+  return `
+You are the planning engine of an AI App Builder.
 
-  try {
-    aiOutput = await generateWithAI(prompt);
-  } catch (error) {
-    console.error(
-      "AI_PROVIDER_ERROR:",
-      error
-    );
+The user wants to build:
 
-    // Safe fallback when the AI provider
-    // is not available yet.
-    aiOutput =
-      "AI provider is not connected. Using safe fallback specification.";
+"${userIdea}"
+
+Your job is to convert this idea into a practical app specification.
+
+Return ONLY valid JSON.
+
+Use this exact structure:
+
+{
+  "name": "App name",
+  "description": "Short description",
+  "pages": [
+    {
+      "name": "Page name",
+      "purpose": "What this page does"
+    }
+  ],
+  "features": [
+    {
+      "name": "Feature name",
+      "description": "What the feature does"
+    }
+  ],
+  "data": [
+    {
+      "name": "Data type",
+      "fields": ["field1", "field2"]
+    }
+  ],
+  "actions": [
+    {
+      "name": "Action name",
+      "description": "What happens"
+    }
+  ]
+}
+
+Rules:
+
+1. Keep the app simple enough to build.
+2. Create only pages that are useful.
+3. Infer missing details intelligently.
+4. Do not include explanations outside JSON.
+5. Do not include source code.
+6. The result must describe an app that a normal non-technical user can understand.
+`;
+}
+
+export async function runAutonomousEngine(userIdea) {
+  if (!userIdea || !userIdea.trim()) {
+    throw new Error("Please describe the app you want to build.");
   }
 
-  // 4. Build application specification
-  const appSpecification = {
-    name: "AI Generated App",
+  const planResponse = await generateWithFallback(
+    buildPrompt(userIdea.trim())
+  );
 
-    goal: prompt,
+  const specification = extractJson(planResponse.result);
 
-    aiOutput,
+  const preview = await createPreview({
+    idea: userIdea.trim(),
+    specification,
+  });
 
-    provider,
+  const test = await runTest(preview);
 
-    model,
+  const security = await securityCheck(preview);
 
-    pages: [
-      {
-        id: "home",
-
-        name: "Home",
-
-        components: [
-          {
-            type: "header",
-
-            title: "AI Generated App",
-          },
-
-          {
-            type: "content",
-
-            text: prompt,
-          },
-
-          {
-            type: "button",
-
-            label: "Get Started",
-
-            action: "start",
-          },
-        ],
-      },
-    ],
-
-    features: [
-      "AI generated structure",
-      "Responsive interface",
-      "Editable components",
-      "Preview mode",
-      "Safety testing",
-    ],
-
-    stages: [
-      "Create",
-      "Modify",
-      "Preview",
-      "Test",
-      "Security Scan",
-      "Human Approval",
-      "Publish",
-    ],
-
-    safety: {
-      scanned: true,
-
-      humanApprovalRequired: true,
-
-      automaticPublishing: false,
-    },
-  };
+  const publish = await checkPublishPermission({
+    test,
+    security,
+  });
 
   return {
-    blocked: false,
-
-    provider,
-
-    model,
-
-    app: appSpecification,
-
-    scan,
-
-    message:
-      "Autonomous AI Engine generated an application specification.",
+    status: "ready",
+    idea: userIdea.trim(),
+    specification,
+    preview,
+    test,
+    security,
+    publish,
+    aiProvider: planResponse.provider,
   };
 }
