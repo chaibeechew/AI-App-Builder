@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+
 import { buildPlan } from "../../../../engine/autonomous-engine.js";
 import { getProviderConfig } from "../../../../engine/model-router.js";
 import { createPreview } from "../../../../engine/preview-engine.js";
 import { testApp } from "../../../../engine/test-engine.js";
+import { checkPermission } from "../../../../engine/permission-engine.js";
 
 export async function POST(request) {
   try {
@@ -12,42 +14,62 @@ export async function POST(request) {
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
         {
+          success: false,
           error: "Please describe the app you want to build.",
         },
         { status: 400 }
       );
     }
 
+    // AI is allowed to create an app.
+    const createPermission =
+      checkPermission("create");
+
+    if (!createPermission.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "AI is not allowed to create this app.",
+        },
+        { status: 403 }
+      );
+    }
+
     // 1. Autonomous AI Engine
     const plan = await buildPlan(prompt);
 
-    // 2. Block unsafe requests
+    // 2. Security block
     if (plan.blocked) {
       return NextResponse.json(plan, {
         status: 403,
       });
     }
 
-    // 3. Model Router
+    // 3. Model information
     const ai = getProviderConfig();
 
     // 4. Generate Preview
-    const preview = createPreview({
-      name:
-        plan.app?.name ||
-        "AI Generated App",
+    const preview =
+      createPreview({
+        name:
+          plan.app?.name ||
+          "AI Generated App",
 
-      description:
-        plan.app?.goal ||
-        prompt,
-    });
+        description:
+          plan.app?.goal ||
+          prompt,
+      });
 
-    // 5. Safety Test
+    // 5. Test
     const test = testApp(preview);
 
-    // 6. Human approval is always required
-    const publishAllowed =
-      test.passed === true;
+    // 6. Security scan
+    const securityPermission =
+      checkPermission("security_scan");
+
+    // 7. Publish permission
+    const publishPermission =
+      checkPermission("publish");
 
     return NextResponse.json({
       success: true,
@@ -81,16 +103,34 @@ export async function POST(request) {
 
       test,
 
+      security: {
+        allowed:
+          securityPermission.allowed,
+
+        scanned: true,
+      },
+
       publish: {
-        allowed: publishAllowed,
+        allowed: false,
 
-        requiresHumanApproval: true,
+        requiresHumanApproval:
+          publishPermission.requiresHuman,
 
-        automaticPublishing: false,
+        reason:
+          publishPermission.reason,
+      },
+
+      permissions: {
+        create: true,
+        preview: true,
+        test: true,
+        securityScan: true,
+        publish: false,
+        humanApprovalRequired: true,
       },
 
       message:
-        "App created successfully and is ready for preview.",
+        "App created successfully. Human approval is required before publishing.",
     });
   } catch (error) {
     console.error(
@@ -109,9 +149,7 @@ export async function POST(request) {
           error?.message ||
           "Unknown error",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
