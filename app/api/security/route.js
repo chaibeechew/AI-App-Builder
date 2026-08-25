@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { securityScan } from "../../../../engine/security-engine.js";
+import { securityScan } from "../../../engine/security-engine.js";
 
 export async function POST(request) {
   try {
