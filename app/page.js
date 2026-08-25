@@ -82,8 +82,18 @@ export default function Home() {
       }
 
       setProgress(100);
-      setStepIndex(steps.length);
-      setResult(data);
+setStepIndex(steps.length);
+
+const generatedApp = data.preview;
+
+if (generatedApp?.id) {
+  localStorage.setItem(
+    `ai-app-${generatedApp.id}`,
+    JSON.stringify(generatedApp)
+  );
+}
+
+setResult(data);
     } catch (err) {
       setError(err?.message || "Something went wrong.");
     } finally {
@@ -237,7 +247,23 @@ export default function Home() {
               border: "1px solid #ddd",
             }}
           >
-            <h2>🎉 Your App is Ready</h2>
+            {result?.preview?.id && (
+  <button
+    onClick={() => {
+      window.location.href = `/app/generated/${result.preview.id}`;
+    }}
+    style={{
+      marginTop: 20,
+      padding: "14px 24px",
+      fontSize: 17,
+      borderRadius: 10,
+      border: "none",
+      cursor: "pointer",
+    }}
+  >
+    Open My App →
+  </button>
+)}
 
             <h3>{result.specification.name}</h3>
 
