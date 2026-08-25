@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { buildPlan } from "../../../../engine/autonomous-engine.js";
 import { getProviderConfig } from "../../../../engine/model-router.js";
 import { createPreview } from "../../../../engine/preview-engine.js";
+import { testApp } from "../../../../engine/test-engine.js";
 
 export async function POST(request) {
   try {
@@ -17,21 +18,30 @@ export async function POST(request) {
       );
     }
 
-    // 1. Safety + autonomous planning
+    // 1. Autonomous planning + safety
     const plan = buildPlan(prompt);
 
     if (plan.blocked) {
-      return NextResponse.json(plan, { status: 403 });
+      return NextResponse.json(plan, {
+        status: 403,
+      });
     }
 
-    // 2. Model information
+    // 2. Model router
     const ai = getProviderConfig();
 
-    // 3. Create preview
+    // 3. Generate preview
     const preview = createPreview({
       name: "AI Generated App",
       description: prompt,
     });
+
+    // 4. Test generated app
+    const test = testApp(preview);
+
+    // 5. Publishing is NEVER automatic
+    const publishAllowed =
+      test.passed && !preview.safety?.publishBlocked;
 
     return NextResponse.json({
       success: true,
@@ -57,8 +67,16 @@ export async function POST(request) {
 
       preview,
 
-      message:
-        "Your app has been created and is ready for preview.",
+      test,
+
+      publish: {
+        allowed: publishAllowed,
+        requiresHumanApproval: true,
+      },
+
+      message: test.passed
+        ? "App created successfully and passed the initial safety test."
+        : "App created but requires safety review before publishing.",
     });
   } catch (error) {
     return NextResponse.json(
