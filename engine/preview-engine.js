@@ -1,51 +1,105 @@
-export function createPreview(appPlan) {
-  if (!appPlan || typeof appPlan !== "object") {
-    throw new Error("Invalid app plan.");
+function slugify(value = "") {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function createPage(page, index) {
+  return {
+    id: `${slugify(page.name)}-${index + 1}`,
+    name: page.name,
+    purpose: page.purpose || "",
+    components: [
+      {
+        type: "header",
+        title: page.name,
+      },
+      {
+        type: "content",
+        description: page.purpose || "",
+      },
+    ],
+  };
+}
+
+function createFeature(feature, index) {
+  return {
+    id: `${slugify(feature.name)}-${index + 1}`,
+    name: feature.name,
+    description: feature.description || "",
+    enabled: true,
+  };
+}
+
+function createDataModel(data, index) {
+  return {
+    id: `${slugify(data.name)}-${index + 1}`,
+    name: data.name,
+    fields: Array.isArray(data.fields) ? data.fields : [],
+  };
+}
+
+function createAction(action, index) {
+  return {
+    id: `${slugify(action.name)}-${index + 1}`,
+    name: action.name,
+    description: action.description || "",
+  };
+}
+
+export async function createPreview({ idea, specification }) {
+  if (!specification) {
+    throw new Error("Missing app specification");
   }
 
+  const pages = Array.isArray(specification.pages)
+    ? specification.pages.map(createPage)
+    : [];
+
+  const features = Array.isArray(specification.features)
+    ? specification.features.map(createFeature)
+    : [];
+
+  const data = Array.isArray(specification.data)
+    ? specification.data.map(createDataModel)
+    : [];
+
+  const actions = Array.isArray(specification.actions)
+    ? specification.actions.map(createAction)
+    : [];
+
+  const appName =
+    specification.name ||
+    idea ||
+    "AI Generated App";
+
   return {
-    type: "app-preview",
+    id: `app-${Date.now()}`,
+    name: appName,
+    description: specification.description || "",
+    idea,
 
-    version: "0.1",
+    status: "preview",
 
-    app: {
-      name: appPlan.name || "AI Generated App",
+    pages,
 
-      description:
-        appPlan.description ||
-        "AI generated application",
+    features,
 
-      pages: [
-        {
-          id: "home",
-          name: "Home",
-          type: "home",
-          components: [
-            {
-              type: "header",
-              title: appPlan.name || "My App",
-            },
+    data,
 
-            {
-              type: "content",
-              text:
-                appPlan.description ||
-                "Welcome to your AI generated app.",
-            },
+    actions,
 
-            {
-              type: "button",
-              label: "Get Started",
-              action: "start",
-            },
-          ],
-        },
-      ],
-    },
+    navigation: pages.map((page) => ({
+      id: page.id,
+      label: page.name,
+    })),
 
-    safety: {
-      scanned: true,
-      publishRequiresApproval: true,
+    createdAt: new Date().toISOString(),
+
+    metadata: {
+      generatedBy: "Autonomous AI Engine",
+      version: "1.0",
     },
   };
 }
