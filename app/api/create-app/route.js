@@ -1,10 +1,10 @@
+import { NextResponse } from "next/server";
+
 import { buildPlan } from "../../../engine/autonomous-engine.js";
 import { getProviderConfig } from "../../../engine/model-router.js";
 import { createPreview } from "../../../engine/preview-engine.js";
 import { testApp } from "../../../engine/test-engine.js";
 import { checkPermission } from "../../../engine/permission-engine.js";
-import { testApp } from "../../../../engine/test-engine.js";
-import { checkPermission } from "../../../../engine/permission-engine.js";
 
 export async function POST(request) {
   try {
@@ -21,9 +21,8 @@ export async function POST(request) {
       );
     }
 
-    // AI is allowed to create an app.
-    const createPermission =
-      checkPermission("create");
+    // AI is allowed to create apps.
+    const createPermission = checkPermission("create");
 
     if (!createPermission.allowed) {
       return NextResponse.json(
@@ -35,39 +34,33 @@ export async function POST(request) {
       );
     }
 
-    // 1. Autonomous AI Engine
-    const plan = await buildPlan(prompt);
+    // Build the autonomous AI plan.
+    const plan = buildPlan(prompt);
 
-    // 2. Security block
+    // Security block.
     if (plan.blocked) {
       return NextResponse.json(plan, {
         status: 403,
       });
     }
 
-    // 3. Model information
+    // Current AI provider.
     const ai = getProviderConfig();
 
-    // 4. Generate Preview
-    const preview =
-      createPreview({
-        name:
-          plan.app?.name ||
-          "AI Generated App",
+    // Generate preview.
+    const preview = createPreview({
+      name: plan.app?.name || "AI Generated App",
+      description: plan.app?.goal || prompt,
+    });
 
-        description:
-          plan.app?.goal ||
-          prompt,
-      });
-
-    // 5. Test
+    // Test generated app.
     const test = testApp(preview);
 
-    // 6. Security scan
+    // Security scan permission.
     const securityPermission =
       checkPermission("security_scan");
 
-    // 7. Publish permission
+    // Publishing always requires human approval.
     const publishPermission =
       checkPermission("publish");
 
@@ -79,24 +72,19 @@ export async function POST(request) {
       model: ai,
 
       app: {
-        name:
-          plan.app?.name ||
-          "AI Generated App",
+        name: plan.app?.name || "AI Generated App",
 
-        description:
-          plan.app?.goal ||
-          prompt,
+        description: plan.app?.goal || prompt,
 
-        stages:
-          plan.app?.stages || [
-            "Create",
-            "Modify",
-            "Preview",
-            "Test",
-            "Security Scan",
-            "Human Approval",
-            "Publish",
-          ],
+        stages: plan.app?.stages || [
+          "Create",
+          "Modify",
+          "Preview",
+          "Test",
+          "Security Scan",
+          "Human Approval",
+          "Publish",
+        ],
       },
 
       preview,
@@ -104,20 +92,15 @@ export async function POST(request) {
       test,
 
       security: {
-        allowed:
-          securityPermission.allowed,
-
+        allowed: securityPermission.allowed,
         scanned: true,
       },
 
       publish: {
         allowed: false,
-
         requiresHumanApproval:
           publishPermission.requiresHuman,
-
-        reason:
-          publishPermission.reason,
+        reason: publishPermission.reason,
       },
 
       permissions: {
@@ -133,21 +116,14 @@ export async function POST(request) {
         "App created successfully. Human approval is required before publishing.",
     });
   } catch (error) {
-    console.error(
-      "CREATE_APP_ERROR:",
-      error
-    );
+    console.error("CREATE_APP_ERROR:", error);
 
     return NextResponse.json(
       {
         success: false,
-
-        error:
-          "AI App Builder failed.",
-
+        error: "AI App Builder failed.",
         details:
-          error?.message ||
-          "Unknown error",
+          error?.message || "Unknown error",
       },
       { status: 500 }
     );
