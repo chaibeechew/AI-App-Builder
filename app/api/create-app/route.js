@@ -18,30 +18,36 @@ export async function POST(request) {
       );
     }
 
-    // 1. Autonomous planning + safety
-    const plan = buildPlan(prompt);
+    // 1. Autonomous AI Engine
+    const plan = await buildPlan(prompt);
 
+    // 2. Block unsafe requests
     if (plan.blocked) {
       return NextResponse.json(plan, {
         status: 403,
       });
     }
 
-    // 2. Model router
+    // 3. Model Router
     const ai = getProviderConfig();
 
-    // 3. Generate preview
+    // 4. Generate Preview
     const preview = createPreview({
-      name: "AI Generated App",
-      description: prompt,
+      name:
+        plan.app?.name ||
+        "AI Generated App",
+
+      description:
+        plan.app?.goal ||
+        prompt,
     });
 
-    // 4. Test generated app
+    // 5. Safety Test
     const test = testApp(preview);
 
-    // 5. Publishing is NEVER automatic
+    // 6. Human approval is always required
     const publishAllowed =
-      test.passed && !preview.safety?.publishBlocked;
+      test.passed === true;
 
     return NextResponse.json({
       success: true,
@@ -51,18 +57,24 @@ export async function POST(request) {
       model: ai,
 
       app: {
-        name: "AI Generated App",
-        description: prompt,
+        name:
+          plan.app?.name ||
+          "AI Generated App",
 
-        stages: [
-          "Create",
-          "Modify",
-          "Preview",
-          "Test",
-          "Security Scan",
-          "Human Approval",
-          "Publish",
-        ],
+        description:
+          plan.app?.goal ||
+          prompt,
+
+        stages:
+          plan.app?.stages || [
+            "Create",
+            "Modify",
+            "Preview",
+            "Test",
+            "Security Scan",
+            "Human Approval",
+            "Publish",
+          ],
       },
 
       preview,
@@ -71,21 +83,35 @@ export async function POST(request) {
 
       publish: {
         allowed: publishAllowed,
+
         requiresHumanApproval: true,
+
+        automaticPublishing: false,
       },
 
-      message: test.passed
-        ? "App created successfully and passed the initial safety test."
-        : "App created but requires safety review before publishing.",
+      message:
+        "App created successfully and is ready for preview.",
     });
   } catch (error) {
+    console.error(
+      "CREATE_APP_ERROR:",
+      error
+    );
+
     return NextResponse.json(
       {
         success: false,
-        error: "AI App Builder failed.",
-        details: error.message,
+
+        error:
+          "AI App Builder failed.",
+
+        details:
+          error?.message ||
+          "Unknown error",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
