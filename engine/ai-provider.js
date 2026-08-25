@@ -161,3 +161,72 @@ export async function generateWithAI(prompt) {
       throw new Error(`Unsupported AI provider: ${provider}`);
   }
 }
+const FALLBACK_ORDER = [
+  "ollama",
+  "gemini",
+  "groq",
+  "cerebras",
+  "deepseek",
+  "openai",
+];
+
+function isConfigured(provider) {
+  const keys = {
+    ollama: process.env.OLLAMA_BASE_URL,
+    gemini: process.env.GEMINI_API_KEY,
+    groq: process.env.GROQ_API_KEY,
+    cerebras: process.env.CEREBRAS_API_KEY,
+    deepseek: process.env.DEEPSEEK_API_KEY,
+    openai: process.env.OPENAI_API_KEY,
+  };
+
+  return Boolean(keys[provider]);
+}
+
+export async function generateWithFallback(prompt) {
+  const configuredProvider = getProviderConfig().provider;
+
+  const startIndex = FALLBACK_ORDER.indexOf(configuredProvider);
+
+  const providers =
+    startIndex >= 0
+      ? [
+          ...FALLBACK_ORDER.slice(startIndex),
+          ...FALLBACK_ORDER.slice(0, startIndex),
+        ]
+      : FALLBACK_ORDER;
+
+  const errors = [];
+
+  for (const provider of providers) {
+    if (!isConfigured(provider)) {
+      continue;
+    }
+
+    try {
+      const originalProvider = process.env.AI_PROVIDER;
+
+      process.env.AI_PROVIDER = provider;
+
+      const result = await generateWithAI(prompt);
+
+      process.env.AI_PROVIDER = originalProvider;
+
+      if (result) {
+        return {
+          provider,
+          result,
+        };
+      }
+    } catch (error) {
+      errors.push({
+        provider,
+        error: error?.message || "Unknown error",
+      });
+    }
+  }
+
+  throw new Error(
+    `All configured AI providers failed: ${JSON.stringify(errors)}`
+  );
+}
