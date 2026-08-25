@@ -3,419 +3,175 @@
 import { useState } from "react";
 
 export default function Home() {
-  const [prompt, setPrompt] = useState("");
-  const [result, setResult] = useState(null);
+  const [idea, setIdea] = useState("");
   const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
   async function createApp() {
-    if (!prompt.trim() || loading) return;
+    const value = idea.trim();
+
+    if (!value) {
+      setError("Tell me what you want to build.");
+      return;
+    }
 
     setLoading(true);
+    setError("");
     setResult(null);
 
     try {
-      const response = await fetch("/api/create-app", {
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: prompt.trim(),
+          idea: value,
         }),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Unable to create app.");
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Unable to generate app.");
       }
 
       setResult(data);
-    } catch (error) {
-      setResult({
-        success: false,
-        error: error.message,
-      });
+    } catch (err) {
+      setError(err?.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
   }
 
-  const preview = result?.preview;
-  const app = preview?.app;
-  const homePage = app?.pages?.[0];
-
   return (
-    <main className="app-shell">
+    <main
+      style={{
+        minHeight: "100vh",
+        padding: "60px 24px",
+        fontFamily: "Arial, sans-serif",
+        background: "#f7f7f5",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 900,
+          margin: "0 auto",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: 48,
+            marginBottom: 12,
+          }}
+        >
+          AI App Builder
+        </h1>
 
-      <div className="forest-layer" />
-      <div className="ocean-layer" />
-      <div className="ambient ambient-forest" />
-      <div className="ambient ambient-ocean" />
+        <p
+          style={{
+            fontSize: 20,
+            color: "#666",
+            marginBottom: 32,
+          }}
+        >
+          Describe your idea. AI builds your app.
+        </p>
 
-      <div className="container">
+        <textarea
+          value={idea}
+          onChange={(e) => setIdea(e.target.value)}
+          placeholder="Example: Build a real estate CRM for managing clients and properties..."
+          rows={6}
+          style={{
+            width: "100%",
+            padding: 18,
+            fontSize: 18,
+            borderRadius: 12,
+            border: "1px solid #ccc",
+            resize: "vertical",
+            boxSizing: "border-box",
+          }}
+        />
 
-        {/* NAVBAR */}
-        <nav className="navbar glass-card">
+        <button
+          onClick={createApp}
+          disabled={loading}
+          style={{
+            marginTop: 16,
+            padding: "15px 28px",
+            fontSize: 18,
+            borderRadius: 10,
+            border: "none",
+            cursor: loading ? "wait" : "pointer",
+          }}
+        >
+          {loading ? "AI is building..." : "Create App"}
+        </button>
 
-          <div className="logo">
-            🧠
-            <span>
-              AI App Builder
-              <small>Autonomous AI Engine</small>
-            </span>
+        {error && (
+          <div
+            style={{
+              marginTop: 24,
+              padding: 16,
+              borderRadius: 10,
+              background: "#ffe8e8",
+            }}
+          >
+            {error}
           </div>
-
-          <div className="nav-links">
-            <span>✨ Create</span>
-            <span>🛠️ Modify</span>
-            <span>👀 Preview</span>
-            <span>🧪 Test</span>
-            <span>🚀 Publish</span>
-            <span>↩️ Rollback</span>
-          </div>
-
-          <div className="status">
-            🛡️ Safety ON
-          </div>
-
-        </nav>
-
-        {/* HERO */}
-        <section className="hero">
-
-          <div className="eyebrow">
-            AUTONOMOUS AI ENGINE
-          </div>
-
-          <h1>
-            Create Any App
-            <br />
-            <span>With AI</span>
-          </h1>
-
-          <p className="hero-description">
-            🌲 From idea to application.
-            <br />
-            🌊 Powered by an autonomous AI engine.
-            <br />
-            🧠 No coding required.
-          </p>
-
-          {/* FOREST + OCEAN CORE */}
-          <div className="ai-core">
-
-            <div className="energy energy-left">
-              🌲
-            </div>
-
-            <div className="ai-core-glow">
-              🧠
-            </div>
-
-            <div className="energy energy-right">
-              🌊
-            </div>
-
-          </div>
-
-          {/* CREATE AREA */}
-          <div className="builder-box glass-card">
-
-            <div className="builder-heading">
-              🌱 Describe Your App
-            </div>
-
-            <textarea
-              className="builder-input"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Example: Create a property listing app for Malaysia with search, filters, map view, favorites and contact agent..."
-            />
-
-            <div className="builder-actions">
-
-              <div className="builder-tags">
-                <span>🌲 Forest</span>
-                <span>🌊 Ocean</span>
-                <span>🧠 AI Engine</span>
-                <span>🛡️ Safety</span>
-              </div>
-
-              <button
-                className="create-button"
-                onClick={createApp}
-                disabled={loading}
-              >
-                {loading
-                  ? "🧠 AI Building..."
-                  : "✨ Create My App"}
-              </button>
-
-            </div>
-
-          </div>
-
-        </section>
-
-        {/* GENERATED APP */}
-        {result?.success && preview && (
-          <section className="result">
-
-            <div className="eyebrow">
-              AI GENERATED APPLICATION
-            </div>
-
-            <h2 className="result-success">
-              🚀 Your App Preview
-            </h2>
-
-            <p>
-              <strong>
-                {app?.name || "AI Generated App"}
-              </strong>
-            </p>
-
-            <p>
-              {app?.description}
-            </p>
-
-            <div className="app-preview-card">
-
-              <div className="preview-topbar">
-                📱 {homePage?.name || "Home"}
-              </div>
-
-              <div className="preview-content">
-
-                {homePage?.components?.map(
-                  (component, index) => {
-
-                    if (component.type === "header") {
-                      return (
-                        <h2 key={index}>
-                          {component.title}
-                        </h2>
-                      );
-                    }
-
-                    if (component.type === "content") {
-                      return (
-                        <p
-                          key={index}
-                          className="preview-text"
-                        >
-                          {component.text}
-                        </p>
-                      );
-                    }
-
-                    if (component.type === "button") {
-                      return (
-                        <button
-                          key={index}
-                          className="create-button"
-                        >
-                          {component.label}
-                        </button>
-                      );
-                    }
-
-                    return null;
-                  }
-                )}
-
-              </div>
-
-            </div>
-
-            <div className="security-result">
-              🛡️ Security Scan:{" "}
-              <strong>
-                {preview.safety?.scanned
-                  ? "Passed"
-                  : "Pending"}
-              </strong>
-            </div>
-
-            <div className="approval-note">
-              Human approval is required before publishing.
-            </div>
-
-          </section>
         )}
 
-        {/* BLOCKED */}
-        {result?.blocked && (
-          <section className="result">
+        {result?.specification && (
+          <section
+            style={{
+              marginTop: 40,
+              padding: 28,
+              background: "#fff",
+              borderRadius: 16,
+              border: "1px solid #ddd",
+            }}
+          >
+            <h2>{result.specification.name}</h2>
 
-            <h2 className="result-error">
-              🛡️ Creation Blocked
-            </h2>
+            <p>{result.specification.description}</p>
 
-            <p>
-              {result.reason}
+            <h3>Pages</h3>
+
+            <ul>
+              {result.specification.pages?.map((page) => (
+                <li key={page.name}>
+                  <strong>{page.name}</strong>
+                  {" — "}
+                  {page.purpose}
+                </li>
+              ))}
+            </ul>
+
+            <h3>Features</h3>
+
+            <ul>
+              {result.specification.features?.map((feature) => (
+                <li key={feature.name}>
+                  <strong>{feature.name}</strong>
+                  {" — "}
+                  {feature.description}
+                </li>
+              ))}
+            </ul>
+
+            <p
+              style={{
+                marginTop: 24,
+                color: "#666",
+              }}
+            >
+              Generated by: {result.aiProvider}
             </p>
-
           </section>
         )}
-
-        {/* ERROR */}
-        {result &&
-          !result.success &&
-          !result.blocked && (
-            <section className="result">
-
-              <h2 className="result-error">
-                ⚠️ Error
-              </h2>
-
-              <p>
-                {result.error}
-              </p>
-
-            </section>
-          )}
-
-        {/* WORKFLOW */}
-        <section className="workflow">
-
-          <div className="feature">
-            <div className="feature-icon">🌱</div>
-            <div className="feature-title">Create</div>
-            <div className="feature-text">
-              Describe your idea in natural language.
-            </div>
-          </div>
-
-          <div className="feature">
-            <div className="feature-icon">🌿</div>
-            <div className="feature-title">Modify</div>
-            <div className="feature-text">
-              Ask AI to change or improve your application.
-            </div>
-          </div>
-
-          <div className="feature">
-            <div className="feature-icon">🌊</div>
-            <div className="feature-title">Preview & Test</div>
-            <div className="feature-text">
-              See your application before publishing.
-            </div>
-          </div>
-
-          <div className="feature">
-            <div className="feature-icon">🚀</div>
-            <div className="feature-title">Publish</div>
-            <div className="feature-text">
-              Security scan, approval and deployment.
-            </div>
-          </div>
-
-        </section>
-
-        {/* USER MANUAL */}
-        <section className="guide glass-card">
-
-          <div className="eyebrow">
-            USER GUIDE
-          </div>
-
-          <h2>
-            📖 How It Works
-          </h2>
-
-          <p className="guide-intro">
-            从一个想法开始，让 Autonomous AI Engine
-            帮你完成整个 App 制作流程。
-          </p>
-
-          <div className="guide-grid">
-
-            <div className="guide-step">
-              <span>01</span>
-              <h3>✨ Create</h3>
-              <p>
-                输入你想制作的 App。
-                不需要写代码。
-              </p>
-            </div>
-
-            <div className="guide-step">
-              <span>02</span>
-              <h3>🌱 Modify</h3>
-              <p>
-                告诉 AI 需要增加、
-                删除或修改什么。
-              </p>
-            </div>
-
-            <div className="guide-step">
-              <span>03</span>
-              <h3>👀 Preview</h3>
-              <p>
-                查看 AI 自动生成的 App。
-              </p>
-            </div>
-
-            <div className="guide-step">
-              <span>04</span>
-              <h3>🧪 Test</h3>
-              <p>
-                测试功能和使用流程。
-              </p>
-            </div>
-
-            <div className="guide-step">
-              <span>05</span>
-              <h3>🛡️ Security</h3>
-              <p>
-                发布之前进行安全检查。
-              </p>
-            </div>
-
-            <div className="guide-step">
-              <span>06</span>
-              <h3>🚀 Publish</h3>
-              <p>
-                通过检查并确认后发布。
-              </p>
-            </div>
-
-          </div>
-
-          <div className="guide-note">
-
-            🌲 <strong>Forest</strong>
-            {" "}代表成长、创造、稳定。
-
-            <br />
-
-            🌊 <strong>Ocean</strong>
-            {" "}代表连接、开放、无限可能。
-
-            <br />
-
-            🧠 <strong>Autonomous AI</strong>
-            {" "}负责把你的想法变成真正的 App。
-
-          </div>
-
-        </section>
-
-        {/* FOOTER */}
-        <footer className="footer">
-
-          🧠 AI App Builder
-
-          <br />
-
-          Autonomous AI Engine
-
-        </footer>
-
       </div>
-
     </main>
   );
 }
