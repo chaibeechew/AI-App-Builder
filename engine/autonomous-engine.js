@@ -1,8 +1,7 @@
+import { createPreview } from "./preview-engine.js";
 import { testApp } from "./test-engine.js";
 import { securityScan } from "./security-engine.js";
-import { runTest } from "./test-engine.js";
-import { securityCheck } from "./security-engine.js";
-import { checkPublishPermission } from "./publish-permission.js";
+import { getAvailableProviders } from "./model-router.js";
 
 function extractJson(text) {
   if (!text) {
@@ -32,11 +31,9 @@ The user wants to build:
 
 "${userIdea}"
 
-Your job is to convert this idea into a practical app specification.
+Convert this idea into a practical app specification.
 
-Return ONLY valid JSON.
-
-Use this exact structure:
+Return ONLY valid JSON:
 
 {
   "name": "App name",
@@ -68,14 +65,148 @@ Use this exact structure:
 }
 
 Rules:
-
-1. Keep the app simple enough to build.
-2. Create only pages that are useful.
+1. Keep the app practical.
+2. Create only useful pages.
 3. Infer missing details intelligently.
-4. Do not include explanations outside JSON.
-5. Do not include source code.
-6. The result must describe an app that a normal non-technical user can understand.
+4. Return JSON only.
+5. Do not return source code.
+6. Make the result understandable to non-technical users.
 `;
+}
+
+async function callProvider(provider, model, prompt) {
+  if (provider === "ollama") {
+    const base =
+      process.env.OLLAMA_BASE_URL || "http://localhost:11434";
+
+    const response = await fetch(`${base}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return data?.message?.content || "";
+  }
+
+  if (provider === "gemini") {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.2,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return (
+      data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
+    );
+  }
+
+  const keyMap = {
+    groq: process.env.GROQ_API_KEY,
+    cerebras: process.env.CEREBRAS_API_KEY,
+    deepseek: process.env.DEEPSEEK_API_KEY,
+    openai: process.env.OPENAI_API_KEY,
+  };
+
+  const urlMap = {
+    groq: "https://api.groq.com/openai/v1/chat/completions",
+    cerebras: "https://api.cerebras.ai/v1/chat/completions",
+    deepseek: "https://api.deepseek.com/chat/completions",
+    openai: "https://api.openai.com/v1/chat/completions",
+  };
+
+  const key = keyMap[provider];
+
+  if (!key) {
+    throw new Error(`${provider} API key is not configured`);
+  }
+
+  const response = await fetch(urlMap[provider], {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`${provider} HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  return data?.choices?.[0]?.message?.content || "";
+}
+
+async function generateWithFallback(prompt) {
+  const providers = getAvailableProviders();
+
+  if (!providers.length) {
+    throw new Error(
+      "No AI provider is configured. Add a free AI provider API key in Vercel Environment Variables."
+    );
+  }
+
+  let lastError = null;
+
+  for (const config of providers) {
+    try {
+      const result = await callProvider(
+        config.provider,
+        config.model,
+        prompt
+      );
+
+      if (result) {
+        return {
+          result,
+          provider: config.provider,
+          model: config.model,
+        };
+      }
+    } catch (error) {
+      console.error(
+        `AI provider ${config.provider} failed:`,
+        error
+      );
+
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("All AI providers failed");
 }
 
 export async function runAutonomousEngine(userIdea) {
@@ -95,12 +226,7 @@ export async function runAutonomousEngine(userIdea) {
   });
 
   const test = testApp(preview);
-
-const security = securityScan(preview);
-  const publish = await checkPublishPermission({
-    test,
-    security,
-  });
+  const security = securityScan(preview);
 
   return {
     status: "ready",
@@ -109,7 +235,12 @@ const security = securityScan(preview);
     preview,
     test,
     security,
-    publish,
+    publish: {
+      allowed: false,
+      requiresHumanApproval: true,
+      reason: "Publishing requires human approval.",
+    },
     aiProvider: planResponse.provider,
+    aiModel: planResponse.model,
   };
 }
