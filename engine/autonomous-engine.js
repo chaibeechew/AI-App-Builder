@@ -1,5 +1,6 @@
 import { securityScan } from "./security-engine.js";
 import { getProvider, getModel } from "./model-router.js";
+import { generateWithAI } from "./ai-provider.js";
 
 export async function buildPlan(prompt) {
   if (!prompt || typeof prompt !== "string") {
@@ -9,38 +10,46 @@ export async function buildPlan(prompt) {
     };
   }
 
-  // --------------------------------------------------
   // 1. Security check
-  // --------------------------------------------------
-
   const scan = securityScan(prompt);
 
   if (!scan.safe) {
     return {
       blocked: true,
-
       reason:
         "This request appears to involve phishing, credential theft, impersonation, or fraudulent behavior.",
-
       scan,
     };
   }
 
-  // --------------------------------------------------
-  // 2. Select AI provider
-  // --------------------------------------------------
-
+  // 2. Provider
   const provider = getProvider();
   const model = getModel();
 
-  // --------------------------------------------------
-  // 3. Create structured App Specification
-  // --------------------------------------------------
+  // 3. Ask the AI to understand the app idea
+  let aiOutput = "";
 
+  try {
+    aiOutput = await generateWithAI(prompt);
+  } catch (error) {
+    console.error(
+      "AI_PROVIDER_ERROR:",
+      error
+    );
+
+    // Safe fallback when the AI provider
+    // is not available yet.
+    aiOutput =
+      "AI provider is not connected. Using safe fallback specification.";
+  }
+
+  // 4. Build application specification
   const appSpecification = {
     name: "AI Generated App",
 
     goal: prompt,
+
+    aiOutput,
 
     provider,
 
@@ -77,10 +86,11 @@ export async function buildPlan(prompt) {
     ],
 
     features: [
-      "Responsive interface",
       "AI generated structure",
+      "Responsive interface",
       "Editable components",
       "Preview mode",
+      "Safety testing",
     ],
 
     stages: [
@@ -114,6 +124,6 @@ export async function buildPlan(prompt) {
     scan,
 
     message:
-      "App specification generated successfully.",
+      "Autonomous AI Engine generated an application specification.",
   };
 }
