@@ -1,91 +1,93 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function Home() {
   const [language, setLanguage] = useState("en");
-  const [theme, setTheme] = useState("forest");
   const [idea, setIdea] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState(null);
+  const [error, setError] = useState("");
 
-  const isZh = language === "zh";
+  const zh = language === "zh";
 
-  const themes = [
-    ["forest", "🌿", isZh ? "森林" : "Forest"],
-    ["ocean", "🌊", isZh ? "大海" : "Ocean"],
-    ["sky", "☁️", isZh ? "天空" : "Sky"],
-    ["glass", "✦", isZh ? "毛玻璃" : "Glass"],
-    ["dark", "◈", isZh ? "深空" : "Neon"],
-    ["minimal", "○", isZh ? "极简" : "Minimal"],
-    ["warm", "◒", isZh ? "暖沙" : "Warm"],
-  ];
-
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem(
-      "aibuilder-language"
-    );
-
-    const savedTheme = localStorage.getItem(
-      "aibuilder-theme"
-    );
-
-    if (savedLanguage) {
-      setLanguage(savedLanguage);
-    }
-
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "aibuilder-language",
-      language
-    );
-  }, [language]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "aibuilder-theme",
-      theme
-    );
-  }, [theme]);
-
-  const examples = isZh
+  const examples = zh
     ? [
-        "建立一个房地产 CRM，管理客户、房产和预约",
+        "建立一个房地产 CRM，管理客户、房产、预约和跟进",
         "建立一个餐厅点餐和会员系统",
-        "建立一个预约美容院服务的 App",
+        "建立一个美容院预约 App",
       ]
     : [
-        "Build a real estate CRM to manage clients, properties and appointments",
+        "Build a real estate CRM to manage clients, properties, appointments and follow-ups",
         "Build a restaurant ordering and membership app",
         "Build a beauty salon booking app",
       ];
 
+  async function generateApp() {
+    const value = idea.trim();
+
+    if (!value || loading) return;
+
+    setLoading(true);
+    setError("");
+    setPlan(null);
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          idea: value,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data?.error ||
+            (zh
+              ? "AI 生成失败，请稍后再试。"
+              : "AI generation failed. Please try again.")
+        );
+      }
+
+      setPlan(data.specification);
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err?.message ||
+          (zh
+            ? "发生错误，请稍后再试。"
+            : "Something went wrong. Please try again.")
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <main className={`page theme-${theme}`}>
+    <main className="page">
 
-      {/* Ambient background */}
-      <div className="ambient ambient-one" />
-      <div className="ambient ambient-two" />
-      <div className="grid-overlay" />
+      <div className="glow glow-one" />
+      <div className="glow glow-two" />
 
-      {/* Top navigation */}
-      <nav className="top-nav">
+      {/* NAV */}
+      <nav className="nav">
 
         <div className="brand">
-          <div className="brand-mark">
-            ✦
-          </div>
+          <div className="brand-icon">✦</div>
 
           <div>
-            <div className="brand-name">
+            <div className="brand-title">
               AI App Builder
             </div>
 
-            <div className="brand-caption">
-              {isZh
+            <div className="brand-subtitle">
+              {zh
                 ? "把想法变成应用"
                 : "Ideas into Apps"}
             </div>
@@ -93,178 +95,144 @@ export default function Home() {
         </div>
 
         <button
-          className="language-button"
+          className="language"
           onClick={() =>
             setLanguage(
-              isZh ? "en" : "zh"
+              zh ? "en" : "zh"
             )
           }
         >
-          {isZh
-            ? "English"
-            : "中文"}
-          <span>↗</span>
+          {zh ? "English" : "中文"} ↗
         </button>
 
       </nav>
 
-      {/* Theme selector */}
-      <div className="theme-panel">
+      {/* HERO */}
+      {!plan && (
+        <section className="hero">
 
-        {themes.map(
-          ([id, icon, label]) => (
-            <button
-              key={id}
-              className={`theme-button ${
-                theme === id
-                  ? "selected"
-                  : ""
-              }`}
-              onClick={() => {
-                setTheme(id);
-                localStorage.setItem(
-                  "aibuilder-theme",
-                  id
-                );
-              }}
-            >
-              <span>{icon}</span>
-              {label}
-            </button>
-          )
-        )}
+          <div className="pill">
+            <span className="dot" />
+            {zh
+              ? "AI 驱动的新一代 App Builder"
+              : "THE NEXT GENERATION AI APP BUILDER"}
+          </div>
 
-      </div>
+          <h1>
+            {zh ? (
+              <>
+                你的想法。
+                <br />
+                <span>真正的 App。</span>
+              </>
+            ) : (
+              <>
+                Your idea.
+                <br />
+                <span>A real app.</span>
+              </>
+            )}
+          </h1>
 
-      {/* Hero */}
-      <section className="hero">
+          <p className="description">
+            {zh
+              ? "告诉 AI 你想做什么。不需要懂编程，AI 会帮你规划功能、设计结构，并生成应用。"
+              : "Tell AI what you want to build. No coding required. AI plans the features, structure and experience for you."}
+          </p>
 
-        <div className="eyebrow">
-          <span className="pulse" />
+          {/* BUILDER */}
+          <div className="builder">
 
-          {isZh
-            ? "AI 驱动的新一代 App Builder"
-            : "THE NEXT GENERATION AI APP BUILDER"}
-        </div>
+            <div className="builder-heading">
 
-        <h1>
-          {isZh ? (
-            <>
-              你的想法。
-              <br />
-              <span>真正的 App。</span>
-            </>
-          ) : (
-            <>
-              Your idea.
-              <br />
-              <span>A real app.</span>
-            </>
-          )}
-        </h1>
-
-        <p className="hero-description">
-          {isZh
-            ? "告诉 AI 你想做什么。它会理解你的需求、规划功能、设计界面，并帮助你把想法变成真正可以使用的应用。"
-            : "Tell AI what you want to build. It understands your idea, plans the features, designs the experience, and turns it into a real application."}
-        </p>
-
-        {/* Main builder */}
-        <div className="builder-card">
-
-          <div className="builder-top">
-
-            <div className="ai-orb">
-              <div className="orb-core">
+              <div className="ai-icon">
                 ✦
               </div>
-            </div>
 
-            <div>
-              <div className="builder-title">
-                {isZh
-                  ? "你想做什么 App？"
-                  : "What do you want to build?"}
+              <div>
+                <strong>
+                  {zh
+                    ? "你想做什么 App？"
+                    : "What do you want to build?"}
+                </strong>
+
+                <small>
+                  {zh
+                    ? "用自己的话描述即可"
+                    : "Describe it naturally"}
+                </small>
               </div>
 
-              <div className="builder-subtitle">
-                {isZh
-                  ? "用自己的话告诉 AI，不需要懂编程。"
-                  : "Describe it naturally. No coding required."}
+            </div>
+
+            <textarea
+              value={idea}
+              onChange={(e) =>
+                setIdea(e.target.value)
+              }
+              placeholder={
+                zh
+                  ? "例如：我想建立一个房地产 App，可以管理客户、房产、预约和跟进……"
+                  : "For example: I want to build a real estate app for managing clients, properties, appointments and follow-ups..."
+              }
+            />
+
+            {error && (
+              <div className="error">
+                ⚠️ {error}
               </div>
+            )}
+
+            <div className="builder-bottom">
+
+              <span className="hint">
+                ✦{" "}
+                {zh
+                  ? "AI 会自动理解你的需求"
+                  : "AI will understand your idea"}
+              </span>
+
+              <button
+                className="generate"
+                onClick={generateApp}
+                disabled={loading}
+              >
+                {loading
+                  ? zh
+                    ? "AI 分析中..."
+                    : "AI is thinking..."
+                  : zh
+                  ? "✨ AI 生成"
+                  : "✨ Generate with AI"}
+
+                <span>
+                  {loading ? "◌" : "→"}
+                </span>
+              </button>
+
             </div>
 
           </div>
 
-          <textarea
-            value={idea}
-            onChange={(e) =>
-              setIdea(e.target.value)
-            }
-            placeholder={
-              isZh
-                ? "例如：我想建立一个房地产 App，可以管理客户、房产、预约和跟进……"
-                : "For example: I want to build a real estate app that manages clients, properties, appointments and follow-ups..."
-            }
-          />
+          {/* EXAMPLES */}
+          <div className="examples">
 
-          <div className="builder-footer">
-
-            <div className="secure-note">
-              <span>✦</span>
-
-              {isZh
-                ? "AI 会帮你整理需求"
-                : "AI will structure your idea"}
+            <div className="examples-title">
+              {zh
+                ? "不知道怎么开始？试试例子"
+                : "Need inspiration? Try an example"}
             </div>
-
-            <button
-              className="generate-button"
-              onClick={() => {
-                document
-                  .getElementById(
-                    "examples"
-                  )
-                  ?.scrollIntoView({
-                    behavior: "smooth",
-                  });
-              }}
-            >
-              {isZh
-                ? "✨ 开始创建"
-                : "✨ Start Building"}
-
-              <span>→</span>
-            </button>
-
-          </div>
-
-        </div>
-
-        {/* Examples */}
-        <div
-          className="examples"
-          id="examples"
-        >
-
-          <div className="examples-title">
-            {isZh
-              ? "不知道怎么开始？试试这些"
-              : "Not sure where to start? Try an example"}
-          </div>
-
-          <div className="example-list">
 
             {examples.map(
               (example, index) => (
                 <button
-                  key={index}
-                  className="example-card"
+                  className="example"
+                  key={example}
                   onClick={() =>
                     setIdea(example)
                   }
                 >
-                  <span className="example-icon">
+                  <span>
                     {index === 0
                       ? "🏠"
                       : index === 1
@@ -272,1396 +240,838 @@ export default function Home() {
                       : "📅"}
                   </span>
 
-                  <span>
+                  <div>
                     {example}
-                  </span>
+                  </div>
 
-                  <span className="example-arrow">
-                    →
-                  </span>
+                  <b>→</b>
                 </button>
               )
             )}
 
           </div>
 
-        </div>
+        </section>
+      )}
 
-      </section>
+      {/* LOADING */}
+      {loading && !plan && (
+        <section className="loading-card">
 
-      {/* AI flow */}
-      <section className="flow-section">
-
-        <div className="flow-heading">
-          <span>
-            {isZh
-              ? "从想法到应用"
-              : "FROM IDEA TO APP"}
-          </span>
+          <div className="loading-orb">
+            ✦
+          </div>
 
           <h2>
-            {isZh
-              ? "AI 负责复杂的部分。"
-              : "AI handles the complexity."}
+            {zh
+              ? "AI 正在理解你的想法"
+              : "AI is understanding your idea"}
           </h2>
-        </div>
 
-        <div className="flow">
+          <p>
+            {zh
+              ? "正在规划应用结构、功能和数据……"
+              : "Planning your app structure, features and data..."}
+          </p>
 
-          {[
-            ["01", "✦", isZh ? "理解" : "Understand"],
-            ["02", "◇", isZh ? "规划" : "Plan"],
-            ["03", "◈", isZh ? "设计" : "Design"],
-            ["04", "⚡", isZh ? "构建" : "Build"],
-            ["05", "✓", isZh ? "测试" : "Test"],
-            ["06", "↗", isZh ? "发布" : "Launch"],
-          ].map(
-            ([number, icon, label]) => (
-              <div
-                className="flow-item"
-                key={number}
-              >
-                <div className="flow-number">
-                  {number}
-                </div>
+          <div className="loader">
+            <span />
+          </div>
 
-                <div className="flow-icon">
-                  {icon}
-                </div>
+        </section>
+      )}
 
-                <div className="flow-label">
-                  {label}
-                </div>
-              </div>
-            )
-          )}
+      {/* PLAN */}
+      {plan && (
+        <section className="plan-section">
 
-        </div>
+          <button
+            className="back"
+            onClick={() => {
+              setPlan(null);
+              setError("");
+            }}
+          >
+            ←{" "}
+            {zh
+              ? "修改想法"
+              : "Modify idea"}
+          </button>
 
-      </section>
+          <div className="plan-header">
+
+            <div className="success">
+              ✓{" "}
+              {zh
+                ? "AI 已完成规划"
+                : "AI planning complete"}
+            </div>
+
+            <h1>
+              {plan.name}
+            </h1>
+
+            <p>
+              {plan.description}
+            </p>
+
+          </div>
+
+          {/* PAGES */}
+          <div className="section-card">
+
+            <h3>
+              📱{" "}
+              {zh
+                ? "应用页面"
+                : "App Pages"}
+            </h3>
+
+            <div className="items">
+
+              {(plan.pages || []).map(
+                (page, index) => (
+                  <div
+                    className="item"
+                    key={index}
+                  >
+                    <div className="item-icon">
+                      {index + 1}
+                    </div>
+
+                    <div>
+                      <strong>
+                        {page.name}
+                      </strong>
+
+                      <p>
+                        {page.purpose}
+                      </p>
+                    </div>
+                  </div>
+                )
+              )}
+
+            </div>
+
+          </div>
+
+          {/* FEATURES */}
+          <div className="section-card">
+
+            <h3>
+              ⚡{" "}
+              {zh
+                ? "核心功能"
+                : "Core Features"}
+            </h3>
+
+            <div className="items">
+
+              {(plan.features || []).map(
+                (feature, index) => (
+                  <div
+                    className="item"
+                    key={index}
+                  >
+                    <div className="check">
+                      ✓
+                    </div>
+
+                    <div>
+                      <strong>
+                        {feature.name}
+                      </strong>
+
+                      <p>
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
+                )
+              )}
+
+            </div>
+
+          </div>
+
+          {/* DATA */}
+          <div className="section-card">
+
+            <h3>
+              🗂️{" "}
+              {zh
+                ? "数据结构"
+                : "Data Structure"}
+            </h3>
+
+            <div className="chips">
+
+              {(plan.data || []).map(
+                (data, index) => (
+                  <div
+                    className="chip"
+                    key={index}
+                  >
+                    <strong>
+                      {data.name}
+                    </strong>
+
+                    <span>
+                      {(
+                        data.fields || []
+                      ).join(" · ")}
+                    </span>
+                  </div>
+                )
+              )}
+
+            </div>
+
+          </div>
+
+          {/* ACTIONS */}
+          <div className="section-card">
+
+            <h3>
+              🚀{" "}
+              {zh
+                ? "主要操作"
+                : "Main Actions"}
+            </h3>
+
+            <div className="actions">
+
+              {(plan.actions || []).map(
+                (action, index) => (
+                  <div
+                    className="action"
+                    key={index}
+                  >
+                    <strong>
+                      {action.name}
+                    </strong>
+
+                    <span>
+                      {action.description}
+                    </span>
+                  </div>
+                )
+              )}
+
+            </div>
+
+          </div>
+
+          <div className="continue-box">
+
+            <div>
+              <strong>
+                {zh
+                  ? "准备好了吗？"
+                  : "Ready to build?"}
+              </strong>
+
+              <p>
+                {zh
+                  ? "确认后进入下一阶段。"
+                  : "Confirm your plan and continue."}
+              </p>
+            </div>
+
+            <button
+              className="generate"
+              onClick={() => {
+                alert(
+                  zh
+                    ? "下一阶段将在下一步加入。"
+                    : "The next build stage will be added next."
+                );
+              }}
+            >
+              {zh
+                ? "确认并继续 →"
+                : "Confirm & Continue →"}
+            </button>
+
+          </div>
+
+        </section>
+      )}
 
       <footer>
         © 2026 AI App Builder
       </footer>
 
-      <style jsx global>{`
+      <style jsx>{`
 
         * {
           box-sizing: border-box;
         }
 
-        html,
-        body {
-          margin: 0;
-          padding: 0;
-          min-height: 100%;
-        }
-
-        body {
-          font-family:
-            Inter,
-            ui-sans-serif,
-            system-ui,
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            sans-serif;
-        }
-
-        button,
-        textarea {
-          font: inherit;
-        }
-
-        /* --------------------------------
-           CORE
-        -------------------------------- */
-
         .page {
-          --bg:
-            #e8f1e9;
-
-          --card:
-            rgba(255,255,255,.66);
-
-          --card-strong:
-            rgba(255,255,255,.82);
-
-          --border:
-            rgba(255,255,255,.75);
-
-          --text:
-            #102417;
-
-          --muted:
-            #627467;
-
-          --accent:
-            #2e7d52;
-
-          --accent-light:
-            #73c89a;
-
-          --glow:
-            rgba(71,170,111,.25);
-
-          position: relative;
-
           min-height: 100vh;
-
-          overflow: hidden;
-
-          color: var(--text);
-
+          padding: 0 22px 60px;
+          color: #102417;
           background:
             radial-gradient(
-              circle at 20% 10%,
-              rgba(255,255,255,.85),
-              transparent 28%
-            ),
-            radial-gradient(
-              circle at 90% 80%,
-              var(--glow),
-              transparent 32%
-            ),
-            var(--bg);
-
-          transition:
-            background .7s ease,
-            color .5s ease;
-        }
-
-        /* --------------------------------
-           AMBIENT
-        -------------------------------- */
-
-        .ambient {
-          position: absolute;
-
-          width: 520px;
-          height: 520px;
-
-          border-radius: 50%;
-
-          filter: blur(100px);
-
-          pointer-events: none;
-
-          opacity: .28;
-
-          animation:
-            float 12s ease-in-out infinite;
-        }
-
-        .ambient-one {
-          top: -260px;
-          left: -160px;
-
-          background:
-            var(--accent-light);
-        }
-
-        .ambient-two {
-          right: -260px;
-          bottom: -220px;
-
-          background:
-            var(--accent);
-
-          animation-delay:
-            -5s;
-        }
-
-        @keyframes float {
-
-          0%,100% {
-            transform:
-              translate3d(0,0,0)
-              scale(1);
-          }
-
-          50% {
-            transform:
-              translate3d(25px,-20px,0)
-              scale(1.06);
-          }
-
-        }
-
-        .grid-overlay {
-          position: absolute;
-
-          inset: 0;
-
-          pointer-events: none;
-
-          opacity: .035;
-
-          background-image:
-            linear-gradient(
-              rgba(0,0,0,.6) 1px,
-              transparent 1px
+              circle at 15% 10%,
+              #ffffff,
+              transparent 30%
             ),
             linear-gradient(
-              90deg,
-              rgba(0,0,0,.6) 1px,
-              transparent 1px
+              135deg,
+              #edf7ef,
+              #d9eadf
             );
-
-          background-size:
-            42px 42px;
+          position: relative;
+          overflow: hidden;
         }
 
-        /* --------------------------------
-           NAV
-        -------------------------------- */
+        .glow {
+          position: fixed;
+          width: 450px;
+          height: 450px;
+          border-radius: 50%;
+          filter: blur(100px);
+          opacity: .22;
+          pointer-events: none;
+        }
 
-        .top-nav {
+        .glow-one {
+          top: -220px;
+          left: -150px;
+          background: #62c889;
+        }
+
+        .glow-two {
+          right: -200px;
+          bottom: -220px;
+          background: #31865a;
+        }
+
+        .nav {
+          max-width: 1120px;
+          margin: auto;
+          padding-top: 26px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           position: relative;
-
-          z-index: 5;
-
-          max-width: 1180px;
-
-          margin: 0 auto;
-
-          padding:
-            28px 28px 0;
-
-          display:
-            flex;
-
-          justify-content:
-            space-between;
-
-          align-items:
-            center;
+          z-index: 2;
         }
 
         .brand {
-          display:
-            flex;
-
-          align-items:
-            center;
-
+          display: flex;
+          align-items: center;
           gap: 12px;
         }
 
-        .brand-mark {
-          width: 42px;
-          height: 42px;
-
-          display:
-            flex;
-
-          align-items:
-            center;
-
-          justify-content:
-            center;
-
+        .brand-icon {
+          width: 43px;
+          height: 43px;
           border-radius: 14px;
-
+          display: grid;
+          place-items: center;
           color: white;
-
           background:
             linear-gradient(
               135deg,
-              var(--accent),
-              var(--accent-light)
+              #237847,
+              #76c994
             );
-
           box-shadow:
             0 12px 30px
-            var(--glow);
+            rgba(40,140,80,.25);
         }
 
-        .brand-name {
+        .brand-title {
+          font-weight: 800;
           font-size: 16px;
-
-          font-weight: 750;
-
-          letter-spacing:
-            -.3px;
         }
 
-        .brand-caption {
-          margin-top: 2px;
-
+        .brand-subtitle {
+          color: #718277;
           font-size: 10px;
-
-          color: var(--muted);
-
-          letter-spacing:
-            .8px;
-
-          text-transform:
-            uppercase;
+          margin-top: 2px;
         }
 
-        .language-button {
-          border:
-            1px solid var(--border);
-
-          background:
-            rgba(255,255,255,.45);
-
-          backdrop-filter:
-            blur(16px);
-
-          color:
-            var(--text);
-
-          padding:
-            10px 15px;
-
-          border-radius:
-            999px;
-
-          cursor:
-            pointer;
-
-          font-size:
-            13px;
-
-          font-weight:
-            650;
-
-          transition:
-            .25s ease;
+        .language {
+          border: 1px solid rgba(255,255,255,.8);
+          background: rgba(255,255,255,.45);
+          padding: 10px 15px;
+          border-radius: 999px;
+          cursor: pointer;
+          color: #183323;
+          font-weight: 700;
         }
-
-        .language-button:hover {
-          transform:
-            translateY(-2px);
-
-          background:
-            rgba(255,255,255,.7);
-        }
-
-        /* --------------------------------
-           THEME
-        -------------------------------- */
-
-        .theme-panel {
-          position:
-            relative;
-
-          z-index:
-            5;
-
-          display:
-            flex;
-
-          justify-content:
-            center;
-
-          flex-wrap:
-            wrap;
-
-          gap:
-            7px;
-
-          max-width:
-            1000px;
-
-          margin:
-            28px auto 0;
-
-          padding:
-            8px;
-
-          border:
-            1px solid var(--border);
-
-          border-radius:
-            999px;
-
-          background:
-            rgba(255,255,255,.38);
-
-          backdrop-filter:
-            blur(18px);
-
-          box-shadow:
-            0 10px 40px
-            rgba(20,60,40,.05);
-        }
-
-        .theme-button {
-          border:
-            0;
-
-          background:
-            transparent;
-
-          color:
-            var(--muted);
-
-          padding:
-            8px 13px;
-
-          border-radius:
-            999px;
-
-          cursor:
-            pointer;
-
-          font-size:
-            12px;
-
-          transition:
-            .25s ease;
-        }
-
-        .theme-button:hover {
-          color:
-            var(--text);
-
-          background:
-            rgba(255,255,255,.55);
-        }
-
-        .theme-button.selected {
-          color:
-            white;
-
-          background:
-            var(--accent);
-
-          box-shadow:
-            0 6px 18px
-            var(--glow);
-        }
-
-        /* --------------------------------
-           HERO
-        -------------------------------- */
 
         .hero {
-          position:
-            relative;
-
-          z-index:
-            2;
-
-          max-width:
-            900px;
-
-          margin:
-            92px auto 0;
-
-          padding:
-            0 24px;
-
-          text-align:
-            center;
+          max-width: 900px;
+          margin: 100px auto 0;
+          text-align: center;
+          position: relative;
+          z-index: 1;
         }
 
-        .eyebrow {
-          display:
-            inline-flex;
-
-          align-items:
-            center;
-
-          gap:
-            8px;
-
-          padding:
-            7px 13px;
-
-          border:
-            1px solid var(--border);
-
-          border-radius:
-            999px;
-
-          background:
-            rgba(255,255,255,.45);
-
-          backdrop-filter:
-            blur(12px);
-
-          color:
-            var(--accent);
-
-          font-size:
-            11px;
-
-          font-weight:
-            750;
-
-          letter-spacing:
-            1px;
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          border-radius: 999px;
+          background: rgba(255,255,255,.45);
+          border: 1px solid rgba(255,255,255,.8);
+          color: #267348;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: .7px;
         }
 
-        .pulse {
-          width:
-            7px;
-
-          height:
-            7px;
-
-          border-radius:
-            50%;
-
-          background:
-            var(--accent-light);
-
-          box-shadow:
-            0 0 0 5px
-            rgba(100,190,135,.12);
+        .dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #59bc82;
+          box-shadow: 0 0 0 5px rgba(89,188,130,.12);
         }
 
-        .hero h1 {
-          margin:
-            24px 0 20px;
-
-          font-size:
-            clamp(56px,8vw,92px);
-
-          line-height:
-            .95;
-
-          letter-spacing:
-            -5px;
-
-          font-weight:
-            780;
+        h1 {
+          font-size: clamp(56px,8vw,88px);
+          line-height: .96;
+          letter-spacing: -5px;
+          margin: 24px 0 20px;
         }
 
-        .hero h1 span {
+        h1 span {
           background:
             linear-gradient(
               110deg,
-              var(--accent),
-              var(--accent-light)
+              #237847,
+              #78ca99
             );
-
-          -webkit-background-clip:
-            text;
-
-          -webkit-text-fill-color:
-            transparent;
-
-          background-clip:
-            text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
 
-        .hero-description {
-          max-width:
-            680px;
-
-          margin:
-            0 auto 44px;
-
-          color:
-            var(--muted);
-
-          font-size:
-            17px;
-
-          line-height:
-            1.7;
+        .description {
+          max-width: 650px;
+          margin: auto;
+          color: #617266;
+          font-size: 17px;
+          line-height: 1.7;
         }
 
-        /* --------------------------------
-           BUILDER
-        -------------------------------- */
-
-        .builder-card {
-          text-align:
-            left;
-
-          padding:
-            24px;
-
-          border:
-            1px solid var(--border);
-
-          border-radius:
-            28px;
-
-          background:
-            var(--card);
-
-          backdrop-filter:
-            blur(28px)
-            saturate(150%);
-
+        .builder {
+          margin-top: 44px;
+          padding: 23px;
+          text-align: left;
+          border-radius: 28px;
+          background: rgba(255,255,255,.63);
+          border: 1px solid rgba(255,255,255,.85);
+          backdrop-filter: blur(25px);
           box-shadow:
             0 35px 100px
-            rgba(20,70,40,.13),
-            inset 0 1px 0
-            rgba(255,255,255,.8);
+            rgba(35,90,55,.14);
         }
 
-        .builder-top {
-          display:
-            flex;
-
-          align-items:
-            center;
-
-          gap:
-            13px;
-
-          margin-bottom:
-            20px;
+        .builder-heading {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          margin-bottom: 18px;
         }
 
-        .ai-orb {
-          width:
-            42px;
+        .ai-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
+          color: #27764b;
+          background: white;
+        }
 
-          height:
-            42px;
+        .builder-heading strong {
+          display: block;
+          font-size: 16px;
+        }
 
-          border-radius:
-            14px;
+        .builder-heading small {
+          display: block;
+          margin-top: 4px;
+          color: #728176;
+        }
 
-          padding:
-            1px;
+        textarea {
+          width: 100%;
+          min-height: 135px;
+          border: 0;
+          outline: 0;
+          resize: vertical;
+          padding: 18px;
+          border-radius: 19px;
+          background: rgba(255,255,255,.62);
+          color: #102417;
+          font-size: 16px;
+          line-height: 1.6;
+          box-shadow: inset 0 0 0 1px rgba(0,0,0,.035);
+        }
 
+        textarea:focus {
+          box-shadow:
+            inset 0 0 0 2px #54ae79;
+        }
+
+        .builder-bottom {
+          margin-top: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 15px;
+        }
+
+        .hint {
+          color: #718077;
+          font-size: 11px;
+        }
+
+        .generate {
+          border: 0;
+          border-radius: 14px;
+          padding: 14px 20px;
+          color: white;
           background:
             linear-gradient(
               135deg,
-              var(--accent),
-              var(--accent-light)
+              #27784c,
+              #72c994
             );
-
           box-shadow:
-            0 8px 28px
-            var(--glow);
+            0 12px 28px
+            rgba(45,145,85,.25);
+          cursor: pointer;
+          font-weight: 800;
+          transition: .2s;
         }
 
-        .orb-core {
-          width:
-            100%;
-
-          height:
-            100%;
-
-          display:
-            flex;
-
-          align-items:
-            center;
-
-          justify-content:
-            center;
-
-          border-radius:
-            13px;
-
-          background:
-            rgba(255,255,255,.85);
-
-          color:
-            var(--accent);
+        .generate:hover {
+          transform: translateY(-2px);
         }
 
-        .builder-title {
-          font-size:
-            16px;
-
-          font-weight:
-            750;
+        .generate:disabled {
+          opacity: .65;
+          cursor: wait;
         }
 
-        .builder-subtitle {
-          margin-top:
-            3px;
-
-          color:
-            var(--muted);
-
-          font-size:
-            12px;
+        .error {
+          margin-top: 12px;
+          padding: 12px;
+          border-radius: 12px;
+          background: #fff1f1;
+          color: #b42318;
+          font-size: 13px;
         }
-
-        .builder-card textarea {
-          display:
-            block;
-
-          width:
-            100%;
-
-          min-height:
-            130px;
-
-          resize:
-            vertical;
-
-          border:
-            0;
-
-          outline:
-            0;
-
-          padding:
-            18px;
-
-          border-radius:
-            20px;
-
-          background:
-            rgba(255,255,255,.55);
-
-          color:
-            var(--text);
-
-          font-size:
-            16px;
-
-          line-height:
-            1.65;
-
-          box-shadow:
-            inset 0 0 0 1px
-            rgba(0,0,0,.04);
-
-          transition:
-            .25s ease;
-        }
-
-        .builder-card textarea:focus {
-          background:
-            rgba(255,255,255,.75);
-
-          box-shadow:
-            inset 0 0 0 2px
-            var(--accent);
-        }
-
-        .builder-card textarea::placeholder {
-          color:
-            #91a29a;
-        }
-
-        .builder-footer {
-          display:
-            flex;
-
-          justify-content:
-            space-between;
-
-          align-items:
-            center;
-
-          gap:
-            15px;
-
-          margin-top:
-            14px;
-        }
-
-        .secure-note {
-          color:
-            var(--muted);
-
-          font-size:
-            11px;
-        }
-
-        .secure-note span {
-          color:
-            var(--accent);
-        }
-
-        .generate-button {
-          display:
-            flex;
-
-          align-items:
-            center;
-
-          gap:
-            10px;
-
-          border:
-            0;
-
-          padding:
-            13px 19px;
-
-          border-radius:
-            14px;
-
-          background:
-            linear-gradient(
-              135deg,
-              var(--accent),
-              var(--accent-light)
-            );
-
-          color:
-            white;
-
-          font-size:
-            13px;
-
-          font-weight:
-            750;
-
-          cursor:
-            pointer;
-
-          box-shadow:
-            0 12px 30px
-            var(--glow);
-
-          transition:
-            .25s ease;
-        }
-
-        .generate-button:hover {
-          transform:
-            translateY(-2px)
-            scale(1.015);
-
-          box-shadow:
-            0 16px 35px
-            var(--glow);
-        }
-
-        /* --------------------------------
-           EXAMPLES
-        -------------------------------- */
 
         .examples {
-          margin-top:
-            32px;
-
-          text-align:
-            left;
+          margin-top: 30px;
+          text-align: left;
         }
 
         .examples-title {
-          margin-bottom:
-            12px;
-
-          color:
-            var(--muted);
-
-          font-size:
-            11px;
-
-          font-weight:
-            700;
-
-          letter-spacing:
-            .7px;
+          color: #718077;
+          font-size: 11px;
+          margin-bottom: 10px;
         }
 
-        .example-list {
-          display:
-            grid;
-
-          gap:
-            9px;
+        .example {
+          width: 100%;
+          border: 1px solid rgba(255,255,255,.75);
+          background: rgba(255,255,255,.35);
+          border-radius: 14px;
+          margin-bottom: 8px;
+          padding: 12px;
+          display: grid;
+          grid-template-columns: 35px 1fr 20px;
+          align-items: center;
+          gap: 10px;
+          text-align: left;
+          cursor: pointer;
+          color: #173123;
+          font-size: 12px;
         }
 
-        .example-card {
-          width:
-            100%;
-
-          display:
-            grid;
-
-          grid-template-columns:
-            34px 1fr 20px;
-
-          align-items:
-            center;
-
-          gap:
-            10px;
-
-          padding:
-            12px;
-
-          border:
-            1px solid
-            rgba(255,255,255,.55);
-
-          border-radius:
-            15px;
-
-          background:
-            rgba(255,255,255,.34);
-
-          color:
-            var(--text);
-
-          text-align:
-            left;
-
-          cursor:
-            pointer;
-
-          font-size:
-            12px;
-
-          transition:
-            .25s ease;
+        .example:hover {
+          background: rgba(255,255,255,.65);
         }
 
-        .example-card:hover {
-          transform:
-            translateX(4px);
-
-          background:
-            rgba(255,255,255,.62);
-
-          border-color:
-            var(--accent-light);
+        .example b {
+          color: #328054;
         }
 
-        .example-icon {
-          width:
-            34px;
-
-          height:
-            34px;
-
-          display:
-            flex;
-
-          align-items:
-            center;
-
-          justify-content:
-            center;
-
-          border-radius:
-            11px;
-
-          background:
-            rgba(255,255,255,.55);
-
-          font-size:
-            16px;
+        .loading-card,
+        .plan-section {
+          max-width: 900px;
+          margin: 80px auto 0;
+          position: relative;
+          z-index: 2;
         }
 
-        .example-arrow {
-          color:
-            var(--accent);
-
-          text-align:
-            right;
+        .loading-card {
+          text-align: center;
+          padding: 60px 30px;
+          border-radius: 30px;
+          background: rgba(255,255,255,.62);
+          border: 1px solid white;
+          backdrop-filter: blur(20px);
         }
 
-        /* --------------------------------
-           FLOW
-        -------------------------------- */
-
-        .flow-section {
-          position:
-            relative;
-
-          z-index:
-            2;
-
-          max-width:
-            1000px;
-
-          margin:
-            130px auto 0;
-
-          padding:
-            0 24px 100px;
-
-          text-align:
-            center;
+        .loading-orb {
+          width: 70px;
+          height: 70px;
+          margin: auto;
+          display: grid;
+          place-items: center;
+          border-radius: 22px;
+          color: white;
+          font-size: 28px;
+          background: linear-gradient(135deg,#287a4d,#76cb99);
+          animation: pulse 1.4s infinite;
         }
 
-        .flow-heading span {
-          color:
-            var(--accent);
-
-          font-size:
-            10px;
-
-          font-weight:
-            800;
-
-          letter-spacing:
-            2px;
+        @keyframes pulse {
+          50% {
+            transform: scale(1.08);
+            box-shadow: 0 0 40px rgba(70,180,110,.35);
+          }
         }
 
-        .flow-heading h2 {
-          margin:
-            12px 0 50px;
-
-          font-size:
-            34px;
-
-          letter-spacing:
-            -1.5px;
+        .loading-card h2 {
+          margin-top: 25px;
         }
 
-        .flow {
-          display:
-            grid;
-
-          grid-template-columns:
-            repeat(6,1fr);
-
-          gap:
-            10px;
+        .loading-card p {
+          color: #6c7c70;
         }
 
-        .flow-item {
-          position:
-            relative;
-
-          padding:
-            20px 8px;
-
-          border:
-            1px solid var(--border);
-
-          border-radius:
-            20px;
-
-          background:
-            rgba(255,255,255,.28);
-
-          backdrop-filter:
-            blur(14px);
+        .loader {
+          width: 220px;
+          height: 5px;
+          margin: 25px auto 0;
+          border-radius: 20px;
+          background: rgba(0,0,0,.07);
+          overflow: hidden;
         }
 
-        .flow-number {
-          color:
-            var(--muted);
-
-          font-size:
-            9px;
+        .loader span {
+          display: block;
+          height: 100%;
+          width: 40%;
+          background: #43a86c;
+          animation: loading 1.2s infinite;
         }
 
-        .flow-icon {
-          margin:
-            13px 0 10px;
-
-          color:
-            var(--accent);
-
-          font-size:
-            20px;
+        @keyframes loading {
+          from {
+            transform: translateX(-120%);
+          }
+          to {
+            transform: translateX(550%);
+          }
         }
 
-        .flow-label {
-          font-size:
-            11px;
+        .back {
+          border: 0;
+          background: transparent;
+          color: #34784f;
+          cursor: pointer;
+          font-weight: 700;
+        }
 
-          font-weight:
-            700;
+        .plan-header {
+          text-align: center;
+          margin: 35px 0;
+        }
+
+        .success {
+          color: #318054;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .plan-header h1 {
+          margin: 14px 0;
+          font-size: clamp(42px,6vw,68px);
+          letter-spacing: -3px;
+        }
+
+        .plan-header p {
+          color: #65766a;
+          max-width: 600px;
+          margin: auto;
+          line-height: 1.6;
+        }
+
+        .section-card {
+          margin-top: 15px;
+          padding: 22px;
+          border-radius: 22px;
+          background: rgba(255,255,255,.62);
+          border: 1px solid rgba(255,255,255,.85);
+          backdrop-filter: blur(20px);
+        }
+
+        .section-card h3 {
+          margin: 0 0 18px;
+          font-size: 15px;
+        }
+
+        .item {
+          display: flex;
+          gap: 13px;
+          padding: 13px 0;
+          border-top: 1px solid rgba(0,0,0,.05);
+        }
+
+        .item-icon,
+        .check {
+          flex-shrink: 0;
+          width: 30px;
+          height: 30px;
+          border-radius: 10px;
+          display: grid;
+          place-items: center;
+          background: #e4f3e9;
+          color: #287a4c;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .item strong {
+          font-size: 13px;
+        }
+
+        .item p {
+          margin: 4px 0 0;
+          color: #718077;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .chip {
+          padding: 12px 14px;
+          border-radius: 14px;
+          background: #f0f7f2;
+        }
+
+        .chip strong {
+          display: block;
+          font-size: 12px;
+        }
+
+        .chip span {
+          display: block;
+          margin-top: 4px;
+          color: #718077;
+          font-size: 10px;
+        }
+
+        .action {
+          padding: 13px 0;
+          border-top: 1px solid rgba(0,0,0,.05);
+        }
+
+        .action strong {
+          display: block;
+          font-size: 13px;
+        }
+
+        .action span {
+          display: block;
+          margin-top: 4px;
+          color: #718077;
+          font-size: 12px;
+        }
+
+        .continue-box {
+          margin-top: 20px;
+          padding: 20px;
+          border-radius: 22px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+          background: #173d27;
+          color: white;
+        }
+
+        .continue-box p {
+          margin: 5px 0 0;
+          opacity: .65;
+          font-size: 11px;
         }
 
         footer {
-          position:
-            relative;
-
-          z-index:
-            2;
-
-          padding:
-            0 20px 30px;
-
-          text-align:
-            center;
-
-          color:
-            var(--muted);
-
-          font-size:
-            10px;
+          position: relative;
+          z-index: 2;
+          text-align: center;
+          margin-top: 100px;
+          color: #728077;
+          font-size: 10px;
         }
 
-        /* --------------------------------
-           OCEAN
-        -------------------------------- */
+        @media(max-width:700px) {
 
-        .theme-ocean {
-          --bg:
-            #071c26;
-
-          --card:
-            rgba(8,30,40,.62);
-
-          --card-strong:
-            rgba(10,40,55,.75);
-
-          --border:
-            rgba(100,220,245,.18);
-
-          --text:
-            #e7fbff;
-
-          --muted:
-            #8fb9c7;
-
-          --accent:
-            #08a7d5;
-
-          --accent-light:
-            #65e4f5;
-
-          --glow:
-            rgba(0,190,230,.25);
-        }
-
-        .theme-ocean .grid-overlay {
-          opacity:
-            .06;
-        }
-
-        /* --------------------------------
-           SKY
-        -------------------------------- */
-
-        .theme-sky {
-          --bg:
-            #dff3ff;
-
-          --card:
-            rgba(255,255,255,.58);
-
-          --border:
-            rgba(255,255,255,.85);
-
-          --text:
-            #0b4566;
-
-          --muted:
-            #57809a;
-
-          --accent:
-            #087db8;
-
-          --accent-light:
-            #7dd8ff;
-
-          --glow:
-            rgba(70,170,220,.2);
-        }
-
-        /* --------------------------------
-           GLASS
-        -------------------------------- */
-
-        .theme-glass {
-          --bg:
-            linear-gradient(
-              135deg,
-              #eef3ff,
-              #e6eaff
-            );
-
-          --card:
-            rgba(255,255,255,.58);
-
-          --border:
-            rgba(255,255,255,.8);
-
-          --text:
-            #172033;
-
-          --muted:
-            #68748a;
-
-          --accent:
-            #6c5ce7;
-
-          --accent-light:
-            #a99cff;
-
-          --glow:
-            rgba(108,92,231,.22);
-        }
-
-        /* --------------------------------
-           DARK
-        -------------------------------- */
-
-        .theme-dark {
-          --bg:
-            #080b12;
-
-          --card:
-            rgba(17,22,34,.66);
-
-          --border:
-            rgba(100,220,255,.14);
-
-          --text:
-            #eef6ff;
-
-          --muted:
-            #8496b2;
-
-          --accent:
-            #00d9ff;
-
-          --accent-light:
-            #a855f7;
-
-          --glow:
-            rgba(0,220,255,.2);
-        }
-
-        /* --------------------------------
-           MINIMAL
-        -------------------------------- */
-
-        .theme-minimal {
-          --bg:
-            #f7f8fa;
-
-          --card:
-            rgba(255,255,255,.9);
-
-          --border:
-            #e7eaf0;
-
-          --text:
-            #111827;
-
-          --muted:
-            #64748b;
-
-          --accent:
-            #2563eb;
-
-          --accent-light:
-            #60a5fa;
-
-          --glow:
-            rgba(37,99,235,.14);
-        }
-
-        /* --------------------------------
-           WARM
-        -------------------------------- */
-
-        .theme-warm {
-          --bg:
-            #f5eee5;
-
-          --card:
-            rgba(255,250,242,.66);
-
-          --border:
-            rgba(255,255,255,.8);
-
-          --text:
-            #402d20;
-
-          --muted:
-            #806c5a;
-
-          --accent:
-            #c66b32;
-
-          --accent-light:
-            #f0aa74;
-
-          --glow:
-            rgba(210,120,60,.2);
-        }
-
-        /* --------------------------------
-           MOBILE
-        -------------------------------- */
-
-        @media (max-width: 700px) {
-
-          .top-nav {
-            padding:
-              18px 16px 0;
-          }
-
-          .theme-panel {
-            margin:
-              20px 14px 0;
-
-            border-radius:
-              22px;
-          }
-
-          .theme-button {
-            padding:
-              7px 9px;
-
-            font-size:
-              10px;
+          .page {
+            padding-left: 14px;
+            padding-right: 14px;
           }
 
           .hero {
-            margin-top:
-              65px;
-
-            padding:
-              0 15px;
+            margin-top: 70px;
           }
 
-          .hero h1 {
-            font-size:
-              55px;
-
-            letter-spacing:
-              -3px;
+          h1 {
+            font-size: 54px;
+            letter-spacing: -3px;
           }
 
-          .hero-description {
-            font-size:
-              15px;
-
-            line-height:
-              1.65;
+          .description {
+            font-size: 15px;
           }
 
-          .builder-card {
-            padding:
-              16px;
-
-            border-radius:
-              22px;
+          .builder {
+            padding: 16px;
+            border-radius: 22px;
           }
 
-          .builder-footer {
-            align-items:
-              stretch;
-
-            flex-direction:
-              column;
+          .builder-bottom {
+            flex-direction: column;
+            align-items: stretch;
           }
 
-          .generate-button {
-            width:
-              100%;
-
-            justify-content:
-              center;
+          .generate {
+            width: 100%;
           }
 
-          .flow {
-            grid-template-columns:
-              repeat(2,1fr);
+          .continue-box {
+            flex-direction: column;
+            align-items: stretch;
           }
 
-          .flow-heading h2 {
-            font-size:
-              28px;
+          .continue-box .generate {
+            width: 100%;
           }
 
         }
 
       `}</style>
-
     </main>
   );
 }
