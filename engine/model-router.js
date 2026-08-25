@@ -1,38 +1,31 @@
 export function getProvider() {
-  return process.env.AI_PROVIDER || "ollama";
+  return (process.env.AI_PROVIDER || "ollama").toLowerCase();
 }
 
 export function getModel() {
+  const provider = getProvider();
+
+  if (provider === "openai") {
+    return process.env.OPENAI_MODEL || "gpt-5.6";
+  }
+
+  if (provider === "deepseek") {
+    return process.env.DEEPSEEK_MODEL || "deepseek-chat";
+  }
+
+  if (provider === "gemini") {
+    return process.env.GEMINI_MODEL || "gemini";
+  }
+
   return process.env.OLLAMA_MODEL || "llama3.2:3b";
 }
 
-export function getModelConfig() {
+export function getProviderConfig() {
   const provider = getProvider();
 
-  switch (provider) {
-    case "openai":
-      return {
-        provider: "openai",
-        model: process.env.OPENAI_MODEL || "gpt-5.6",
-      };
-
-    case "deepseek":
-      return {
-        provider: "deepseek",
-        model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
-      };
-
-    case "gemini":
-      return {
-        provider: "gemini",
-        model: process.env.GEMINI_MODEL || "gemini",
-      };
-
-    case "ollama":
-    default:
-      return {
-        provider: "ollama",
-        model: process.env.OLLAMA_MODEL || "llama3.2:3b",
-      };
-  }
+  return {
+    provider,
+    model: getModel(),
+    local: provider === "ollama",
+  };
 }
