@@ -1,31 +1,95 @@
+const FREE_FIRST_PROVIDERS = [
+  {
+    provider: "ollama",
+    model: process.env.OLLAMA_MODEL || "llama3.2:3b",
+    local: true,
+    priority: 1,
+    enabled: () => Boolean(process.env.OLLAMA_BASE_URL),
+  },
+  {
+    provider: "gemini",
+    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    local: false,
+    priority: 2,
+    enabled: () => Boolean(process.env.GEMINI_API_KEY),
+  },
+  {
+    provider: "groq",
+    model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    local: false,
+    priority: 3,
+    enabled: () => Boolean(process.env.GROQ_API_KEY),
+  },
+  {
+    provider: "cerebras",
+    model: process.env.CEREBRAS_MODEL || "llama-3.3-70b",
+    local: false,
+    priority: 4,
+    enabled: () => Boolean(process.env.CEREBRAS_API_KEY),
+  },
+  {
+    provider: "deepseek",
+    model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
+    local: false,
+    priority: 5,
+    enabled: () => Boolean(process.env.DEEPSEEK_API_KEY),
+  },
+  {
+    provider: "openai",
+    model: process.env.OPENAI_MODEL || "gpt-5.6",
+    local: false,
+    priority: 6,
+    enabled: () => Boolean(process.env.OPENAI_API_KEY),
+  },
+];
+
 export function getProvider() {
-  return (process.env.AI_PROVIDER || "ollama").toLowerCase();
+  const configured = (process.env.AI_PROVIDER || "").toLowerCase();
+
+  if (configured && configured !== "auto") {
+    return configured;
+  }
+
+  const available = FREE_FIRST_PROVIDERS
+    .filter((item) => item.enabled())
+    .sort((a, b) => a.priority - b.priority);
+
+  return available[0]?.provider || "ollama";
 }
 
 export function getModel() {
   const provider = getProvider();
 
-  if (provider === "openai") {
-    return process.env.OPENAI_MODEL || "gpt-5.6";
-  }
+  const config = FREE_FIRST_PROVIDERS.find(
+    (item) => item.provider === provider
+  );
 
-  if (provider === "deepseek") {
-    return process.env.DEEPSEEK_MODEL || "deepseek-chat";
-  }
-
-  if (provider === "gemini") {
-    return process.env.GEMINI_MODEL || "gemini";
-  }
-
-  return process.env.OLLAMA_MODEL || "llama3.2:3b";
+  return config?.model || process.env.OLLAMA_MODEL || "llama3.2:3b";
 }
 
 export function getProviderConfig() {
   const provider = getProvider();
 
+  const config = FREE_FIRST_PROVIDERS.find(
+    (item) => item.provider === provider
+  );
+
   return {
     provider,
     model: getModel(),
-    local: provider === "ollama",
+    local: config?.local || false,
+    priority: config?.priority ?? 99,
   };
+}
+
+export function getAvailableProviders() {
+  return FREE_FIRST_PROVIDERS
+    .filter((item) => item.enabled())
+    .sort((a, b) => a.priority - b.priority)
+    .map(({ provider, model, local, priority }) => ({
+      provider,
+      model,
+      local,
+      priority,
+    }));
 }
