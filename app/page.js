@@ -2,364 +2,347 @@
 
 import { useEffect, useState } from "react";
 
-const themes = [
-  { id: "forest", zh: "🌳 森林", en: "🌳 Forest" },
-  { id: "ocean", zh: "🌊 大海", en: "🌊 Ocean" },
-  { id: "sky", zh: "☁️ 天空", en: "☁️ Sky" },
-  { id: "glass", zh: "✨ 毛玻璃", en: "✨ Glass" },
-  { id: "dark", zh: "🌌 深空", en: "🌌 Neon" },
-  { id: "minimal", zh: "⬜ 极简", en: "⬜ Minimal" },
-  { id: "warm", zh: "🏜️ 暖沙", en: "🏜️ Warm" },
-];
-
-const translations = {
-  en: {
-    free: "✦ Free to Generate",
-    title1: "Turn Your Ideas",
-    title2: "into ",
-    title3: "Apps",
-    description:
-      "Describe your app idea and AI will automatically plan, build, and preview it.",
-    placeholder:
-      "For example: Build a real estate CRM to manage clients, properties and appointments",
-    generate: "✨ Generate App",
-    generating: "⏳ Building...",
-    preview: "✨ View Preview",
-    automated: "Automated Development",
-    previewBuild: "Preview as You Build",
-    iterate: "Iterate & Improve",
-    building: "AI App Builder is building your app",
-    start: "🚀 Understanding your idea...",
-    steps: [
-      "📐 Planning app architecture...",
-      "🧩 Creating data models and interface...",
-      "⚙️ Writing core application logic...",
-      "🎨 Optimizing visual design and interactions...",
-      "✅ App build completed! Preview is ready.",
-    ],
-    done: "🎉 Your app has been generated! Click View Preview.",
-    empty: "⚠️ Please describe your app idea first.",
-    previewing: "👀 Opening your app preview...",
-    language: "中文",
-  },
-
-  zh: {
-    free: "✦ 免费生成",
-    title1: "用 AI 将想法",
-    title2: "变成 ",
-    title3: "应用",
-    description:
-      "只需描述您的应用创意，AI 将自动完成规划、开发和预览。",
-    placeholder:
-      "例如：建立一个管理客户、房产和预约的房地产 CRM",
-    generate: "✨ 生成应用",
-    generating: "⏳ 生成中...",
-    preview: "✨ 查看预览",
-    automated: "全自动开发",
-    previewBuild: "预览即所得",
-    iterate: "支持迭代优化",
-    building: "AI App Builder 正在构建您的应用",
-    start: "🚀 正在解析您的想法...",
-    steps: [
-      "📐 正在规划应用架构...",
-      "🧩 正在生成数据模型与界面...",
-      "⚙️ 正在编写核心应用逻辑...",
-      "🎨 正在优化视觉与交互效果...",
-      "✅ 应用构建完成！预览已就绪。",
-    ],
-    done: "🎉 您的应用已生成！点击“查看预览”。",
-    empty: "⚠️ 请先描述您的应用创意。",
-    previewing: "👀 正在打开应用预览...",
-    language: "English",
-  },
-};
-
 export default function Home() {
   const [language, setLanguage] = useState("en");
   const [theme, setTheme] = useState("forest");
   const [idea, setIdea] = useState("");
-  const [status, setStatus] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [completed, setCompleted] = useState(false);
 
-  const t = translations[language];
+  const isZh = language === "zh";
+
+  const themes = [
+    ["forest", "🌿", isZh ? "森林" : "Forest"],
+    ["ocean", "🌊", isZh ? "大海" : "Ocean"],
+    ["sky", "☁️", isZh ? "天空" : "Sky"],
+    ["glass", "✦", isZh ? "毛玻璃" : "Glass"],
+    ["dark", "◈", isZh ? "深空" : "Neon"],
+    ["minimal", "○", isZh ? "极简" : "Minimal"],
+    ["warm", "◒", isZh ? "暖沙" : "Warm"],
+  ];
 
   useEffect(() => {
-    const savedLanguage =
-      localStorage.getItem("ai-app-builder-language");
+    const savedLanguage = localStorage.getItem(
+      "aibuilder-language"
+    );
 
-    const savedTheme =
-      localStorage.getItem("ai-app-builder-theme");
+    const savedTheme = localStorage.getItem(
+      "aibuilder-theme"
+    );
 
-    if (savedLanguage === "en" || savedLanguage === "zh") {
+    if (savedLanguage) {
       setLanguage(savedLanguage);
     }
 
-    if (themes.some((item) => item.id === savedTheme)) {
+    if (savedTheme) {
       setTheme(savedTheme);
     }
-
-    setIdea(
-      savedLanguage === "zh"
-        ? "建立一个管理客户、房产和预约的房地产 CRM"
-        : "Build a real estate CRM to manage clients, properties and appointments"
-    );
   }, []);
 
   useEffect(() => {
     localStorage.setItem(
-      "ai-app-builder-language",
+      "aibuilder-language",
       language
     );
-
-    if (idea === "") {
-      setIdea(
-        language === "zh"
-          ? "建立一个管理客户、房产和预约的房地产 CRM"
-          : "Build a real estate CRM to manage clients, properties and appointments"
-      );
-    }
   }, [language]);
 
   useEffect(() => {
     localStorage.setItem(
-      "ai-app-builder-theme",
+      "aibuilder-theme",
       theme
     );
   }, [theme]);
 
-  useEffect(() => {
-    const textarea =
-      document.getElementById("appIdea");
-
-    if (!textarea) return;
-
-    textarea.style.height = "auto";
-    textarea.style.height =
-      `${textarea.scrollHeight}px`;
-  }, [idea]);
-
-  function switchLanguage() {
-    setLanguage(
-      language === "en" ? "zh" : "en"
-    );
-
-    setStatus("");
-    setCompleted(false);
-  }
-
-  function handleGenerate() {
-    if (generating) return;
-
-    const cleanIdea = idea.trim();
-
-    if (!cleanIdea) {
-      setStatus(t.empty);
-      return;
-    }
-
-    setGenerating(true);
-    setCompleted(false);
-    setStatus(t.start);
-
-    let currentStep = 0;
-
-    const interval = setInterval(() => {
-      currentStep++;
-
-      if (currentStep < t.steps.length) {
-        setStatus(t.steps[currentStep]);
-      } else {
-        clearInterval(interval);
-
-        setGenerating(false);
-        setCompleted(true);
-        setStatus(t.done);
-      }
-    }, 700);
-  }
-
-  function handlePreview() {
-    setStatus(t.previewing);
-  }
-
-  function handleKeyDown(event) {
-    if (
-      event.key === "Enter" &&
-      (event.ctrlKey || event.metaKey)
-    ) {
-      event.preventDefault();
-      handleGenerate();
-    }
-  }
+  const examples = isZh
+    ? [
+        "建立一个房地产 CRM，管理客户、房产和预约",
+        "建立一个餐厅点餐和会员系统",
+        "建立一个预约美容院服务的 App",
+      ]
+    : [
+        "Build a real estate CRM to manage clients, properties and appointments",
+        "Build a restaurant ordering and membership app",
+        "Build a beauty salon booking app",
+      ];
 
   return (
     <main className={`page theme-${theme}`}>
 
-      <div className="background-glow glow-one" />
-      <div className="background-glow glow-two" />
+      {/* Ambient background */}
+      <div className="ambient ambient-one" />
+      <div className="ambient ambient-two" />
+      <div className="grid-overlay" />
 
-      {/* TOP BAR */}
-      <div className="top-bar">
+      {/* Top navigation */}
+      <nav className="top-nav">
 
-        {/* LANGUAGE */}
+        <div className="brand">
+          <div className="brand-mark">
+            ✦
+          </div>
+
+          <div>
+            <div className="brand-name">
+              AI App Builder
+            </div>
+
+            <div className="brand-caption">
+              {isZh
+                ? "把想法变成应用"
+                : "Ideas into Apps"}
+            </div>
+          </div>
+        </div>
+
         <button
-          type="button"
-          className="language-switch"
-          onClick={switchLanguage}
+          className="language-button"
+          onClick={() =>
+            setLanguage(
+              isZh ? "en" : "zh"
+            )
+          }
         >
-          {language === "en"
-            ? "中文"
-            : "English"}
+          {isZh
+            ? "English"
+            : "中文"}
+          <span>↗</span>
         </button>
 
-      </div>
+      </nav>
 
-      {/* THEME SWITCHER */}
-      <div className="theme-switcher">
-        {themes.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`theme-btn ${
-              theme === item.id
-                ? "active"
-                : ""
-            }`}
-            onClick={() =>
-              setTheme(item.id)
-            }
-          >
-            {language === "en"
-              ? item.en
-              : item.zh}
-          </button>
-        ))}
-      </div>
+      {/* Theme selector */}
+      <div className="theme-panel">
 
-      {/* MAIN CARD */}
-      <section className="app-card">
-
-        {/* NAVBAR */}
-        <div className="navbar">
-
-          <div className="logo">
-            <span className="logo-icon">
-              🧠
-            </span>
-
-            <span>
-              AI App Builder
-            </span>
-          </div>
-
-          <div className="badge">
-            {t.free}
-          </div>
-
-        </div>
-
-        {/* HERO */}
-        <div className="hero">
-
-          <h1>
-            {t.title1}
-            <br />
-            {t.title2}
-            <span>
-              {t.title3}
-            </span>
-          </h1>
-
-          <p>
-            {t.description}
-          </p>
-
-        </div>
-
-        {/* INPUT */}
-        <div className="input-group">
-
-          <textarea
-            id="appIdea"
-            rows={1}
-            value={idea}
-            onChange={(event) =>
-              setIdea(event.target.value)
-            }
-            onKeyDown={handleKeyDown}
-            placeholder={t.placeholder}
-            disabled={generating}
-          />
-
-          <button
-            type="button"
-            className={`create-btn ${
-              generating
-                ? "loading"
-                : ""
-            }`}
-            onClick={
-              completed
-                ? handlePreview
-                : handleGenerate
-            }
-            disabled={generating}
-          >
-            {generating
-              ? t.generating
-              : completed
-              ? t.preview
-              : t.generate}
-          </button>
-
-        </div>
-
-        {/* STATUS */}
-        <div
-          className={`status-tip ${
-            status ? "show" : ""
-          }`}
-        >
-          {status}
-        </div>
-
-        {/* FEATURES */}
-        <div className="features">
-
-          <span>
-            <span className="dot" />
-            {t.automated}
-          </span>
-
-          <span>
-            <span className="dot" />
-            {t.previewBuild}
-          </span>
-
-          <span>
-            <span className="dot" />
-            {t.iterate}
-          </span>
-
-        </div>
-
-        {/* PROGRESS */}
-        {generating && (
-          <div className="progress-area">
-
-            <div className="progress-track">
-              <div className="progress-bar" />
-            </div>
-
-            <div className="progress-text">
-              {t.building}
-            </div>
-
-          </div>
+        {themes.map(
+          ([id, icon, label]) => (
+            <button
+              key={id}
+              className={`theme-button ${
+                theme === id
+                  ? "selected"
+                  : ""
+              }`}
+              onClick={() => {
+                setTheme(id);
+                localStorage.setItem(
+                  "aibuilder-theme",
+                  id
+                );
+              }}
+            >
+              <span>{icon}</span>
+              {label}
+            </button>
+          )
         )}
 
+      </div>
+
+      {/* Hero */}
+      <section className="hero">
+
+        <div className="eyebrow">
+          <span className="pulse" />
+
+          {isZh
+            ? "AI 驱动的新一代 App Builder"
+            : "THE NEXT GENERATION AI APP BUILDER"}
+        </div>
+
+        <h1>
+          {isZh ? (
+            <>
+              你的想法。
+              <br />
+              <span>真正的 App。</span>
+            </>
+          ) : (
+            <>
+              Your idea.
+              <br />
+              <span>A real app.</span>
+            </>
+          )}
+        </h1>
+
+        <p className="hero-description">
+          {isZh
+            ? "告诉 AI 你想做什么。它会理解你的需求、规划功能、设计界面，并帮助你把想法变成真正可以使用的应用。"
+            : "Tell AI what you want to build. It understands your idea, plans the features, designs the experience, and turns it into a real application."}
+        </p>
+
+        {/* Main builder */}
+        <div className="builder-card">
+
+          <div className="builder-top">
+
+            <div className="ai-orb">
+              <div className="orb-core">
+                ✦
+              </div>
+            </div>
+
+            <div>
+              <div className="builder-title">
+                {isZh
+                  ? "你想做什么 App？"
+                  : "What do you want to build?"}
+              </div>
+
+              <div className="builder-subtitle">
+                {isZh
+                  ? "用自己的话告诉 AI，不需要懂编程。"
+                  : "Describe it naturally. No coding required."}
+              </div>
+            </div>
+
+          </div>
+
+          <textarea
+            value={idea}
+            onChange={(e) =>
+              setIdea(e.target.value)
+            }
+            placeholder={
+              isZh
+                ? "例如：我想建立一个房地产 App，可以管理客户、房产、预约和跟进……"
+                : "For example: I want to build a real estate app that manages clients, properties, appointments and follow-ups..."
+            }
+          />
+
+          <div className="builder-footer">
+
+            <div className="secure-note">
+              <span>✦</span>
+
+              {isZh
+                ? "AI 会帮你整理需求"
+                : "AI will structure your idea"}
+            </div>
+
+            <button
+              className="generate-button"
+              onClick={() => {
+                document
+                  .getElementById(
+                    "examples"
+                  )
+                  ?.scrollIntoView({
+                    behavior: "smooth",
+                  });
+              }}
+            >
+              {isZh
+                ? "✨ 开始创建"
+                : "✨ Start Building"}
+
+              <span>→</span>
+            </button>
+
+          </div>
+
+        </div>
+
+        {/* Examples */}
+        <div
+          className="examples"
+          id="examples"
+        >
+
+          <div className="examples-title">
+            {isZh
+              ? "不知道怎么开始？试试这些"
+              : "Not sure where to start? Try an example"}
+          </div>
+
+          <div className="example-list">
+
+            {examples.map(
+              (example, index) => (
+                <button
+                  key={index}
+                  className="example-card"
+                  onClick={() =>
+                    setIdea(example)
+                  }
+                >
+                  <span className="example-icon">
+                    {index === 0
+                      ? "🏠"
+                      : index === 1
+                      ? "🍽️"
+                      : "📅"}
+                  </span>
+
+                  <span>
+                    {example}
+                  </span>
+
+                  <span className="example-arrow">
+                    →
+                  </span>
+                </button>
+              )
+            )}
+
+          </div>
+
+        </div>
+
       </section>
+
+      {/* AI flow */}
+      <section className="flow-section">
+
+        <div className="flow-heading">
+          <span>
+            {isZh
+              ? "从想法到应用"
+              : "FROM IDEA TO APP"}
+          </span>
+
+          <h2>
+            {isZh
+              ? "AI 负责复杂的部分。"
+              : "AI handles the complexity."}
+          </h2>
+        </div>
+
+        <div className="flow">
+
+          {[
+            ["01", "✦", isZh ? "理解" : "Understand"],
+            ["02", "◇", isZh ? "规划" : "Plan"],
+            ["03", "◈", isZh ? "设计" : "Design"],
+            ["04", "⚡", isZh ? "构建" : "Build"],
+            ["05", "✓", isZh ? "测试" : "Test"],
+            ["06", "↗", isZh ? "发布" : "Launch"],
+          ].map(
+            ([number, icon, label]) => (
+              <div
+                className="flow-item"
+                key={number}
+              >
+                <div className="flow-number">
+                  {number}
+                </div>
+
+                <div className="flow-icon">
+                  {icon}
+                </div>
+
+                <div className="flow-label">
+                  {label}
+                </div>
+              </div>
+            )
+          )}
+
+        </div>
+
+      </section>
+
+      <footer>
+        © 2026 AI App Builder
+      </footer>
 
       <style jsx global>{`
 
@@ -377,6 +360,8 @@ export default function Home() {
         body {
           font-family:
             Inter,
+            ui-sans-serif,
+            system-ui,
             -apple-system,
             BlinkMacSystemFont,
             "Segoe UI",
@@ -385,306 +370,164 @@ export default function Home() {
 
         button,
         textarea {
-          font-family: inherit;
+          font: inherit;
         }
 
-        /* PAGE */
+        /* --------------------------------
+           CORE
+        -------------------------------- */
 
         .page {
-          --body-bg:
-            linear-gradient(
-              145deg,
-              #e4efe4,
-              #c8ddc8
-            );
+          --bg:
+            #e8f1e9;
 
-          --card-bg:
-            rgba(240, 250, 240, 0.8);
+          --card:
+            rgba(255,255,255,.66);
 
-          --card-border:
-            1px solid
-              rgba(60, 100, 60, 0.2);
+          --card-strong:
+            rgba(255,255,255,.82);
 
-          --card-shadow:
-            0 30px 80px
-              rgba(30, 60, 30, 0.12);
+          --border:
+            rgba(255,255,255,.75);
 
-          --backdrop:
-            blur(14px)
-            saturate(150%);
+          --text:
+            #102417;
 
-          --text-primary:
-            #1a3a1a;
+          --muted:
+            #627467;
 
-          --text-secondary:
-            #4a6a4a;
+          --accent:
+            #2e7d52;
 
-          --accent-gradient:
-            linear-gradient(
-              135deg,
-              #2e7d32,
-              #66bb6a
-            );
+          --accent-light:
+            #73c89a;
 
-          --accent-shadow:
-            0 8px 24px
-              rgba(46, 125, 50, 0.3);
-
-          --input-bg:
-            #f6fcf6;
-
-          --badge-bg:
-            rgba(46, 125, 50, 0.12);
-
-          --badge-color:
-            #2e7d32;
-
-          --dot-color:
-            #43a047;
+          --glow:
+            rgba(71,170,111,.25);
 
           position: relative;
 
           min-height: 100vh;
 
-          width: 100%;
-
-          display: flex;
-
-          flex-direction: column;
-
-          align-items: center;
-
-          justify-content: center;
-
-          padding: 90px 24px 40px;
-
           overflow: hidden;
 
-          color:
-            var(--text-primary);
+          color: var(--text);
 
           background:
-            var(--body-bg);
+            radial-gradient(
+              circle at 20% 10%,
+              rgba(255,255,255,.85),
+              transparent 28%
+            ),
+            radial-gradient(
+              circle at 90% 80%,
+              var(--glow),
+              transparent 32%
+            ),
+            var(--bg);
 
           transition:
-            background 0.6s ease,
-            color 0.4s ease;
+            background .7s ease,
+            color .5s ease;
         }
 
-        /* TOP BAR */
+        /* --------------------------------
+           AMBIENT
+        -------------------------------- */
 
-        .top-bar {
+        .ambient {
           position: absolute;
 
-          top: 24px;
-          right: 24px;
-
-          z-index: 10;
-        }
-
-        .language-switch {
-          border: 1px solid
-            rgba(255,255,255,0.5);
-
-          background:
-            rgba(255,255,255,0.5);
-
-          backdrop-filter:
-            blur(12px);
-
-          color:
-            var(--text-primary);
-
-          padding:
-            9px 18px;
-
-          border-radius:
-            999px;
-
-          font-size: 14px;
-
-          font-weight: 700;
-
-          cursor: pointer;
-
-          transition:
-            all 0.25s ease;
-        }
-
-        .language-switch:hover {
-          transform:
-            translateY(-2px);
-
-          box-shadow:
-            0 8px 20px
-              rgba(0,0,0,0.08);
-        }
-
-        /* BACKGROUND */
-
-        .background-glow {
-          position: absolute;
-
-          width: 500px;
-          height: 500px;
+          width: 520px;
+          height: 520px;
 
           border-radius: 50%;
 
+          filter: blur(100px);
+
           pointer-events: none;
 
-          filter:
-            blur(100px);
+          opacity: .28;
 
-          opacity: 0.3;
+          animation:
+            float 12s ease-in-out infinite;
         }
 
-        .glow-one {
-          top: -250px;
-          left: -150px;
+        .ambient-one {
+          top: -260px;
+          left: -160px;
 
           background:
-            var(--dot-color);
+            var(--accent-light);
         }
 
-        .glow-two {
-          bottom: -300px;
-          right: -150px;
+        .ambient-two {
+          right: -260px;
+          bottom: -220px;
 
           background:
-            var(--dot-color);
+            var(--accent);
 
-          opacity: 0.15;
+          animation-delay:
+            -5s;
         }
 
-        /* THEME SWITCHER */
+        @keyframes float {
 
-        .theme-switcher {
+          0%,100% {
+            transform:
+              translate3d(0,0,0)
+              scale(1);
+          }
+
+          50% {
+            transform:
+              translate3d(25px,-20px,0)
+              scale(1.06);
+          }
+
+        }
+
+        .grid-overlay {
+          position: absolute;
+
+          inset: 0;
+
+          pointer-events: none;
+
+          opacity: .035;
+
+          background-image:
+            linear-gradient(
+              rgba(0,0,0,.6) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(0,0,0,.6) 1px,
+              transparent 1px
+            );
+
+          background-size:
+            42px 42px;
+        }
+
+        /* --------------------------------
+           NAV
+        -------------------------------- */
+
+        .top-nav {
           position: relative;
 
           z-index: 5;
 
-          display: flex;
+          max-width: 1180px;
 
-          gap: 10px;
-
-          flex-wrap: wrap;
-
-          justify-content: center;
-
-          margin-bottom: 30px;
+          margin: 0 auto;
 
           padding:
-            14px 24px;
+            28px 28px 0;
 
-          max-width: 900px;
-
-          border-radius:
-            60px;
-
-          background:
-            rgba(255,255,255,0.4);
-
-          backdrop-filter:
-            blur(12px);
-
-          border:
-            1px solid
-              rgba(255,255,255,0.45);
-        }
-
-        .theme-btn {
-          padding:
-            8px 17px;
-
-          border-radius:
-            40px;
-
-          border:
-            2px solid
-              transparent;
-
-          background:
-            rgba(255,255,255,0.5);
-
-          color:
-            #1e293b;
-
-          font-size:
-            13px;
-
-          font-weight:
-            600;
-
-          cursor:
-            pointer;
-
-          white-space:
-            nowrap;
-
-          transition:
-            all 0.25s ease;
-        }
-
-        .theme-btn:hover {
-          transform:
-            translateY(-2px);
-
-          box-shadow:
-            0 8px 16px
-              rgba(0,0,0,0.06);
-        }
-
-        .theme-btn.active {
-          border-color:
-            var(--dot-color);
-
-          background:
-            var(--dot-color);
-
-          color:
-            white;
-
-          box-shadow:
-            0 8px 20px
-              rgba(0,0,0,0.12);
-        }
-
-        /* CARD */
-
-        .app-card {
-          position: relative;
-
-          z-index: 2;
-
-          width: 100%;
-
-          max-width: 820px;
-
-          padding:
-            48px 56px;
-
-          border-radius:
-            48px;
-
-          background:
-            var(--card-bg);
-
-          backdrop-filter:
-            var(--backdrop);
-
-          -webkit-backdrop-filter:
-            var(--backdrop);
-
-          border:
-            var(--card-border);
-
-          box-shadow:
-            var(--card-shadow);
-        }
-
-        /* NAVBAR */
-
-        .navbar {
           display:
             flex;
 
@@ -693,17 +536,9 @@ export default function Home() {
 
           align-items:
             center;
-
-          margin-bottom:
-            48px;
-
-          gap: 12px;
-
-          flex-wrap:
-            wrap;
         }
 
-        .logo {
+        .brand {
           display:
             flex;
 
@@ -711,23 +546,11 @@ export default function Home() {
             center;
 
           gap: 12px;
-
-          font-size:
-            24px;
-
-          font-weight:
-            700;
-
-          color:
-            var(--text-primary);
         }
 
-        .logo-icon {
-          width:
-            44px;
-
-          height:
-            44px;
+        .brand-mark {
+          width: 42px;
+          height: 42px;
 
           display:
             flex;
@@ -738,67 +561,284 @@ export default function Home() {
           justify-content:
             center;
 
-          border-radius:
-            16px;
+          border-radius: 14px;
+
+          color: white;
 
           background:
-            var(--accent-gradient);
+            linear-gradient(
+              135deg,
+              var(--accent),
+              var(--accent-light)
+            );
 
+          box-shadow:
+            0 12px 30px
+            var(--glow);
+        }
+
+        .brand-name {
+          font-size: 16px;
+
+          font-weight: 750;
+
+          letter-spacing:
+            -.3px;
+        }
+
+        .brand-caption {
+          margin-top: 2px;
+
+          font-size: 10px;
+
+          color: var(--muted);
+
+          letter-spacing:
+            .8px;
+
+          text-transform:
+            uppercase;
+        }
+
+        .language-button {
+          border:
+            1px solid var(--border);
+
+          background:
+            rgba(255,255,255,.45);
+
+          backdrop-filter:
+            blur(16px);
+
+          color:
+            var(--text);
+
+          padding:
+            10px 15px;
+
+          border-radius:
+            999px;
+
+          cursor:
+            pointer;
+
+          font-size:
+            13px;
+
+          font-weight:
+            650;
+
+          transition:
+            .25s ease;
+        }
+
+        .language-button:hover {
+          transform:
+            translateY(-2px);
+
+          background:
+            rgba(255,255,255,.7);
+        }
+
+        /* --------------------------------
+           THEME
+        -------------------------------- */
+
+        .theme-panel {
+          position:
+            relative;
+
+          z-index:
+            5;
+
+          display:
+            flex;
+
+          justify-content:
+            center;
+
+          flex-wrap:
+            wrap;
+
+          gap:
+            7px;
+
+          max-width:
+            1000px;
+
+          margin:
+            28px auto 0;
+
+          padding:
+            8px;
+
+          border:
+            1px solid var(--border);
+
+          border-radius:
+            999px;
+
+          background:
+            rgba(255,255,255,.38);
+
+          backdrop-filter:
+            blur(18px);
+
+          box-shadow:
+            0 10px 40px
+            rgba(20,60,40,.05);
+        }
+
+        .theme-button {
+          border:
+            0;
+
+          background:
+            transparent;
+
+          color:
+            var(--muted);
+
+          padding:
+            8px 13px;
+
+          border-radius:
+            999px;
+
+          cursor:
+            pointer;
+
+          font-size:
+            12px;
+
+          transition:
+            .25s ease;
+        }
+
+        .theme-button:hover {
+          color:
+            var(--text);
+
+          background:
+            rgba(255,255,255,.55);
+        }
+
+        .theme-button.selected {
           color:
             white;
 
-          font-size:
-            26px;
+          background:
+            var(--accent);
 
           box-shadow:
-            var(--accent-shadow);
+            0 6px 18px
+            var(--glow);
         }
 
-        .badge {
+        /* --------------------------------
+           HERO
+        -------------------------------- */
+
+        .hero {
+          position:
+            relative;
+
+          z-index:
+            2;
+
+          max-width:
+            900px;
+
+          margin:
+            92px auto 0;
+
           padding:
-            6px 18px;
+            0 24px;
+
+          text-align:
+            center;
+        }
+
+        .eyebrow {
+          display:
+            inline-flex;
+
+          align-items:
+            center;
+
+          gap:
+            8px;
+
+          padding:
+            7px 13px;
+
+          border:
+            1px solid var(--border);
 
           border-radius:
-            40px;
+            999px;
 
           background:
-            var(--badge-bg);
+            rgba(255,255,255,.45);
+
+          backdrop-filter:
+            blur(12px);
 
           color:
-            var(--badge-color);
+            var(--accent);
 
           font-size:
-            14px;
+            11px;
 
           font-weight:
-            600;
+            750;
+
+          letter-spacing:
+            1px;
         }
 
-        /* HERO */
+        .pulse {
+          width:
+            7px;
+
+          height:
+            7px;
+
+          border-radius:
+            50%;
+
+          background:
+            var(--accent-light);
+
+          box-shadow:
+            0 0 0 5px
+            rgba(100,190,135,.12);
+        }
 
         .hero h1 {
           margin:
-            0 0 12px;
-
-          color:
-            var(--text-primary);
+            24px 0 20px;
 
           font-size:
-            42px;
-
-          font-weight:
-            700;
+            clamp(56px,8vw,92px);
 
           line-height:
-            1.2;
+            .95;
 
           letter-spacing:
-            -1.2px;
+            -5px;
+
+          font-weight:
+            780;
         }
 
         .hero h1 span {
           background:
-            var(--accent-gradient);
+            linear-gradient(
+              110deg,
+              var(--accent),
+              var(--accent-light)
+            );
 
           -webkit-background-clip:
             text;
@@ -810,101 +850,99 @@ export default function Home() {
             text;
         }
 
-        .hero p {
+        .hero-description {
           max-width:
-            85%;
+            680px;
 
           margin:
-            0 0 32px;
+            0 auto 44px;
 
           color:
-            var(--text-secondary);
+            var(--muted);
 
           font-size:
-            18px;
+            17px;
 
           line-height:
-            1.6;
+            1.7;
         }
 
-        /* INPUT */
+        /* --------------------------------
+           BUILDER
+        -------------------------------- */
 
-        .input-group {
+        .builder-card {
+          text-align:
+            left;
+
+          padding:
+            24px;
+
+          border:
+            1px solid var(--border);
+
+          border-radius:
+            28px;
+
+          background:
+            var(--card);
+
+          backdrop-filter:
+            blur(28px)
+            saturate(150%);
+
+          box-shadow:
+            0 35px 100px
+            rgba(20,70,40,.13),
+            inset 0 1px 0
+            rgba(255,255,255,.8);
+        }
+
+        .builder-top {
           display:
             flex;
 
           align-items:
-            flex-end;
+            center;
 
           gap:
-            12px;
+            13px;
 
-          padding:
-            8px 8px 8px 28px;
+          margin-bottom:
+            20px;
+        }
+
+        .ai-orb {
+          width:
+            42px;
+
+          height:
+            42px;
 
           border-radius:
-            32px;
-
-          background:
-            var(--input-bg);
-
-          border:
-            1px solid
-              rgba(0,0,0,0.04);
-
-          box-shadow:
-            0 8px 32px
-              rgba(0,20,40,0.06);
-        }
-
-        .input-group textarea {
-          flex:
-            1;
-
-          min-height:
-            68px;
-
-          max-height:
-            160px;
+            14px;
 
           padding:
-            16px 0;
-
-          border:
-            none;
-
-          outline:
-            none;
-
-          resize:
-            vertical;
+            1px;
 
           background:
-            transparent;
+            linear-gradient(
+              135deg,
+              var(--accent),
+              var(--accent-light)
+            );
 
-          color:
-            var(--text-primary);
-
-          font-size:
-            16px;
-
-          line-height:
-            1.6;
+          box-shadow:
+            0 8px 28px
+            var(--glow);
         }
 
-        .input-group textarea::placeholder {
-          color:
-            #a0b3c8;
-        }
+        .orb-core {
+          width:
+            100%;
 
-        /* BUTTON */
-
-        .create-btn {
           height:
-            60px;
-
-          flex-shrink:
-            0;
+            100%;
 
           display:
             flex;
@@ -915,119 +953,125 @@ export default function Home() {
           justify-content:
             center;
 
-          gap:
-            8px;
-
-          padding:
-            16px 36px;
-
-          border:
-            none;
-
           border-radius:
-            28px;
+            13px;
 
           background:
-            var(--accent-gradient);
+            rgba(255,255,255,.85);
 
           color:
-            white;
+            var(--accent);
+        }
 
+        .builder-title {
           font-size:
-            18px;
+            16px;
 
           font-weight:
-            600;
-
-          cursor:
-            pointer;
-
-          white-space:
-            nowrap;
-
-          box-shadow:
-            var(--accent-shadow);
-
-          transition:
-            all 0.25s ease;
+            750;
         }
 
-        .create-btn:hover:not(:disabled) {
-          transform:
-            scale(1.03)
-            translateY(-2px);
-        }
-
-        .create-btn:disabled {
-          opacity:
-            0.8;
-
-          cursor:
-            not-allowed;
-        }
-
-        /* STATUS */
-
-        .status-tip {
-          min-height:
-            28px;
-
+        .builder-subtitle {
           margin-top:
-            20px;
+            3px;
 
           color:
-            var(--text-primary);
+            var(--muted);
 
           font-size:
-            14px;
+            12px;
+        }
 
-          font-weight:
-            500;
+        .builder-card textarea {
+          display:
+            block;
 
-          opacity:
+          width:
+            100%;
+
+          min-height:
+            130px;
+
+          resize:
+            vertical;
+
+          border:
             0;
 
-          transform:
-            translateY(6px);
+          outline:
+            0;
+
+          padding:
+            18px;
+
+          border-radius:
+            20px;
+
+          background:
+            rgba(255,255,255,.55);
+
+          color:
+            var(--text);
+
+          font-size:
+            16px;
+
+          line-height:
+            1.65;
+
+          box-shadow:
+            inset 0 0 0 1px
+            rgba(0,0,0,.04);
 
           transition:
-            all 0.3s ease;
+            .25s ease;
         }
 
-        .status-tip.show {
-          opacity:
-            1;
+        .builder-card textarea:focus {
+          background:
+            rgba(255,255,255,.75);
 
-          transform:
-            translateY(0);
+          box-shadow:
+            inset 0 0 0 2px
+            var(--accent);
         }
 
-        /* FEATURES */
+        .builder-card textarea::placeholder {
+          color:
+            #91a29a;
+        }
 
-        .features {
+        .builder-footer {
           display:
             flex;
 
-          gap:
-            28px;
+          justify-content:
+            space-between;
 
-          flex-wrap:
-            wrap;
+          align-items:
+            center;
+
+          gap:
+            15px;
 
           margin-top:
-            32px;
-
-          color:
-            var(--text-secondary);
-
-          font-size:
             14px;
-
-          font-weight:
-            500;
         }
 
-        .features span {
+        .secure-note {
+          color:
+            var(--muted);
+
+          font-size:
+            11px;
+        }
+
+        .secure-note span {
+          color:
+            var(--accent);
+        }
+
+        .generate-button {
           display:
             flex;
 
@@ -1035,456 +1079,589 @@ export default function Home() {
             center;
 
           gap:
-            8px;
-        }
-
-        .dot {
-          width:
-            6px;
-
-          height:
-            6px;
-
-          border-radius:
-            50%;
-
-          background:
-            var(--dot-color);
-        }
-
-        /* PROGRESS */
-
-        .progress-area {
-          margin-top:
-            28px;
-        }
-
-        .progress-track {
-          width:
-            100%;
-
-          height:
-            6px;
-
-          overflow:
-            hidden;
-
-          border-radius:
-            999px;
-
-          background:
-            rgba(0,0,0,0.08);
-        }
-
-        .progress-bar {
-          width:
-            45%;
-
-          height:
-            100%;
-
-          border-radius:
-            inherit;
-
-          background:
-            var(--accent-gradient);
-
-          animation:
-            progressMove
-            1.4s
-            ease-in-out
-            infinite;
-        }
-
-        .progress-text {
-          margin-top:
             10px;
 
+          border:
+            0;
+
+          padding:
+            13px 19px;
+
+          border-radius:
+            14px;
+
+          background:
+            linear-gradient(
+              135deg,
+              var(--accent),
+              var(--accent-light)
+            );
+
           color:
-            var(--text-secondary);
+            white;
+
+          font-size:
+            13px;
+
+          font-weight:
+            750;
+
+          cursor:
+            pointer;
+
+          box-shadow:
+            0 12px 30px
+            var(--glow);
+
+          transition:
+            .25s ease;
+        }
+
+        .generate-button:hover {
+          transform:
+            translateY(-2px)
+            scale(1.015);
+
+          box-shadow:
+            0 16px 35px
+            var(--glow);
+        }
+
+        /* --------------------------------
+           EXAMPLES
+        -------------------------------- */
+
+        .examples {
+          margin-top:
+            32px;
+
+          text-align:
+            left;
+        }
+
+        .examples-title {
+          margin-bottom:
+            12px;
+
+          color:
+            var(--muted);
+
+          font-size:
+            11px;
+
+          font-weight:
+            700;
+
+          letter-spacing:
+            .7px;
+        }
+
+        .example-list {
+          display:
+            grid;
+
+          gap:
+            9px;
+        }
+
+        .example-card {
+          width:
+            100%;
+
+          display:
+            grid;
+
+          grid-template-columns:
+            34px 1fr 20px;
+
+          align-items:
+            center;
+
+          gap:
+            10px;
+
+          padding:
+            12px;
+
+          border:
+            1px solid
+            rgba(255,255,255,.55);
+
+          border-radius:
+            15px;
+
+          background:
+            rgba(255,255,255,.34);
+
+          color:
+            var(--text);
+
+          text-align:
+            left;
+
+          cursor:
+            pointer;
 
           font-size:
             12px;
+
+          transition:
+            .25s ease;
+        }
+
+        .example-card:hover {
+          transform:
+            translateX(4px);
+
+          background:
+            rgba(255,255,255,.62);
+
+          border-color:
+            var(--accent-light);
+        }
+
+        .example-icon {
+          width:
+            34px;
+
+          height:
+            34px;
+
+          display:
+            flex;
+
+          align-items:
+            center;
+
+          justify-content:
+            center;
+
+          border-radius:
+            11px;
+
+          background:
+            rgba(255,255,255,.55);
+
+          font-size:
+            16px;
+        }
+
+        .example-arrow {
+          color:
+            var(--accent);
+
+          text-align:
+            right;
+        }
+
+        /* --------------------------------
+           FLOW
+        -------------------------------- */
+
+        .flow-section {
+          position:
+            relative;
+
+          z-index:
+            2;
+
+          max-width:
+            1000px;
+
+          margin:
+            130px auto 0;
+
+          padding:
+            0 24px 100px;
 
           text-align:
             center;
         }
 
-        @keyframes progressMove {
-          0% {
-            transform:
-              translateX(-120%);
-          }
+        .flow-heading span {
+          color:
+            var(--accent);
 
-          100% {
-            transform:
-              translateX(250%);
-          }
+          font-size:
+            10px;
+
+          font-weight:
+            800;
+
+          letter-spacing:
+            2px;
         }
 
-        /* OCEAN */
+        .flow-heading h2 {
+          margin:
+            12px 0 50px;
+
+          font-size:
+            34px;
+
+          letter-spacing:
+            -1.5px;
+        }
+
+        .flow {
+          display:
+            grid;
+
+          grid-template-columns:
+            repeat(6,1fr);
+
+          gap:
+            10px;
+        }
+
+        .flow-item {
+          position:
+            relative;
+
+          padding:
+            20px 8px;
+
+          border:
+            1px solid var(--border);
+
+          border-radius:
+            20px;
+
+          background:
+            rgba(255,255,255,.28);
+
+          backdrop-filter:
+            blur(14px);
+        }
+
+        .flow-number {
+          color:
+            var(--muted);
+
+          font-size:
+            9px;
+        }
+
+        .flow-icon {
+          margin:
+            13px 0 10px;
+
+          color:
+            var(--accent);
+
+          font-size:
+            20px;
+        }
+
+        .flow-label {
+          font-size:
+            11px;
+
+          font-weight:
+            700;
+        }
+
+        footer {
+          position:
+            relative;
+
+          z-index:
+            2;
+
+          padding:
+            0 20px 30px;
+
+          text-align:
+            center;
+
+          color:
+            var(--muted);
+
+          font-size:
+            10px;
+        }
+
+        /* --------------------------------
+           OCEAN
+        -------------------------------- */
 
         .theme-ocean {
-          --body-bg:
-            linear-gradient(
-              145deg,
-              #071a24,
-              #123b4a
-            );
+          --bg:
+            #071c26;
 
-          --card-bg:
-            rgba(8,28,40,0.85);
+          --card:
+            rgba(8,30,40,.62);
 
-          --card-border:
-            1px solid
-              rgba(0,180,216,0.25);
+          --card-strong:
+            rgba(10,40,55,.75);
 
-          --card-shadow:
-            0 30px 80px
-              rgba(0,0,0,0.7);
+          --border:
+            rgba(100,220,245,.18);
 
-          --text-primary:
-            #e0f7fa;
+          --text:
+            #e7fbff;
 
-          --text-secondary:
-            #8ecae6;
+          --muted:
+            #8fb9c7;
 
-          --accent-gradient:
-            linear-gradient(
-              135deg,
-              #0077b6,
-              #48cae4
-            );
+          --accent:
+            #08a7d5;
 
-          --accent-shadow:
-            0 8px 28px
-              rgba(0,119,182,0.35);
+          --accent-light:
+            #65e4f5;
 
-          --input-bg:
-            rgba(255,255,255,0.06);
-
-          --badge-bg:
-            rgba(0,180,216,0.15);
-
-          --badge-color:
-            #48cae4;
-
-          --dot-color:
-            #00b4d8;
+          --glow:
+            rgba(0,190,230,.25);
         }
 
-        /* SKY */
+        .theme-ocean .grid-overlay {
+          opacity:
+            .06;
+        }
+
+        /* --------------------------------
+           SKY
+        -------------------------------- */
 
         .theme-sky {
-          --body-bg:
-            linear-gradient(
-              145deg,
-              #e0f2fe,
-              #bae6fd
-            );
+          --bg:
+            #dff3ff;
 
-          --card-bg:
-            rgba(255,255,255,0.75);
+          --card:
+            rgba(255,255,255,.58);
 
-          --card-border:
-            1px solid
-              rgba(255,255,255,0.8);
+          --border:
+            rgba(255,255,255,.85);
 
-          --card-shadow:
-            0 30px 80px
-              rgba(0,80,120,0.06);
+          --text:
+            #0b4566;
 
-          --text-primary:
-            #0c4a6e;
+          --muted:
+            #57809a;
 
-          --text-secondary:
-            #4a7a9c;
+          --accent:
+            #087db8;
 
-          --accent-gradient:
-            linear-gradient(
-              135deg,
-              #0284c7,
-              #7dd3fc
-            );
+          --accent-light:
+            #7dd8ff;
 
-          --accent-shadow:
-            0 8px 24px
-              rgba(2,132,199,0.25);
-
-          --input-bg:
-            #f8fcff;
-
-          --badge-bg:
-            rgba(2,132,199,0.08);
-
-          --badge-color:
-            #0369a1;
-
-          --dot-color:
-            #38bdf8;
+          --glow:
+            rgba(70,170,220,.2);
         }
 
-        /* DARK */
+        /* --------------------------------
+           GLASS
+        -------------------------------- */
+
+        .theme-glass {
+          --bg:
+            linear-gradient(
+              135deg,
+              #eef3ff,
+              #e6eaff
+            );
+
+          --card:
+            rgba(255,255,255,.58);
+
+          --border:
+            rgba(255,255,255,.8);
+
+          --text:
+            #172033;
+
+          --muted:
+            #68748a;
+
+          --accent:
+            #6c5ce7;
+
+          --accent-light:
+            #a99cff;
+
+          --glow:
+            rgba(108,92,231,.22);
+        }
+
+        /* --------------------------------
+           DARK
+        -------------------------------- */
 
         .theme-dark {
-          --body-bg:
-            #0b0e14;
+          --bg:
+            #080b12;
 
-          --card-bg:
-            rgba(18,25,40,0.85);
+          --card:
+            rgba(17,22,34,.66);
 
-          --card-border:
-            1px solid
-              rgba(0,229,255,0.25);
+          --border:
+            rgba(100,220,255,.14);
 
-          --card-shadow:
-            0 30px 80px
-              rgba(0,0,0,0.8);
+          --text:
+            #eef6ff;
 
-          --text-primary:
-            #e8f0fe;
+          --muted:
+            #8496b2;
 
-          --text-secondary:
-            #8aa3c9;
+          --accent:
+            #00d9ff;
 
-          --accent-gradient:
-            linear-gradient(
-              135deg,
-              #00e5ff,
-              #a855f7
-            );
+          --accent-light:
+            #a855f7;
 
-          --accent-shadow:
-            0 8px 32px
-              rgba(0,229,255,0.25);
-
-          --input-bg:
-            rgba(255,255,255,0.06);
-
-          --badge-bg:
-            rgba(0,229,255,0.12);
-
-          --badge-color:
-            #67e8f9;
-
-          --dot-color:
-            #00e5ff;
+          --glow:
+            rgba(0,220,255,.2);
         }
 
-        /* MINIMAL */
+        /* --------------------------------
+           MINIMAL
+        -------------------------------- */
 
         .theme-minimal {
-          --body-bg:
-            #f8fafc;
+          --bg:
+            #f7f8fa;
 
-          --card-bg:
-            #ffffff;
+          --card:
+            rgba(255,255,255,.9);
 
-          --card-border:
-            1px solid #e9edf2;
+          --border:
+            #e7eaf0;
 
-          --card-shadow:
-            0 20px 60px
-              rgba(0,0,0,0.04);
+          --text:
+            #111827;
 
-          --text-primary:
-            #0f172a;
+          --muted:
+            #64748b;
 
-          --text-secondary:
-            #475569;
-
-          --accent-gradient:
-            linear-gradient(
-              135deg,
-              #2563eb,
-              #3b82f6
-            );
-
-          --accent-shadow:
-            0 8px 24px
-              rgba(37,99,235,0.2);
-
-          --input-bg:
-            #f1f5f9;
-
-          --badge-bg:
-            #eef2ff;
-
-          --badge-color:
-            #4338ca;
-
-          --dot-color:
+          --accent:
             #2563eb;
+
+          --accent-light:
+            #60a5fa;
+
+          --glow:
+            rgba(37,99,235,.14);
         }
 
-        /* WARM */
+        /* --------------------------------
+           WARM
+        -------------------------------- */
 
         .theme-warm {
-          --body-bg:
-            #f7f0e8;
+          --bg:
+            #f5eee5;
 
-          --card-bg:
-            rgba(255,249,240,0.8);
+          --card:
+            rgba(255,250,242,.66);
 
-          --card-border:
-            1px solid
-              rgba(230,200,170,0.4);
+          --border:
+            rgba(255,255,255,.8);
 
-          --card-shadow:
-            0 30px 80px
-              rgba(120,80,50,0.08);
+          --text:
+            #402d20;
 
-          --text-primary:
-            #3d2c1e;
+          --muted:
+            #806c5a;
 
-          --text-secondary:
-            #7a624a;
+          --accent:
+            #c66b32;
 
-          --accent-gradient:
-            linear-gradient(
-              135deg,
-              #e07c3c,
-              #f39c6d
-            );
+          --accent-light:
+            #f0aa74;
 
-          --accent-shadow:
-            0 8px 24px
-              rgba(224,124,60,0.25);
-
-          --input-bg:
-            #fffcf5;
-
-          --badge-bg:
-            rgba(224,124,60,0.12);
-
-          --badge-color:
-            #b85c2a;
-
-          --dot-color:
-            #e07c3c;
+          --glow:
+            rgba(210,120,60,.2);
         }
 
-        /* MOBILE */
+        /* --------------------------------
+           MOBILE
+        -------------------------------- */
 
-        @media (max-width:700px) {
+        @media (max-width: 700px) {
 
-          .page {
+          .top-nav {
             padding:
-              80px 14px 24px;
+              18px 16px 0;
           }
 
-          .top-bar {
-            top:
-              16px;
-
-            right:
-              16px;
-          }
-
-          .theme-switcher {
-            width:
-              100%;
-
-            padding:
-              12px 14px;
-
-            gap:
-              7px;
+          .theme-panel {
+            margin:
+              20px 14px 0;
 
             border-radius:
-              30px;
+              22px;
           }
 
-          .theme-btn {
+          .theme-button {
             padding:
-              7px 10px;
+              7px 9px;
 
             font-size:
-              11px;
+              10px;
           }
 
-          .app-card {
+          .hero {
+            margin-top:
+              65px;
+
             padding:
-              32px 22px;
-
-            border-radius:
-              32px;
-          }
-
-          .navbar {
-            margin-bottom:
-              34px;
-          }
-
-          .logo {
-            font-size:
-              20px;
-          }
-
-          .logo-icon {
-            width:
-              40px;
-
-            height:
-              40px;
-
-            font-size:
-              23px;
+              0 15px;
           }
 
           .hero h1 {
             font-size:
-              30px;
+              55px;
+
+            letter-spacing:
+              -3px;
           }
 
-          .hero p {
-            max-width:
-              100%;
-
+          .hero-description {
             font-size:
-              16px;
+              15px;
+
+            line-height:
+              1.65;
           }
 
-          .input-group {
-            flex-direction:
-              column;
+          .builder-card {
+            padding:
+              16px;
 
+            border-radius:
+              22px;
+          }
+
+          .builder-footer {
             align-items:
               stretch;
 
-            padding:
-              18px;
-
-            border-radius:
-              24px;
+            flex-direction:
+              column;
           }
 
-          .input-group textarea {
-            min-height:
-              90px;
-
-            padding:
-              0;
-          }
-
-          .create-btn {
+          .generate-button {
             width:
               100%;
 
-            height:
-              56px;
+            justify-content:
+              center;
           }
 
-          .features {
-            gap:
-              14px 20px;
+          .flow {
+            grid-template-columns:
+              repeat(2,1fr);
+          }
 
+          .flow-heading h2 {
             font-size:
-              13px;
+              28px;
           }
+
         }
 
       `}</style>
+
     </main>
   );
 }
