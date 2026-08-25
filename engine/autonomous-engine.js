@@ -1,5 +1,5 @@
-import { generateWithFallback } from "./ai-provider.js";
-import { createPreview } from "./preview-engine.js";
+import { testApp } from "./test-engine.js";
+import { securityScan } from "./security-engine.js";
 import { runTest } from "./test-engine.js";
 import { securityCheck } from "./security-engine.js";
 import { checkPublishPermission } from "./publish-permission.js";
@@ -94,10 +94,9 @@ export async function runAutonomousEngine(userIdea) {
     specification,
   });
 
-  const test = await runTest(preview);
+  const test = testApp(preview);
 
-  const security = await securityCheck(preview);
-
+const security = securityScan(preview);
   const publish = await checkPublishPermission({
     test,
     security,
