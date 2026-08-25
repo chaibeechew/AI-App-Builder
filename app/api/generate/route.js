@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { runAutonomousEngine } from "../../../../engine/autonomous-engine.js";
+import { runAutonomousEngine } from "../../../engine/autonomous-engine.js";
 
 export async function POST(request) {
   try {
     const body = await request.json();
 
-    const idea = String(body?.idea || "").trim();
+    const idea = String(
+      body?.idea || body?.prompt || ""
+    ).trim();
 
     if (!idea) {
       return NextResponse.json(
@@ -29,7 +31,9 @@ export async function POST(request) {
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || "Unable to generate the app.",
+        error:
+          error?.message ||
+          "Unable to generate the app.",
       },
       { status: 500 }
     );
