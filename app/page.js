@@ -27,9 +27,7 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || "Unable to create app."
-        );
+        throw new Error(data.error || "Unable to create app.");
       }
 
       setResult(data);
@@ -49,6 +47,9 @@ export default function Home() {
 
   return (
     <main className="app-shell">
+      <div className="ambient ambient-forest" />
+      <div className="ambient ambient-ocean" />
+
       <div className="container">
 
         <nav className="navbar">
@@ -81,7 +82,7 @@ export default function Home() {
             No coding required.
           </p>
 
-          <div className="builder-box">
+          <div className="builder-box glass-card">
 
             <textarea
               className="builder-input"
@@ -107,7 +108,10 @@ export default function Home() {
 
         {result?.blocked && (
           <section className="result">
-            <h2>🛡️ Creation Blocked</h2>
+
+            <h2>
+              🛡️ Creation Blocked
+            </h2>
 
             <p className="result-error">
               {result.reason}
@@ -118,6 +122,7 @@ export default function Home() {
               that may involve phishing, credential
               theft, impersonation, or fraud.
             </p>
+
           </section>
         )}
 
@@ -139,28 +144,13 @@ export default function Home() {
               {previewApp?.description}
             </p>
 
-            <div
-              style={{
-                marginTop: "25px",
-                padding: "25px",
-                border: "1px solid #29493c",
-                borderRadius: "18px",
-                background: "#07130f",
-              }}
-            >
+            <div className="app-preview-card">
 
-              <div
-                style={{
-                  paddingBottom: "15px",
-                  borderBottom:
-                    "1px solid #29493c",
-                  fontWeight: "800",
-                }}
-              >
+              <div className="preview-topbar">
                 📱 {homePage?.name || "Home"}
               </div>
 
-              <div style={{ paddingTop: "25px" }}>
+              <div className="preview-content">
 
                 {homePage?.components?.map(
                   (component, index) => {
@@ -181,10 +171,7 @@ export default function Home() {
                       return (
                         <p
                           key={index}
-                          style={{
-                            color: "#a8b9b1",
-                            lineHeight: "1.6",
-                          }}
+                          className="preview-text"
                         >
                           {component.text}
                         </p>
@@ -212,14 +199,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div
-              style={{
-                marginTop: "25px",
-                padding: "15px",
-                borderRadius: "12px",
-                background: "#10271e",
-              }}
-            >
+            <div className="security-result">
               🛡️ Security Scan:{" "}
               <strong>
                 {preview.safety?.scanned
@@ -228,13 +208,7 @@ export default function Home() {
               </strong>
             </div>
 
-            <div
-              style={{
-                marginTop: "15px",
-                color: "#a8b9b1",
-                fontSize: "14px",
-              }}
-            >
+            <div className="approval-note">
               Human approval is required before
               publishing.
             </div>
@@ -246,11 +220,15 @@ export default function Home() {
           !result.success &&
           !result.blocked && (
             <section className="result">
+
               <h2 className="result-error">
                 ⚠️ Error
               </h2>
 
-              <p>{result.error}</p>
+              <p>
+                {result.error}
+              </p>
+
             </section>
           )}
 
@@ -314,6 +292,99 @@ export default function Home() {
           </div>
 
         </section>
+
+        {/* USER GUIDE */}
+
+        <section className="guide glass-card">
+
+          <div className="eyebrow">
+            AI APP BUILDER · USER GUIDE
+          </div>
+
+          <h2>
+            📖 使用说明 / How It Works
+          </h2>
+
+          <p className="guide-intro">
+            从一个想法开始，AI App Builder
+            会带你完成：
+            <br />
+            Create → Modify → Preview → Test
+            → Publish → Rollback
+          </p>
+
+          <div className="guide-grid">
+
+            <div className="guide-step">
+              <span>01</span>
+              <h3>✨ Create</h3>
+              <p>
+                用自然语言描述你想做的 App。
+                越清楚越好，例如功能、用户、
+                地区和页面。
+              </p>
+            </div>
+
+            <div className="guide-step">
+              <span>02</span>
+              <h3>🛠️ Modify</h3>
+              <p>
+                告诉 AI 要增加、删除或修改什么，
+                逐步完善设计和功能。
+              </p>
+            </div>
+
+            <div className="guide-step">
+              <span>03</span>
+              <h3>👀 Preview</h3>
+              <p>
+                先看 AI 生成的 App Preview，
+                确认页面结构、内容和操作流程。
+              </p>
+            </div>
+
+            <div className="guide-step">
+              <span>04</span>
+              <h3>🧪 Test</h3>
+              <p>
+                测试主要按钮、页面和 API。
+                发现问题后返回 Modify 再修正。
+              </p>
+            </div>
+
+            <div className="guide-step">
+              <span>05</span>
+              <h3>🚀 Publish</h3>
+              <p>
+                通过安全检查并完成 Human Approval
+                后才允许发布。
+              </p>
+            </div>
+
+            <div className="guide-step">
+              <span>06</span>
+              <h3>↩️ Rollback</h3>
+              <p>
+                发布后如果新版本出现问题，
+                可以回到之前稳定的版本。
+              </p>
+            </div>
+
+          </div>
+
+          <div className="guide-note">
+            🌲 <strong>Forest + Ocean Design</strong>
+            <br />
+            森林代表稳定、安全与成长；
+            海洋代表开放、连接与无限创造。
+          </div>
+
+        </section>
+
+        <footer className="footer">
+          AI App Builder · Autonomous AI Engine ·
+          Built for creators
+        </footer>
 
       </div>
     </main>
