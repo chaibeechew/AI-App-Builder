@@ -47,21 +47,38 @@ export default function Home() {
 
   return (
     <main className="app-shell">
+
+      {/* FOREST + OCEAN ATMOSPHERE */}
+      <div className="forest-layer" />
+      <div className="ocean-layer" />
       <div className="ambient ambient-forest" />
       <div className="ambient ambient-ocean" />
 
       <div className="container">
 
-        <nav className="navbar">
+        {/* NAVIGATION */}
+        <nav className="navbar glass-card">
+
           <div className="logo">
-            🧠 AI App Builder
+            🧠 <span>AI App Builder</span>
+            <small>Autonomous AI Engine</small>
+          </div>
+
+          <div className="nav-links">
+            <span>✨ Create</span>
+            <span>🛠️ Modify</span>
+            <span>🧪 Test</span>
+            <span>🚀 Publish</span>
+            <span>↩️ Rollback</span>
           </div>
 
           <div className="status">
             🛡️ Safety Engine ON
           </div>
+
         </nav>
 
+        {/* HERO */}
         <section className="hero">
 
           <div className="eyebrow">
@@ -82,7 +99,25 @@ export default function Home() {
             No coding required.
           </p>
 
+          {/* AI CORE */}
+          <div className="ai-core">
+            <div className="ai-core-glow">
+              🧠
+            </div>
+            <div className="energy energy-left">
+              🌲
+            </div>
+            <div className="energy energy-right">
+              🌊
+            </div>
+          </div>
+
+          {/* BUILDER */}
           <div className="builder-box glass-card">
+
+            <div className="builder-heading">
+              🌱 Describe Your App Idea
+            </div>
 
             <textarea
               className="builder-input"
@@ -90,22 +125,34 @@ export default function Home() {
               onChange={(event) =>
                 setPrompt(event.target.value)
               }
-              placeholder="Example: Create a property listing app for Malaysia..."
+              placeholder="Example: Create a property listing app for Malaysia with search, filters, map view, favorites and contact agent..."
             />
 
-            <button
-              className="create-button"
-              onClick={createApp}
-              disabled={loading}
-            >
-              {loading
-                ? "🧠 AI is building..."
-                : "✨ Create My App"}
-            </button>
+            <div className="builder-actions">
+
+              <div className="builder-tags">
+                <span>🌲 Forest</span>
+                <span>🌊 Ocean</span>
+                <span>🛡️ Safety Enabled</span>
+              </div>
+
+              <button
+                className="create-button"
+                onClick={createApp}
+                disabled={loading}
+              >
+                {loading
+                  ? "🧠 AI is building..."
+                  : "✨ Create My App"}
+              </button>
+
+            </div>
 
           </div>
+
         </section>
 
+        {/* BLOCKED */}
         {result?.blocked && (
           <section className="result">
 
@@ -126,23 +173,32 @@ export default function Home() {
           </section>
         )}
 
+        {/* GENERATED APP */}
         {result?.success && preview && (
           <section className="result">
 
-            <h2 className="result-success">
-              🚀 Your App Preview
-            </h2>
+            <div className="preview-header">
+              <div>
+                <div className="eyebrow">
+                  AI GENERATED
+                </div>
 
-            <p>
-              <strong>
-                {previewApp?.name ||
-                  "AI Generated App"}
-              </strong>
-            </p>
+                <h2 className="result-success">
+                  🚀 Your App Preview
+                </h2>
 
-            <p>
-              {previewApp?.description}
-            </p>
+                <p>
+                  <strong>
+                    {previewApp?.name ||
+                      "AI Generated App"}
+                  </strong>
+                </p>
+
+                <p>
+                  {previewApp?.description}
+                </p>
+              </div>
+            </div>
 
             <div className="app-preview-card">
 
@@ -197,6 +253,7 @@ export default function Home() {
                 )}
 
               </div>
+
             </div>
 
             <div className="security-result">
@@ -216,6 +273,7 @@ export default function Home() {
           </section>
         )}
 
+        {/* ERROR */}
         {result &&
           !result.success &&
           !result.blocked && (
@@ -232,15 +290,16 @@ export default function Home() {
             </section>
           )}
 
-        <section className="features">
+        {/* WORKFLOW */}
+        <section className="workflow">
 
           <div className="feature">
             <div className="feature-icon">
-              ✨
+              🌱
             </div>
 
             <div className="feature-title">
-              Create
+              ✨ Create
             </div>
 
             <div className="feature-text">
@@ -250,15 +309,15 @@ export default function Home() {
 
           <div className="feature">
             <div className="feature-icon">
-              🛠️
+              ⚙️
             </div>
 
             <div className="feature-title">
-              Modify
+              🛠️ Modify
             </div>
 
             <div className="feature-text">
-              Tell AI how you want your app changed.
+              Tell AI what you want to change.
             </div>
           </div>
 
@@ -268,11 +327,11 @@ export default function Home() {
             </div>
 
             <div className="feature-title">
-              Test
+              🧪 Test
             </div>
 
             <div className="feature-text">
-              Test your app before publishing.
+              Test the app before publishing.
             </div>
           </div>
 
@@ -282,32 +341,29 @@ export default function Home() {
             </div>
 
             <div className="feature-title">
-              Safe Publish
+              🚀 Safe Publish
             </div>
 
             <div className="feature-text">
-              Detect phishing and fraudulent
-              behavior before publication.
+              Security scan and human approval.
             </div>
           </div>
 
         </section>
 
-        {/* USER GUIDE */}
-
+        {/* HOW IT WORKS */}
         <section className="guide glass-card">
 
           <div className="eyebrow">
-            AI APP BUILDER · USER GUIDE
+            AI APP BUILDER
           </div>
 
           <h2>
-            📖 使用说明 / How It Works
+            🌲🌊 HOW IT WORKS
           </h2>
 
           <p className="guide-intro">
-            从一个想法开始，AI App Builder
-            会带你完成：
+            从一个想法开始，到真正发布 App。
             <br />
             Create → Modify → Preview → Test
             → Publish → Rollback
@@ -319,18 +375,15 @@ export default function Home() {
               <span>01</span>
               <h3>✨ Create</h3>
               <p>
-                用自然语言描述你想做的 App。
-                越清楚越好，例如功能、用户、
-                地区和页面。
+                描述你的 App 想法、功能、用户和目标。
               </p>
             </div>
 
             <div className="guide-step">
               <span>02</span>
-              <h3>🛠️ Modify</h3>
+              <h3>🌱 Modify</h3>
               <p>
-                告诉 AI 要增加、删除或修改什么，
-                逐步完善设计和功能。
+                让 AI 增加、删除或修改功能。
               </p>
             </div>
 
@@ -338,8 +391,7 @@ export default function Home() {
               <span>03</span>
               <h3>👀 Preview</h3>
               <p>
-                先看 AI 生成的 App Preview，
-                确认页面结构、内容和操作流程。
+                查看 AI 生成的 App Preview。
               </p>
             </div>
 
@@ -347,8 +399,7 @@ export default function Home() {
               <span>04</span>
               <h3>🧪 Test</h3>
               <p>
-                测试主要按钮、页面和 API。
-                发现问题后返回 Modify 再修正。
+                测试页面、按钮、流程和 API。
               </p>
             </div>
 
@@ -356,8 +407,7 @@ export default function Home() {
               <span>05</span>
               <h3>🚀 Publish</h3>
               <p>
-                通过安全检查并完成 Human Approval
-                后才允许发布。
+                通过安全检查和人工批准后发布。
               </p>
             </div>
 
@@ -365,25 +415,38 @@ export default function Home() {
               <span>06</span>
               <h3>↩️ Rollback</h3>
               <p>
-                发布后如果新版本出现问题，
-                可以回到之前稳定的版本。
+                出现问题时恢复到稳定版本。
               </p>
             </div>
 
           </div>
 
           <div className="guide-note">
-            🌲 <strong>Forest + Ocean Design</strong>
+
+            🌲 <strong>Forest</strong>
+            {" "}代表成长、稳定与安全。
+
             <br />
-            森林代表稳定、安全与成长；
-            海洋代表开放、连接与无限创造。
+
+            🌊 <strong>Ocean</strong>
+            {" "}代表开放、连接与无限创造。
+
           </div>
 
         </section>
 
+        {/* FOOTER */}
         <footer className="footer">
-          AI App Builder · Autonomous AI Engine ·
+
+          <strong>
+            🧠 AI App Builder
+          </strong>
+
+          <br />
+
+          Autonomous AI Engine ·
           Built for creators
+
         </footer>
 
       </div>
