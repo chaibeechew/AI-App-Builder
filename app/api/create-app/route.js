@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildPlan } from "../../../../engine/autonomous-engine.js";
 import { getProviderConfig } from "../../../../engine/model-router.js";
+import { createPreview } from "../../../../engine/preview-engine.js";
 
 export async function POST(request) {
   try {
@@ -16,14 +17,21 @@ export async function POST(request) {
       );
     }
 
-    // Safety check + initial app plan
+    // 1. Safety + autonomous planning
     const plan = buildPlan(prompt);
 
     if (plan.blocked) {
       return NextResponse.json(plan, { status: 403 });
     }
 
+    // 2. Model information
     const ai = getProviderConfig();
+
+    // 3. Create preview
+    const preview = createPreview({
+      name: "AI Generated App",
+      description: prompt,
+    });
 
     return NextResponse.json({
       success: true,
@@ -47,8 +55,10 @@ export async function POST(request) {
         ],
       },
 
+      preview,
+
       message:
-        "Your app plan has been created successfully.",
+        "Your app has been created and is ready for preview.",
     });
   } catch (error) {
     return NextResponse.json(
