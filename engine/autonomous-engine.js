@@ -1,8 +1,6 @@
-import { getAvailableProviders } from "./model-router.js";
-
 function extractJson(text) {
   if (!text) {
-    throw new Error("AI returned an empty response");
+    throw new Error("Gemini returned an empty response");
   }
 
   const cleaned = text
@@ -14,19 +12,19 @@ function extractJson(text) {
   const lastBrace = cleaned.lastIndexOf("}");
 
   if (firstBrace === -1 || lastBrace === -1) {
-    throw new Error("AI did not return valid JSON");
+    throw new Error("Gemini did not return valid JSON");
   }
 
   try {
     return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
   } catch {
-    throw new Error("AI returned invalid JSON");
+    throw new Error("Gemini returned invalid JSON");
   }
 }
 
 function buildPrompt(userIdea) {
   return `
-You are the planning engine of an AI App Builder.
+You are the AI engine of an AI App Builder.
 
 The user wants to build:
 
@@ -67,20 +65,23 @@ Return ONLY valid JSON:
 
 Rules:
 1. Keep the app practical.
-2. Create only useful pages.
-3. Infer missing details intelligently.
+2. Infer missing details intelligently.
+3. Create useful pages and features.
 4. Return JSON only.
 5. Do not return source code.
-6. Make the result understandable to non-technical users.
 `;
 }
 
-async function callGemini(model, prompt) {
+async function callGemini(prompt) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
+    throw new Error(
+      "GEMINI_API_KEY is not configured. Please add it in Vercel Environment Variables."
+    );
   }
+
+  const model = "gemini-3.6-flash";
 
   const controller = new AbortController();
 
@@ -115,15 +116,13 @@ async function callGemini(model, prompt) {
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    const data = await response.json();
 
+    if (!response.ok) {
       throw new Error(
-        `Gemini HTTP ${response.status}: ${errorText.slice(0, 500)}`
+        `Gemini HTTP ${response.status}: ${JSON.stringify(data)}`
       );
     }
-
-    const data = await response.json();
 
     const text =
       data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -144,42 +143,16 @@ async function callGemini(model, prompt) {
   }
 }
 
-async function callProvider(provider, model, prompt) {
-  if (provider === "gemini") {
-    return callGemini(model, prompt);
-  }
-
-  throw new Error(
-    `${provider} is not enabled yet. Gemini is the active AI provider.`
-  );
-}
-
 export async function runAutonomousEngine(userIdea) {
   if (!userIdea || !userIdea.trim()) {
     throw new Error("Please describe the app you want to build.");
   }
 
-  const providers = getAvailableProviders();
-
-  const gemini = providers.find(
-    (item) => item.provider === "gemini"
-  );
-
-  if (!gemini) {
-    throw new Error(
-      "Gemini AI is not configured. Please add GEMINI_API_KEY in Vercel Environment Variables."
-    );
-  }
-
-  console.log("AI App Builder: starting Gemini generation");
+  console.log("AI App Builder: starting Gemini 3.6 Flash");
 
   const prompt = buildPrompt(userIdea.trim());
 
-  const result = await callProvider(
-    gemini.provider,
-    gemini.model,
-    prompt
-  );
+  const result = await callGemini(prompt);
 
   console.log("AI App Builder: Gemini response received");
 
@@ -187,35 +160,19 @@ export async function runAutonomousEngine(userIdea) {
 
   console.log("AI App Builder: specification created");
 
-  /*
-   * STEP 1:
-   * Return the AI specification immediately.
-   *
-   * Preview, testing, security and app creation
-   * will be handled in the next stages.
-   */
-
   return {
     status: "preview_ready",
-
     idea: userIdea.trim(),
-
     specification,
-
-    aiProvider: gemini.provider,
-
-    aiModel: gemini.model,
-
+    aiProvider: "gemini",
+    aiModel: "gemini-3.6-flash",
     nextStep: "preview",
-
     test: {
       status: "pending",
     },
-
     security: {
       status: "pending",
     },
-
     publish: {
       allowed: false,
       requiresHumanApproval: true,
