@@ -21,40 +21,16 @@ export async function POST() {
       return NextResponse.json({ error: "Account verification is required." }, { status: 403 });
     }
 
-    const { data: referral, error: referralError } = await supabase
-      .from("referrals")
-      .select("id, referrer_user_id, referred_user_id, status, verified_at, qualified_at")
-      .eq("referred_user_id", user.id)
-      .maybeSingle();
+    const { data: referral, error: referralError } = await supabase.rpc(
+      "verify_referral_for_current_user"
+    );
 
-    if (referralError) throw referralError;
-
-    if (!referral) {
-      return NextResponse.json({ success: true, referral: null });
+    if (referralError) {
+      const status = referralError.message?.includes("Self-referral") ? 409 : 400;
+      return NextResponse.json({ error: referralError.message }, { status });
     }
 
-    if (referral.referrer_user_id === user.id) {
-      return NextResponse.json({ error: "Self-referral is not allowed." }, { status: 409 });
-    }
-
-    if (referral.status === "rejected") {
-      return NextResponse.json({ success: true, referral });
-    }
-
-    if (referral.status === "registered") {
-      const { data: updated, error: updateError } = await supabase
-        .from("referrals")
-        .update({ status: "verified", verified_at: referral.verified_at || new Date().toISOString() })
-        .eq("id", referral.id)
-        .eq("referred_user_id", user.id)
-        .select("id, referrer_user_id, referred_user_id, status, verified_at, qualified_at")
-        .single();
-
-      if (updateError) throw updateError;
-      return NextResponse.json({ success: true, referral: updated });
-    }
-
-    return NextResponse.json({ success: true, referral });
+    return NextResponse.json({ success: true, referral: referral || null });
   } catch (error) {
     console.error("Referral verification error:", error);
     return NextResponse.json(
