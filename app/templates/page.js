@@ -9,7 +9,7 @@ export default function TemplatesPage() {
         {TEMPLATE_OBJECTS.map((t) => (
           <article className="card" key={t.id}>
             <div className="icon">✦</div><h2>{t.name}</h2><p>{t.description}</p>
-            <Link href={`/?template=${encodeURIComponent(t.id)}`} className="use">Use template →</Link>
+            <Link href={`/templates/${t.id}`} className="use">Use template →</Link>
           </article>
         ))}
       </section>
