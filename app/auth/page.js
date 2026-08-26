@@ -74,6 +74,18 @@ export default function AuthPage() {
       if (result.error) throw result.error;
       if (!result.data.session) throw new Error("Verification succeeded, but no session was created.");
 
+      // Verification is complete. Record the referral state server-side;
+      // no referral code or reward decision is trusted from the browser.
+      const referralResult = await fetch("/api/referrals/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!referralResult.ok) {
+        const referralData = await referralResult.json().catch(() => ({}));
+        console.warn("Referral verification was not recorded:", referralData?.error);
+      }
+
       router.replace(next);
       router.refresh();
     } catch (err) {
