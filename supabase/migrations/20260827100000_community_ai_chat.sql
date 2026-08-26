@@ -76,5 +76,12 @@ with check (
   )
 );
 
--- Realtime is used only after the user explicitly joins the room.
 alter table public.chat_messages replica identity full;
+
+-- Supabase Realtime delivers community messages only to users who explicitly joined.
+do $$
+begin
+  alter publication supabase_realtime add table public.chat_messages;
+exception
+  when duplicate_object then null;
+end $$;
