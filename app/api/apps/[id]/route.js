@@ -50,9 +50,11 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "versionId is required." }, { status: 400 });
   }
 
+  // The version must belong to this app. The app itself is updated with
+  // owner_id below, so another user's version cannot be activated.
   const { data: version, error: versionError } = await supabase
     .from("app_versions")
-    .select("id, version_no, specification")
+    .select("id, app_id, version_no, specification, change_summary, created_at")
     .eq("id", versionId)
     .eq("app_id", id)
     .single();
@@ -61,14 +63,29 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "Version not found." }, { status: 404 });
   }
 
-  const { error: updateError } = await supabase
-    .from("apps")
-    .update({ current_version_id: version.id })
-    .eq("id", id)
-    .eq("owner_id", user.id);
+  const specification = version.specification || {};
+  const nextName = String(specification.name || "Untitled App").trim() || "Untitled App";
+  const nextDescription = String(specification.description || "").trim();
 
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  // Rollback must restore the app's metadata as well as the active version.
+  // This keeps My Apps, Editor and Generated App consistent after a rollback.
+  const { data: updatedApp, error: updateError } = await supabase
+    .from("apps")
+    .update({
+      name: nextName,
+      description: nextDescription,
+      current_version_id: version.id,
+    })
+    .eq("id", id)
+    .eq("owner_id", user.id)
+    .select("id, name, description, source_prompt, current_version_id, created_at, updated_at")
+    .single();
+
+  if (updateError || !updatedApp) {
+    return NextResponse.json(
+      { error: updateError?.message || "Unable to rollback this app." },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
@@ -77,7 +94,10 @@ export async function POST(request, { params }) {
       appId: id,
       versionId: version.id,
       versionNo: version.version_no,
-      specification: version.specification,
+      specification,
+      changeSummary: version.change_summary,
+      createdAt: version.created_at,
     },
+    app: updatedApp,
   });
 }
