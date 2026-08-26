@@ -1,3 +1,0 @@
-Vercel deployment sync trigger.
-
-This file intentionally contains no application logic. It exists only to trigger the GitHub → Vercel integration on main.
