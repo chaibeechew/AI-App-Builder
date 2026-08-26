@@ -2,6 +2,21 @@
 
 import { useState } from "react";
 
+const COLORS = {
+  forest: "#12372A",
+  forestDark: "#0B241B",
+  emerald: "#1F7A5A",
+  emeraldLight: "#E8F5EF",
+  gold: "#C9A227",
+  goldLight: "#F8F1D7",
+  cream: "#F8F5EC",
+  white: "#FFFFFF",
+  text: "#18352A",
+  muted: "#718078",
+  border: "#DDE5DF",
+  danger: "#B42318",
+};
+
 export default function Home() {
   const [idea, setIdea] = useState("");
   const [loading, setLoading] = useState(false);
@@ -143,9 +158,7 @@ export default function Home() {
       }
 
       if (!data?.specification) {
-        throw new Error(
-          "AI did not return a valid specification."
-        );
+        throw new Error("AI did not return a valid specification.");
       }
 
       setPlan(data);
@@ -219,15 +232,11 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data?.error || "Modification failed"
-        );
+        throw new Error(data?.error || "Modification failed");
       }
 
       if (!data?.specification) {
-        throw new Error(
-          "AI did not return a valid app specification."
-        );
+        throw new Error("AI did not return a valid app specification.");
       }
 
       setPlan((currentPlan) => ({
@@ -235,21 +244,14 @@ export default function Home() {
         specification: data.specification,
       }));
 
-      const updatedPages =
-        data.specification.pages || [];
+      const updatedPages = data.specification.pages || [];
 
-      setActivePage(
-        updatedPages[0]?.name || "Dashboard"
-      );
+      setActivePage(updatedPages[0]?.name || "Dashboard");
 
       setModifyInstruction("");
-      setModifyMessage(
-        "✓ Changes applied successfully."
-      );
+      setModifyMessage("✓ Changes applied successfully.");
     } catch (err) {
-      setModifyMessage(
-        err?.message || "Something went wrong."
-      );
+      setModifyMessage(err?.message || "Something went wrong.");
     } finally {
       setModifyLoading(false);
     }
@@ -263,8 +265,7 @@ export default function Home() {
       {
         id: Date.now(),
         name: newClientName.trim(),
-        phone:
-          newClientPhone.trim() || "Not provided",
+        phone: newClientPhone.trim() || "Not provided",
         status: "New Lead",
         budget: "Not set",
       },
@@ -282,12 +283,8 @@ export default function Home() {
       {
         id: Date.now(),
         title: newPropertyTitle.trim(),
-        location:
-          newPropertyLocation.trim() ||
-          "Location not set",
-        price:
-          newPropertyPrice.trim() ||
-          "Price not set",
+        location: newPropertyLocation.trim() || "Location not set",
+        price: newPropertyPrice.trim() || "Price not set",
         status: "Available",
       },
     ]);
@@ -342,31 +339,36 @@ export default function Home() {
   }
 
   const buttonStyle = {
-    padding: "10px 14px",
-    borderRadius: 8,
+    padding: "11px 16px",
+    borderRadius: 9,
     border: "none",
-    background: "#111827",
+    background: `linear-gradient(135deg, ${COLORS.forest}, ${COLORS.emerald})`,
     color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+    boxShadow: "0 4px 12px rgba(18,55,42,0.16)",
+  };
+
+  const secondaryButtonStyle = {
+    padding: "11px 16px",
+    borderRadius: 9,
+    border: `1px solid ${COLORS.border}`,
+    background: COLORS.white,
+    color: COLORS.text,
     cursor: "pointer",
     fontWeight: 600,
   };
 
-  const secondaryButtonStyle = {
-    padding: "10px 14px",
-    borderRadius: 8,
-    border: "1px solid #d1d5db",
-    background: "#fff",
-    color: "#111827",
-    cursor: "pointer",
-  };
-
   const inputStyle = {
     width: "100%",
-    padding: 11,
-    borderRadius: 8,
-    border: "1px solid #d1d5db",
+    padding: 12,
+    borderRadius: 9,
+    border: `1px solid ${COLORS.border}`,
     boxSizing: "border-box",
     fontSize: 14,
+    background: "#fff",
+    color: COLORS.text,
+    outline: "none",
   };
 
   function renderCreatedPage() {
@@ -378,19 +380,8 @@ export default function Home() {
             description="Manage buyers, sellers and leads."
           />
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 14,
-              marginBottom: 24,
-            }}
-          >
-            <StatCard
-              title="Total Clients"
-              value={clients.length}
-            />
+          <div style={statsGridStyle}>
+            <StatCard title="Total Clients" value={clients.length} />
             <StatCard
               title="Active Buyers"
               value={
@@ -412,36 +403,22 @@ export default function Home() {
           <div style={cardStyle}>
             <h3>Add Client</h3>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: 10,
-              }}
-            >
+            <div style={responsiveGridStyle}>
               <input
                 value={newClientName}
-                onChange={(e) =>
-                  setNewClientName(e.target.value)
-                }
+                onChange={(e) => setNewClientName(e.target.value)}
                 placeholder="Client name"
                 style={inputStyle}
               />
 
               <input
                 value={newClientPhone}
-                onChange={(e) =>
-                  setNewClientPhone(e.target.value)
-                }
+                onChange={(e) => setNewClientPhone(e.target.value)}
                 placeholder="Phone number"
                 style={inputStyle}
               />
 
-              <button
-                onClick={addClient}
-                style={buttonStyle}
-              >
+              <button onClick={addClient} style={buttonStyle}>
                 + Add Client
               </button>
             </div>
@@ -449,25 +426,18 @@ export default function Home() {
 
           <div style={{ marginTop: 20 }}>
             {clients.map((client) => (
-              <div
-                key={client.id}
-                style={listItemStyle}
-              >
+              <div key={client.id} style={listItemStyle}>
                 <div>
                   <strong>{client.name}</strong>
 
-                  <div style={mutedText}>
-                    {client.phone}
-                  </div>
+                  <div style={mutedText}>{client.phone}</div>
 
                   <div style={mutedText}>
                     Budget: {client.budget}
                   </div>
                 </div>
 
-                <span style={badgeStyle}>
-                  {client.status}
-                </span>
+                <span style={badgeStyle}>{client.status}</span>
               </div>
             ))}
           </div>
@@ -486,20 +456,11 @@ export default function Home() {
           <div style={cardStyle}>
             <h3>Add Property</h3>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: 10,
-              }}
-            >
+            <div style={responsiveGridStyle}>
               <input
                 value={newPropertyTitle}
                 onChange={(e) =>
-                  setNewPropertyTitle(
-                    e.target.value
-                  )
+                  setNewPropertyTitle(e.target.value)
                 }
                 placeholder="Property title"
                 style={inputStyle}
@@ -508,9 +469,7 @@ export default function Home() {
               <input
                 value={newPropertyLocation}
                 onChange={(e) =>
-                  setNewPropertyLocation(
-                    e.target.value
-                  )
+                  setNewPropertyLocation(e.target.value)
                 }
                 placeholder="Location"
                 style={inputStyle}
@@ -519,32 +478,19 @@ export default function Home() {
               <input
                 value={newPropertyPrice}
                 onChange={(e) =>
-                  setNewPropertyPrice(
-                    e.target.value
-                  )
+                  setNewPropertyPrice(e.target.value)
                 }
                 placeholder="Price"
                 style={inputStyle}
               />
 
-              <button
-                onClick={addProperty}
-                style={buttonStyle}
-              >
+              <button onClick={addProperty} style={buttonStyle}>
                 + Add Property
               </button>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: 16,
-              marginTop: 20,
-            }}
-          >
+          <div style={propertyGridStyle}>
             {properties.map((property) => (
               <div
                 key={property.id}
@@ -553,29 +499,17 @@ export default function Home() {
                   margin: 0,
                 }}
               >
-                <div
-                  style={{
-                    height: 120,
-                    borderRadius: 10,
-                    background:
-                      "linear-gradient(135deg,#dbeafe,#f3f4f6)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 16,
-                    color: "#6b7280",
-                  }}
-                >
+                <div style={propertyImageStyle}>
                   Property Image
                 </div>
 
                 <h3>{property.title}</h3>
 
-                <p style={mutedText}>
-                  {property.location}
-                </p>
+                <p style={mutedText}>{property.location}</p>
 
-                <strong>{property.price}</strong>
+                <strong style={{ color: COLORS.forest }}>
+                  {property.price}
+                </strong>
 
                 <div style={{ marginTop: 12 }}>
                   <span style={badgeStyle}>
@@ -605,9 +539,7 @@ export default function Home() {
       );
     }
 
-    if (
-      activePage === "Calendar & Appointments"
-    ) {
+    if (activePage === "Calendar & Appointments") {
       return (
         <>
           <PageHeader
@@ -615,10 +547,7 @@ export default function Home() {
             description="Manage viewings and appointments."
           />
 
-          <button
-            onClick={addAppointment}
-            style={buttonStyle}
-          >
+          <button onClick={addAppointment} style={buttonStyle}>
             + New Appointment
           </button>
 
@@ -629,17 +558,14 @@ export default function Home() {
                 style={listItemStyle}
               >
                 <div>
-                  <strong>
-                    {appointment.client}
-                  </strong>
+                  <strong>{appointment.client}</strong>
 
                   <div style={mutedText}>
                     {appointment.property}
                   </div>
 
                   <div style={mutedText}>
-                    {appointment.date} ·{" "}
-                    {appointment.time}
+                    {appointment.date} · {appointment.time}
                   </div>
                 </div>
 
@@ -650,20 +576,15 @@ export default function Home() {
             ))}
           </div>
 
-          <div
-            style={{
-              ...cardStyle,
-              marginTop: 20,
-            }}
-          >
+          <div style={{ ...cardStyle, marginTop: 20 }}>
             <h3>Viewing Schedule</h3>
 
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns:
-                  "repeat(7, 1fr)",
-                gap: 6,
+                  "repeat(auto-fit,minmax(80px,1fr))",
+                gap: 7,
               }}
             >
               {[
@@ -675,18 +596,7 @@ export default function Home() {
                 "Sat",
                 "Sun",
               ].map((day) => (
-                <div
-                  key={day}
-                  style={{
-                    minHeight: 80,
-                    padding: 8,
-                    borderRadius: 8,
-                    background: "#f9fafb",
-                    border:
-                      "1px solid #e5e7eb",
-                    fontSize: 12,
-                  }}
-                >
+                <div key={day} style={calendarDayStyle}>
                   <strong>{day}</strong>
                 </div>
               ))}
@@ -714,9 +624,7 @@ export default function Home() {
             >
               <input
                 value={newTask}
-                onChange={(e) =>
-                  setNewTask(e.target.value)
-                }
+                onChange={(e) => setNewTask(e.target.value)}
                 placeholder="Add a follow-up task..."
                 style={{
                   ...inputStyle,
@@ -725,10 +633,7 @@ export default function Home() {
                 }}
               />
 
-              <button
-                onClick={addTask}
-                style={buttonStyle}
-              >
+              <button onClick={addTask} style={buttonStyle}>
                 + Add Task
               </button>
             </div>
@@ -746,10 +651,9 @@ export default function Home() {
                 <div>
                   <strong
                     style={{
-                      textDecoration:
-                        task.done
-                          ? "line-through"
-                          : "none",
+                      textDecoration: task.done
+                        ? "line-through"
+                        : "none",
                     }}
                   >
                     {task.title}
@@ -767,19 +671,13 @@ export default function Home() {
                     alignItems: "center",
                   }}
                 >
-                  <span style={badgeStyle}>
-                    {task.priority}
-                  </span>
+                  <span style={badgeStyle}>{task.priority}</span>
 
                   <button
-                    onClick={() =>
-                      toggleTask(task.id)
-                    }
+                    onClick={() => toggleTask(task.id)}
                     style={secondaryButtonStyle}
                   >
-                    {task.done
-                      ? "Undo"
-                      : "Complete"}
+                    {task.done ? "Undo" : "Complete"}
                   </button>
                 </div>
               </div>
@@ -805,57 +703,24 @@ export default function Home() {
             description="Track every opportunity from lead to closing."
           />
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 12,
-              overflowX: "auto",
-            }}
-          >
+          <div style={pipelineGridStyle}>
             {stages.map((stage, index) => (
-              <div
-                key={stage}
-                style={{
-                  background: "#f9fafb",
-                  border:
-                    "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  padding: 14,
-                  minHeight: 220,
-                }}
-              >
+              <div key={stage} style={pipelineColumnStyle}>
                 <div
                   style={{
                     display: "flex",
-                    justifyContent:
-                      "space-between",
+                    justifyContent: "space-between",
                     marginBottom: 12,
                   }}
                 >
                   <strong>{stage}</strong>
 
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#6b7280",
-                    }}
-                  >
+                  <span style={stageNumberStyle}>
                     {index + 1}
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 10,
-                    background: "#fff",
-                    border:
-                      "1px solid #e5e7eb",
-                    marginBottom: 10,
-                  }}
-                >
+                <div style={pipelineCardStyle}>
                   <strong>
                     {index === 0
                       ? "New Buyer Lead"
@@ -907,47 +772,22 @@ export default function Home() {
           description="High-level overview of your real estate business."
         />
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 16,
-          }}
-        >
-          <StatCard
-            title="Active Clients"
-            value={clients.length}
-          />
-
-          <StatCard
-            title="Properties"
-            value={properties.length}
-          />
-
+        <div style={statsGridStyle}>
+          <StatCard title="Active Clients" value={clients.length} />
+          <StatCard title="Properties" value={properties.length} />
           <StatCard
             title="Appointments"
             value={appointments.length}
           />
-
           <StatCard
             title="Open Tasks"
             value={
-              tasks.filter((task) => !task.done)
-                .length
+              tasks.filter((task) => !task.done).length
             }
           />
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 18,
-            marginTop: 22,
-          }}
-        >
+        <div style={twoColumnGridStyle}>
           <div style={cardStyle}>
             <h3>Today's Priorities</h3>
 
@@ -957,17 +797,12 @@ export default function Home() {
               .map((task) => (
                 <div
                   key={task.id}
-                  style={{
-                    padding: 12,
-                    borderBottom:
-                      "1px solid #eee",
-                  }}
+                  style={smallListStyle}
                 >
                   <strong>{task.title}</strong>
 
                   <div style={mutedText}>
-                    {task.due} ·{" "}
-                    {task.priority}
+                    {task.due} · {task.priority}
                   </div>
                 </div>
               ))}
@@ -976,36 +811,22 @@ export default function Home() {
           <div style={cardStyle}>
             <h3>Upcoming Appointments</h3>
 
-            {appointments
-              .slice(0, 3)
-              .map((appointment) => (
-                <div
-                  key={appointment.id}
-                  style={{
-                    padding: 12,
-                    borderBottom:
-                      "1px solid #eee",
-                  }}
-                >
-                  <strong>
-                    {appointment.client}
-                  </strong>
+            {appointments.slice(0, 3).map((appointment) => (
+              <div
+                key={appointment.id}
+                style={smallListStyle}
+              >
+                <strong>{appointment.client}</strong>
 
-                  <div style={mutedText}>
-                    {appointment.date} ·{" "}
-                    {appointment.time}
-                  </div>
+                <div style={mutedText}>
+                  {appointment.date} · {appointment.time}
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
         </div>
 
-        <div
-          style={{
-            ...cardStyle,
-            marginTop: 18,
-          }}
-        >
+        <div style={{ ...cardStyle, marginTop: 18 }}>
           <h3>Quick Actions</h3>
 
           <div
@@ -1016,18 +837,14 @@ export default function Home() {
             }}
           >
             <button
-              onClick={() =>
-                setActivePage("Client Directory")
-              }
+              onClick={() => setActivePage("Client Directory")}
               style={buttonStyle}
             >
               Add Client
             </button>
 
             <button
-              onClick={() =>
-                setActivePage("Property Listings")
-              }
+              onClick={() => setActivePage("Property Listings")}
               style={buttonStyle}
             >
               Add Property
@@ -1035,9 +852,7 @@ export default function Home() {
 
             <button
               onClick={() =>
-                setActivePage(
-                  "Calendar & Appointments"
-                )
+                setActivePage("Calendar & Appointments")
               }
               style={buttonStyle}
             >
@@ -1045,9 +860,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() =>
-                setActivePage("Deal Pipeline")
-              }
+              onClick={() => setActivePage("Deal Pipeline")}
               style={buttonStyle}
             >
               View Pipeline
@@ -1080,58 +893,26 @@ export default function Home() {
           }));
 
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background: "#f5f7f9",
-          fontFamily:
-            "Arial, sans-serif",
-          padding: 18,
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1250,
-            margin: "0 auto",
-            background: "#fff",
-            borderRadius: 18,
-            minHeight:
-              "calc(100vh - 36px)",
-            overflow: "hidden",
-            boxShadow:
-              "0 4px 20px rgba(0,0,0,0.06)",
-          }}
-        >
-          <header
-            style={{
-              padding: "20px 24px",
-              borderBottom:
-                "1px solid #e5e7eb",
-              display: "flex",
-              justifyContent:
-                "space-between",
-              alignItems: "center",
-              gap: 15,
-              flexWrap: "wrap",
-            }}
-          >
+      <main style={appBackgroundStyle}>
+        <div style={appShellStyle}>
+          <header style={appHeaderStyle}>
             <div>
+              <div style={brandSmall}>AI APP BUILDER</div>
+
               <h1
                 style={{
-                  margin: 0,
+                  margin: "4px 0 0",
                   fontSize: 25,
+                  color: COLORS.forest,
                 }}
               >
-                {specification.name ||
-                  "My App"}
+                {specification.name || "My App"}
               </h1>
 
               <p
                 style={{
-                  margin:
-                    "5px 0 0",
-                  color: "#6b7280",
+                  margin: "5px 0 0",
+                  color: COLORS.muted,
                 }}
               >
                 App Dashboard
@@ -1143,91 +924,45 @@ export default function Home() {
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
+                flexWrap: "wrap",
               }}
             >
-              <span
-                style={successBadgeStyle}
-              >
-                App Created
+              <span style={successBadgeStyle}>
+                ✓ App Created
               </span>
 
               <button
-                onClick={() =>
-                  setCreated(false)
-                }
-                style={
-                  secondaryButtonStyle
-                }
+                onClick={() => setCreated(false)}
+                style={secondaryButtonStyle}
               >
                 Back to Preview
               </button>
             </div>
           </header>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "230px 1fr",
-              minHeight:
-                "calc(100vh - 130px)",
-            }}
-          >
-            <aside
-              style={{
-                borderRight:
-                  "1px solid #e5e7eb",
-                padding: 18,
-                background: "#fafafa",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: "#9ca3af",
-                  marginBottom: 10,
-                  textTransform:
-                    "uppercase",
-                }}
-              >
-                Pages
-              </div>
+          <div style={createdLayoutStyle}>
+            <aside style={sidebarStyle}>
+              <div style={sidebarTitle}>PAGES</div>
 
-              {allPages.map(
-                (page, index) => (
-                  <button
-                    key={`${page.name}-${index}`}
-                    onClick={() =>
-                      selectPage(page)
-                    }
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      padding:
-                        "11px 12px",
-                      marginBottom: 5,
-                      borderRadius: 8,
-                      border: "none",
-                      cursor:
-                        "pointer",
-                      background:
-                        activePage ===
-                        page.name
-                          ? "#111827"
-                          : "transparent",
-                      color:
-                        activePage ===
-                        page.name
-                          ? "#fff"
-                          : "#374151",
-                    }}
-                  >
-                    {page.name}
-                  </button>
-                )
-              )}
+              {allPages.map((page, index) => (
+                <button
+                  key={`${page.name}-${index}`}
+                  onClick={() => selectPage(page)}
+                  style={{
+                    ...sidebarButtonStyle,
+                    background:
+                      activePage === page.name
+                        ? COLORS.forest
+                        : "transparent",
+                    color:
+                      activePage === page.name
+                        ? "#fff"
+                        : COLORS.text,
+                  }}
+                >
+                  {page.name}
+                </button>
+              ))}
 
               <button
                 onClick={goBackToPlan}
@@ -1241,100 +976,17 @@ export default function Home() {
               </button>
             </aside>
 
-            <section
-              style={{
-                padding: 28,
-                overflowX: "auto",
-              }}
-            >
+            <section style={contentStyle}>
               {renderCreatedPage()}
             </section>
           </div>
         </div>
 
         {activeFeature && (
-          <div
-            onClick={closeFeature}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background:
-                "rgba(0,0,0,0.45)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 20,
-              zIndex: 100,
-            }}
-          >
-            <div
-              onClick={(e) =>
-                e.stopPropagation()
-              }
-              style={{
-                width: "100%",
-                maxWidth: 520,
-                background: "#fff",
-                borderRadius: 16,
-                padding: 26,
-                boxSizing: "border-box",
-              }}
-            >
-              <h2
-                style={{
-                  marginTop: 0,
-                }}
-              >
-                {activeFeature.name}
-              </h2>
-
-              <p
-                style={{
-                  color: "#6b7280",
-                  lineHeight: 1.7,
-                }}
-              >
-                {activeFeature.description}
-              </p>
-
-              <div
-                style={{
-                  marginTop: 20,
-                  padding: 16,
-                  borderRadius: 10,
-                  background: "#f9fafb",
-                }}
-              >
-                <strong>
-                  Feature Ready
-                </strong>
-
-                <p
-                  style={{
-                    color: "#6b7280",
-                    fontSize: 14,
-                    lineHeight: 1.5,
-                    marginBottom: 0,
-                  }}
-                >
-                  This page is connected to
-                  your generated application
-                  and is ready for further
-                  development.
-                </p>
-              </div>
-
-              <button
-                onClick={closeFeature}
-                style={{
-                  ...buttonStyle,
-                  marginTop: 18,
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
+          <FeatureModal
+            feature={activeFeature}
+            closeFeature={closeFeature}
+          />
         )}
       </main>
     );
@@ -1343,102 +995,55 @@ export default function Home() {
   if (preview && plan?.specification) {
     const specification = plan.specification;
     const pages = specification.pages || [];
-    const features =
-      specification.features || [];
+    const features = specification.features || [];
 
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background: "#f5f7f9",
-          fontFamily:
-            "Arial, sans-serif",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flex: 1,
-            minHeight: "100vh",
-          }}
-        >
-          <aside
-            style={{
-              width: 230,
-              background: "#fff",
-              borderRight:
-                "1px solid #e5e7eb",
-              padding: 20,
-              boxSizing: "border-box",
-              flexShrink: 0,
-            }}
-          >
+      <main style={appBackgroundStyle}>
+        <div style={previewLayoutStyle}>
+          <aside style={previewSidebarStyle}>
+            <div style={brandSmall}>AI APP BUILDER</div>
+
             <h2
               style={{
-                marginTop: 0,
+                marginTop: 7,
+                color: COLORS.forest,
               }}
             >
-              {specification.name ||
-                "My App"}
+              {specification.name || "My App"}
             </h2>
 
             <p
               style={{
-                color: "#6b7280",
+                color: COLORS.muted,
                 fontSize: 13,
+                lineHeight: 1.5,
               }}
             >
               Interactive App Preview
             </p>
 
-            <div
-              style={{
-                marginTop: 25,
-                fontSize: 12,
-                fontWeight: 700,
-                color: "#9ca3af",
-              }}
-            >
-              APP PAGES
-            </div>
+            <div style={sidebarTitle}>APP PAGES</div>
 
-            {pages.map(
-              (page, index) => (
-                <button
-                  key={`${page.name}-${index}`}
-                  onClick={() =>
-                    selectPage(page)
-                  }
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    textAlign: "left",
-                    padding:
-                      "11px 12px",
-                    marginTop: 7,
-                    borderRadius: 8,
-                    border: "none",
-                    background:
-                      activePage ===
-                      page.name
-                        ? "#111827"
-                        : "transparent",
-                    color:
-                      activePage ===
-                      page.name
-                        ? "#fff"
-                        : "#374151",
-                    cursor:
-                      "pointer",
-                  }}
-                >
-                  {index + 1}.{" "}
-                  {page.name}
-                </button>
-              )
-            )}
+            {pages.map((page, index) => (
+              <button
+                key={`${page.name}-${index}`}
+                onClick={() => selectPage(page)}
+                style={{
+                  ...sidebarButtonStyle,
+                  marginTop: 7,
+                  background:
+                    activePage === page.name
+                      ? COLORS.forest
+                      : "transparent",
+                  color:
+                    activePage === page.name
+                      ? "#fff"
+                      : COLORS.text,
+                }}
+              >
+                {index + 1}. {page.name}
+              </button>
+            ))}
 
             <button
               onClick={goBackToPlan}
@@ -1463,49 +1068,42 @@ export default function Home() {
             </button>
           </aside>
 
-          <section
-            style={{
-              flex: 1,
-              padding: 30,
-              overflowX: "auto",
-            }}
-          >
-            <h1>
-              {activePage}
-            </h1>
+          <section style={previewContentStyle}>
+            <div style={previewTopBar}>
+              <div>
+                <div style={brandSmall}>PREVIEW MODE</div>
 
-            <p
-              style={{
-                color: "#6b7280",
-              }}
-            >
-              {pages.find(
-                (page) =>
-                  page.name ===
-                  activePage
-              )?.purpose ||
-                "Interactive application preview."}
-            </p>
+                <h1
+                  style={{
+                    margin: "5px 0",
+                    color: COLORS.forest,
+                  }}
+                >
+                  {activePage}
+                </h1>
 
-            <div
-              style={{
-                ...cardStyle,
-                marginTop: 24,
-              }}
-            >
-              <h2>
-                {activePage}
-              </h2>
+                <p style={{ color: COLORS.muted }}>
+                  {pages.find(
+                    (page) => page.name === activePage
+                  )?.purpose ||
+                    "Interactive application preview."}
+                </p>
+              </div>
+
+              <div style={goldTag}>AI GENERATED</div>
+            </div>
+
+            <div style={{ ...cardStyle, marginTop: 24 }}>
+              <h2>{activePage}</h2>
 
               <p
                 style={{
-                  color: "#6b7280",
+                  color: COLORS.muted,
+                  lineHeight: 1.6,
                 }}
               >
                 {pages.find(
-                  (page) =>
-                    page.name ===
-                    activePage
+                  (page) => page.name === activePage
                 )?.purpose ||
                   "Application page preview."}
               </p>
@@ -1517,8 +1115,7 @@ export default function Home() {
                     description:
                       pages.find(
                         (page) =>
-                          page.name ===
-                          activePage
+                          page.name === activePage
                       )?.purpose ||
                       "Application page",
                   })
@@ -1534,286 +1131,253 @@ export default function Home() {
 
             <h3
               style={{
-                marginTop: 25,
+                marginTop: 28,
+                color: COLORS.forest,
               }}
             >
               Features
             </h3>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit,minmax(220px,1fr))",
-                gap: 15,
-              }}
-            >
-              {features.map(
-                (feature, index) => (
-                  <div
-                    key={`${feature.name}-${index}`}
-                    style={cardStyle}
+            <div style={featureGridStyle}>
+              {features.map((feature, index) => (
+                <div
+                  key={`${feature.name}-${index}`}
+                  style={cardStyle}
+                >
+                  <div style={featureIcon}>✦</div>
+
+                  <h3>{feature.name}</h3>
+
+                  <p
+                    style={{
+                      ...mutedText,
+                      lineHeight: 1.5,
+                    }}
                   >
-                    <h3>
-                      {feature.name}
-                    </h3>
+                    {feature.description}
+                  </p>
 
-                    <p
-                      style={{
-                        ...mutedText,
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {
-                        feature.description
-                      }
-                    </p>
+                  <button
+                    onClick={() => openFeature(feature)}
+                    style={secondaryButtonStyle}
+                  >
+                    Open
+                  </button>
+                </div>
+              ))}
+            </div>
 
-                    <button
-                      onClick={() =>
-                        openFeature(
-                          feature
-                        )
-                      }
-                      style={
-                        secondaryButtonStyle
-                      }
-                    >
-                      Open
-                    </button>
-                  </div>
-                )
+            <div style={modifyCardStyle}>
+              <div>
+                <div style={brandSmall}>AI MODIFICATION</div>
+
+                <h3
+                  style={{
+                    margin: "5px 0",
+                    color: COLORS.forest,
+                  }}
+                >
+                  Modify your app
+                </h3>
+
+                <p
+                  style={{
+                    marginTop: 5,
+                    color: COLORS.muted,
+                  }}
+                >
+                  Tell the AI what you want to change.
+                </p>
+              </div>
+
+              <textarea
+                value={modifyInstruction}
+                onChange={(e) =>
+                  setModifyInstruction(e.target.value)
+                }
+                placeholder="Example: Add a sales analytics page..."
+                style={{
+                  ...inputStyle,
+                  minHeight: 100,
+                  marginTop: 12,
+                  resize: "vertical",
+                }}
+              />
+
+              <button
+                onClick={modifyApp}
+                disabled={
+                  modifyLoading ||
+                  !modifyInstruction.trim()
+                }
+                style={{
+                  ...buttonStyle,
+                  marginTop: 10,
+                  opacity:
+                    modifyLoading ||
+                    !modifyInstruction.trim()
+                      ? 0.6
+                      : 1,
+                }}
+              >
+                {modifyLoading
+                  ? "AI is modifying..."
+                  : "Apply AI Changes →"}
+              </button>
+
+              {modifyMessage && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: 11,
+                    borderRadius: 8,
+                    background: COLORS.emeraldLight,
+                    color: COLORS.emerald,
+                    fontSize: 14,
+                  }}
+                >
+                  {modifyMessage}
+                </div>
               )}
             </div>
           </section>
         </div>
 
         {activeFeature && (
-          <div
-            onClick={closeFeature}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background:
-                "rgba(0,0,0,0.45)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 20,
-              zIndex: 100,
-            }}
-          >
-            <div
-              onClick={(e) =>
-                e.stopPropagation()
-              }
-              style={{
-                width: "100%",
-                maxWidth: 520,
-                background: "#fff",
-                borderRadius: 16,
-                padding: 28,
-              }}
-            >
-              <h2>
-                {activeFeature.name}
-              </h2>
-
-              <p
-                style={{
-                  color: "#6b7280",
-                  lineHeight: 1.6,
-                }}
-              >
-                {
-                  activeFeature.description
-                }
-              </p>
-
-              <button
-                onClick={closeFeature}
-                style={{
-                  ...buttonStyle,
-                  marginTop: 15,
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
+          <FeatureModal
+            feature={activeFeature}
+            closeFeature={closeFeature}
+          />
         )}
       </main>
     );
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f8fafc",
-        fontFamily:
-          "Arial, sans-serif",
-        padding: 24,
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 900,
-          margin: "0 auto",
-        }}
-      >
-        <h1>
-          AI App Builder
+    <main style={landingStyle}>
+      <div style={landingGlowOne} />
+      <div style={landingGlowTwo} />
+
+      <div style={landingContainer}>
+        <div style={heroBadge}>
+          <span style={heroDot}>✦</span>
+          AI-POWERED APP BUILDER
+        </div>
+
+        <h1 style={heroTitle}>
+          Turn Your Idea
+          <br />
+          <span style={heroGoldText}>Into a Real App.</span>
         </h1>
 
-        <p
-          style={{
-            color: "#6b7280",
-          }}
-        >
-          Turn your idea into a working app.
+        <p style={heroDescription}>
+          Describe your application in natural language.
+          <br />
+          Our AI creates the structure, pages and features for you.
         </p>
 
-        <textarea
-          value={idea}
-          onChange={(e) =>
-            setIdea(e.target.value)
-          }
-          placeholder="Describe the app you want to build..."
-          style={{
-            width: "100%",
-            minHeight: 150,
-            marginTop: 24,
-            padding: 16,
-            borderRadius: 10,
-            border:
-              "1px solid #d1d5db",
-            fontSize: 16,
-            boxSizing: "border-box",
-            resize: "vertical",
-          }}
-        />
+        <div style={generatorCard}>
+          <div style={inputLabel}>WHAT DO YOU WANT TO BUILD?</div>
 
-        <button
-          onClick={generateApp}
-          disabled={
-            loading || !idea.trim()
-          }
-          style={{
-            marginTop: 16,
-            padding:
-              "14px 22px",
-            borderRadius: 9,
-            border: "none",
-            background:
-              loading ||
-              !idea.trim()
-                ? "#9ca3af"
-                : "#111827",
-            color: "#fff",
-            cursor:
-              loading ||
-              !idea.trim()
-                ? "not-allowed"
-                : "pointer",
-            fontWeight: 600,
-          }}
-        >
-          {loading
-            ? "Generating..."
-            : "Generate with AI"}
-        </button>
+          <textarea
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            placeholder="Describe the app you want to build..."
+            style={heroTextarea}
+          />
 
-        {error && (
-          <div
+          <button
+            onClick={generateApp}
+            disabled={loading || !idea.trim()}
             style={{
-              marginTop: 20,
-              padding: 16,
-              background:
-                "#fef2f2",
-              color:
-                "#b91c1c",
-              borderRadius: 8,
+              ...heroButton,
+              opacity:
+                loading || !idea.trim()
+                  ? 0.55
+                  : 1,
             }}
           >
-            {error}
-          </div>
-        )}
+            {loading ? (
+              <>
+                <span style={spinner}>◌</span>
+                Generating...
+              </>
+            ) : (
+              <>
+                Generate with AI
+                <span style={{ fontSize: 18 }}>→</span>
+              </>
+            )}
+          </button>
+
+          {error && (
+            <div style={errorBox}>
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div style={trustRow}>
+          <span>✦ AI GENERATED</span>
+          <span>•</span>
+          <span>⚡ FAST</span>
+          <span>•</span>
+          <span>🔒 SECURE</span>
+        </div>
 
         {plan?.specification && (
-          <section
-            style={{
-              marginTop: 30,
-              background: "#fff",
-              padding: 26,
-              borderRadius: 14,
-              border:
-                "1px solid #e5e7eb",
-            }}
-          >
-            <h2>
-              {plan.specification
-                .name ||
-                "Your App"}
+          <section style={planCard}>
+            <div style={goldTag}>YOUR APP PLAN</div>
+
+            <h2
+              style={{
+                color: COLORS.forest,
+                marginBottom: 8,
+              }}
+            >
+              {plan.specification.name || "Your App"}
             </h2>
 
             <p
               style={{
-                color: "#6b7280",
+                color: COLORS.muted,
                 lineHeight: 1.6,
               }}
             >
-              {
-                plan.specification
-                  .description
-              }
+              {plan.specification.description}
             </p>
 
-            <h3>
+            <h3 style={{ color: COLORS.forest }}>
               App Pages
             </h3>
 
-            {(
-              plan.specification
-                .pages || []
-            ).map(
+            {(plan.specification.pages || []).map(
               (page, index) => (
                 <div
                   key={`${page.name}-${index}`}
-                  style={{
-                    padding: 14,
-                    borderBottom:
-                      "1px solid #eee",
-                  }}
+                  style={planPageStyle}
                 >
-                  <strong>
-                    {index + 1}.{" "}
-                    {page.name}
-                  </strong>
+                  <div style={pageNumber}>
+                    {String(index + 1).padStart(2, "0")}
+                  </div>
 
-                  <div
-                    style={{
-                      color:
-                        "#6b7280",
-                      marginTop: 5,
-                    }}
-                  >
-                    {
-                      page.purpose
-                    }
+                  <div>
+                    <strong>{page.name}</strong>
+
+                    <div style={mutedText}>
+                      {page.purpose}
+                    </div>
                   </div>
                 </div>
               )
             )}
 
             <button
-              onClick={
-                continueToPreview
-              }
+              onClick={continueToPreview}
               style={{
                 ...buttonStyle,
-                marginTop: 24,
+                marginTop: 20,
+                width: "100%",
               }}
             >
               Confirm & Continue →
@@ -1825,12 +1389,388 @@ export default function Home() {
   );
 }
 
+const landingStyle = {
+  minHeight: "100vh",
+  background:
+    "radial-gradient(circle at top, #244D3A 0%, #12372A 35%, #0B241B 100%)",
+  fontFamily:
+    "Arial, Helvetica, sans-serif",
+  color: "#fff",
+  padding: 24,
+  boxSizing: "border-box",
+  position: "relative",
+  overflow: "hidden",
+};
+
+const landingGlowOne = {
+  position: "absolute",
+  width: 400,
+  height: 400,
+  borderRadius: "50%",
+  background: "rgba(201,162,39,0.10)",
+  top: -180,
+  right: -120,
+  filter: "blur(20px)",
+};
+
+const landingGlowTwo = {
+  position: "absolute",
+  width: 300,
+  height: 300,
+  borderRadius: "50%",
+  background: "rgba(31,122,90,0.20)",
+  bottom: -150,
+  left: -100,
+  filter: "blur(20px)",
+};
+
+const landingContainer = {
+  maxWidth: 900,
+  margin: "0 auto",
+  position: "relative",
+  zIndex: 2,
+  textAlign: "center",
+  paddingTop: 55,
+};
+
+const heroBadge = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "8px 13px",
+  borderRadius: 30,
+  border: "1px solid rgba(201,162,39,0.45)",
+  background: "rgba(255,255,255,0.06)",
+  color: "#E7D48A",
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: 1.2,
+};
+
+const heroDot = {
+  color: "#D9B93F",
+};
+
+const heroTitle = {
+  fontSize: "clamp(42px, 8vw, 72px)",
+  lineHeight: 1.04,
+  margin: "28px 0 20px",
+  fontWeight: 800,
+  letterSpacing: -2,
+};
+
+const heroGoldText = {
+  color: "#D8B83C",
+};
+
+const heroDescription = {
+  color: "rgba(255,255,255,0.72)",
+  fontSize: 16,
+  lineHeight: 1.7,
+  marginBottom: 30,
+};
+
+const generatorCard = {
+  maxWidth: 720,
+  margin: "0 auto",
+  padding: 20,
+  borderRadius: 18,
+  background: "rgba(255,255,255,0.97)",
+  boxShadow: "0 25px 70px rgba(0,0,0,0.25)",
+  textAlign: "left",
+};
+
+const inputLabel = {
+  color: COLORS.forest,
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: 1,
+  marginBottom: 8,
+};
+
+const heroTextarea = {
+  width: "100%",
+  minHeight: 130,
+  padding: 15,
+  boxSizing: "border-box",
+  borderRadius: 12,
+  border: `1px solid ${COLORS.border}`,
+  resize: "vertical",
+  fontSize: 16,
+  color: COLORS.text,
+  outline: "none",
+};
+
+const heroButton = {
+  width: "100%",
+  marginTop: 12,
+  padding: "15px 20px",
+  borderRadius: 11,
+  border: "none",
+  background:
+    "linear-gradient(135deg,#C9A227,#E0BE4B)",
+  color: "#172B20",
+  cursor: "pointer",
+  fontWeight: 800,
+  fontSize: 15,
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: 10,
+  boxShadow: "0 7px 20px rgba(201,162,39,0.25)",
+};
+
+const spinner = {
+  fontSize: 20,
+};
+
+const trustRow = {
+  display: "flex",
+  justifyContent: "center",
+  gap: 12,
+  marginTop: 20,
+  color: "rgba(255,255,255,0.48)",
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: 1,
+  flexWrap: "wrap",
+};
+
+const planCard = {
+  marginTop: 30,
+  background: COLORS.white,
+  color: COLORS.text,
+  padding: 26,
+  borderRadius: 18,
+  textAlign: "left",
+  boxShadow: "0 15px 45px rgba(0,0,0,0.2)",
+};
+
+const planPageStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 13,
+  padding: 13,
+  borderBottom: `1px solid ${COLORS.border}`,
+};
+
+const pageNumber = {
+  width: 34,
+  height: 34,
+  borderRadius: 9,
+  background: COLORS.goldLight,
+  color: COLORS.gold,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 11,
+  fontWeight: 800,
+};
+
+const appBackgroundStyle = {
+  minHeight: "100vh",
+  background: COLORS.cream,
+  fontFamily: "Arial, Helvetica, sans-serif",
+  color: COLORS.text,
+  padding: 18,
+  boxSizing: "border-box",
+};
+
+const appShellStyle = {
+  maxWidth: 1250,
+  margin: "0 auto",
+  background: COLORS.white,
+  borderRadius: 18,
+  minHeight: "calc(100vh - 36px)",
+  overflow: "hidden",
+  boxShadow: "0 10px 35px rgba(18,55,42,0.10)",
+};
+
+const appHeaderStyle = {
+  padding: "20px 24px",
+  borderBottom: `1px solid ${COLORS.border}`,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 15,
+  flexWrap: "wrap",
+};
+
+const createdLayoutStyle = {
+  display: "grid",
+  gridTemplateColumns: "230px 1fr",
+  minHeight: "calc(100vh - 130px)",
+};
+
+const sidebarStyle = {
+  borderRight: `1px solid ${COLORS.border}`,
+  padding: 18,
+  background: "#F4F7F3",
+};
+
+const previewSidebarStyle = {
+  width: 240,
+  background: COLORS.white,
+  borderRight: `1px solid ${COLORS.border}`,
+  padding: 20,
+  boxSizing: "border-box",
+  flexShrink: 0,
+};
+
+const sidebarTitle = {
+  fontSize: 11,
+  fontWeight: 800,
+  color: "#93A099",
+  marginBottom: 10,
+  textTransform: "uppercase",
+  letterSpacing: 1,
+};
+
+const sidebarButtonStyle = {
+  display: "block",
+  width: "100%",
+  textAlign: "left",
+  padding: "11px 12px",
+  marginBottom: 5,
+  borderRadius: 8,
+  border: "none",
+  cursor: "pointer",
+  fontWeight: 600,
+};
+
+const contentStyle = {
+  padding: 28,
+  overflowX: "auto",
+};
+
+const previewLayoutStyle = {
+  display: "flex",
+  minHeight: "calc(100vh - 36px)",
+  maxWidth: 1400,
+  margin: "0 auto",
+  background: COLORS.white,
+  borderRadius: 18,
+  overflow: "hidden",
+  boxShadow: "0 10px 35px rgba(18,55,42,0.10)",
+};
+
+const previewContentStyle = {
+  flex: 1,
+  padding: 30,
+  overflowX: "auto",
+};
+
+const previewTopBar = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 20,
+  alignItems: "center",
+  flexWrap: "wrap",
+};
+
+const modifyCardStyle = {
+  marginTop: 28,
+  padding: 20,
+  borderRadius: 14,
+  background: "#F4F8F4",
+  border: `1px solid ${COLORS.border}`,
+};
+
+const featureGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(220px,1fr))",
+  gap: 15,
+};
+
+const statsGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(180px,1fr))",
+  gap: 16,
+};
+
+const responsiveGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(200px,1fr))",
+  gap: 10,
+};
+
+const propertyGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(240px,1fr))",
+  gap: 16,
+  marginTop: 20,
+};
+
+const twoColumnGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(280px,1fr))",
+  gap: 18,
+  marginTop: 22,
+};
+
+const pipelineGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(180px,1fr))",
+  gap: 12,
+};
+
+const pipelineColumnStyle = {
+  background: "#F4F7F3",
+  border: `1px solid ${COLORS.border}`,
+  borderRadius: 12,
+  padding: 14,
+  minHeight: 220,
+};
+
+const pipelineCardStyle = {
+  padding: 14,
+  borderRadius: 10,
+  background: COLORS.white,
+  border: `1px solid ${COLORS.border}`,
+  marginBottom: 10,
+};
+
+const stageNumberStyle = {
+  fontSize: 11,
+  color: COLORS.gold,
+  fontWeight: 800,
+};
+
+const propertyImageStyle = {
+  height: 120,
+  borderRadius: 10,
+  background:
+    "linear-gradient(135deg,#DCEBE2,#F8F1D7)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 16,
+  color: COLORS.emerald,
+  fontWeight: 700,
+};
+
+const calendarDayStyle = {
+  minHeight: 80,
+  padding: 8,
+  borderRadius: 8,
+  background: "#F7F9F6",
+  border: `1px solid ${COLORS.border}`,
+  fontSize: 12,
+};
+
 const cardStyle = {
-  background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  background: COLORS.white,
+  border: `1px solid ${COLORS.border}`,
   borderRadius: 14,
   padding: 20,
   boxSizing: "border-box",
+  boxShadow: "0 3px 14px rgba(18,55,42,0.035)",
 };
 
 const listItemStyle = {
@@ -1839,15 +1779,20 @@ const listItemStyle = {
   alignItems: "center",
   gap: 15,
   padding: 16,
-  background: "#fff",
-  border: "1px solid #e5e7eb",
+  background: COLORS.white,
+  border: `1px solid ${COLORS.border}`,
   borderRadius: 12,
   marginBottom: 10,
   flexWrap: "wrap",
 };
 
+const smallListStyle = {
+  padding: 12,
+  borderBottom: `1px solid ${COLORS.border}`,
+};
+
 const mutedText = {
-  color: "#6b7280",
+  color: COLORS.muted,
   fontSize: 14,
   marginTop: 5,
 };
@@ -1855,27 +1800,153 @@ const mutedText = {
 const badgeStyle = {
   padding: "6px 10px",
   borderRadius: 20,
-  background: "#f3f4f6",
-  color: "#374151",
+  background: COLORS.emeraldLight,
+  color: COLORS.emerald,
   fontSize: 12,
-  fontWeight: 600,
+  fontWeight: 700,
 };
 
 const successBadgeStyle = {
   padding: "7px 11px",
   borderRadius: 20,
-  background: "#ecfdf5",
-  color: "#047857",
+  background: COLORS.emeraldLight,
+  color: COLORS.emerald,
   fontSize: 12,
-  fontWeight: 600,
+  fontWeight: 700,
 };
+
+const goldTag = {
+  display: "inline-block",
+  padding: "6px 9px",
+  borderRadius: 20,
+  background: COLORS.goldLight,
+  color: "#8B7013",
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: 0.8,
+};
+
+const brandSmall = {
+  color: COLORS.gold,
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: 1.2,
+};
+
+const featureIcon = {
+  width: 32,
+  height: 32,
+  borderRadius: 9,
+  background: COLORS.goldLight,
+  color: COLORS.gold,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 8,
+};
+
+const errorBox = {
+  marginTop: 14,
+  padding: 12,
+  background: "#FFF0EF",
+  color: COLORS.danger,
+  borderRadius: 9,
+  fontSize: 14,
+};
+
+function FeatureModal({ feature, closeFeature }) {
+  return (
+    <div
+      onClick={closeFeature}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(7,28,20,0.58)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+        zIndex: 100,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 520,
+          background: COLORS.white,
+          borderRadius: 16,
+          padding: 28,
+          boxSizing: "border-box",
+          boxShadow: "0 25px 70px rgba(0,0,0,0.25)",
+        }}
+      >
+        <div style={goldTag}>FEATURE</div>
+
+        <h2
+          style={{
+            color: COLORS.forest,
+            marginTop: 12,
+          }}
+        >
+          {feature.name}
+        </h2>
+
+        <p
+          style={{
+            color: COLORS.muted,
+            lineHeight: 1.7,
+          }}
+        >
+          {feature.description}
+        </p>
+
+        <div
+          style={{
+            marginTop: 20,
+            padding: 16,
+            borderRadius: 10,
+            background: "#F4F8F4",
+            border: `1px solid ${COLORS.border}`,
+          }}
+        >
+          <strong style={{ color: COLORS.forest }}>
+            Feature Ready
+          </strong>
+
+          <p
+            style={{
+              color: COLORS.muted,
+              fontSize: 14,
+              lineHeight: 1.5,
+              marginBottom: 0,
+            }}
+          >
+            This feature is connected to your generated
+            application and is ready for further development.
+          </p>
+        </div>
+
+        <button
+          onClick={closeFeature}
+          style={{
+            ...buttonStyle,
+            marginTop: 18,
+          }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function StatCard({ title, value }) {
   return (
     <div style={cardStyle}>
       <div
         style={{
-          color: "#6b7280",
+          color: COLORS.muted,
           fontSize: 13,
         }}
       >
@@ -1885,30 +1956,37 @@ function StatCard({ title, value }) {
       <div
         style={{
           fontSize: 28,
-          fontWeight: 700,
+          fontWeight: 800,
           marginTop: 8,
+          color: COLORS.forest,
         }}
       >
         {value}
       </div>
+
+      <div
+        style={{
+          marginTop: 9,
+          width: 35,
+          height: 3,
+          background: COLORS.gold,
+          borderRadius: 5,
+        }}
+      />
     </div>
   );
 }
 
-function PageHeader({
-  title,
-  description,
-}) {
+function PageHeader({ title, description }) {
   return (
-    <div
-      style={{
-        marginBottom: 24,
-      }}
-    >
+    <div style={{ marginBottom: 24 }}>
+      <div style={brandSmall}>AI APP BUILDER</div>
+
       <h2
         style={{
-          margin: 0,
+          margin: "5px 0 0",
           fontSize: 28,
+          color: COLORS.forest,
         }}
       >
         {title}
@@ -1916,7 +1994,7 @@ function PageHeader({
 
       <p
         style={{
-          color: "#6b7280",
+          color: COLORS.muted,
           lineHeight: 1.6,
           marginTop: 7,
         }}
