@@ -25,6 +25,8 @@ export default function Home() {
     setPreview(false);
     setCreated(false);
     setActivePage("");
+    setActiveFeature(null);
+    setModifyMessage("");
 
     try {
       const response = await fetch("/api/generate", {
@@ -64,8 +66,9 @@ export default function Home() {
 
     return [
       {
-        name: "Dashboard",
-        purpose: "Main overview of your application.",
+        name: "Main",
+        purpose: "Main application page.",
+        features: [],
       },
     ];
   }
@@ -80,13 +83,37 @@ export default function Home() {
     return [];
   }
 
+  function normalizeFeature(feature) {
+    if (typeof feature === "string") {
+      return {
+        name: feature,
+        description:
+          "This feature was generated according to the customer's requirements.",
+      };
+    }
+
+    return feature || {
+      name: "Feature",
+      description:
+        "This feature was generated according to the customer's requirements.",
+    };
+  }
+
+  function getPageFeatures(page) {
+    if (Array.isArray(page?.features)) {
+      return page.features.map(normalizeFeature);
+    }
+
+    return [];
+  }
+
   function continueToPreview() {
     const pages = getPages();
 
     setPreview(true);
     setCreated(false);
     setActiveFeature(null);
-    setActivePage(pages[0]?.name || "Dashboard");
+    setActivePage(pages[0]?.name || "Main");
     setModifyMessage("");
   }
 
@@ -94,7 +121,7 @@ export default function Home() {
     const pages = getPages();
 
     setCreated(true);
-    setActivePage(pages[0]?.name || "Dashboard");
+    setActivePage(pages[0]?.name || "Main");
     setActiveFeature(null);
     setModifyMessage("");
   }
@@ -112,12 +139,12 @@ export default function Home() {
   }
 
   function selectPage(page) {
-    setActivePage(page.name);
+    setActivePage(page?.name || "Main");
     setActiveFeature(null);
   }
 
   function openFeature(feature) {
-    setActiveFeature(feature);
+    setActiveFeature(normalizeFeature(feature));
   }
 
   function closeFeature() {
@@ -165,9 +192,12 @@ export default function Home() {
         specification: data.specification,
       }));
 
-      const pages = data.specification.pages || [];
+      const pages = Array.isArray(data.specification.pages)
+        ? data.specification.pages
+        : [];
 
-      setActivePage(pages[0]?.name || "Dashboard");
+      setActivePage(pages[0]?.name || "Main");
+      setActiveFeature(null);
       setModifyInstruction("");
       setModifyMessage("✓ Changes applied successfully.");
     } catch (err) {
@@ -179,167 +209,112 @@ export default function Home() {
     }
   }
 
-  function renderGeneratedPage(page) {
-    const pageName = String(page?.name || "Application Page");
+  function renderPage(page, mode = "preview") {
+    const pageName = String(
+      page?.name || "Application Page"
+    );
+
     const purpose =
       page?.purpose ||
       page?.description ||
-      "This page was generated according to your app requirements.";
+      "This page was generated according to your requirements.";
 
-    const pageFeatures = Array.isArray(page?.features)
-      ? page.features
-      : [];
+    const pageFeatures = getPageFeatures(page);
 
     return (
-      <>
-        <PageHeader
-          title={pageName}
-          description={purpose}
-        />
-
+      <div>
         <div style={pageHero}>
-          <div>
-            <div style={smallLabel}>AI GENERATED PAGE</div>
-
-            <h2 style={heroTitle}>{pageName}</h2>
-
-            <p style={heroDescription}>
-              {purpose}
-            </p>
+          <div style={smallLabel}>
+            {mode === "created"
+              ? "GENERATED APP PAGE"
+              : "LIVE APP PREVIEW"}
           </div>
+
+          <h2 style={heroTitle}>{pageName}</h2>
+
+          <p style={heroDescription}>{purpose}</p>
         </div>
 
         {pageFeatures.length > 0 ? (
           <>
             <h3 style={sectionTitle}>
-              Page Features
+              Features for this page
             </h3>
 
             <div style={featureGrid}>
-              {pageFeatures.map((feature, index) => {
-                const featureObject =
-                  typeof feature === "string"
-                    ? {
-                        name: feature,
-                        description:
-                          "Feature generated from your app requirements.",
-                      }
-                    : feature;
+              {pageFeatures.map((feature, index) => (
+                <div
+                  key={`${feature.name}-${index}`}
+                  style={cardStyle}
+                >
+                  <div style={featureIcon}>✦</div>
 
-                return (
-                  <div
-                    key={`${featureObject.name}-${index}`}
-                    style={cardStyle}
+                  <h3>
+                    {feature.name ||
+                      `Feature ${index + 1}`}
+                  </h3>
+
+                  <p style={mutedText}>
+                    {feature.description ||
+                      "AI generated feature."}
+                  </p>
+
+                  <button
+                    onClick={() =>
+                      openFeature(feature)
+                    }
+                    style={{
+                      ...secondaryButtonStyle,
+                      marginTop: 12,
+                    }}
                   >
-                    <div style={featureIcon}>
-                      ✦
-                    </div>
-
-                    <h3>
-                      {featureObject.name ||
-                        `Feature ${index + 1}`}
-                    </h3>
-
-                    <p style={mutedText}>
-                      {featureObject.description ||
-                        "AI generated application feature."}
-                    </p>
-
-                    <button
-                      onClick={() =>
-                        openFeature(featureObject)
-                      }
-                      style={{
-                        ...secondaryButtonStyle,
-                        marginTop: 10,
-                      }}
-                    >
-                      Open Feature →
-                    </button>
-                  </div>
-                );
-              })}
+                    Open Feature →
+                  </button>
+                </div>
+              ))}
             </div>
           </>
         ) : (
-          <div style={twoColumnGrid}>
-            <div style={cardStyle}>
-              <div style={featureIcon}>✦</div>
+          <div style={cardStyleLarge}>
+            <div style={featureIcon}>✦</div>
 
-              <h3>AI Workspace</h3>
+            <h3>AI Generated Workspace</h3>
 
-              <p style={mutedText}>
-                This page was generated specifically from
-                the customer's requirements.
-              </p>
-
-              <button
-                onClick={() =>
-                  openFeature({
-                    name: pageName,
-                    description: purpose,
-                  })
-                }
-                style={{
-                  ...secondaryButtonStyle,
-                  marginTop: 12,
-                }}
-              >
-                Open →
-              </button>
-            </div>
-
-            <div style={cardStyle}>
-              <div style={featureIcon}>⚡</div>
-
-              <h3>Customize with AI</h3>
-
-              <p style={mutedText}>
-                Tell AI what you want to add, remove or
-                change on this page.
-              </p>
-
-              <button
-                onClick={() =>
-                  setModifyInstruction(
-                    `Improve the ${pageName} page based on my app requirements.`
-                  )
-                }
-                style={{
-                  ...buttonStyle,
-                  marginTop: 12,
-                }}
-              >
-                Modify with AI
-              </button>
-            </div>
+            <p style={paragraphText}>
+              This page was generated specifically
+              from the customer's requirements.
+            </p>
           </div>
         )}
 
         <div style={cardStyleLarge}>
-          <h3>About this page</h3>
+          <div style={smallLabel}>
+            PAGE PURPOSE
+          </div>
 
           <p style={paragraphText}>
             {purpose}
           </p>
 
           <div style={generatedInfo}>
-            <span>Generated from customer requirements</span>
-            <span>AI powered</span>
-            <span>Ready to customize</span>
+            <span>Customer requirements</span>
+            <span>AI generated</span>
+            <span>Customizable</span>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   function renderCreatedApp() {
-    const specification = plan?.specification || {};
+    const specification =
+      plan?.specification || {};
+
     const pages = getPages();
 
     const currentPage =
       pages.find(
-        (page) => page.name === activePage
+        (page) => page?.name === activePage
       ) || pages[0];
 
     return (
@@ -352,7 +327,8 @@ export default function Home() {
               </div>
 
               <h1 style={appTitle}>
-                {specification.name || "My App"}
+                {specification.name ||
+                  "My App"}
               </h1>
 
               <p style={headerSubtitle}>
@@ -379,7 +355,7 @@ export default function Home() {
             <aside style={sidebar}>
               <div style={sidebarHeader}>
                 <div style={sidebarTitle}>
-                  PAGES
+                  APP PAGES
                 </div>
 
                 <div style={pageCount}>
@@ -387,39 +363,34 @@ export default function Home() {
                 </div>
               </div>
 
-              <div>
-                {pages.map((page, index) => (
-                  <button
-                    key={`${page.name}-${index}`}
-                    onClick={() =>
-                      selectPage(page)
-                    }
-                    style={{
-                      ...sidebarButton,
-                      background:
-                        activePage === page.name
-                          ? "linear-gradient(135deg,#166534,#0f766e)"
-                          : "transparent",
-                      color:
-                        activePage === page.name
-                          ? "#ffffff"
-                          : "#374151",
-                      boxShadow:
-                        activePage === page.name
-                          ? "0 5px 15px rgba(22,101,52,0.18)"
-                          : "none",
-                    }}
-                  >
-                    <span style={pageNumber}>
-                      {index + 1}
-                    </span>
+              {pages.map((page, index) => (
+                <button
+                  key={`${page?.name}-${index}`}
+                  onClick={() =>
+                    selectPage(page)
+                  }
+                  style={{
+                    ...sidebarButton,
+                    background:
+                      activePage === page?.name
+                        ? "linear-gradient(135deg,#166534,#0f766e)"
+                        : "transparent",
+                    color:
+                      activePage === page?.name
+                        ? "#ffffff"
+                        : "#374151",
+                  }}
+                >
+                  <span style={pageNumber}>
+                    {index + 1}
+                  </span>
 
-                    <span>
-                      {page.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
+                  <span>
+                    {page?.name ||
+                      `Page ${index + 1}`}
+                  </span>
+                </button>
+              ))}
 
               <div style={sidebarBottom}>
                 <button
@@ -435,62 +406,34 @@ export default function Home() {
             </aside>
 
             <section style={contentArea}>
-              {currentPage
-                ? renderGeneratedPage(currentPage)
-                : null}
+              <PageHeader
+                title={
+                  currentPage?.name ||
+                  "Application"
+                }
+                description={
+                  currentPage?.purpose ||
+                  "AI generated application page."
+                }
+              />
 
-              <div style={modifyPanel}>
-                <div style={smallLabel}>
-                  AI APP MODIFIER
-                </div>
-
-                <h3>
-                  Change your app
-                </h3>
-
-                <p style={mutedText}>
-                  Describe what you want to add,
-                  remove or change.
-                </p>
-
-                <textarea
-                  value={modifyInstruction}
-                  onChange={(e) =>
-                    setModifyInstruction(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Example: Add a customer booking page with WhatsApp contact and payment options..."
-                  style={modifyTextarea}
-                />
-
-                <button
-                  onClick={modifyApp}
-                  disabled={
-                    modifyLoading ||
-                    !modifyInstruction.trim()
-                  }
-                  style={{
-                    ...buttonStyle,
-                    marginTop: 12,
-                    opacity:
-                      modifyLoading ||
-                      !modifyInstruction.trim()
-                        ? 0.5
-                        : 1,
-                  }}
-                >
-                  {modifyLoading
-                    ? "Updating App..."
-                    : "Modify with AI →"}
-                </button>
-
-                {modifyMessage && (
-                  <div style={modifyMessageStyle}>
-                    {modifyMessage}
-                  </div>
+              {currentPage &&
+                renderPage(
+                  currentPage,
+                  "created"
                 )}
-              </div>
+
+              <ModifyPanel
+                instruction={
+                  modifyInstruction
+                }
+                setInstruction={
+                  setModifyInstruction
+                }
+                loading={modifyLoading}
+                message={modifyMessage}
+                onModify={modifyApp}
+              />
             </section>
           </div>
         </div>
@@ -506,9 +449,16 @@ export default function Home() {
   }
 
   if (preview && plan?.specification) {
-    const specification = plan.specification;
+    const specification =
+      plan.specification;
+
     const pages = getPages();
     const features = getFeatures();
+
+    const currentPage =
+      pages.find(
+        (page) => page?.name === activePage
+      ) || pages[0];
 
     return (
       <main style={previewShell}>
@@ -533,7 +483,7 @@ export default function Home() {
 
             {pages.map((page, index) => (
               <button
-                key={`${page.name}-${index}`}
+                key={`${page?.name}-${index}`}
                 onClick={() =>
                   selectPage(page)
                 }
@@ -541,12 +491,12 @@ export default function Home() {
                   ...sidebarButton,
                   marginTop: 7,
                   background:
-                    activePage === page.name
+                    activePage === page?.name
                       ? "linear-gradient(135deg,#166534,#0f766e)"
                       : "transparent",
                   color:
-                    activePage === page.name
-                      ? "#fff"
+                    activePage === page?.name
+                      ? "#ffffff"
                       : "#374151",
                 }}
               >
@@ -554,7 +504,8 @@ export default function Home() {
                   {index + 1}
                 </span>
 
-                {page.name}
+                {page?.name ||
+                  `Page ${index + 1}`}
               </button>
             ))}
 
@@ -598,67 +549,25 @@ export default function Home() {
               </span>
             </div>
 
-            {pages.map((page) => {
-              if (page.name !== activePage) {
-                return null;
-              }
-
-              return (
-                <div key={page.name}>
-                  <div style={previewHero}>
-                    <div style={smallLabel}>
-                      {specification.name ||
-                        "YOUR APP"}
-                    </div>
-
-                    <h2>
-                      {page.name}
-                    </h2>
-
-                    <p>
-                      {page.purpose ||
-                        "AI generated application page."}
-                    </p>
-
-                    <button
-                      onClick={() =>
-                        openFeature({
-                          name: page.name,
-                          description:
-                            page.purpose ||
-                            "Application page",
-                        })
-                      }
-                      style={{
-                        ...buttonStyle,
-                        marginTop: 10,
-                      }}
-                    >
-                      Open Page →
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {currentPage &&
+              renderPage(
+                currentPage,
+                "preview"
+              )}
 
             {features.length > 0 && (
               <>
                 <h3 style={sectionTitle}>
-                  App Features
+                  App-wide Features
                 </h3>
 
                 <div style={featureGrid}>
                   {features.map(
                     (feature, index) => {
                       const item =
-                        typeof feature ===
-                        "string"
-                          ? {
-                              name: feature,
-                              description:
-                                "AI generated feature.",
-                            }
-                          : feature;
+                        normalizeFeature(
+                          feature
+                        );
 
                       return (
                         <div
@@ -705,62 +614,17 @@ export default function Home() {
               </>
             )}
 
-            <div style={modifyPanel}>
-              <div style={smallLabel}>
-                MODIFY
-              </div>
-
-              <h3>
-                Want to change something?
-              </h3>
-
-              <p style={mutedText}>
-                Your app can be modified according
-                to your requirements.
-              </p>
-
-              <textarea
-                value={modifyInstruction}
-                onChange={(e) =>
-                  setModifyInstruction(
-                    e.target.value
-                  )
-                }
-                placeholder="Example: Add a payment page..."
-                style={modifyTextarea}
-              />
-
-              <button
-                onClick={modifyApp}
-                disabled={
-                  modifyLoading ||
-                  !modifyInstruction.trim()
-                }
-                style={{
-                  ...buttonStyle,
-                  marginTop: 12,
-                  opacity:
-                    modifyLoading ||
-                    !modifyInstruction.trim()
-                      ? 0.5
-                      : 1,
-                }}
-              >
-                {modifyLoading
-                  ? "Updating..."
-                  : "Modify with AI →"}
-              </button>
-
-              {modifyMessage && (
-                <div
-                  style={
-                    modifyMessageStyle
-                  }
-                >
-                  {modifyMessage}
-                </div>
-              )}
-            </div>
+            <ModifyPanel
+              instruction={
+                modifyInstruction
+              }
+              setInstruction={
+                setModifyInstruction
+              }
+              loading={modifyLoading}
+              message={modifyMessage}
+              onModify={modifyApp}
+            />
           </section>
         </div>
 
@@ -794,8 +658,8 @@ export default function Home() {
         <p style={homeDescription}>
           Describe what you want to build.
           AI will understand your requirements
-          and create the pages, features and
-          structure for your application.
+          and decide the pages, features and
+          structure needed for your application.
         </p>
 
         <div style={ideaCard}>
@@ -861,7 +725,7 @@ export default function Home() {
               </span>
             </div>
 
-            <h3>
+            <h3 style={{ marginTop: 24 }}>
               App Pages
             </h3>
 
@@ -869,7 +733,7 @@ export default function Home() {
               {getPages().map(
                 (page, index) => (
                   <div
-                    key={`${page.name}-${index}`}
+                    key={`${page?.name}-${index}`}
                     style={generatedPageCard}
                   >
                     <div
@@ -882,7 +746,8 @@ export default function Home() {
 
                     <div>
                       <strong>
-                        {page.name}
+                        {page?.name ||
+                          `Page ${index + 1}`}
                       </strong>
 
                       <div
@@ -890,9 +755,26 @@ export default function Home() {
                           mutedText
                         }
                       >
-                        {page.purpose ||
+                        {page?.purpose ||
                           "AI generated page"}
                       </div>
+
+                      {getPageFeatures(
+                        page
+                      ).length > 0 && (
+                        <div
+                          style={
+                            pageFeatureCount
+                          }
+                        >
+                          {
+                            getPageFeatures(
+                              page
+                            ).length
+                          }{" "}
+                          page features
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -914,6 +796,65 @@ export default function Home() {
         )}
       </div>
     </main>
+  );
+}
+
+function ModifyPanel({
+  instruction,
+  setInstruction,
+  loading,
+  message,
+  onModify,
+}) {
+  return (
+    <div style={modifyPanel}>
+      <div style={smallLabel}>
+        AI APP MODIFIER
+      </div>
+
+      <h3>
+        Change your app
+      </h3>
+
+      <p style={mutedText}>
+        Tell AI exactly what you want to
+        add, remove or change.
+      </p>
+
+      <textarea
+        value={instruction}
+        onChange={(e) =>
+          setInstruction(e.target.value)
+        }
+        placeholder="Example: Add a customer booking page with WhatsApp contact and payment options..."
+        style={modifyTextarea}
+      />
+
+      <button
+        onClick={onModify}
+        disabled={
+          loading || !instruction.trim()
+        }
+        style={{
+          ...buttonStyle,
+          marginTop: 12,
+          opacity:
+            loading || !instruction.trim()
+              ? 0.5
+              : 1,
+        }}
+      >
+        {loading
+          ? "Updating App..."
+          : "Modify with AI →"}
+      </button>
+
+      {message && (
+        <div style={modifyMessageStyle}>
+          {message}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -953,13 +894,13 @@ function FeatureModal({
 
         <div style={readyBox}>
           <strong>
-            Feature Ready
+            AI Generated Feature
           </strong>
 
           <p style={mutedText}>
-            This feature belongs to your
-            generated application and can
-            be further customized with AI.
+            This feature was created according
+            to the customer's requirements and
+            can be modified with AI.
           </p>
         </div>
 
@@ -999,12 +940,16 @@ function PageHeader({
 }
 
 /* =========================
-   MAIN STYLES
+   COLORS
 ========================= */
 
 const green = "#166534";
 const teal = "#0f766e";
 const dark = "#17352a";
+
+/* =========================
+   BUTTONS
+========================= */
 
 const buttonStyle = {
   padding: "11px 16px",
@@ -1028,6 +973,10 @@ const secondaryButtonStyle = {
   cursor: "pointer",
   fontWeight: 600,
 };
+
+/* =========================
+   CREATED APP
+========================= */
 
 const appShell = {
   minHeight: "100vh",
@@ -1133,14 +1082,14 @@ const sidebarButton = {
   border: "none",
   cursor: "pointer",
   fontWeight: 600,
-  transition: "0.2s",
 };
 
 const pageNumber = {
   width: 22,
   height: 22,
   borderRadius: 6,
-  background: "rgba(255,255,255,0.18)",
+  background:
+    "rgba(255,255,255,0.18)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -1224,13 +1173,6 @@ const cardStyle = {
 const cardStyleLarge = {
   ...cardStyle,
   marginTop: 22,
-};
-
-const twoColumnGrid = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit,minmax(280px,1fr))",
-  gap: 16,
 };
 
 const featureGrid = {
@@ -1345,6 +1287,10 @@ const successBadgeStyle = {
   fontWeight: 700,
 };
 
+/* =========================
+   PREVIEW
+========================= */
+
 const previewShell = {
   minHeight: "100vh",
   background:
@@ -1407,15 +1353,9 @@ const previewBadge = {
   fontWeight: 700,
 };
 
-const previewHero = {
-  padding: 30,
-  borderRadius: 18,
-  background:
-    "linear-gradient(135deg,#dff2e4,#dff4f2)",
-  border:
-    "1px solid #cee6d7",
-  marginBottom: 25,
-};
+/* =========================
+   HOME
+========================= */
 
 const homeShell = {
   minHeight: "100vh",
@@ -1462,7 +1402,8 @@ const languageBadge = {
 };
 
 const homeTitle = {
-  fontSize: "clamp(36px,6vw,58px)",
+  fontSize:
+    "clamp(36px,6vw,58px)",
   lineHeight: 1.05,
   margin: "24px 0 15px",
   color: dark,
@@ -1580,6 +1521,17 @@ const generatedPageNumber = {
   fontWeight: 800,
   flexShrink: 0,
 };
+
+const pageFeatureCount = {
+  marginTop: 5,
+  fontSize: 11,
+  color: green,
+  fontWeight: 700,
+};
+
+/* =========================
+   MODAL
+========================= */
 
 const modalOverlay = {
   position: "fixed",
