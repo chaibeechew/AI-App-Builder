@@ -13,7 +13,7 @@ export async function POST(request) {
     if (!payoutAccountId || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json({ success: false, error: "Valid payout account and amount are required." }, { status: 400 });
     }
-    if (amount > 1000000) return NextResponse.json({ success: false, error: "Withdrawal amount exceeds the per-request limit." }, { status: 400 });
+    if (amount > 1000) return NextResponse.json({ success: false, error: "Maximum single withdrawal is $1,000." }, { status: 400 });
 
     const { data, error } = await supabase.rpc("request_withdrawal", {
       p_payout_account_id: payoutAccountId,
@@ -22,7 +22,7 @@ export async function POST(request) {
     if (error) {
       console.error("WITHDRAWAL_REQUEST_ERROR:", error);
       const message = error.message?.toLowerCase() || "";
-      if (message.includes("insufficient") || message.includes("minimum") || message.includes("cooling") || message.includes("verified payout")) {
+      if (message.includes("insufficient") || message.includes("minimum") || message.includes("maximum") || message.includes("daily") || message.includes("monthly") || message.includes("cooling") || message.includes("verified payout")) {
         return NextResponse.json({ success: false, error: error.message }, { status: 400 });
       }
       return NextResponse.json({ success: false, error: "Unable to create withdrawal request." }, { status: 500 });
