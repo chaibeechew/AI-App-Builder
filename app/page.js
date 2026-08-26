@@ -2,19 +2,59 @@
 
 import { useState } from "react";
 
+const DEFAULT_PAGE = {
+  name: "Main",
+  purpose: "Your main application workspace.",
+  features: [],
+};
+
+function normalizeFeature(feature) {
+  if (typeof feature === "string") {
+    return {
+      name: feature,
+      description: "AI generated feature for your application.",
+    };
+  }
+
+  return {
+    name: feature?.name || "Feature",
+    description:
+      feature?.description ||
+      "AI generated feature for your application.",
+  };
+}
+
 export default function Home() {
   const [idea, setIdea] = useState("");
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState(null);
-  const [preview, setPreview] = useState(false);
-  const [created, setCreated] = useState(false);
+
+  const [screen, setScreen] = useState("home");
   const [activePage, setActivePage] = useState("");
   const [activeFeature, setActiveFeature] = useState(null);
+
   const [error, setError] = useState("");
 
   const [modifyInstruction, setModifyInstruction] = useState("");
   const [modifyLoading, setModifyLoading] = useState(false);
   const [modifyMessage, setModifyMessage] = useState("");
+
+  const specification = plan?.specification || {};
+
+  const pages =
+    Array.isArray(specification.pages) &&
+    specification.pages.length
+      ? specification.pages
+      : [DEFAULT_PAGE];
+
+  const features = Array.isArray(specification.features)
+    ? specification.features
+    : [];
+
+  const currentPage =
+    pages.find((page) => page?.name === activePage) ||
+    pages[0] ||
+    DEFAULT_PAGE;
 
   async function generateApp() {
     if (!idea.trim()) {
@@ -25,8 +65,7 @@ export default function Home() {
     setLoading(true);
     setError("");
     setPlan(null);
-    setPreview(false);
-    setCreated(false);
+    setScreen("home");
     setActivePage("");
     setActiveFeature(null);
     setModifyMessage("");
@@ -45,7 +84,9 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error || "Generation failed.");
+        throw new Error(
+          data?.error || "Generation failed."
+        );
       }
 
       if (!data?.specification) {
@@ -56,93 +97,57 @@ export default function Home() {
 
       setPlan(data);
 
-      const pages = Array.isArray(data.specification.pages)
+      const generatedPages = Array.isArray(
+        data.specification.pages
+      )
         ? data.specification.pages
         : [];
 
-      setActivePage(pages[0]?.name || "Main");
+      setActivePage(
+        generatedPages[0]?.name || "Main"
+      );
+
+      setScreen("plan");
     } catch (err) {
-      setError(err?.message || "Something went wrong.");
+      setError(
+        err?.message || "Something went wrong."
+      );
     } finally {
       setLoading(false);
     }
   }
 
-  function getPages() {
-    const pages = plan?.specification?.pages;
-
-    if (Array.isArray(pages) && pages.length > 0) {
-      return pages;
-    }
-
-    return [
-      {
-        name: "Main",
-        purpose: "Main application page.",
-      },
-    ];
-  }
-
-  function getFeatures() {
-    const features = plan?.specification?.features;
-
-    return Array.isArray(features) ? features : [];
-  }
-
-  function normalizeFeature(feature) {
-    if (typeof feature === "string") {
-      return {
-        name: feature,
-        description:
-          "This feature was generated according to your application requirements.",
-      };
-    }
-
-    return (
-      feature || {
-        name: "Feature",
-        description: "AI generated application feature.",
-      }
-    );
-  }
-
-  function getPageFeatures(page) {
-    if (!Array.isArray(page?.features)) {
-      return [];
-    }
-
-    return page.features.map(normalizeFeature);
-  }
-
-  function continueToPreview() {
-    const pages = getPages();
-
-    setPreview(true);
-    setCreated(false);
+  function openPreview() {
     setActiveFeature(null);
-    setActivePage(pages[0]?.name || "Main");
     setModifyMessage("");
+    setScreen("preview");
   }
 
   function createApp() {
-    const pages = getPages();
-
-    setCreated(true);
-    setActivePage(pages[0]?.name || "Main");
     setActiveFeature(null);
     setModifyMessage("");
+    setScreen("created");
+  }
+
+  function backToPlan() {
+    setActiveFeature(null);
+    setScreen("plan");
   }
 
   function backToPreview() {
-    setCreated(false);
     setActiveFeature(null);
+    setScreen("preview");
   }
 
-  function goBackToPlan() {
-    setPreview(false);
-    setCreated(false);
-    setActiveFeature(null);
+  function startNewApp() {
+    setIdea("");
+    setPlan(null);
+    setError("");
     setActivePage("");
+    setActiveFeature(null);
+    setModifyInstruction("");
+    setModifyMessage("");
+    setScreen("home");
   }
 
   function selectPage(page) {
@@ -154,17 +159,15 @@ export default function Home() {
     setActiveFeature(normalizeFeature(feature));
   }
 
-  function closeFeature() {
-    setActiveFeature(null);
-  }
-
   async function modifyApp() {
     if (!modifyInstruction.trim()) {
       return;
     }
 
     if (!plan?.specification) {
-      setModifyMessage("No app specification is available.");
+      setModifyMessage(
+        "No application specification is available."
+      );
       return;
     }
 
@@ -187,7 +190,9 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error || "Modification failed.");
+        throw new Error(
+          data?.error || "Modification failed."
+        );
       }
 
       if (!data?.specification) {
@@ -201,14 +206,21 @@ export default function Home() {
         specification: data.specification,
       }));
 
-      const pages = Array.isArray(data.specification.pages)
+      const updatedPages = Array.isArray(
+        data.specification.pages
+      )
         ? data.specification.pages
         : [];
 
-      setActivePage(pages[0]?.name || "Main");
+      setActivePage(
+        updatedPages[0]?.name || "Main"
+      );
+
       setActiveFeature(null);
       setModifyInstruction("");
-      setModifyMessage("Changes applied successfully.");
+      setModifyMessage(
+        "Your changes have been applied."
+      );
     } catch (err) {
       setModifyMessage(
         err?.message || "Something went wrong."
@@ -218,770 +230,962 @@ export default function Home() {
     }
   }
 
-  const specification = plan?.specification || {};
-  const pages = getPages();
-  const features = getFeatures();
+  return (
+    <>
+      <main className="app">
+        <Background />
 
-  const currentPage =
-    pages.find((page) => page?.name === activePage) ||
-    pages[0];
+        <div className="pageLayer">
+          <Header
+            screen={screen}
+            onNew={startNewApp}
+          />
 
-  function LandscapeBackground() {
-    return (
-      <div className="landscape" aria-hidden="true">
-        <div className="sun" />
-        <div className="mountain mountainOne" />
-        <div className="mountain mountainTwo" />
-        <div className="mountain mountainThree" />
-        <div className="forest forestOne" />
-        <div className="forest forestTwo" />
-        <div className="lake" />
-        <div className="lakeGlow" />
+          {screen === "home" && (
+            <HomeScreen
+              idea={idea}
+              setIdea={setIdea}
+              loading={loading}
+              error={error}
+              onGenerate={generateApp}
+            />
+          )}
+
+          {screen === "plan" && (
+            <PlanScreen
+              specification={specification}
+              pages={pages}
+              activePage={activePage}
+              onSelectPage={selectPage}
+              onPreview={openPreview}
+              onNew={startNewApp}
+            />
+          )}
+
+          {screen === "preview" && (
+            <PreviewScreen
+              specification={specification}
+              pages={pages}
+              features={features}
+              currentPage={currentPage}
+              activePage={activePage}
+              onSelectPage={selectPage}
+              onFeature={openFeature}
+              onBack={backToPlan}
+              onCreate={createApp}
+              modifyInstruction={modifyInstruction}
+              setModifyInstruction={
+                setModifyInstruction
+              }
+              modifyLoading={modifyLoading}
+              modifyMessage={modifyMessage}
+              onModify={modifyApp}
+            />
+          )}
+
+          {screen === "created" && (
+            <CreatedScreen
+              specification={specification}
+              pages={pages}
+              currentPage={currentPage}
+              activePage={activePage}
+              onSelectPage={selectPage}
+              onFeature={openFeature}
+              onBack={backToPreview}
+              onNew={startNewApp}
+              modifyInstruction={modifyInstruction}
+              setModifyInstruction={
+                setModifyInstruction
+              }
+              modifyLoading={modifyLoading}
+              modifyMessage={modifyMessage}
+              onModify={modifyApp}
+            />
+          )}
+        </div>
+
+        {activeFeature && (
+          <FeatureModal
+            feature={activeFeature}
+            onClose={() => setActiveFeature(null)}
+          />
+        )}
+      </main>
+
+      <GlobalStyles />
+    </>
+  );
+}
+
+/* =========================================================
+   BACKGROUND
+========================================================= */
+
+function Background() {
+  return (
+    <div className="background" aria-hidden="true">
+      <div className="backgroundGlow glowOne" />
+      <div className="backgroundGlow glowTwo" />
+      <div className="backgroundGlow glowThree" />
+
+      <div className="waterSurface">
+        <div className="waterLine lineOne" />
+        <div className="waterLine lineTwo" />
+        <div className="waterLine lineThree" />
+        <div className="waterLine lineFour" />
       </div>
-    );
-  }
 
-  function Brand() {
-    return (
-      <div className="brand">
-        <div className="brandMark">
+      <div className="goldLight" />
+      <div className="gridPattern" />
+      <div className="vignette" />
+    </div>
+  );
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+function Header({ screen, onNew }) {
+  return (
+    <header className="header">
+      <div className="logoArea">
+        <div className="logoMark">
           <span>✦</span>
         </div>
 
         <div>
-          <div className="brandName">
+          <div className="logoName">
             AI APP BUILDER
           </div>
 
-          <div className="brandSub">
+          <div className="logoTagline">
             Create. Shape. Build.
           </div>
         </div>
       </div>
-    );
-  }
 
-  function ModifyPanel() {
-    return (
-      <section className="modifyPanel">
-        <div className="modifyHeader">
+      <div className="headerRight">
+        {screen !== "home" && (
+          <button
+            className="headerNew"
+            onClick={onNew}
+          >
+            + New App
+          </button>
+        )}
+
+        <div className="aiIndicator">
+          <span className="statusDot" />
+          <span>AI Ready</span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* =========================================================
+   HOME
+========================================================= */
+
+function HomeScreen({
+  idea,
+  setIdea,
+  loading,
+  error,
+  onGenerate,
+}) {
+  return (
+    <section className="homeScreen">
+      <div className="heroOrb">
+        <div className="orbOuter outerOne" />
+        <div className="orbOuter outerTwo" />
+
+        <div className="orbCore">
+          <span>✦</span>
+        </div>
+      </div>
+
+      <div className="eyebrow center">
+        BUILD WITH AI
+      </div>
+
+      <h1 className="heroTitle">
+        Your idea.
+        <span>Your app.</span>
+      </h1>
+
+      <p className="heroDescription">
+        Describe what you want to build and let AI
+        turn your idea into a structured application.
+      </p>
+
+      <div className="ideaPanel">
+        <textarea
+          value={idea}
+          onChange={(event) =>
+            setIdea(event.target.value)
+          }
+          className="ideaInput"
+          maxLength={5000}
+          placeholder="Describe the app you want to create..."
+        />
+
+        <div className="ideaFooter">
+          <div className="characterCount">
+            {idea.length} / 5000
+          </div>
+
+          <button
+            className="generateButton"
+            onClick={onGenerate}
+            disabled={
+              loading || !idea.trim()
+            }
+          >
+            {loading ? (
+              <>
+                <span className="spinner" />
+                Building...
+              </>
+            ) : (
+              <>
+                Generate My App
+                <span className="arrow">→</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="errorMessage">
+          <span>!</span>
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="generationStatus">
+          <div className="statusIcon">
+            ✦
+          </div>
+
+          <div>
+            <strong>
+              AI is understanding your idea
+            </strong>
+
+            <p>
+              Planning your application structure,
+              pages and features...
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="processCards">
+        <ProcessCard
+          number="01"
+          icon="✦"
+          title="Understand"
+          text="AI understands your idea."
+        />
+
+        <ProcessCard
+          number="02"
+          icon="◇"
+          title="Plan"
+          text="Pages and features are structured."
+        />
+
+        <ProcessCard
+          number="03"
+          icon="⌁"
+          title="Build"
+          text="Turn the plan into your app."
+        />
+      </div>
+
+      <div className="homeBottom">
+        <span>AI APP BUILDER</span>
+        <span>Powered by intelligent creation.</span>
+      </div>
+    </section>
+  );
+}
+
+function ProcessCard({
+  number,
+  icon,
+  title,
+  text,
+}) {
+  return (
+    <div className="processCard">
+      <div className="processTop">
+        <div className="processIcon">
+          {icon}
+        </div>
+
+        <span>{number}</span>
+      </div>
+
+      <strong>{title}</strong>
+
+      <p>{text}</p>
+    </div>
+  );
+}
+
+/* =========================================================
+   PLAN
+========================================================= */
+
+function PlanScreen({
+  specification,
+  pages,
+  activePage,
+  onSelectPage,
+  onPreview,
+  onNew,
+}) {
+  return (
+    <section className="workspaceScreen">
+      <div className="workspaceIntro">
+        <div>
+          <div className="eyebrow">
+            APPLICATION PLAN
+          </div>
+
+          <h1>
+            {specification.name ||
+              "Your New Application"}
+          </h1>
+
+          <p>
+            {specification.description ||
+              "AI has created an application structure based on your idea."}
+          </p>
+        </div>
+
+        <div className="introActions">
+          <button
+            className="secondaryButton"
+            onClick={onNew}
+          >
+            Start Over
+          </button>
+
+          <button
+            className="primaryButton"
+            onClick={onPreview}
+          >
+            Preview App →
+          </button>
+        </div>
+      </div>
+
+      <div className="workspaceGrid">
+        <PageNavigation
+          pages={pages}
+          activePage={activePage}
+          onSelectPage={onSelectPage}
+        />
+
+        <div className="workspaceMain">
+          <PageOverview
+            page={
+              pages.find(
+                (item) =>
+                  item?.name === activePage
+              ) || pages[0]
+            }
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   PREVIEW
+========================================================= */
+
+function PreviewScreen({
+  specification,
+  pages,
+  features,
+  currentPage,
+  activePage,
+  onSelectPage,
+  onFeature,
+  onBack,
+  onCreate,
+  modifyInstruction,
+  setModifyInstruction,
+  modifyLoading,
+  modifyMessage,
+  onModify,
+}) {
+  return (
+    <section className="workspaceScreen">
+      <div className="topBar">
+        <div>
+          <div className="eyebrow">
+            LIVE PREVIEW
+          </div>
+
+          <h1>
+            {specification.name ||
+              "Application Preview"}
+          </h1>
+        </div>
+
+        <div className="topBarActions">
+          <button
+            className="secondaryButton"
+            onClick={onBack}
+          >
+            ← Plan
+          </button>
+
+          <button
+            className="primaryButton"
+            onClick={onCreate}
+          >
+            Create App →
+          </button>
+        </div>
+      </div>
+
+      <div className="mobilePageNav">
+        {pages.map((page, index) => (
+          <button
+            key={`${page?.name}-${index}`}
+            className={
+              activePage === page?.name
+                ? "mobilePage active"
+                : "mobilePage"
+            }
+            onClick={() =>
+              onSelectPage(page)
+            }
+          >
+            {page?.name ||
+              `Page ${index + 1}`}
+          </button>
+        ))}
+      </div>
+
+      <div className="workspaceGrid">
+        <PageNavigation
+          pages={pages}
+          activePage={activePage}
+          onSelectPage={onSelectPage}
+        />
+
+        <div className="workspaceMain">
+          <PageOverview
+            page={currentPage}
+            preview
+            onFeature={onFeature}
+          />
+
+          {features.length > 0 && (
+            <FeatureSection
+              features={features}
+              onFeature={onFeature}
+            />
+          )}
+
+          <ModifyPanel
+            instruction={modifyInstruction}
+            setInstruction={setModifyInstruction}
+            loading={modifyLoading}
+            message={modifyMessage}
+            onModify={onModify}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   CREATED APP
+========================================================= */
+
+function CreatedScreen({
+  specification,
+  pages,
+  currentPage,
+  activePage,
+  onSelectPage,
+  onFeature,
+  onBack,
+  onNew,
+  modifyInstruction,
+  setModifyInstruction,
+  modifyLoading,
+  modifyMessage,
+  onModify,
+}) {
+  return (
+    <section className="workspaceScreen">
+      <div className="createdHeader">
+        <div>
+          <div className="createdStatus">
+            <span className="statusDot" />
+            APPLICATION CREATED
+          </div>
+
+          <h1>
+            {specification.name ||
+              "Your Application"}
+          </h1>
+
+          <p>
+            Your application structure is ready.
+          </p>
+        </div>
+
+        <div className="topBarActions">
+          <button
+            className="secondaryButton"
+            onClick={onBack}
+          >
+            Preview
+          </button>
+
+          <button
+            className="primaryButton"
+            onClick={onNew}
+          >
+            + New App
+          </button>
+        </div>
+      </div>
+
+      <div className="mobilePageNav">
+        {pages.map((page, index) => (
+          <button
+            key={`${page?.name}-${index}`}
+            className={
+              activePage === page?.name
+                ? "mobilePage active"
+                : "mobilePage"
+            }
+            onClick={() =>
+              onSelectPage(page)
+            }
+          >
+            {page?.name ||
+              `Page ${index + 1}`}
+          </button>
+        ))}
+      </div>
+
+      <div className="workspaceGrid">
+        <PageNavigation
+          pages={pages}
+          activePage={activePage}
+          onSelectPage={onSelectPage}
+        />
+
+        <div className="workspaceMain">
+          <PageOverview
+            page={currentPage}
+            created
+            onFeature={onFeature}
+          />
+
+          <ModifyPanel
+            instruction={modifyInstruction}
+            setInstruction={setModifyInstruction}
+            loading={modifyLoading}
+            message={modifyMessage}
+            onModify={onModify}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   PAGE NAVIGATION
+========================================================= */
+
+function PageNavigation({
+  pages,
+  activePage,
+  onSelectPage,
+}) {
+  return (
+    <aside className="pageNavigation">
+      <div className="navEyebrow">
+        YOUR APP
+      </div>
+
+      <div className="navTitle">
+        Pages
+      </div>
+
+      <div className="desktopPageList">
+        {pages.map((page, index) => (
+          <button
+            key={`${page?.name}-${index}`}
+            onClick={() =>
+              onSelectPage(page)
+            }
+            className={
+              activePage === page?.name
+                ? "pageNavButton active"
+                : "pageNavButton"
+            }
+          >
+            <span className="pageNumber">
+              {String(index + 1).padStart(
+                2,
+                "0"
+              )}
+            </span>
+
+            <span>
+              {page?.name ||
+                `Page ${index + 1}`}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="navFooter">
+        <div className="navLine" />
+
+        <span>
+          AI GENERATED
+        </span>
+      </div>
+    </aside>
+  );
+}
+
+/* =========================================================
+   PAGE OVERVIEW
+========================================================= */
+
+function PageOverview({
+  page,
+  preview = false,
+  created = false,
+  onFeature,
+}) {
+  const normalizedPage =
+    page || DEFAULT_PAGE;
+
+  const pageFeatures = Array.isArray(
+    normalizedPage.features
+  )
+    ? normalizedPage.features.map(
+        normalizeFeature
+      )
+    : [];
+
+  const purpose =
+    normalizedPage.purpose ||
+    normalizedPage.description ||
+    "AI generated application page.";
+
+  return (
+    <div className="pageOverview">
+      <div className="pageHero">
+        <div className="heroAccent" />
+
+        <div className="eyebrow">
+          {created
+            ? "CREATED PAGE"
+            : preview
+            ? "LIVE PAGE"
+            : "PAGE STRUCTURE"}
+        </div>
+
+        <h2>
+          {normalizedPage.name ||
+            "Main"}
+        </h2>
+
+        <p>{purpose}</p>
+      </div>
+
+      <div className="contentSection">
+        <div className="sectionHeader">
           <div>
             <div className="eyebrow">
-              AI MODIFICATION
+              PAGE FEATURES
             </div>
 
             <h3>
-              Want to change something?
+              Built around your idea
             </h3>
-
-            <p>
-              Tell AI what you want to improve,
-              add or remove.
-            </p>
           </div>
 
-          <div className="aiOrb smallOrb">
-            ✦
+          <div className="countBadge">
+            {pageFeatures.length}
           </div>
-        </div>
-
-        <textarea
-          value={modifyInstruction}
-          onChange={(e) =>
-            setModifyInstruction(e.target.value)
-          }
-          placeholder="Example: Add a customer dashboard and a booking page..."
-          className="modifyInput"
-        />
-
-        <div className="modifyBottom">
-          {modifyMessage ? (
-            <span className="modifyMessage">
-              {modifyMessage}
-            </span>
-          ) : (
-            <span className="modifyHint">
-              AI will update your application structure.
-            </span>
-          )}
-
-          <button
-            onClick={modifyApp}
-            disabled={
-              modifyLoading ||
-              !modifyInstruction.trim()
-            }
-            className="primaryButton"
-          >
-            {modifyLoading
-              ? "Updating..."
-              : "Apply Changes →"}
-          </button>
-        </div>
-      </section>
-    );
-  }
-
-  function FeatureModal() {
-    if (!activeFeature) {
-      return null;
-    }
-
-    return (
-      <div
-        className="modalBackdrop"
-        onClick={closeFeature}
-      >
-        <div
-          className="featureModal"
-          onClick={(e) =>
-            e.stopPropagation()
-          }
-        >
-          <button
-            className="closeButton"
-            onClick={closeFeature}
-          >
-            ×
-          </button>
-
-          <div className="modalIcon">
-            ✦
-          </div>
-
-          <div className="eyebrow">
-            AI GENERATED FEATURE
-          </div>
-
-          <h2>
-            {activeFeature.name}
-          </h2>
-
-          <p>
-            {activeFeature.description}
-          </p>
-
-          <div className="modalTags">
-            <span>AI Generated</span>
-            <span>Customizable</span>
-            <span>App Ready</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function PageContent({ mode = "preview" }) {
-    if (!currentPage) {
-      return null;
-    }
-
-    const pageFeatures =
-      getPageFeatures(currentPage);
-
-    const purpose =
-      currentPage.purpose ||
-      currentPage.description ||
-      "AI generated application page.";
-
-    return (
-      <>
-        <div className="pageHero">
-          <div className="heroGlow" />
-
-          <div className="eyebrow">
-            {mode === "created"
-              ? "GENERATED APP"
-              : "LIVE APP PREVIEW"}
-          </div>
-
-          <h2>
-            {currentPage.name ||
-              "Application Page"}
-          </h2>
-
-          <p>
-            {purpose}
-          </p>
         </div>
 
         {pageFeatures.length > 0 ? (
-          <section className="section">
-            <div className="sectionHeading">
-              <div>
-                <div className="eyebrow">
-                  PAGE FEATURES
-                </div>
-
-                <h3>
-                  Built for your idea
-                </h3>
-              </div>
-
-              <span className="countBadge">
-                {pageFeatures.length}
-              </span>
-            </div>
-
-            <div className="featureGrid">
-              {pageFeatures.map(
-                (feature, index) => (
-                  <div
-                    className="featureCard"
-                    key={`${feature.name}-${index}`}
-                  >
-                    <div className="featureCardTop">
-                      <div className="featureIcon">
-                        ✦
-                      </div>
-
-                      <span className="featureNumber">
-                        {String(index + 1).padStart(
-                          2,
-                          "0"
-                        )}
-                      </span>
-                    </div>
-
-                    <h3>
-                      {feature.name}
-                    </h3>
-
-                    <p>
-                      {feature.description}
-                    </p>
-
-                    <button
-                      onClick={() =>
-                        openFeature(feature)
-                      }
-                      className="ghostButton"
-                    >
-                      Explore Feature →
-                    </button>
-                  </div>
-                )
-              )}
-            </div>
-          </section>
+          <div className="featureGrid">
+            {pageFeatures.map(
+              (feature, index) => (
+                <FeatureCard
+                  key={`${feature.name}-${index}`}
+                  feature={feature}
+                  index={index}
+                  onClick={onFeature}
+                />
+              )
+            )}
+          </div>
         ) : (
-          <section className="emptyCard">
+          <div className="emptyState">
             <div className="emptyIcon">
               ✦
             </div>
 
             <h3>
-              AI Generated Workspace
+              Application workspace
             </h3>
 
             <p>
-              This application page was
-              created according to your
-              requirements.
+              AI created this page according
+              to your application requirements.
             </p>
-          </section>
+          </div>
         )}
-
-        <section className="requirementsCard">
-          <div>
-            <div className="eyebrow">
-              PAGE PURPOSE
-            </div>
-
-            <p>
-              {purpose}
-            </p>
-          </div>
-
-          <div className="statusTags">
-            <span>Customer Requirements</span>
-            <span>AI Generated</span>
-            <span>Customizable</span>
-          </div>
-        </section>
-      </>
-    );
-  }
-
-  if (created && plan?.specification) {
-    return (
-      <main className="site">
-        <LandscapeBackground />
-
-        <div className="overlay" />
-
-        <div className="appShell">
-          <header className="appHeader">
-            <Brand />
-
-            <div className="headerRight">
-              <span className="createdBadge">
-                <span className="dot" />
-                App Created
-              </span>
-
-              <button
-                onClick={backToPreview}
-                className="headerButton"
-              >
-                Preview
-              </button>
-            </div>
-          </header>
-
-          <div className="appWorkspace">
-            <aside className="sidePanel">
-              <div className="sideTop">
-                <div className="eyebrow">
-                  YOUR APP
-                </div>
-
-                <h2>
-                  {specification.name ||
-                    "My App"}
-                </h2>
-
-                <p>
-                  {specification.description ||
-                    "Your AI-generated application."}
-                </p>
-              </div>
-
-              <div className="sideLabel">
-                PAGES
-              </div>
-
-              <div className="pageList">
-                {pages.map(
-                  (page, index) => (
-                    <button
-                      key={`${page?.name}-${index}`}
-                      onClick={() =>
-                        selectPage(page)
-                      }
-                      className={
-                        activePage === page?.name
-                          ? "pageButton active"
-                          : "pageButton"
-                      }
-                    >
-                      <span className="pageIndex">
-                        {index + 1}
-                      </span>
-
-                      <span className="pageName">
-                        {page?.name ||
-                          `Page ${index + 1}`}
-                      </span>
-                    </button>
-                  )
-                )}
-              </div>
-
-              <div className="sideBottom">
-                <button
-                  onClick={goBackToPlan}
-                  className="ghostButton full"
-                >
-                  ← Back to Plan
-                </button>
-              </div>
-            </aside>
-
-            <section className="workspaceContent">
-              <div className="mobilePageScroller">
-                {pages.map(
-                  (page, index) => (
-                    <button
-                      key={`${page?.name}-mobile-${index}`}
-                      onClick={() =>
-                        selectPage(page)
-                      }
-                      className={
-                        activePage === page?.name
-                          ? "mobilePage active"
-                          : "mobilePage"
-                      }
-                    >
-                      {page?.name ||
-                        `Page ${index + 1}`}
-                    </button>
-                  )
-                )}
-              </div>
-
-              <PageContent mode="created" />
-
-              <ModifyPanel />
-            </section>
-          </div>
-        </div>
-
-        <FeatureModal />
-        <GlobalStyles />
-      </main>
-    );
-  }
-
-  if (preview && plan?.specification) {
-    return (
-      <main className="site">
-        <LandscapeBackground />
-
-        <div className="overlay" />
-
-        <div className="previewShell">
-          <header className="previewHeader">
-            <Brand />
-
-            <div className="previewActions">
-              <button
-                onClick={goBackToPlan}
-                className="headerButton"
-              >
-                ← Plan
-              </button>
-
-              <button
-                onClick={createApp}
-                className="primaryButton"
-              >
-                Create App →
-              </button>
-            </div>
-          </header>
-
-          <div className="previewWorkspace">
-            <aside className="previewSide">
-              <div className="eyebrow">
-                APPLICATION
-              </div>
-
-              <h2>
-                {specification.name ||
-                  "My App"}
-              </h2>
-
-              <p>
-                {specification.description ||
-                  "Interactive application preview."}
-              </p>
-
-              <div className="sideLabel">
-                PAGES
-              </div>
-
-              <div className="pageList">
-                {pages.map(
-                  (page, index) => (
-                    <button
-                      key={`${page?.name}-${index}`}
-                      onClick={() =>
-                        selectPage(page)
-                      }
-                      className={
-                        activePage === page?.name
-                          ? "pageButton active"
-                          : "pageButton"
-                      }
-                    >
-                      <span className="pageIndex">
-                        {index + 1}
-                      </span>
-
-                      <span className="pageName">
-                        {page?.name ||
-                          `Page ${index + 1}`}
-                      </span>
-                    </button>
-                  )
-                )}
-              </div>
-            </aside>
-
-            <section className="previewMain">
-              <div className="previewTitleRow">
-                <div>
-                  <div className="eyebrow">
-                    LIVE PREVIEW
-                  </div>
-
-                  <h1>
-                    {activePage ||
-                      "Application"}
-                  </h1>
-                </div>
-
-                <span className="countBadge">
-                  {pages.length} Pages
-                </span>
-              </div>
-
-              <div className="mobilePageScroller">
-                {pages.map(
-                  (page, index) => (
-                    <button
-                      key={`${page?.name}-mobile-${index}`}
-                      onClick={() =>
-                        selectPage(page)
-                      }
-                      className={
-                        activePage === page?.name
-                          ? "mobilePage active"
-                          : "mobilePage"
-                      }
-                    >
-                      {page?.name ||
-                        `Page ${index + 1}`}
-                    </button>
-                  )
-                )}
-              </div>
-
-              <PageContent />
-
-              {features.length > 0 && (
-                <section className="section">
-                  <div className="sectionHeading">
-                    <div>
-                      <div className="eyebrow">
-                        APP FEATURES
-                      </div>
-
-                      <h3>
-                        Across your application
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="featureGrid">
-                    {features.map(
-                      (feature, index) => {
-                        const item =
-                          normalizeFeature(
-                            feature
-                          );
-
-                        return (
-                          <div
-                            className="featureCard"
-                            key={`${item.name}-${index}`}
-                          >
-                            <div className="featureCardTop">
-                              <div className="featureIcon">
-                                ✦
-                              </div>
-
-                              <span className="featureNumber">
-                                {String(
-                                  index + 1
-                                ).padStart(
-                                  2,
-                                  "0"
-                                )}
-                              </span>
-                            </div>
-
-                            <h3>
-                              {item.name}
-                            </h3>
-
-                            <p>
-                              {item.description}
-                            </p>
-
-                            <button
-                              onClick={() =>
-                                openFeature(
-                                  item
-                                )
-                              }
-                              className="ghostButton"
-                            >
-                              Open →
-                            </button>
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
-                </section>
-              )}
-
-              <ModifyPanel />
-            </section>
-          </div>
-        </div>
-
-        <FeatureModal />
-        <GlobalStyles />
-      </main>
-    );
-  }
-
-  return (
-    <main className="site">
-      <LandscapeBackground />
-
-      <div className="overlay" />
-
-      <div className="home">
-        <header className="homeHeader">
-          <Brand />
-
-          <div className="aiStatus">
-            <span className="pulse" />
-            AI Ready
-          </div>
-        </header>
-
-        <section className="hero">
-          <div className="heroOrb">
-            <div className="orbRing ringOne" />
-            <div className="orbRing ringTwo" />
-            <div className="aiOrb">
-              ✦
-            </div>
-          </div>
-
-          <div className="eyebrow center">
-            BUILD WITH AI
-          </div>
-
-          <h1>
-            Turn your idea into
-            <span>
-              a real app.
-            </span>
-          </h1>
-
-          <p>
-            Describe what you want to build.
-            AI will understand your idea,
-            plan the application and create
-            the structure for you.
-          </p>
-
-          <div className="ideaBox">
-            <textarea
-              value={idea}
-              onChange={(e) =>
-                setIdea(e.target.value)
-              }
-              placeholder="Describe the app you want to create..."
-              className="ideaInput"
-              maxLength={5000}
-            />
-
-            <div className="ideaBottom">
-              <span className="ideaHint">
-                {idea.length}/5000
-              </span>
-
-              <button
-                onClick={generateApp}
-                disabled={
-                  loading ||
-                  !idea.trim()
-                }
-                className="generateButton"
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner" />
-                    Understanding...
-                  </>
-                ) : (
-                  <>
-                    Generate My App
-                    <span>→</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="errorBox">
-              <span>!</span>
-              {error}
-            </div>
-          )}
-
-          {loading && (
-            <div className="loadingPanel">
-              <div className="loadingOrb">
-                ✦
-              </div>
-
-              <div>
-                <strong>
-                  AI is building your plan
-                </strong>
-
-                <p>
-                  Understanding your idea
-                  and designing the app
-                  structure...
-                </p>
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section className="homeFeatures">
-          <div className="miniCard">
-            <span>✦</span>
-            <div>
-              <strong>
-                Understand
-              </strong>
-              <small>
-                AI understands your idea
-              </small>
-            </div>
-          </div>
-
-          <div className="miniCard">
-            <span>◇</span>
-            <div>
-              <strong>
-                Plan
-              </strong>
-              <small>
-                Pages and features
-              </small>
-            </div>
-          </div>
-
-          <div className="miniCard">
-            <span>⌁</span>
-            <div>
-              <strong>
-                Create
-              </strong>
-              <small>
-                Turn your plan into an app
-              </small>
-            </div>
-          </div>
-        </section>
-
-        <footer className="homeFooter">
-          <span>
-            AI APP BUILDER
-          </span>
-
-          <span>
-            Create something remarkable.
-          </span>
-        </footer>
       </div>
 
-      <GlobalStyles />
-    </main>
+      <div className="purposeCard">
+        <div>
+          <div className="eyebrow">
+            PAGE PURPOSE
+          </div>
+
+          <p>{purpose}</p>
+        </div>
+
+        <div className="tagList">
+          <span>AI Generated</span>
+          <span>Customizable</span>
+          <span>App Ready</span>
+        </div>
+      </div>
+    </div>
   );
 }
+
+/* =========================================================
+   FEATURES
+========================================================= */
+
+function FeatureSection({
+  features,
+  onFeature,
+}) {
+  return (
+    <section className="contentSection appFeatureSection">
+      <div className="sectionHeader">
+        <div>
+          <div className="eyebrow">
+            APPLICATION FEATURES
+          </div>
+
+          <h3>
+            Across your application
+          </h3>
+        </div>
+      </div>
+
+      <div className="featureGrid">
+        {features.map((feature, index) => {
+          const item =
+            normalizeFeature(feature);
+
+          return (
+            <FeatureCard
+              key={`${item.name}-${index}`}
+              feature={item}
+              index={index}
+              onClick={onFeature}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function FeatureCard({
+  feature,
+  index,
+  onClick,
+}) {
+  return (
+    <article className="featureCard">
+      <div className="featureTop">
+        <div className="featureIcon">
+          ✦
+        </div>
+
+        <span className="featureIndex">
+          {String(index + 1).padStart(
+            2,
+            "0"
+          )}
+        </span>
+      </div>
+
+      <h3>{feature.name}</h3>
+
+      <p>{feature.description}</p>
+
+      <button
+        className="featureButton"
+        onClick={() => onClick(feature)}
+      >
+        Explore Feature
+        <span>→</span>
+      </button>
+    </article>
+  );
+}
+
+/* =========================================================
+   MODIFY
+========================================================= */
+
+function ModifyPanel({
+  instruction,
+  setInstruction,
+  loading,
+  message,
+  onModify,
+}) {
+  return (
+    <section className="modifyPanel">
+      <div className="modifyHeader">
+        <div>
+          <div className="eyebrow">
+            AI MODIFICATION
+          </div>
+
+          <h3>
+            Shape your application
+          </h3>
+
+          <p>
+            Tell AI what you want to add,
+            remove or improve.
+          </p>
+        </div>
+
+        <div className="modifyOrb">
+          ✦
+        </div>
+      </div>
+
+      <textarea
+        value={instruction}
+        onChange={(event) =>
+          setInstruction(event.target.value)
+        }
+        className="modifyInput"
+        placeholder="Example: Add a customer dashboard and a booking page..."
+      />
+
+      <div className="modifyFooter">
+        <div className="modifyStatus">
+          {message ? (
+            <span className="successText">
+              {message}
+            </span>
+          ) : (
+            <span>
+              AI will update your application
+              structure.
+            </span>
+          )}
+        </div>
+
+        <button
+          className="primaryButton"
+          onClick={onModify}
+          disabled={
+            loading ||
+            !instruction.trim()
+          }
+        >
+          {loading
+            ? "Updating..."
+            : "Apply Changes →"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+function FeatureModal({
+  feature,
+  onClose,
+}) {
+  return (
+    <div
+      className="modalBackdrop"
+      onClick={onClose}
+    >
+      <div
+        className="featureModal"
+        onClick={(event) =>
+          event.stopPropagation()
+        }
+      >
+        <button
+          className="modalClose"
+          onClick={onClose}
+        >
+          ×
+        </button>
+
+        <div className="modalIcon">
+          ✦
+        </div>
+
+        <div className="eyebrow">
+          AI GENERATED FEATURE
+        </div>
+
+        <h2>{feature.name}</h2>
+
+        <p>{feature.description}</p>
+
+        <div className="modalTags">
+          <span>AI Generated</span>
+          <span>Customizable</span>
+          <span>App Ready</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   GLOBAL STYLES
+========================================================= */
 
 function GlobalStyles() {
   return (
@@ -1006,8 +1210,9 @@ function GlobalStyles() {
           BlinkMacSystemFont,
           "Segoe UI",
           sans-serif;
-        background: #071a16;
-        color: #f4fbf7;
+
+        background: #061c19;
+        color: #f3fbf7;
       }
 
       button,
@@ -1021,351 +1226,395 @@ function GlobalStyles() {
 
       button:disabled {
         cursor: not-allowed;
-        opacity: 0.55;
+        opacity: 0.5;
       }
 
-      .site {
+      textarea {
+        outline: none;
+      }
+
+      .app {
+        position: relative;
         min-height: 100vh;
         min-height: 100svh;
-        position: relative;
         overflow-x: hidden;
         background:
           radial-gradient(
-            circle at 50% 10%,
-            rgba(71, 171, 137, 0.18),
-            transparent 35%
+            circle at 50% -10%,
+            rgba(91, 207, 168, 0.15),
+            transparent 38%
+          ),
+          radial-gradient(
+            circle at 90% 65%,
+            rgba(36, 148, 132, 0.1),
+            transparent 30%
           ),
           linear-gradient(
             180deg,
-            #061713 0%,
-            #0b2820 48%,
-            #06251f 100%
+            #061b18 0%,
+            #082a24 48%,
+            #041b19 100%
           );
       }
 
-      .overlay {
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        z-index: 1;
-        background:
-          linear-gradient(
-            180deg,
-            rgba(3, 18, 14, 0.12),
-            rgba(2, 15, 12, 0.55)
-          );
-      }
-
-      .landscape {
-        position: fixed;
-        inset: 0;
-        overflow: hidden;
-        pointer-events: none;
-        z-index: 0;
-      }
-
-      .sun {
-        position: absolute;
-        width: 190px;
-        height: 190px;
-        border-radius: 50%;
-        right: 13%;
-        top: 9%;
-        background:
-          radial-gradient(
-            circle,
-            rgba(245, 211, 132, 0.6),
-            rgba(245, 211, 132, 0.08) 50%,
-            transparent 72%
-          );
-        filter: blur(1px);
-      }
-
-      .mountain {
-        position: absolute;
-        bottom: 30%;
-        width: 75%;
-        height: 35%;
-        transform: rotate(45deg) skew(-12deg);
-        transform-origin: bottom left;
-        opacity: 0.38;
-        background:
-          linear-gradient(
-            135deg,
-            #123d30,
-            #0a271f
-          );
-        border-radius: 8px;
-      }
-
-      .mountainOne {
-        left: -16%;
-      }
-
-      .mountainTwo {
-        left: 24%;
-        bottom: 28%;
-        opacity: 0.3;
-      }
-
-      .mountainThree {
-        right: -25%;
-        bottom: 31%;
-        opacity: 0.28;
-      }
-
-      .forest {
-        position: absolute;
-        bottom: 26%;
-        width: 100%;
-        height: 20%;
-        opacity: 0.8;
-        background:
-          linear-gradient(
-            135deg,
-            transparent 25%,
-            #061b16 25%,
-            #061b16 34%,
-            transparent 34%,
-            transparent 55%,
-            #08251d 55%,
-            #08251d 66%,
-            transparent 66%
-          );
-        clip-path: polygon(
-          0 100%,
-          5% 65%,
-          9% 86%,
-          14% 50%,
-          18% 78%,
-          23% 44%,
-          28% 80%,
-          34% 54%,
-          39% 82%,
-          45% 48%,
-          51% 78%,
-          57% 43%,
-          63% 77%,
-          69% 52%,
-          75% 82%,
-          82% 45%,
-          88% 76%,
-          94% 53%,
-          100% 70%,
-          100% 100%
-        );
-      }
-
-      .forestTwo {
-        bottom: 22%;
-        opacity: 0.55;
-        transform: scale(1.2);
-      }
-
-      .lake {
-        position: absolute;
-        left: -10%;
-        right: -10%;
-        bottom: -8%;
-        height: 43%;
-        border-radius: 50% 50% 0 0;
-        background:
-          radial-gradient(
-            ellipse at 50% 15%,
-            rgba(66, 171, 157, 0.34),
-            transparent 60%
-          ),
-          linear-gradient(
-            180deg,
-            #0b544c,
-            #062d29
-          );
-        transform: perspective(500px)
-          rotateX(18deg);
-      }
-
-      .lakeGlow {
-        position: absolute;
-        left: 20%;
-        right: 20%;
-        bottom: 10%;
-        height: 18%;
-        background:
-          linear-gradient(
-            180deg,
-            transparent,
-            rgba(113, 219, 190, 0.08),
-            transparent
-          );
-        filter: blur(15px);
-      }
-
-      .home,
-      .appShell,
-      .previewShell {
+      .pageLayer {
         position: relative;
-        z-index: 2;
+        z-index: 5;
         width: min(
-          1440px,
-          calc(100% - 40px)
+          1380px,
+          calc(100% - 48px)
         );
         margin: 0 auto;
       }
 
-      .homeHeader,
-      .appHeader,
-      .previewHeader {
+      /* BACKGROUND */
+
+      .background {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .backgroundGlow {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+      }
+
+      .glowOne {
+        width: 480px;
+        height: 480px;
+        top: -260px;
+        left: 12%;
+        background: rgba(
+          54,
+          180,
+          141,
+          0.14
+        );
+      }
+
+      .glowTwo {
+        width: 420px;
+        height: 420px;
+        right: -200px;
+        top: 30%;
+        background: rgba(
+          29,
+          137,
+          125,
+          0.12
+        );
+      }
+
+      .glowThree {
+        width: 500px;
+        height: 300px;
+        bottom: -150px;
+        left: 25%;
+        background: rgba(
+          34,
+          112,
+          101,
+          0.15
+        );
+      }
+
+      .waterSurface {
+        position: absolute;
+        left: -10%;
+        right: -10%;
+        bottom: -18%;
+        height: 45%;
+        opacity: 0.6;
+        transform: perspective(900px)
+          rotateX(58deg);
+        transform-origin: center top;
+        background:
+          linear-gradient(
+            180deg,
+            rgba(27, 121, 112, 0.2),
+            rgba(3, 40, 38, 0.1)
+          );
+      }
+
+      .waterLine {
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(104, 215, 191, 0.12),
+          transparent
+        );
+      }
+
+      .lineOne {
+        top: 20%;
+      }
+
+      .lineTwo {
+        top: 38%;
+      }
+
+      .lineThree {
+        top: 57%;
+      }
+
+      .lineFour {
+        top: 76%;
+      }
+
+      .goldLight {
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        right: 12%;
+        top: 8%;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(222, 191, 119, 0.1),
+          transparent 68%
+        );
+        filter: blur(12px);
+      }
+
+      .gridPattern {
+        position: absolute;
+        inset: 0;
+        opacity: 0.08;
+        background-image:
+          linear-gradient(
+            rgba(157, 220, 199, 0.08) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            90deg,
+            rgba(157, 220, 199, 0.08) 1px,
+            transparent 1px
+          );
+        background-size: 80px 80px;
+        mask-image: linear-gradient(
+          to bottom,
+          black,
+          transparent 70%
+        );
+      }
+
+      .vignette {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            circle at center,
+            transparent 20%,
+            rgba(1, 14, 12, 0.5) 100%
+          );
+      }
+
+      /* HEADER */
+
+      .header {
+        min-height: 92px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 20px;
-        padding: 28px 0;
       }
 
-      .brand {
+      .logoArea {
         display: flex;
         align-items: center;
         gap: 12px;
-        min-width: 0;
       }
 
-      .brandMark {
-        width: 42px;
-        height: 42px;
-        flex: 0 0 42px;
-        border: 1px solid
-          rgba(159, 235, 203, 0.3);
-        border-radius: 14px;
+      .logoMark {
+        width: 43px;
+        height: 43px;
         display: grid;
         place-items: center;
+        border-radius: 14px;
+        border: 1px solid
+          rgba(126, 226, 194, 0.2);
         background:
           linear-gradient(
-            135deg,
-            rgba(52, 148, 110, 0.55),
-            rgba(10, 69, 57, 0.65)
+            145deg,
+            rgba(44, 144, 112, 0.7),
+            rgba(7, 56, 47, 0.8)
           );
         box-shadow:
-          0 10px 30px
-            rgba(0, 0, 0, 0.2);
-        color: #b8f6d9;
+          0 12px 40px
+            rgba(0, 0, 0, 0.25),
+          inset 0 1px 0
+            rgba(255, 255, 255, 0.12);
+        color: #d5f5e7;
       }
 
-      .brandName {
+      .logoName {
         font-size: 13px;
-        font-weight: 800;
+        font-weight: 850;
         letter-spacing: 0.18em;
-        white-space: nowrap;
       }
 
-      .brandSub {
-        color: #8eb9a8;
-        font-size: 11px;
+      .logoTagline {
         margin-top: 3px;
+        color: #759b8e;
+        font-size: 10px;
       }
 
-      .aiStatus,
-      .createdBadge {
+      .headerRight {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .aiIndicator,
+      .createdStatus {
         display: inline-flex;
         align-items: center;
         gap: 8px;
         padding: 9px 13px;
         border-radius: 999px;
-        background:
-          rgba(8, 46, 37, 0.72);
         border: 1px solid
-          rgba(126, 224, 188, 0.18);
-        color: #b7e9d3;
-        font-size: 12px;
-        font-weight: 700;
+          rgba(118, 218, 185, 0.14);
+        background: rgba(
+          5,
+          36,
+          30,
+          0.65
+        );
+        color: #a6d8c4;
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: 0.03em;
       }
 
-      .pulse,
-      .dot {
+      .statusDot {
         width: 7px;
         height: 7px;
+        flex: 0 0 7px;
         border-radius: 50%;
-        background: #71d7ae;
+        background: #72d9b1;
         box-shadow:
           0 0 0 5px
-            rgba(113, 215, 174, 0.08),
-          0 0 15px
-            rgba(113, 215, 174, 0.5);
+            rgba(114, 217, 177, 0.08),
+          0 0 16px
+            rgba(114, 217, 177, 0.5);
       }
 
-      .hero {
-        max-width: 930px;
-        margin: 4vh auto 0;
+      .headerNew {
+        border: 1px solid
+          rgba(125, 222, 192, 0.13);
+        background: rgba(
+          255,
+          255,
+          255,
+          0.035
+        );
+        color: #a5c7bb;
+        padding: 9px 13px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 750;
+      }
+
+      .headerNew:hover {
+        background: rgba(
+          102,
+          213,
+          176,
+          0.08
+        );
+        color: #e4fff5;
+      }
+
+      /* HOME */
+
+      .homeScreen {
+        max-width: 950px;
+        margin: 0 auto;
+        padding: 6vh 0 30px;
         text-align: center;
       }
 
       .heroOrb {
         position: relative;
-        width: 96px;
-        height: 96px;
-        margin: 0 auto 26px;
+        width: 112px;
+        height: 112px;
+        margin: 0 auto 28px;
         display: grid;
         place-items: center;
       }
 
-      .aiOrb {
-        width: 64px;
-        height: 64px;
-        border-radius: 22px;
+      .orbCore {
+        width: 68px;
+        height: 68px;
         display: grid;
         place-items: center;
+        border-radius: 23px;
+        border: 1px solid
+          rgba(177, 240, 218, 0.3);
         background:
           radial-gradient(
             circle at 30% 20%,
-            #87e8c0,
-            #237e61 42%,
-            #0b3328
+            #a1efd0,
+            #2c9b78 40%,
+            #0a4033 75%
           );
-        color: #edfff7;
-        font-size: 25px;
-        border: 1px solid
-          rgba(175, 244, 214, 0.35);
         box-shadow:
-          0 0 45px
-            rgba(68, 195, 148, 0.22),
+          0 0 55px
+            rgba(70, 203, 155, 0.22),
+          0 20px 55px
+            rgba(0, 0, 0, 0.3),
           inset 0 1px 0
-            rgba(255, 255, 255, 0.15);
+            rgba(255, 255, 255, 0.18);
+        color: #f1fff9;
+        font-size: 26px;
+        z-index: 2;
       }
 
-      .smallOrb {
-        width: 42px;
-        height: 42px;
-        border-radius: 15px;
-        font-size: 17px;
-      }
-
-      .orbRing {
+      .orbOuter {
         position: absolute;
-        inset: 5px;
         border: 1px solid
-          rgba(112, 225, 185, 0.22);
+          rgba(103, 221, 183, 0.18);
         border-radius: 50%;
-        animation: spin 12s linear infinite;
       }
 
-      .ringTwo {
-        inset: -4px;
+      .outerOne {
+        inset: 8px;
+        animation: rotate 15s linear infinite;
+      }
+
+      .outerTwo {
+        inset: -6px;
         border-style: dashed;
         opacity: 0.45;
-        animation-duration: 18s;
-        animation-direction: reverse;
+        animation: rotateReverse 21s linear
+          infinite;
       }
 
-      @keyframes spin {
+      @keyframes rotate {
         to {
           transform: rotate(360deg);
         }
       }
 
+      @keyframes rotateReverse {
+        to {
+          transform: rotate(-360deg);
+        }
+      }
+
       .eyebrow {
-        color: #76c8a5;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.2em;
+        color: #70cda8;
+        font-size: 9px;
+        font-weight: 850;
+        letter-spacing: 0.21em;
         text-transform: uppercase;
       }
 
@@ -1373,397 +1622,333 @@ function GlobalStyles() {
         text-align: center;
       }
 
-      .hero h1 {
+      .heroTitle {
         margin: 13px auto 18px;
-        max-width: 850px;
         font-size: clamp(
-          42px,
-          7vw,
-          78px
+          52px,
+          8vw,
+          88px
         );
-        line-height: 0.98;
-        letter-spacing: -0.055em;
-        font-weight: 800;
+        line-height: 0.94;
+        letter-spacing: -0.065em;
+        font-weight: 850;
       }
 
-      .hero h1 span {
+      .heroTitle span {
         display: block;
-        color: #91e6bf;
+        color: #91e4bf;
         text-shadow:
-          0 0 45px
-            rgba(89, 213, 164, 0.18);
+          0 0 50px
+            rgba(80, 205, 157, 0.17);
       }
 
-      .hero > p {
-        max-width: 680px;
-        margin: 0 auto 30px;
-        color: #a8c8bb;
-        font-size: 16px;
-        line-height: 1.7;
+      .heroDescription {
+        max-width: 650px;
+        margin: 0 auto 32px;
+        color: #8eafa4;
+        font-size: 15px;
+        line-height: 1.75;
       }
 
-      .ideaBox {
+      .ideaPanel {
         padding: 9px;
-        border-radius: 24px;
-        background:
-          rgba(5, 26, 21, 0.8);
-        border: 1px solid
-          rgba(133, 224, 190, 0.18);
-        box-shadow:
-          0 25px 80px
-            rgba(0, 0, 0, 0.3);
-        backdrop-filter: blur(18px);
         text-align: left;
-      }
-
-      .ideaInput,
-      .modifyInput {
-        width: 100%;
-        resize: vertical;
-        outline: none;
-        color: #edf9f3;
-        background: transparent;
-        border: 0;
-        padding: 20px;
-        line-height: 1.6;
+        border-radius: 25px;
+        border: 1px solid
+          rgba(128, 224, 193, 0.15);
+        background: rgba(
+          3,
+          29,
+          24,
+          0.78
+        );
+        box-shadow:
+          0 30px 100px
+            rgba(0, 0, 0, 0.32),
+          inset 0 1px 0
+            rgba(255, 255, 255, 0.035);
+        backdrop-filter: blur(22px);
       }
 
       .ideaInput {
-        min-height: 155px;
-        font-size: 16px;
+        width: 100%;
+        min-height: 165px;
+        resize: vertical;
+        border: 0;
+        background: transparent;
+        color: #effaf5;
+        padding: 21px;
+        font-size: 15px;
+        line-height: 1.65;
       }
 
-      .ideaInput::placeholder,
-      .modifyInput::placeholder {
-        color: #62877a;
+      .ideaInput::placeholder {
+        color: #587b70;
       }
 
-      .ideaBottom {
+      .ideaFooter {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 15px;
-        padding: 10px;
+        padding: 11px;
         border-top: 1px solid
-          rgba(133, 224, 190, 0.1);
+          rgba(125, 224, 193, 0.08);
       }
 
-      .ideaHint,
-      .modifyHint {
-        color: #638c7d;
-        font-size: 11px;
+      .characterCount {
+        color: #557c70;
+        font-size: 10px;
       }
 
       .generateButton,
       .primaryButton {
         border: 0;
-        color: #062018;
-        font-weight: 800;
-        border-radius: 14px;
+        border-radius: 12px;
         padding: 13px 18px;
+        color: #062119;
         background:
           linear-gradient(
             135deg,
-            #a3efd0,
-            #55c79b
+            #b3f0d5,
+            #63cea2
           );
+        font-weight: 850;
         box-shadow:
-          0 12px 30px
-            rgba(71, 194, 145, 0.18);
+          0 12px 32px
+            rgba(70, 201, 152, 0.16);
         transition:
-          transform 0.2s,
-          box-shadow 0.2s;
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
       }
 
       .generateButton:hover,
       .primaryButton:hover {
         transform: translateY(-2px);
         box-shadow:
-          0 18px 35px
-            rgba(71, 194, 145, 0.25);
+          0 18px 42px
+            rgba(70, 201, 152, 0.23);
       }
 
-      .generateButton span {
-        margin-left: 10px;
+      .arrow {
+        margin-left: 9px;
       }
 
       .spinner {
         display: inline-block;
-        width: 14px;
-        height: 14px;
-        border: 2px solid
-          rgba(6, 32, 24, 0.3);
-        border-top-color: #062018;
-        border-radius: 50%;
+        width: 13px;
+        height: 13px;
         margin-right: 8px;
         vertical-align: -2px;
-        animation: spin 0.8s linear infinite;
+        border-radius: 50%;
+        border: 2px solid
+          rgba(6, 33, 25, 0.25);
+        border-top-color: #062119;
+        animation: rotate 0.8s linear infinite;
       }
 
-      .errorBox {
+      .errorMessage {
+        max-width: 760px;
+        margin: 14px auto 0;
         display: flex;
         align-items: center;
         gap: 10px;
-        margin: 14px auto 0;
-        max-width: 760px;
-        padding: 13px 16px;
-        color: #ffd0cc;
-        background:
-          rgba(107, 25, 25, 0.5);
-        border: 1px solid
-          rgba(255, 130, 120, 0.2);
-        border-radius: 13px;
+        padding: 12px 15px;
         text-align: left;
-        font-size: 13px;
+        border-radius: 12px;
+        color: #ffd0ca;
+        background: rgba(
+          103,
+          29,
+          27,
+          0.45
+        );
+        border: 1px solid
+          rgba(255, 128, 117, 0.15);
+        font-size: 11px;
       }
 
-      .errorBox span {
+      .errorMessage span {
+        width: 21px;
+        height: 21px;
         display: grid;
         place-items: center;
-        width: 22px;
-        height: 22px;
         border-radius: 50%;
-        background: #a9423a;
+        background: #9b3e37;
       }
 
-      .loadingPanel {
-        max-width: 620px;
-        margin: 22px auto 0;
-        padding: 18px;
+      .generationStatus {
+        max-width: 600px;
+        margin: 18px auto 0;
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 13px;
+        padding: 15px;
         text-align: left;
-        border-radius: 18px;
-        background:
-          rgba(7, 40, 32, 0.75);
+        border-radius: 17px;
+        background: rgba(
+          7,
+          46,
+          37,
+          0.7
+        );
         border: 1px solid
-          rgba(126, 224, 188, 0.15);
+          rgba(116, 218, 183, 0.12);
       }
 
-      .loadingOrb {
-        width: 44px;
-        height: 44px;
-        flex: 0 0 44px;
+      .statusIcon {
+        width: 43px;
+        height: 43px;
         display: grid;
         place-items: center;
+        flex: 0 0 43px;
         border-radius: 14px;
-        color: #9de8c5;
-        background:
-          rgba(60, 166, 126, 0.18);
-        animation: breathe 1.6s ease-in-out infinite;
+        color: #9ce7c5;
+        background: rgba(
+          65,
+          180,
+          138,
+          0.13
+        );
+        animation: breathe 1.5s ease-in-out
+          infinite;
       }
 
       @keyframes breathe {
         50% {
-          transform: scale(1.08);
+          transform: scale(1.07);
           box-shadow:
             0 0 30px
-              rgba(75, 203, 154, 0.2);
+              rgba(76, 205, 158, 0.16);
         }
       }
 
-      .loadingPanel strong {
-        font-size: 13px;
-      }
-
-      .loadingPanel p {
-        margin: 4px 0 0;
-        color: #759d8e;
-        font-size: 11px;
-      }
-
-      .homeFeatures {
-        max-width: 800px;
-        margin: 65px auto 0;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-      }
-
-      .miniCard {
-        display: flex;
-        align-items: center;
-        gap: 11px;
-        padding: 15px;
-        border-radius: 16px;
-        background:
-          rgba(6, 36, 29, 0.58);
-        border: 1px solid
-          rgba(126, 224, 188, 0.1);
-        backdrop-filter: blur(12px);
-      }
-
-      .miniCard > span {
-        color: #7bd7b0;
-        font-size: 19px;
-      }
-
-      .miniCard strong,
-      .miniCard small {
-        display: block;
-      }
-
-      .miniCard strong {
+      .generationStatus strong {
         font-size: 12px;
       }
 
-      .miniCard small {
-        margin-top: 3px;
-        color: #648b7c;
+      .generationStatus p {
+        margin: 4px 0 0;
+        color: #6e9689;
         font-size: 10px;
+        line-height: 1.5;
       }
 
-      .homeFooter {
-        margin: 65px 0 25px;
+      .processCards {
+        max-width: 820px;
+        margin: 55px auto 0;
+        display: grid;
+        grid-template-columns: repeat(
+          3,
+          1fr
+        );
+        gap: 12px;
+      }
+
+      .processCard {
+        padding: 17px;
+        text-align: left;
+        border-radius: 17px;
+        border: 1px solid
+          rgba(120, 220, 187, 0.09);
+        background: rgba(
+          7,
+          43,
+          35,
+          0.48
+        );
+        backdrop-filter: blur(12px);
+      }
+
+      .processTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+
+      .processIcon {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        color: #91dfbb;
+        background: rgba(
+          67,
+          178,
+          136,
+          0.11
+        );
+      }
+
+      .processTop > span {
+        color: #3f675c;
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .processCard strong {
+        font-size: 12px;
+      }
+
+      .processCard p {
+        margin: 5px 0 0;
+        color: #658b7f;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .homeBottom {
+        margin-top: 58px;
         display: flex;
         justify-content: space-between;
-        gap: 15px;
-        color: #527568;
-        font-size: 9px;
+        color: #41655b;
+        font-size: 8px;
         letter-spacing: 0.15em;
         text-transform: uppercase;
       }
 
-      .appWorkspace,
-      .previewWorkspace {
-        display: grid;
-        grid-template-columns: 270px minmax(0, 1fr);
-        gap: 18px;
-        align-items: start;
+      /* WORKSPACE */
+
+      .workspaceScreen {
+        padding: 38px 0 70px;
       }
 
-      .sidePanel,
-      .previewSide,
-      .previewMain,
-      .workspaceContent {
-        min-width: 0;
+      .workspaceIntro,
+      .topBar,
+      .createdHeader {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 25px;
+        margin-bottom: 25px;
       }
 
-      .sidePanel,
-      .previewSide {
-        position: sticky;
-        top: 18px;
-        padding: 22px;
-        border-radius: 22px;
-        background:
-          rgba(5, 29, 23, 0.78);
-        border: 1px solid
-          rgba(126, 224, 188, 0.13);
-        backdrop-filter: blur(18px);
+      .workspaceIntro h1,
+      .topBar h1,
+      .createdHeader h1 {
+        margin: 8px 0 7px;
+        font-size: clamp(
+          30px,
+          4vw,
+          46px
+        );
+        line-height: 1;
+        letter-spacing: -0.05em;
       }
 
-      .sideTop h2,
-      .previewSide h2 {
-        margin: 7px 0 7px;
-        font-size: 22px;
-        letter-spacing: -0.035em;
-      }
-
-      .sideTop p,
-      .previewSide p {
+      .workspaceIntro p,
+      .createdHeader p {
+        max-width: 650px;
         margin: 0;
-        color: #719688;
-        font-size: 11px;
-        line-height: 1.6;
-      }
-
-      .sideLabel {
-        margin: 28px 0 9px;
-        color: #5f8a7a;
-        font-size: 9px;
-        font-weight: 800;
-        letter-spacing: 0.16em;
-      }
-
-      .pageList {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-
-      .pageButton {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-align: left;
-        border: 1px solid transparent;
-        color: #8eb0a3;
-        background: transparent;
-        border-radius: 12px;
-        padding: 10px;
-      }
-
-      .pageButton:hover {
-        background:
-          rgba(67, 160, 123, 0.08);
-      }
-
-      .pageButton.active {
-        color: #effff8;
-        background:
-          linear-gradient(
-            135deg,
-            rgba(36, 119, 88, 0.9),
-            rgba(12, 81, 67, 0.9)
-          );
-        border-color:
-          rgba(125, 227, 189, 0.16);
-      }
-
-      .pageIndex {
-        display: grid;
-        place-items: center;
-        width: 25px;
-        height: 25px;
-        flex: 0 0 25px;
-        border-radius: 8px;
-        color: #76b69d;
-        background:
-          rgba(255, 255, 255, 0.06);
-        font-size: 9px;
-      }
-
-      .pageName {
-        min-width: 0;
-        overflow-wrap: anywhere;
+        color: #7e9f94;
         font-size: 12px;
+        line-height: 1.65;
       }
 
-      .sideBottom {
-        margin-top: 28px;
-        padding-top: 18px;
-        border-top: 1px solid
-          rgba(126, 224, 188, 0.08);
-      }
-
-      .ghostButton,
-      .headerButton {
-        border: 1px solid
-          rgba(126, 224, 188, 0.14);
-        background:
-          rgba(255, 255, 255, 0.035);
-        color: #9cc3b5;
-        border-radius: 11px;
-        padding: 10px 13px;
-        font-size: 11px;
-        font-weight: 700;
-      }
-
-      .ghostButton:hover,
-      .headerButton:hover {
-        background:
-          rgba(126, 224, 188, 0.08);
-        color: #d8fff0;
-      }
-
-      .full {
-        width: 100%;
-      }
-
-      .headerRight,
-      .previewActions {
+      .introActions,
+      .topBarActions {
         display: flex;
         align-items: center;
         gap: 9px;
@@ -1771,78 +1956,202 @@ function GlobalStyles() {
         justify-content: flex-end;
       }
 
-      .workspaceContent,
-      .previewMain {
-        padding-bottom: 60px;
-      }
-
-      .mobilePageScroller {
-        display: none;
-        gap: 7px;
-        overflow-x: auto;
-        padding-bottom: 12px;
-        scrollbar-width: none;
-      }
-
-      .mobilePageScroller::-webkit-scrollbar {
-        display: none;
-      }
-
-      .mobilePage {
-        flex: 0 0 auto;
-        white-space: nowrap;
-        padding: 8px 12px;
-        border-radius: 999px;
-        color: #7fa699;
-        background:
-          rgba(5, 29, 23, 0.7);
+      .secondaryButton {
         border: 1px solid
-          rgba(126, 224, 188, 0.1);
+          rgba(126, 222, 191, 0.13);
+        background: rgba(
+          255,
+          255,
+          255,
+          0.035
+        );
+        color: #9abaae;
+        border-radius: 11px;
+        padding: 11px 14px;
         font-size: 10px;
+        font-weight: 750;
       }
 
-      .mobilePage.active {
-        color: #eafff5;
-        background:
-          #177456;
+      .secondaryButton:hover {
+        color: #e3fff4;
+        background: rgba(
+          91,
+          202,
+          165,
+          0.07
+        );
       }
+
+      .workspaceGrid {
+        display: grid;
+        grid-template-columns: 245px minmax(
+            0,
+            1fr
+          );
+        gap: 18px;
+        align-items: start;
+      }
+
+      .pageNavigation {
+        position: sticky;
+        top: 20px;
+        min-width: 0;
+        padding: 21px;
+        border-radius: 21px;
+        border: 1px solid
+          rgba(121, 222, 190, 0.12);
+        background: rgba(
+          4,
+          32,
+          26,
+          0.76
+        );
+        backdrop-filter: blur(20px);
+      }
+
+      .navEyebrow {
+        color: #5f8b7e;
+        font-size: 8px;
+        font-weight: 850;
+        letter-spacing: 0.18em;
+      }
+
+      .navTitle {
+        margin: 6px 0 18px;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .desktopPageList {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .pageNavButton {
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        text-align: left;
+        color: #7fa498;
+        border: 1px solid transparent;
+        background: transparent;
+        border-radius: 11px;
+        font-size: 11px;
+      }
+
+      .pageNavButton:hover {
+        background: rgba(
+          91,
+          202,
+          165,
+          0.06
+        );
+      }
+
+      .pageNavButton.active {
+        color: #edfff7;
+        border-color:
+          rgba(121, 224, 191, 0.12);
+        background:
+          linear-gradient(
+            135deg,
+            rgba(28, 113, 84, 0.8),
+            rgba(10, 65, 54, 0.8)
+          );
+      }
+
+      .pageNumber {
+        width: 25px;
+        height: 25px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 25px;
+        border-radius: 8px;
+        color: #6aa38e;
+        background: rgba(
+          255,
+          255,
+          255,
+          0.045
+        );
+        font-size: 8px;
+      }
+
+      .navFooter {
+        margin-top: 26px;
+      }
+
+      .navLine {
+        height: 1px;
+        margin-bottom: 12px;
+        background: rgba(
+          120,
+          218,
+          188,
+          0.07
+        );
+      }
+
+      .navFooter span {
+        color: #3f655a;
+        font-size: 7px;
+        letter-spacing: 0.15em;
+      }
+
+      .workspaceMain {
+        min-width: 0;
+      }
+
+      .pageOverview {
+        min-width: 0;
+      }
+
+      /* PAGE HERO */
 
       .pageHero {
         position: relative;
         overflow: hidden;
-        padding: 30px;
+        padding: 29px;
         margin-bottom: 22px;
-        border-radius: 24px;
+        border-radius: 23px;
+        border: 1px solid
+          rgba(123, 223, 191, 0.12);
         background:
           linear-gradient(
             135deg,
-            rgba(12, 71, 56, 0.8),
-            rgba(5, 32, 27, 0.85)
+            rgba(13, 76, 60, 0.74),
+            rgba(4, 31, 25, 0.86)
           );
-        border: 1px solid
-          rgba(126, 224, 188, 0.14);
       }
 
-      .heroGlow {
+      .heroAccent {
         position: absolute;
-        width: 260px;
-        height: 260px;
-        right: -80px;
+        width: 250px;
+        height: 250px;
+        right: -90px;
         top: -120px;
         border-radius: 50%;
-        background:
-          rgba(81, 202, 153, 0.12);
-        filter: blur(20px);
+        background: radial-gradient(
+          circle,
+          rgba(87, 213, 163, 0.15),
+          transparent 68%
+        );
+        filter: blur(10px);
       }
 
       .pageHero h2 {
         position: relative;
-        margin: 9px 0 8px;
+        margin: 10px 0 8px;
         font-size: clamp(
-          26px,
+          27px,
           4vw,
           40px
         );
+        line-height: 1;
         letter-spacing: -0.045em;
       }
 
@@ -1850,16 +2159,18 @@ function GlobalStyles() {
         position: relative;
         max-width: 720px;
         margin: 0;
-        color: #9bbdaf;
+        color: #95b5aa;
+        font-size: 12px;
         line-height: 1.7;
-        font-size: 13px;
       }
 
-      .section {
+      /* CONTENT */
+
+      .contentSection {
         margin-bottom: 22px;
       }
 
-      .sectionHeading {
+      .sectionHeader {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1867,140 +2178,219 @@ function GlobalStyles() {
         margin-bottom: 12px;
       }
 
-      .sectionHeading h3 {
+      .sectionHeader h3 {
         margin: 5px 0 0;
-        font-size: 18px;
+        font-size: 17px;
         letter-spacing: -0.025em;
       }
 
       .countBadge {
-        padding: 7px 10px;
+        min-width: 31px;
+        height: 27px;
+        display: grid;
+        place-items: center;
+        padding: 0 9px;
         border-radius: 999px;
-        color: #a7dfc6;
-        background:
-          rgba(79, 184, 142, 0.1);
+        color: #a3dec5;
+        background: rgba(
+          72,
+          181,
+          140,
+          0.09
+        );
         border: 1px solid
-          rgba(126, 224, 188, 0.12);
-        font-size: 10px;
-        font-weight: 800;
+          rgba(116, 220, 184, 0.1);
+        font-size: 9px;
+        font-weight: 850;
       }
 
       .featureGrid {
         display: grid;
         grid-template-columns: repeat(
           auto-fit,
-          minmax(210px, 1fr)
+          minmax(205px, 1fr)
         );
-        gap: 12px;
+        gap: 11px;
       }
 
       .featureCard {
         min-width: 0;
-        padding: 18px;
-        border-radius: 18px;
-        background:
-          rgba(6, 34, 28, 0.72);
+        padding: 17px;
+        border-radius: 17px;
         border: 1px solid
-          rgba(126, 224, 188, 0.1);
+          rgba(119, 220, 188, 0.09);
+        background: rgba(
+          5,
+          35,
+          28,
+          0.68
+        );
         backdrop-filter: blur(12px);
+        transition:
+          transform 0.2s ease,
+          border-color 0.2s ease,
+          background 0.2s ease;
       }
 
-      .featureCardTop {
+      .featureCard:hover {
+        transform: translateY(-3px);
+        border-color:
+          rgba(119, 220, 188, 0.18);
+        background: rgba(
+          8,
+          47,
+          38,
+          0.78
+        );
+      }
+
+      .featureTop {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
       }
 
       .featureIcon,
       .emptyIcon,
       .modalIcon {
+        width: 37px;
+        height: 37px;
         display: grid;
         place-items: center;
-        width: 38px;
-        height: 38px;
-        border-radius: 12px;
-        color: #9ce7c3;
-        background:
-          rgba(64, 177, 132, 0.12);
+        border-radius: 11px;
+        color: #9de7c5;
+        background: rgba(
+          68,
+          181,
+          138,
+          0.11
+        );
       }
 
-      .featureNumber {
-        color: #476e61;
-        font-size: 10px;
-        font-weight: 800;
+      .featureIndex {
+        color: #42695d;
+        font-size: 9px;
+        font-weight: 850;
       }
 
       .featureCard h3 {
-        margin: 20px 0 7px;
-        font-size: 15px;
+        margin: 19px 0 7px;
+        font-size: 14px;
         overflow-wrap: anywhere;
       }
 
       .featureCard p {
-        min-height: 50px;
-        margin: 0 0 14px;
-        color: #76998d;
+        min-height: 48px;
+        margin: 0 0 15px;
+        color: #719489;
+        font-size: 10px;
         line-height: 1.65;
-        font-size: 11px;
         overflow-wrap: anywhere;
       }
 
-      .emptyCard,
-      .requirementsCard,
-      .modifyPanel {
-        margin-bottom: 22px;
-        padding: 22px;
-        border-radius: 20px;
-        background:
-          rgba(5, 31, 25, 0.72);
+      .featureButton {
+        border: 0;
+        padding: 0;
+        color: #89c5ad;
+        background: transparent;
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .featureButton span {
+        margin-left: 6px;
+      }
+
+      .featureButton:hover {
+        color: #c4f2df;
+      }
+
+      .emptyState {
+        padding: 25px;
+        border-radius: 18px;
         border: 1px solid
-          rgba(126, 224, 188, 0.1);
+          rgba(119, 220, 188, 0.08);
+        background: rgba(
+          5,
+          32,
+          27,
+          0.62
+        );
       }
 
-      .emptyCard h3 {
-        margin: 14px 0 6px;
+      .emptyState h3 {
+        margin: 14px 0 5px;
+        font-size: 14px;
       }
 
-      .emptyCard p,
-      .requirementsCard p {
+      .emptyState p {
         margin: 0;
-        color: #789b8e;
-        font-size: 12px;
-        line-height: 1.7;
+        color: #719489;
+        font-size: 10px;
+        line-height: 1.6;
       }
 
-      .requirementsCard {
+      .purposeCard {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 20px;
+        margin-bottom: 22px;
+        padding: 20px;
+        border-radius: 18px;
+        border: 1px solid
+          rgba(119, 220, 188, 0.08);
+        background: rgba(
+          5,
+          32,
+          27,
+          0.62
+        );
       }
 
-      .statusTags,
+      .purposeCard p {
+        max-width: 650px;
+        margin: 7px 0 0;
+        color: #799b90;
+        font-size: 10px;
+        line-height: 1.65;
+      }
+
+      .tagList,
       .modalTags {
         display: flex;
         flex-wrap: wrap;
-        gap: 7px;
+        gap: 6px;
       }
 
-      .statusTags span,
+      .tagList span,
       .modalTags span {
-        padding: 7px 9px;
+        padding: 6px 8px;
         border-radius: 999px;
-        color: #75a895;
-        background:
-          rgba(126, 224, 188, 0.05);
+        color: #72a895;
         border: 1px solid
-          rgba(126, 224, 188, 0.08);
-        font-size: 9px;
+          rgba(119, 220, 188, 0.08);
+        background: rgba(
+          119,
+          220,
+          188,
+          0.04
+        );
+        font-size: 8px;
       }
+
+      /* MODIFY */
 
       .modifyPanel {
+        padding: 21px;
+        border-radius: 20px;
+        border: 1px solid
+          rgba(128, 224, 193, 0.12);
         background:
           linear-gradient(
             135deg,
-            rgba(11, 66, 51, 0.7),
-            rgba(4, 28, 23, 0.8)
+            rgba(11, 69, 53, 0.65),
+            rgba(4, 29, 24, 0.8)
           );
       }
 
@@ -2012,28 +2402,58 @@ function GlobalStyles() {
       }
 
       .modifyHeader h3 {
-        margin: 5px 0;
-        font-size: 17px;
+        margin: 5px 0 4px;
+        font-size: 16px;
       }
 
       .modifyHeader p {
         margin: 0;
-        color: #72978a;
-        font-size: 11px;
+        color: #71968a;
+        font-size: 10px;
+      }
+
+      .modifyOrb {
+        width: 39px;
+        height: 39px;
+        display: grid;
+        place-items: center;
+        border-radius: 13px;
+        color: #b6efd6;
+        background:
+          radial-gradient(
+            circle at 30% 20%,
+            #6ed1a7,
+            #185b46
+          );
+        border: 1px solid
+          rgba(164, 240, 213, 0.2);
       }
 
       .modifyInput {
-        min-height: 105px;
-        margin-top: 12px;
-        border-radius: 14px;
-        background:
-          rgba(0, 0, 0, 0.14);
+        width: 100%;
+        min-height: 100px;
+        margin-top: 13px;
+        resize: vertical;
         border: 1px solid
-          rgba(126, 224, 188, 0.08);
-        font-size: 13px;
+          rgba(124, 221, 190, 0.08);
+        border-radius: 13px;
+        background: rgba(
+          0,
+          0,
+          0,
+          0.13
+        );
+        color: #edf9f4;
+        padding: 14px;
+        font-size: 11px;
+        line-height: 1.6;
       }
 
-      .modifyBottom {
+      .modifyInput::placeholder {
+        color: #5b7d72;
+      }
+
+      .modifyFooter {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -2041,240 +2461,302 @@ function GlobalStyles() {
         margin-top: 10px;
       }
 
-      .modifyMessage {
-        color: #86ddb4;
-        font-size: 11px;
+      .modifyStatus {
+        min-width: 0;
+        color: #5e8378;
+        font-size: 9px;
       }
 
-      .previewTitleRow {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 15px;
-        margin-bottom: 15px;
+      .successText {
+        color: #81d9b1;
       }
 
-      .previewTitleRow h1 {
-        margin: 6px 0 0;
-        font-size: clamp(
-          24px,
-          4vw,
-          36px
+      /* MOBILE NAV */
+
+      .mobilePageNav {
+        display: none;
+        gap: 7px;
+        overflow-x: auto;
+        padding-bottom: 12px;
+        scrollbar-width: none;
+      }
+
+      .mobilePageNav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .mobilePage {
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        white-space: nowrap;
+        border-radius: 999px;
+        border: 1px solid
+          rgba(122, 221, 190, 0.1);
+        background: rgba(
+          5,
+          31,
+          26,
+          0.75
         );
-        letter-spacing: -0.04em;
+        color: #739a8d;
+        font-size: 9px;
       }
+
+      .mobilePage.active {
+        color: #edfff7;
+        background: #176f54;
+        border-color:
+          rgba(145, 236, 199, 0.15);
+      }
+
+      /* CREATED */
+
+      .createdStatus {
+        width: fit-content;
+        margin-bottom: 7px;
+        color: #8fe1ba;
+      }
+
+      .createdHeader p {
+        color: #75988d;
+      }
+
+      /* MODAL */
 
       .modalBackdrop {
         position: fixed;
         inset: 0;
-        z-index: 50;
+        z-index: 100;
         display: grid;
         place-items: center;
         padding: 20px;
-        background:
-          rgba(1, 11, 9, 0.75);
-        backdrop-filter: blur(10px);
+        background: rgba(
+          1,
+          12,
+          10,
+          0.78
+        );
+        backdrop-filter: blur(13px);
       }
 
       .featureModal {
         position: relative;
         width: min(520px, 100%);
         padding: 30px;
-        border-radius: 24px;
+        border-radius: 23px;
+        border: 1px solid
+          rgba(129, 226, 193, 0.16);
         background:
           linear-gradient(
             145deg,
-            #0b3026,
-            #061c17
+            #0b392d,
+            #051e19
           );
-        border: 1px solid
-          rgba(126, 224, 188, 0.18);
         box-shadow:
-          0 30px 100px
+          0 35px 110px
             rgba(0, 0, 0, 0.55);
       }
 
-      .closeButton {
+      .modalClose {
         position: absolute;
-        right: 14px;
-        top: 14px;
+        top: 13px;
+        right: 13px;
         width: 34px;
         height: 34px;
         border: 0;
         border-radius: 10px;
-        color: #8aafa1;
-        background:
-          rgba(255, 255, 255, 0.05);
-        font-size: 22px;
+        color: #8bad9f;
+        background: rgba(
+          255,
+          255,
+          255,
+          0.045
+        );
+        font-size: 21px;
       }
 
       .featureModal h2 {
-        margin: 12px 0 9px;
-        font-size: 28px;
+        margin: 13px 0 9px;
+        font-size: 27px;
+        letter-spacing: -0.04em;
         overflow-wrap: anywhere;
       }
 
-      .featureModal p {
-        color: #86a99b;
-        line-height: 1.7;
-        font-size: 13px;
+      .featureModal > p {
+        margin: 0;
+        color: #83a59a;
+        font-size: 12px;
+        line-height: 1.75;
       }
 
       .modalTags {
         margin-top: 20px;
       }
 
+      /* TABLET */
+
       @media (max-width: 900px) {
-        .appWorkspace,
-        .previewWorkspace {
+        .workspaceGrid {
           grid-template-columns: 1fr;
         }
 
-        .sidePanel,
-        .previewSide {
+        .pageNavigation {
           position: static;
         }
 
-        .sidePanel .pageList,
-        .previewSide .pageList {
+        .desktopPageList {
           display: none;
         }
 
-        .mobilePageScroller {
+        .navFooter {
+          display: none;
+        }
+
+        .mobilePageNav {
           display: flex;
         }
 
-        .sideBottom {
-          display: none;
+        .workspaceIntro,
+        .topBar,
+        .createdHeader {
+          align-items: flex-start;
+          flex-direction: column;
         }
 
-        .requirementsCard {
+        .introActions,
+        .topBarActions {
+          justify-content: flex-start;
+        }
+
+        .purposeCard {
           align-items: flex-start;
           flex-direction: column;
         }
       }
 
+      /* PHONE */
+
       @media (max-width: 680px) {
-        .home,
-        .appShell,
-        .previewShell {
-          width: min(
-            100% - 24px,
-            1440px
-          );
+        .pageLayer {
+          width: calc(100% - 22px);
         }
 
-        .homeHeader,
-        .appHeader,
-        .previewHeader {
-          padding: 16px 0;
+        .header {
+          min-height: 72px;
         }
 
-        .brandMark {
+        .logoMark {
           width: 36px;
           height: 36px;
           flex-basis: 36px;
           border-radius: 11px;
         }
 
-        .brandName {
-          font-size: 10px;
+        .logoName {
+          font-size: 9px;
           letter-spacing: 0.13em;
         }
 
-        .brandSub {
-          font-size: 9px;
+        .logoTagline {
+          font-size: 8px;
         }
 
-        .aiStatus,
-        .createdBadge {
+        .headerRight {
+          gap: 5px;
+        }
+
+        .headerNew,
+        .aiIndicator {
           padding: 7px 9px;
-          font-size: 9px;
+          font-size: 8px;
         }
 
-        .hero {
-          margin-top: 3vh;
+        .homeScreen {
+          padding-top: 4vh;
         }
 
         .heroOrb {
-          margin-bottom: 18px;
           transform: scale(0.82);
+          margin-bottom: 17px;
         }
 
-        .hero h1 {
+        .heroTitle {
           font-size: clamp(
-            38px,
-            12vw,
-            58px
+            46px,
+            14vw,
+            64px
           );
         }
 
-        .hero > p {
-          font-size: 13px;
-          line-height: 1.65;
+        .heroDescription {
           padding: 0 8px;
+          font-size: 12px;
+          line-height: 1.7;
         }
 
-        .ideaBox {
-          border-radius: 18px;
+        .ideaPanel {
+          border-radius: 19px;
         }
 
         .ideaInput {
-          min-height: 135px;
+          min-height: 140px;
           padding: 15px;
-          font-size: 14px;
+          font-size: 13px;
         }
 
-        .ideaBottom {
+        .ideaFooter {
           align-items: stretch;
           flex-direction: column;
         }
 
-        .ideaHint {
-          padding: 0 4px;
+        .characterCount {
+          padding: 0 3px;
         }
 
         .generateButton {
           width: 100%;
-          padding: 13px;
         }
 
-        .homeFeatures {
+        .processCards {
           grid-template-columns: 1fr;
-          margin-top: 35px;
+          margin-top: 32px;
         }
 
-        .homeFooter {
-          margin-top: 40px;
-          flex-direction: column;
+        .homeBottom {
+          margin-top: 38px;
           align-items: center;
-          text-align: center;
+          flex-direction: column;
+          gap: 7px;
         }
 
-        .headerRight,
-        .previewActions {
-          gap: 5px;
+        .workspaceScreen {
+          padding-top: 23px;
         }
 
-        .headerButton {
-          padding: 8px 10px;
-          font-size: 9px;
+        .workspaceIntro h1,
+        .topBar h1,
+        .createdHeader h1 {
+          font-size: 31px;
         }
 
-        .appWorkspace,
-        .previewWorkspace {
-          gap: 10px;
+        .workspaceIntro p,
+        .createdHeader p {
+          font-size: 10px;
         }
 
-        .sidePanel,
-        .previewSide {
+        .introActions,
+        .topBarActions {
+          width: 100%;
+        }
+
+        .introActions button,
+        .topBarActions button {
+          flex: 1;
+        }
+
+        .pageNavigation {
           padding: 16px;
           border-radius: 17px;
-        }
-
-        .sideTop h2,
-        .previewSide h2 {
-          font-size: 19px;
         }
 
         .pageHero {
@@ -2287,7 +2769,7 @@ function GlobalStyles() {
         }
 
         .pageHero p {
-          font-size: 12px;
+          font-size: 11px;
         }
 
         .featureGrid {
@@ -2298,76 +2780,66 @@ function GlobalStyles() {
           padding: 16px;
         }
 
-        .requirementsCard,
-        .emptyCard,
-        .modifyPanel {
+        .purposeCard,
+        .modifyPanel,
+        .emptyState {
           padding: 17px;
           border-radius: 17px;
         }
 
-        .modifyBottom {
+        .modifyFooter {
           align-items: stretch;
           flex-direction: column;
         }
 
-        .modifyBottom .primaryButton {
+        .modifyFooter .primaryButton {
           width: 100%;
         }
 
-        .previewTitleRow {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
-        .previewTitleRow .countBadge {
-          align-self: flex-start;
-        }
-
-        .sun {
-          width: 130px;
-          height: 130px;
-          right: -20px;
+        .goldLight {
+          right: -100px;
           top: 10%;
         }
 
-        .lake {
-          height: 35%;
+        .waterSurface {
+          bottom: -12%;
+          height: 38%;
         }
       }
 
       @media (max-width: 420px) {
-        .home,
-        .appShell,
-        .previewShell {
-          width: calc(100% - 18px);
+        .pageLayer {
+          width: calc(100% - 16px);
         }
 
-        .hero h1 {
-          font-size: 39px;
-        }
-
-        .brandSub {
+        .logoTagline {
           display: none;
         }
 
-        .aiStatus {
-          padding: 6px 8px;
+        .aiIndicator span:last-child {
+          display: none;
+        }
+
+        .heroTitle {
+          font-size: 45px;
+        }
+
+        .heroDescription {
+          font-size: 11px;
+        }
+
+        .workspaceIntro h1,
+        .topBar h1,
+        .createdHeader h1 {
+          font-size: 28px;
         }
 
         .pageHero h2 {
           font-size: 25px;
         }
 
-        .sectionHeading h3 {
-          font-size: 16px;
-        }
-
-        .featureCard h3 {
-          font-size: 14px;
-        }
-
-        .featureCard p {
-          min-height: auto;
+        .sectionHeader h3 {
+          font-size: 15px;
         }
       }
     `}</style>
