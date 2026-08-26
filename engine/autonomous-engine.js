@@ -90,6 +90,8 @@ async function callGemini(prompt) {
   }, 30000);
 
   try {
+    console.log("AI App Builder: calling Gemini 3.6 Flash");
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
@@ -131,6 +133,8 @@ async function callGemini(prompt) {
       throw new Error("Gemini returned an empty response");
     }
 
+    console.log("AI App Builder: Gemini response received");
+
     return text;
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -150,11 +154,17 @@ export async function runAutonomousEngine(userIdea) {
 
   console.log("AI App Builder: starting Gemini 3.6 Flash");
 
+  // Diagnostic only: never print the API key itself.
+  console.log(
+    "AI App Builder: Gemini API key configured:",
+    Boolean(process.env.GEMINI_API_KEY),
+    "length:",
+    process.env.GEMINI_API_KEY?.length || 0
+  );
+
   const prompt = buildPrompt(userIdea.trim());
 
   const result = await callGemini(prompt);
-
-  console.log("AI App Builder: Gemini response received");
 
   const specification = extractJson(result);
 
@@ -162,17 +172,25 @@ export async function runAutonomousEngine(userIdea) {
 
   return {
     status: "preview_ready",
+
     idea: userIdea.trim(),
+
     specification,
+
     aiProvider: "gemini",
+
     aiModel: "gemini-3.6-flash",
+
     nextStep: "preview",
+
     test: {
       status: "pending",
     },
+
     security: {
       status: "pending",
     },
+
     publish: {
       allowed: false,
       requiresHumanApproval: true,
