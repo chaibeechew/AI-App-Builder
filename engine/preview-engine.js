@@ -1,105 +1,17 @@
-function slugify(value = "") {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+import { normalizeAppSpec, safeArray, safeObject, safeText } from "../lib/generator/runtime-guard.js";
 
-function createPage(page, index) {
-  return {
-    id: `${slugify(page.name)}-${index + 1}`,
-    name: page.name,
-    purpose: page.purpose || "",
-    components: [
-      {
-        type: "header",
-        title: page.name,
-      },
-      {
-        type: "content",
-        description: page.purpose || "",
-      },
-    ],
-  };
-}
+function slugify(value="page"){return safeText(value,"page").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"page";}
+function createPage(page,index){const p=safeObject(page);const components=safeArray(p.components);return{id:`${slugify(p.name)}-${index+1}`,name:safeText(p.name,`Page ${index+1}`),purpose:safeText(p.purpose||p.description),route:p.route||`/${slugify(p.name)}`,components:components.length?components:[{type:"header",title:safeText(p.name,`Page ${index+1}`)},{type:"content",description:safeText(p.purpose||p.description)}]};}
+function createFeature(feature,index){const f=typeof feature==="string"?{name:feature}:safeObject(feature);return{id:`${slugify(f.name||f.title)}-${index+1}`,name:safeText(f.name||f.title,`Feature ${index+1}`),description:safeText(f.description),enabled:true};}
+function createDataModel(data,index){const d=safeObject(data);return{id:`${slugify(d.name)}-${index+1}`,name:safeText(d.name,`Data ${index+1}`),fields:safeArray(d.fields)};}
+function createAction(action,index){const a=typeof action==="string"?{name:action}:safeObject(action);return{id:`${slugify(a.name||a.label)}-${index+1}`,name:safeText(a.name||a.label,`Action ${index+1}`),description:safeText(a.description)};}
 
-function createFeature(feature, index) {
-  return {
-    id: `${slugify(feature.name)}-${index + 1}`,
-    name: feature.name,
-    description: feature.description || "",
-    enabled: true,
-  };
-}
-
-function createDataModel(data, index) {
-  return {
-    id: `${slugify(data.name)}-${index + 1}`,
-    name: data.name,
-    fields: Array.isArray(data.fields) ? data.fields : [],
-  };
-}
-
-function createAction(action, index) {
-  return {
-    id: `${slugify(action.name)}-${index + 1}`,
-    name: action.name,
-    description: action.description || "",
-  };
-}
-
-export async function createPreview({ idea, specification }) {
-  if (!specification) {
-    throw new Error("Missing app specification");
-  }
-
-  const pages = Array.isArray(specification.pages)
-    ? specification.pages.map(createPage)
-    : [];
-
-  const features = Array.isArray(specification.features)
-    ? specification.features.map(createFeature)
-    : [];
-
-  const data = Array.isArray(specification.data)
-    ? specification.data.map(createDataModel)
-    : [];
-
-  const actions = Array.isArray(specification.actions)
-    ? specification.actions.map(createAction)
-    : [];
-
-  const appName =
-    specification.name ||
-    idea ||
-    "AI Generated App";
-
-  return {
-    id: `app-${Date.now()}`,
-    name: appName,
-    description: specification.description || "",
-    idea,
-
-    status: "preview",
-
-    pages,
-
-    features,
-
-    data,
-
-    actions,
-
-    navigation: pages.map((page) => ({
-      id: page.id,
-      label: page.name,
-    })),
-
-    createdAt: new Date().toISOString(),
-
-    metadata: {
-      generatedBy: "Autonomous AI Engine",
-      version: "1.0",
-    },
-  };
+export async function createPreview({idea,specification}){
+  const normalized=normalizeAppSpec(specification||{});
+  const pages=normalized.pages.map(createPage);
+  const features=normalized.features.map(createFeature);
+  const data=safeArray(normalized.data).map(createDataModel);
+  const actions=normalized.actions.map(createAction);
+  const appName=safeText(normalized.name,idea||"AI Generated App");
+  return {id:`app-${Date.now()}`,name:appName,description:safeText(normalized.description),idea,status:"preview",pages,features,data,actions,navigation:pages.map(p=>({id:p.id,label:p.name,route:p.route})),createdAt:new Date().toISOString(),metadata:{generatedBy:"Autonomous AI Engine",version:"2.0",runtimeGuarded:true},runtime:{crashSafe:true,fallbackPage:true,interactiveActions:true}};
 }
