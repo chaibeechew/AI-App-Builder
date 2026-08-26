@@ -7,7 +7,9 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState(null);
   const [preview, setPreview] = useState(false);
+  const [created, setCreated] = useState(false);
   const [activePage, setActivePage] = useState("Dashboard");
+  const [activeFeature, setActiveFeature] = useState(null);
   const [error, setError] = useState("");
 
   async function generateApp() {
@@ -17,6 +19,7 @@ export default function Home() {
     setError("");
     setPlan(null);
     setPreview(false);
+    setCreated(false);
 
     try {
       const response = await fetch("/api/generate", {
@@ -44,16 +47,249 @@ export default function Home() {
   }
 
   function continueToPreview() {
+    const pages = plan?.specification?.pages || [];
+
     setPreview(true);
-    setActivePage(
-      plan?.specification?.pages?.[0]?.name || "Dashboard"
-    );
+    setCreated(false);
+    setActiveFeature(null);
+    setActivePage(pages[0]?.name || "Dashboard");
+  }
+
+  function createApp() {
+    setCreated(true);
+    setActiveFeature(null);
+    setActivePage("Dashboard");
+  }
+
+  function openFeature(feature) {
+    setActiveFeature(feature);
+  }
+
+  function closeFeature() {
+    setActiveFeature(null);
+  }
+
+  function goBackToPlan() {
+    setPreview(false);
+    setCreated(false);
+    setActiveFeature(null);
   }
 
   if (preview && plan?.specification) {
     const specification = plan.specification;
     const pages = specification.pages || [];
     const features = specification.features || [];
+
+    if (created) {
+      return (
+        <main
+          style={{
+            minHeight: "100vh",
+            background: "#f5f7f9",
+            fontFamily: "Arial, sans-serif",
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 1100,
+              margin: "0 auto",
+              background: "#fff",
+              borderRadius: 16,
+              padding: 32,
+              minHeight: "calc(100vh - 48px)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 30,
+              }}
+            >
+              <div>
+                <h1 style={{ margin: 0 }}>
+                  {specification.name || "My App"}
+                </h1>
+
+                <p
+                  style={{
+                    color: "#6b7280",
+                    marginTop: 8,
+                  }}
+                >
+                  App Dashboard
+                </p>
+              </div>
+
+              <span
+                style={{
+                  background: "#ecfdf5",
+                  color: "#047857",
+                  padding: "8px 12px",
+                  borderRadius: 20,
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                App Created
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {pages.map((page) => (
+                <button
+                  key={page.name}
+                  onClick={() => setActivePage(page.name)}
+                  style={{
+                    textAlign: "left",
+                    padding: 20,
+                    borderRadius: 12,
+                    border: "1px solid #e5e7eb",
+                    background: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  <strong>{page.name}</strong>
+
+                  <p
+                    style={{
+                      color: "#6b7280",
+                      fontSize: 14,
+                      lineHeight: 1.5,
+                      marginBottom: 0,
+                    }}
+                  >
+                    {page.purpose || "Open this page"}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            <div
+              style={{
+                marginTop: 28,
+                padding: 24,
+                borderRadius: 12,
+                background: "#f9fafb",
+              }}
+            >
+              <h2>{activePage}</h2>
+
+              <p style={{ color: "#6b7280" }}>
+                {pages.find((p) => p.name === activePage)?.purpose ||
+                  "Your application dashboard."}
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 10,
+                  marginTop: 20,
+                }}
+              >
+                <button
+                  onClick={() =>
+                    setActiveFeature({
+                      name: activePage,
+                      description:
+                        pages.find((p) => p.name === activePage)
+                          ?.purpose || "Application page",
+                    })
+                  }
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: "#111827",
+                    color: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  Open Page
+                </button>
+
+                <button
+                  onClick={() => setCreated(false)}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: 8,
+                    border: "1px solid #d1d5db",
+                    background: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  Back to Preview
+                </button>
+              </div>
+            </div>
+
+            {activeFeature && (
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.45)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 20,
+                  zIndex: 100,
+                }}
+                onClick={closeFeature}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    maxWidth: 500,
+                    background: "#fff",
+                    borderRadius: 16,
+                    padding: 26,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h2>{activeFeature.name}</h2>
+
+                  <p
+                    style={{
+                      color: "#6b7280",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {activeFeature.description}
+                  </p>
+
+                  <button
+                    onClick={closeFeature}
+                    style={{
+                      marginTop: 16,
+                      padding: "10px 16px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: "#111827",
+                      color: "#fff",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      );
+    }
 
     return (
       <main
@@ -89,7 +325,10 @@ export default function Home() {
           {pages.map((page) => (
             <button
               key={page.name}
-              onClick={() => setActivePage(page.name)}
+              onClick={() => {
+                setActivePage(page.name);
+                setActiveFeature(null);
+              }}
               style={{
                 display: "block",
                 width: "100%",
@@ -114,7 +353,7 @@ export default function Home() {
           ))}
 
           <button
-            onClick={() => setPreview(false)}
+            onClick={goBackToPlan}
             style={{
               marginTop: 30,
               width: "100%",
@@ -127,9 +366,31 @@ export default function Home() {
           >
             ← Back to Plan
           </button>
+
+          <button
+            onClick={createApp}
+            style={{
+              marginTop: 10,
+              width: "100%",
+              padding: 13,
+              borderRadius: 8,
+              border: "none",
+              background: "#111827",
+              color: "#fff",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            Confirm & Create App →
+          </button>
         </aside>
 
-        <section style={{ flex: 1, padding: 36 }}>
+        <section
+          style={{
+            flex: 1,
+            padding: 36,
+          }}
+        >
           <div
             style={{
               background: "#ffffff",
@@ -149,6 +410,7 @@ export default function Home() {
             >
               <div>
                 <h1 style={{ margin: 0 }}>{activePage}</h1>
+
                 <p style={{ color: "#6b7280" }}>
                   Interactive App Preview
                 </p>
@@ -181,6 +443,28 @@ export default function Home() {
                 {pages.find((p) => p.name === activePage)?.purpose ||
                   "App page preview"}
               </p>
+
+              <button
+                onClick={() =>
+                  openFeature({
+                    name: activePage,
+                    description:
+                      pages.find((p) => p.name === activePage)
+                        ?.purpose || "Application page",
+                  })
+                }
+                style={{
+                  marginTop: 12,
+                  padding: "9px 14px",
+                  borderRadius: 7,
+                  border: "none",
+                  background: "#111827",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                Open Page
+              </button>
             </div>
 
             <div
@@ -216,6 +500,7 @@ export default function Home() {
                   </p>
 
                   <button
+                    onClick={() => openFeature(feature)}
                     style={{
                       marginTop: 10,
                       padding: "8px 12px",
@@ -232,6 +517,80 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {activeFeature && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.45)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+              zIndex: 100,
+            }}
+            onClick={closeFeature}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 520,
+                background: "#fff",
+                borderRadius: 16,
+                padding: 28,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2>{activeFeature.name}</h2>
+
+              <p
+                style={{
+                  color: "#6b7280",
+                  lineHeight: 1.6,
+                }}
+              >
+                {activeFeature.description}
+              </p>
+
+              <div
+                style={{
+                  marginTop: 20,
+                  padding: 16,
+                  borderRadius: 10,
+                  background: "#f9fafb",
+                }}
+              >
+                <strong>Feature Preview</strong>
+
+                <p
+                  style={{
+                    color: "#6b7280",
+                    fontSize: 14,
+                  }}
+                >
+                  This feature is connected to your generated app
+                  preview and is ready for the next Create App stage.
+                </p>
+              </div>
+
+              <button
+                onClick={closeFeature}
+                style={{
+                  marginTop: 18,
+                  padding: "10px 18px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#111827",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     );
   }
