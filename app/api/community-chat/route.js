@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../../../lib/supabase/server.js";
 
 const MAX_MESSAGE_LENGTH = 4000;
 const AI_MODEL = "gemini-3.6-flash";
+
+function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase server credentials are not configured.");
+  return createSupabaseClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+}
 
 async function callGemini(message, recentMessages) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -40,8 +48,8 @@ async function callGemini(message, recentMessages) {
 
 export async function POST(request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const userClient = await createClient();
+    const { data: { user } } = await userClient.auth.getUser();
     if (!user) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
 
     const body = await request.json();
@@ -49,7 +57,8 @@ export async function POST(request) {
     if (!message) return NextResponse.json({ success: false, error: "Message is required." }, { status: 400 });
     if (message.length > MAX_MESSAGE_LENGTH) return NextResponse.json({ success: false, error: "Message is too long." }, { status: 413 });
 
-    const { data: room, error: roomError } = await supabase
+    const admin = createAdminClient();
+    const { data: room, error: roomError } = await admin
       .from("chat_rooms")
       .select("id")
       .eq("slug", "community")
@@ -57,7 +66,7 @@ export async function POST(request) {
       .single();
     if (roomError) throw roomError;
 
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membership, error: membershipError } = await admin
       .from("chat_room_members")
       .select("room_id")
       .eq("room_id", room.id)
@@ -66,14 +75,14 @@ export async function POST(request) {
     if (membershipError) throw membershipError;
     if (!membership) return NextResponse.json({ success: false, error: "Open Community Chat first to join." }, { status: 403 });
 
-    const { data: recentMessages } = await supabase
+    const { data: recentMessages } = await admin
       .from("chat_messages")
       .select("sender_type,body,created_at")
       .eq("room_id", room.id)
       .order("created_at", { ascending: false })
       .limit(12);
 
-    const { data: userMessage, error: insertError } = await supabase
+    const { data: userMessage, error: insertError } = await admin
       .from("chat_messages")
       .insert({ room_id: room.id, user_id: user.id, sender_type: "user", body: message })
       .select("id,room_id,user_id,sender_type,body,created_at")
@@ -83,7 +92,7 @@ export async function POST(request) {
     const aiText = await callGemini(message, [...(recentMessages || [])].reverse());
     if (!aiText) return NextResponse.json({ success: true, message: userMessage, ai: null });
 
-    const { data: aiMessage, error: aiInsertError } = await supabase
+    const { data: aiMessage, error: aiInsertError } = await admin
       .from("chat_messages")
       .insert({ room_id: room.id, user_id: null, sender_type: "ai", body: aiText })
       .select("id,room_id,user_id,sender_type,body,created_at")
