@@ -1,0 +1,61 @@
+name: AI App Builder CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      GEMINI_API_KEY: ci-placeholder
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Validate migration filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="supabase/migrations"
+          test -d "$dir"
+          files=("$dir"/*.sql)
+          test "${#files[@]}" -gt 0
+          for file in "${files[@]}"; do
+            base="$(basename "$file")"
+            if [[ ! "$base" =~ ^[0-9]{14}_[a-z0-9_]+\.sql$ ]]; then
+              echo "Invalid migration filename: $base"
+              exit 1
+            fi
+            if [[ ! -s "$file" ]]; then
+              echo "Empty migration: $base"
+              exit 1
+            fi
+          done
+          duplicates=$(printf '%s\n' "${files[@]}" | sed 's#^.*/##' | cut -d_ -f1 | sort | uniq -d || true)
+          if [[ -n "$duplicates" ]]; then
+            echo "Duplicate migration timestamps:"
+            echo "$duplicates"
+            exit 1
+          fi
+          echo "Migration filename validation passed."
+
+      - name: Build Next.js application
+        run: npm run build
+
+      - name: Report
+        run: echo "Build and migration-structure validation passed."
