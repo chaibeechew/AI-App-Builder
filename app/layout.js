@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./landscape-theme.css";
 import AccountNav from "./components/AccountNav";
 
 export const metadata = {
