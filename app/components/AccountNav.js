@@ -29,6 +29,7 @@ export default function AccountNav() {
   return (
     <div className="accountNav">
       <Link href="/my-apps">My Apps</Link>
+      <Link href="/credits">Credits</Link>
       <button onClick={signOut}>Sign out</button>
       <style jsx>{`
         .accountNav{position:fixed;right:18px;top:16px;z-index:1000;display:flex;gap:8px;align-items:center;padding:7px;border:1px solid rgba(216,191,98,.2);border-radius:13px;background:rgba(3,16,13,.72);backdrop-filter:blur(12px)}
