@@ -1,24 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 
 export default function AccountNav() {
-  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const [supabase, setSupabase] = useState(null);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
+    const client = createClient();
+    setSupabase(client);
     let mounted = true;
-    supabase.auth.getUser().then(({ data }) => {
+    client.auth.getUser().then(({ data }) => {
       if (mounted) setUser(data.user || null);
     });
     return () => { mounted = false; };
-  }, [supabase]);
+  }, []);
 
   async function signOut() {
+    if (!supabase) return;
     await supabase.auth.signOut();
     router.replace("/auth");
     router.refresh();
