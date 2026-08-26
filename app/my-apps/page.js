@@ -99,7 +99,7 @@ export default async function MyAppsPage() {
         )) : <p>No referral rewards recorded yet.</p>}
       </section>
 
-      <style jsx>{`
+      <style>{`
         .appsPage { min-height:100vh; padding:42px clamp(18px,5vw,70px); background:linear-gradient(145deg,#03100d,#0a2119 58%,#06140f); color:#f5fff9; }
         .appsHeader { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; max-width:1180px; margin:0 auto 28px; }
         .eyebrow { color:#d8bf62; letter-spacing:.2em; font-size:11px; font-weight:900; }
