@@ -8,8 +8,10 @@ export default function Home() {
   const [plan, setPlan] = useState(null);
   const [preview, setPreview] = useState(false);
   const [created, setCreated] = useState(false);
+
   const [activePage, setActivePage] = useState("Dashboard");
   const [activeFeature, setActiveFeature] = useState(null);
+
   const [error, setError] = useState("");
 
   const [modifyInstruction, setModifyInstruction] = useState("");
@@ -42,9 +44,13 @@ export default function Home() {
         throw new Error(data?.error || "Generation failed");
       }
 
+      if (!data?.specification) {
+        throw new Error("AI did not return a valid specification.");
+      }
+
       setPlan(data);
     } catch (err) {
-      setError(err.message || "Something went wrong");
+      setError(err?.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -57,6 +63,7 @@ export default function Home() {
     setCreated(false);
     setActiveFeature(null);
     setActivePage(pages[0]?.name || "Dashboard");
+    setModifyMessage("");
   }
 
   function createApp() {
@@ -64,6 +71,12 @@ export default function Home() {
     setActiveFeature(null);
     setActivePage("Dashboard");
     setModifyMessage("");
+  }
+
+  function goBackToPlan() {
+    setPreview(false);
+    setCreated(false);
+    setActiveFeature(null);
   }
 
   function openFeature(feature) {
@@ -74,9 +87,8 @@ export default function Home() {
     setActiveFeature(null);
   }
 
-  function goBackToPlan() {
-    setPreview(false);
-    setCreated(false);
+  function selectPage(page) {
+    setActivePage(page.name);
     setActiveFeature(null);
   }
 
@@ -133,67 +145,85 @@ export default function Home() {
       setModifyMessage("✓ Changes applied successfully.");
     } catch (err) {
       setModifyMessage(
-        err.message || "Something went wrong."
+        err?.message || "Something went wrong."
       );
     } finally {
       setModifyLoading(false);
     }
   }
 
-  if (preview && plan?.specification) {
+  if (preview && plan?.specification && created) {
     const specification = plan.specification;
     const pages = specification.pages || [];
     const features = specification.features || [];
 
-    if (created) {
-      return (
-        <main
+    const currentPage =
+      pages.find((page) => page.name === activePage) ||
+      pages[0];
+
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          background: "#f5f7f9",
+          fontFamily: "Arial, sans-serif",
+          padding: 24,
+        }}
+      >
+        <div
           style={{
-            minHeight: "100vh",
-            background: "#f5f7f9",
-            fontFamily: "Arial, sans-serif",
-            padding: 24,
+            maxWidth: 1200,
+            margin: "0 auto",
+            background: "#ffffff",
+            borderRadius: 18,
+            minHeight: "calc(100vh - 48px)",
+            overflow: "hidden",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
           }}
         >
-          <div
+          <header
             style={{
-              maxWidth: 1100,
-              margin: "0 auto",
-              background: "#fff",
-              borderRadius: 16,
-              padding: 32,
-              minHeight: "calc(100vh - 48px)",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+              padding: "24px 30px",
+              borderBottom: "1px solid #e5e7eb",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 20,
             }}
           >
+            <div>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 26,
+                }}
+              >
+                {specification.name || "My App"}
+              </h1>
+
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  color: "#6b7280",
+                  fontSize: 14,
+                }}
+              >
+                App Dashboard
+              </p>
+            </div>
+
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
+                gap: 10,
                 alignItems: "center",
-                marginBottom: 30,
               }}
             >
-              <div>
-                <h1 style={{ margin: 0 }}>
-                  {specification.name || "My App"}
-                </h1>
-
-                <p
-                  style={{
-                    color: "#6b7280",
-                    marginTop: 8,
-                  }}
-                >
-                  App Dashboard
-                </p>
-              </div>
-
               <span
                 style={{
                   background: "#ecfdf5",
                   color: "#047857",
-                  padding: "8px 12px",
+                  padding: "8px 13px",
                   borderRadius: 20,
                   fontSize: 13,
                   fontWeight: 600,
@@ -201,270 +231,369 @@ export default function Home() {
               >
                 App Created
               </span>
-            </div>
-
-            {/* MODIFY WITH AI */}
-
-            <div
-              style={{
-                background: "#f9fafb",
-                border: "1px solid #e5e7eb",
-                borderRadius: 14,
-                padding: 22,
-                marginBottom: 28,
-              }}
-            >
-              <h2 style={{ marginTop: 0 }}>
-                Modify with AI
-              </h2>
-
-              <p
-                style={{
-                  color: "#6b7280",
-                  fontSize: 14,
-                }}
-              >
-                Tell AI what you want to change in your app.
-              </p>
-
-              <textarea
-                value={modifyInstruction}
-                onChange={(e) =>
-                  setModifyInstruction(e.target.value)
-                }
-                placeholder="Example: Add a membership page and a loyalty points feature."
-                style={{
-                  width: "100%",
-                  minHeight: 110,
-                  padding: 14,
-                  borderRadius: 9,
-                  border: "1px solid #d1d5db",
-                  fontSize: 15,
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                }}
-              />
 
               <button
-                onClick={modifyApp}
-                disabled={
-                  modifyLoading ||
-                  !modifyInstruction.trim()
-                }
+                onClick={() => setCreated(false)}
                 style={{
-                  marginTop: 12,
-                  padding: "12px 18px",
+                  padding: "9px 14px",
                   borderRadius: 8,
-                  border: "none",
-                  background:
-                    modifyLoading ||
-                    !modifyInstruction.trim()
-                      ? "#9ca3af"
-                      : "#111827",
-                  color: "#fff",
-                  cursor:
-                    modifyLoading ||
-                    !modifyInstruction.trim()
-                      ? "not-allowed"
-                      : "pointer",
-                  fontWeight: 600,
+                  border: "1px solid #d1d5db",
+                  background: "#fff",
+                  cursor: "pointer",
                 }}
               >
-                {modifyLoading
-                  ? "AI is modifying..."
-                  : "Apply Changes"}
+                Back to Preview
               </button>
-
-              {modifyMessage && (
-                <div
-                  style={{
-                    marginTop: 14,
-                    padding: 12,
-                    borderRadius: 8,
-                    background:
-                      modifyMessage.startsWith("✓")
-                        ? "#ecfdf5"
-                        : "#fef2f2",
-                    color:
-                      modifyMessage.startsWith("✓")
-                        ? "#047857"
-                        : "#b91c1c",
-                    fontSize: 14,
-                  }}
-                >
-                  {modifyMessage}
-                </div>
-              )}
             </div>
+          </header>
 
-            {/* APP PAGES */}
-
-            <div
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "240px 1fr",
+              minHeight: "calc(100vh - 145px)",
+            }}
+          >
+            <aside
               style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 16,
+                borderRight: "1px solid #e5e7eb",
+                padding: 20,
+                background: "#fafafa",
               }}
             >
-              {pages.map((page) => (
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#9ca3af",
+                  marginBottom: 12,
+                  textTransform: "uppercase",
+                }}
+              >
+                Pages
+              </div>
+
+              {pages.map((page, index) => (
                 <button
-                  key={page.name}
-                  onClick={() =>
-                    setActivePage(page.name)
-                  }
+                  key={`${page.name}-${index}`}
+                  onClick={() => selectPage(page)}
                   style={{
+                    display: "block",
+                    width: "100%",
                     textAlign: "left",
-                    padding: 20,
-                    borderRadius: 12,
-                    border: "1px solid #e5e7eb",
+                    padding: "12px 14px",
+                    marginBottom: 6,
+                    borderRadius: 9,
+                    border: "none",
+                    cursor: "pointer",
+                    background:
+                      activePage === page.name
+                        ? "#111827"
+                        : "transparent",
+                    color:
+                      activePage === page.name
+                        ? "#ffffff"
+                        : "#374151",
+                    fontWeight:
+                      activePage === page.name
+                        ? 600
+                        : 400,
+                  }}
+                >
+                  {page.name}
+                </button>
+              ))}
+
+              <div
+                style={{
+                  marginTop: 25,
+                  paddingTop: 20,
+                  borderTop: "1px solid #e5e7eb",
+                }}
+              >
+                <button
+                  onClick={goBackToPlan}
+                  style={{
+                    width: "100%",
+                    padding: 11,
+                    borderRadius: 8,
+                    border: "1px solid #d1d5db",
                     background: "#fff",
                     cursor: "pointer",
                   }}
                 >
-                  <strong>{page.name}</strong>
-
-                  <p
-                    style={{
-                      color: "#6b7280",
-                      fontSize: 14,
-                      lineHeight: 1.5,
-                      marginBottom: 0,
-                    }}
-                  >
-                    {page.purpose ||
-                      "Open this page"}
-                  </p>
+                  ← Back to Plan
                 </button>
-              ))}
-            </div>
+              </div>
+            </aside>
 
-            <div
+            <section
               style={{
-                marginTop: 28,
-                padding: 24,
-                borderRadius: 12,
-                background: "#f9fafb",
+                padding: 32,
               }}
             >
-              <h2>{activePage}</h2>
+              <div
+                style={{
+                  marginBottom: 28,
+                }}
+              >
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: 28,
+                  }}
+                >
+                  {currentPage?.name || activePage}
+                </h2>
 
-              <p style={{ color: "#6b7280" }}>
-                {pages.find(
-                  (p) => p.name === activePage
-                )?.purpose ||
-                  "Your application dashboard."}
-              </p>
+                <p
+                  style={{
+                    color: "#6b7280",
+                    lineHeight: 1.6,
+                    marginTop: 8,
+                  }}
+                >
+                  {currentPage?.purpose ||
+                    "Application page"}
+                </p>
+              </div>
 
               <div
                 style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 10,
-                  marginTop: 20,
+                  padding: 24,
+                  borderRadius: 14,
+                  background: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                  marginBottom: 28,
                 }}
               >
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "#6b7280",
+                    marginBottom: 8,
+                  }}
+                >
+                  Current Page
+                </div>
+
+                <h3
+                  style={{
+                    margin: "0 0 8px",
+                  }}
+                >
+                  {currentPage?.name || activePage}
+                </h3>
+
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#6b7280",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {currentPage?.purpose ||
+                    "This page is part of your generated application."}
+                </p>
+
                 <button
                   onClick={() =>
-                    setActiveFeature({
-                      name: activePage,
+                    openFeature({
+                      name:
+                        currentPage?.name ||
+                        activePage,
                       description:
-                        pages.find(
-                          (p) =>
-                            p.name === activePage
-                        )?.purpose ||
+                        currentPage?.purpose ||
                         "Application page",
                     })
                   }
                   style={{
+                    marginTop: 16,
                     padding: "10px 16px",
                     borderRadius: 8,
                     border: "none",
                     background: "#111827",
                     color: "#fff",
                     cursor: "pointer",
+                    fontWeight: 600,
                   }}
                 >
-                  Open Page
-                </button>
-
-                <button
-                  onClick={() => setCreated(false)}
-                  style={{
-                    padding: "10px 16px",
-                    borderRadius: 8,
-                    border:
-                      "1px solid #d1d5db",
-                    background: "#fff",
-                    cursor: "pointer",
-                  }}
-                >
-                  Back to Preview
+                  Open Page →
                 </button>
               </div>
-            </div>
 
-            {activeFeature && (
+              {features.length > 0 && (
+                <>
+                  <h3
+                    style={{
+                      marginBottom: 14,
+                    }}
+                  >
+                    Features
+                  </h3>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 16,
+                    }}
+                  >
+                    {features.map(
+                      (feature, index) => (
+                        <div
+                          key={`${feature.name}-${index}`}
+                          style={{
+                            background: "#fff",
+                            border:
+                              "1px solid #e5e7eb",
+                            borderRadius: 12,
+                            padding: 20,
+                          }}
+                        >
+                          <h4
+                            style={{
+                              marginTop: 0,
+                              marginBottom: 8,
+                            }}
+                          >
+                            {feature.name}
+                          </h4>
+
+                          <p
+                            style={{
+                              color: "#6b7280",
+                              fontSize: 14,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {feature.description}
+                          </p>
+
+                          <button
+                            onClick={() =>
+                              openFeature(feature)
+                            }
+                            style={{
+                              marginTop: 8,
+                              padding:
+                                "8px 12px",
+                              borderRadius: 7,
+                              border:
+                                "1px solid #d1d5db",
+                              background: "#fff",
+                              cursor:
+                                "pointer",
+                            }}
+                          >
+                            Open
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </>
+              )}
+            </section>
+          </div>
+        </div>
+
+        {activeFeature && (
+          <div
+            onClick={closeFeature}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.45)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+              zIndex: 100,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxWidth: 520,
+                background: "#fff",
+                borderRadius: 16,
+                padding: 28,
+              }}
+            >
+              <h2
+                style={{
+                  marginTop: 0,
+                }}
+              >
+                {activeFeature.name}
+              </h2>
+
+              <p
+                style={{
+                  color: "#6b7280",
+                  lineHeight: 1.7,
+                }}
+              >
+                {activeFeature.description}
+              </p>
+
               <div
                 style={{
-                  position: "fixed",
-                  inset: 0,
-                  background:
-                    "rgba(0,0,0,0.45)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: 20,
-                  zIndex: 100,
+                  marginTop: 20,
+                  padding: 16,
+                  borderRadius: 10,
+                  background: "#f9fafb",
                 }}
-                onClick={closeFeature}
               >
-                <div
+                <strong>
+                  Feature Ready
+                </strong>
+
+                <p
                   style={{
-                    width: "100%",
-                    maxWidth: 500,
-                    background: "#fff",
-                    borderRadius: 16,
-                    padding: 26,
+                    marginBottom: 0,
+                    color: "#6b7280",
+                    fontSize: 14,
+                    lineHeight: 1.5,
                   }}
-                  onClick={(e) =>
-                    e.stopPropagation()
-                  }
                 >
-                  <h2>
-                    {activeFeature.name}
-                  </h2>
-
-                  <p
-                    style={{
-                      color: "#6b7280",
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {activeFeature.description}
-                  </p>
-
-                  <button
-                    onClick={closeFeature}
-                    style={{
-                      marginTop: 16,
-                      padding: "10px 16px",
-                      borderRadius: 8,
-                      border: "none",
-                      background: "#111827",
-                      color: "#fff",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
+                  This page and feature are connected
+                  to the generated application.
+                </p>
               </div>
-            )}
+
+              <button
+                onClick={closeFeature}
+                style={{
+                  marginTop: 20,
+                  padding: "10px 18px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#111827",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </main>
-      );
-    }
+        )}
+      </main>
+    );
+  }
+
+  if (preview && plan?.specification) {
+    const specification = plan.specification;
+    const pages = specification.pages || [];
+    const features = specification.features || [];
+
+    const currentPage =
+      pages.find((page) => page.name === activePage) ||
+      pages[0];
 
     return (
       <main
@@ -479,39 +608,52 @@ export default function Home() {
           style={{
             width: 240,
             background: "#ffffff",
-            borderRight:
-              "1px solid #e5e7eb",
-            padding: 24,
+            borderRight: "1px solid #e5e7eb",
+            padding: 22,
+            boxSizing: "border-box",
+            flexShrink: 0,
           }}
         >
-          <h2 style={{ marginBottom: 8 }}>
-            {specification.name ||
-              "My App"}
+          <h2
+            style={{
+              marginTop: 0,
+              marginBottom: 6,
+            }}
+          >
+            {specification.name || "My App"}
           </h2>
 
           <p
             style={{
               color: "#6b7280",
               fontSize: 13,
-              marginBottom: 28,
+              marginBottom: 24,
             }}
           >
-            App Preview
+            Interactive App Preview
           </p>
 
-          {pages.map((page) => (
+          <div
+            style={{
+              fontSize: 12,
+              color: "#9ca3af",
+              fontWeight: 700,
+              marginBottom: 10,
+            }}
+          >
+            APP PAGES
+          </div>
+
+          {pages.map((page, index) => (
             <button
-              key={page.name}
-              onClick={() => {
-                setActivePage(page.name);
-                setActiveFeature(null);
-              }}
+              key={`${page.name}-${index}`}
+              onClick={() => selectPage(page)}
               style={{
                 display: "block",
                 width: "100%",
                 textAlign: "left",
                 padding: "12px 14px",
-                marginBottom: 8,
+                marginBottom: 6,
                 borderRadius: 8,
                 border: "none",
                 cursor: "pointer",
@@ -525,19 +667,18 @@ export default function Home() {
                     : "#374151",
               }}
             >
-              {page.name}
+              {index + 1}. {page.name}
             </button>
           ))}
 
           <button
             onClick={goBackToPlan}
             style={{
-              marginTop: 30,
+              marginTop: 28,
               width: "100%",
-              padding: 12,
+              padding: 11,
               borderRadius: 8,
-              border:
-                "1px solid #d1d5db",
+              border: "1px solid #d1d5db",
               background: "#fff",
               cursor: "pointer",
             }}
@@ -566,37 +707,42 @@ export default function Home() {
         <section
           style={{
             flex: 1,
-            padding: 36,
+            padding: 32,
+            boxSizing: "border-box",
           }}
         >
           <div
             style={{
               background: "#ffffff",
-              borderRadius: 14,
+              borderRadius: 16,
               padding: 30,
-              minHeight:
-                "calc(100vh - 72px)",
+              minHeight: "calc(100vh - 64px)",
               boxShadow:
-                "0 2px 10px rgba(0,0,0,0.04)",
+                "0 2px 12px rgba(0,0,0,0.04)",
             }}
           >
             <div
               style={{
                 display: "flex",
-                justifyContent:
-                  "space-between",
+                justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 30,
+                marginBottom: 28,
               }}
             >
               <div>
-                <h1 style={{ margin: 0 }}>
-                  {activePage}
+                <h1
+                  style={{
+                    margin: 0,
+                  }}
+                >
+                  {currentPage?.name ||
+                    activePage}
                 </h1>
 
                 <p
                   style={{
                     color: "#6b7280",
+                    marginBottom: 0,
                   }}
                 >
                   Interactive App Preview
@@ -610,6 +756,7 @@ export default function Home() {
                   background: "#ecfdf5",
                   color: "#047857",
                   fontSize: 13,
+                  fontWeight: 600,
                 }}
               >
                 Preview
@@ -618,141 +765,20 @@ export default function Home() {
 
             <div
               style={{
-                padding: 22,
+                padding: 24,
                 background: "#f9fafb",
-                borderRadius: 12,
-                marginBottom: 24,
+                borderRadius: 14,
+                border: "1px solid #e5e7eb",
+                marginBottom: 26,
               }}
             >
-              <h3>{activePage}</h3>
-
-              <p
+              <h2
                 style={{
-                  color: "#6b7280",
+                  marginTop: 0,
                 }}
               >
-                {pages.find(
-                  (p) =>
-                    p.name === activePage
-                )?.purpose ||
-                  "App page preview"}
-              </p>
-
-              <button
-                onClick={() =>
-                  openFeature({
-                    name: activePage,
-                    description:
-                      pages.find(
-                        (p) =>
-                          p.name === activePage
-                      )?.purpose ||
-                      "Application page",
-                  })
-                }
-                style={{
-                  marginTop: 12,
-                  padding: "9px 14px",
-                  borderRadius: 7,
-                  border: "none",
-                  background: "#111827",
-                  color: "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                Open Page
-              </button>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 16,
-              }}
-            >
-              {features.map((feature) => (
-                <div
-                  key={feature.name}
-                  style={{
-                    background: "#ffffff",
-                    border:
-                      "1px solid #e5e7eb",
-                    borderRadius: 12,
-                    padding: 20,
-                  }}
-                >
-                  <h3
-                    style={{
-                      marginTop: 0,
-                    }}
-                  >
-                    {feature.name}
-                  </h3>
-
-                  <p
-                    style={{
-                      color: "#6b7280",
-                      fontSize: 14,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {feature.description}
-                  </p>
-
-                  <button
-                    onClick={() =>
-                      openFeature(feature)
-                    }
-                    style={{
-                      marginTop: 10,
-                      padding:
-                        "8px 12px",
-                      borderRadius: 7,
-                      border:
-                        "1px solid #d1d5db",
-                      background: "#fff",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Open
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {activeFeature && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background:
-                "rgba(0,0,0,0.45)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 20,
-              zIndex: 100,
-            }}
-            onClick={closeFeature}
-          >
-            <div
-              style={{
-                width: "100%",
-                maxWidth: 520,
-                background: "#fff",
-                borderRadius: 16,
-                padding: 28,
-              }}
-              onClick={(e) =>
-                e.stopPropagation()
-              }
-            >
-              <h2>
-                {activeFeature.name}
+                {currentPage?.name ||
+                  activePage}
               </h2>
 
               <p
@@ -761,38 +787,160 @@ export default function Home() {
                   lineHeight: 1.6,
                 }}
               >
-                {activeFeature.description}
+                {currentPage?.purpose ||
+                  "App page preview"}
               </p>
 
-              <div
+              <button
+                onClick={() =>
+                  openFeature({
+                    name:
+                      currentPage?.name ||
+                      activePage,
+                    description:
+                      currentPage?.purpose ||
+                      "Application page",
+                  })
+                }
                 style={{
-                  marginTop: 20,
-                  padding: 16,
-                  borderRadius: 10,
-                  background: "#f9fafb",
+                  marginTop: 10,
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#111827",
+                  color: "#fff",
+                  cursor: "pointer",
                 }}
               >
-                <strong>
-                  Feature Preview
-                </strong>
+                Open Page →
+              </button>
+            </div>
 
-                <p
-                  style={{
-                    color: "#6b7280",
-                    fontSize: 14,
-                  }}
-                >
-                  This feature is connected
-                  to your generated app preview
-                  and is ready for the next
-                  Create App stage.
-                </p>
+            <h3>Features</h3>
+
+            {features.length === 0 ? (
+              <div
+                style={{
+                  padding: 20,
+                  borderRadius: 10,
+                  background: "#f9fafb",
+                  color: "#6b7280",
+                }}
+              >
+                No features returned yet.
               </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 16,
+                }}
+              >
+                {features.map(
+                  (feature, index) => (
+                    <div
+                      key={`${feature.name}-${index}`}
+                      style={{
+                        border:
+                          "1px solid #e5e7eb",
+                        borderRadius: 12,
+                        padding: 20,
+                        background: "#fff",
+                      }}
+                    >
+                      <h3
+                        style={{
+                          marginTop: 0,
+                        }}
+                      >
+                        {feature.name}
+                      </h3>
+
+                      <p
+                        style={{
+                          color: "#6b7280",
+                          fontSize: 14,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {feature.description}
+                      </p>
+
+                      <button
+                        onClick={() =>
+                          openFeature(feature)
+                        }
+                        style={{
+                          marginTop: 8,
+                          padding:
+                            "8px 12px",
+                          borderRadius: 7,
+                          border:
+                            "1px solid #d1d5db",
+                          background: "#fff",
+                          cursor:
+                            "pointer",
+                        }}
+                      >
+                        Open
+                      </button>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {activeFeature && (
+          <div
+            onClick={closeFeature}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.45)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+              zIndex: 100,
+            }}
+          >
+            <div
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+              style={{
+                width: "100%",
+                maxWidth: 520,
+                background: "#fff",
+                borderRadius: 16,
+                padding: 28,
+              }}
+            >
+              <h2
+                style={{
+                  marginTop: 0,
+                }}
+              >
+                {activeFeature.name}
+              </h2>
+
+              <p
+                style={{
+                  color: "#6b7280",
+                  lineHeight: 1.7,
+                }}
+              >
+                {activeFeature.description}
+              </p>
 
               <button
                 onClick={closeFeature}
                 style={{
-                  marginTop: 18,
+                  marginTop: 16,
                   padding: "10px 18px",
                   borderRadius: 8,
                   border: "none",
@@ -815,8 +963,7 @@ export default function Home() {
       style={{
         minHeight: "100vh",
         background: "#f8fafc",
-        fontFamily:
-          "Arial, sans-serif",
+        fontFamily: "Arial, sans-serif",
         padding: 24,
       }}
     >
@@ -848,24 +995,31 @@ export default function Home() {
             marginTop: 24,
             padding: 16,
             borderRadius: 10,
-            border:
-              "1px solid #d1d5db",
+            border: "1px solid #d1d5db",
             fontSize: 16,
             boxSizing: "border-box",
+            resize: "vertical",
           }}
         />
 
         <button
           onClick={generateApp}
-          disabled={loading}
+          disabled={loading || !idea.trim()}
           style={{
             marginTop: 16,
             padding: "14px 22px",
             borderRadius: 9,
             border: "none",
-            background: "#111827",
+            background:
+              loading || !idea.trim()
+                ? "#9ca3af"
+                : "#111827",
             color: "#fff",
-            cursor: "pointer",
+            cursor:
+              loading || !idea.trim()
+                ? "not-allowed"
+                : "pointer",
+            fontWeight: 600,
           }}
         >
           {loading
@@ -881,6 +1035,7 @@ export default function Home() {
               background: "#fef2f2",
               color: "#b91c1c",
               borderRadius: 8,
+              lineHeight: 1.5,
             }}
           >
             {error}
@@ -894,8 +1049,7 @@ export default function Home() {
               background: "#ffffff",
               padding: 26,
               borderRadius: 14,
-              border:
-                "1px solid #e5e7eb",
+              border: "1px solid #e5e7eb",
             }}
           >
             <h2>
@@ -906,44 +1060,75 @@ export default function Home() {
             <p
               style={{
                 color: "#6b7280",
+                lineHeight: 1.6,
               }}
             >
               {plan.specification.description}
             </p>
 
-            <h3>App Pages</h3>
+            <h3
+              style={{
+                marginTop: 28,
+              }}
+            >
+              App Pages
+            </h3>
 
-            {(plan.specification.pages ||
-              []).map((page, index) => (
-              <div
-                key={page.name}
-                style={{
-                  padding: 14,
-                  borderBottom:
-                    "1px solid #eee",
-                }}
-              >
-                <strong>
-                  {index + 1}. {page.name}
-                </strong>
-
-                <div
+            {(plan.specification.pages || []).map(
+              (page, index) => (
+                <button
+                  key={`${page.name}-${index}`}
+                  onClick={() => {
+                    setActivePage(page.name);
+                    setPreview(true);
+                    setCreated(false);
+                    setActiveFeature(null);
+                  }}
                   style={{
-                    color: "#6b7280",
-                    marginTop: 5,
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: 16,
+                    border: "none",
+                    borderBottom:
+                      "1px solid #eee",
+                    background: "#fff",
+                    cursor: "pointer",
                   }}
                 >
-                  {page.purpose}
-                </div>
-              </div>
-            ))}
+                  <strong>
+                    {index + 1}. {page.name}
+                  </strong>
+
+                  <div
+                    style={{
+                      color: "#6b7280",
+                      marginTop: 5,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {page.purpose}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 13,
+                      color: "#111827",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Open →
+                  </div>
+                </button>
+              )
+            )}
 
             <button
               onClick={continueToPreview}
               style={{
                 marginTop: 24,
-                padding:
-                  "14px 24px",
+                padding: "14px 24px",
                 borderRadius: 9,
                 border: "none",
                 background: "#111827",
