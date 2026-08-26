@@ -1,6 +1,3 @@
-import { createPreview } from "./preview-engine.js";
-import { testApp } from "./test-engine.js";
-import { securityScan } from "./security-engine.js";
 import { getAvailableProviders } from "./model-router.js";
 
 function extractJson(text) {
@@ -20,7 +17,11 @@ function extractJson(text) {
     throw new Error("AI did not return valid JSON");
   }
 
-  return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+  try {
+    return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+  } catch {
+    throw new Error("AI returned invalid JSON");
+  }
 }
 
 function buildPrompt(userIdea) {
@@ -31,7 +32,7 @@ The user wants to build:
 
 "${userIdea}"
 
-Convert this idea into a practical app specification.
+Create a practical app specification.
 
 Return ONLY valid JSON:
 
@@ -74,139 +75,83 @@ Rules:
 `;
 }
 
-async function callProvider(provider, model, prompt) {
-  if (provider === "ollama") {
-    const base =
-      process.env.OLLAMA_BASE_URL || "http://localhost:11434";
+async function callGemini(model, prompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
 
-    const response = await fetch(`${base}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        stream: false,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    return data?.message?.content || "";
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured");
   }
 
-  if (provider === "gemini") {
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 30000);
+
+  try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
         body: JSON.stringify({
           contents: [
             {
-              parts: [{ text: prompt }],
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
             },
           ],
           generationConfig: {
             temperature: 0.2,
+            responseMimeType: "application/json",
           },
         }),
       }
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini HTTP ${response.status}`);
+      const errorText = await response.text();
+
+      throw new Error(
+        `Gemini HTTP ${response.status}: ${errorText.slice(0, 500)}`
+      );
     }
 
     const data = await response.json();
 
-    return (
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
-    );
+    const text =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    if (!text) {
+      throw new Error("Gemini returned an empty response");
+    }
+
+    return text;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Gemini request timed out after 30 seconds");
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const keyMap = {
-    groq: process.env.GROQ_API_KEY,
-    cerebras: process.env.CEREBRAS_API_KEY,
-    deepseek: process.env.DEEPSEEK_API_KEY,
-    openai: process.env.OPENAI_API_KEY,
-  };
-
-  const urlMap = {
-    groq: "https://api.groq.com/openai/v1/chat/completions",
-    cerebras: "https://api.cerebras.ai/v1/chat/completions",
-    deepseek: "https://api.deepseek.com/chat/completions",
-    openai: "https://api.openai.com/v1/chat/completions",
-  };
-
-  const key = keyMap[provider];
-
-  if (!key) {
-    throw new Error(`${provider} API key is not configured`);
-  }
-
-  const response = await fetch(urlMap[provider], {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.2,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`${provider} HTTP ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  return data?.choices?.[0]?.message?.content || "";
 }
 
-async function generateWithFallback(prompt) {
-  const providers = getAvailableProviders();
-
-  if (!providers.length) {
-    throw new Error(
-      "No AI provider is configured. Add a free AI provider API key in Vercel Environment Variables."
-    );
+async function callProvider(provider, model, prompt) {
+  if (provider === "gemini") {
+    return callGemini(model, prompt);
   }
 
-  let lastError = null;
-
-  for (const config of providers) {
-    try {
-      const result = await callProvider(
-        config.provider,
-        config.model,
-        prompt
-      );
-
-      if (result) {
-        return {
-          result,
-          provider: config.provider,
-          model: config.model,
-        };
-      }
-    } catch (error) {
-      console.error(
-        `AI provider ${config.provider} failed:`,
-        error
-      );
-
-      lastError = error;
-    }
-  }
-
-  throw lastError || new Error("All AI providers failed");
+  throw new Error(
+    `${provider} is not enabled yet. Gemini is the active AI provider.`
+  );
 }
 
 export async function runAutonomousEngine(userIdea) {
@@ -214,33 +159,66 @@ export async function runAutonomousEngine(userIdea) {
     throw new Error("Please describe the app you want to build.");
   }
 
-  const planResponse = await generateWithFallback(
-    buildPrompt(userIdea.trim())
+  const providers = getAvailableProviders();
+
+  const gemini = providers.find(
+    (item) => item.provider === "gemini"
   );
 
-  const specification = extractJson(planResponse.result);
+  if (!gemini) {
+    throw new Error(
+      "Gemini AI is not configured. Please add GEMINI_API_KEY in Vercel Environment Variables."
+    );
+  }
 
-  const preview = await createPreview({
-    idea: userIdea.trim(),
-    specification,
-  });
+  console.log("AI App Builder: starting Gemini generation");
 
-  const test = testApp(preview);
-  const security = securityScan(preview);
+  const prompt = buildPrompt(userIdea.trim());
+
+  const result = await callProvider(
+    gemini.provider,
+    gemini.model,
+    prompt
+  );
+
+  console.log("AI App Builder: Gemini response received");
+
+  const specification = extractJson(result);
+
+  console.log("AI App Builder: specification created");
+
+  /*
+   * STEP 1:
+   * Return the AI specification immediately.
+   *
+   * Preview, testing, security and app creation
+   * will be handled in the next stages.
+   */
 
   return {
-    status: "ready",
+    status: "preview_ready",
+
     idea: userIdea.trim(),
+
     specification,
-    preview,
-    test,
-    security,
+
+    aiProvider: gemini.provider,
+
+    aiModel: gemini.model,
+
+    nextStep: "preview",
+
+    test: {
+      status: "pending",
+    },
+
+    security: {
+      status: "pending",
+    },
+
     publish: {
       allowed: false,
       requiresHumanApproval: true,
-      reason: "Publishing requires human approval.",
     },
-    aiProvider: planResponse.provider,
-    aiModel: planResponse.model,
   };
 }
