@@ -1,98 +1,404 @@
 import { generateWithAI } from "./lib_ai.js";
 
 const MAX_INSTRUCTION_LENGTH = 5000;
-const MAX_SPECIFICATION_LENGTH = 30000;
+const MAX_SPECIFICATION_LENGTH = 50000;
+const MAX_PAGES = 30;
+const MAX_FEATURES = 100;
+
+
+// ============================================
+// JSON CLEANER
+// ============================================
 
 function cleanJson(text) {
-  return String(text || "")
-    .trim()
+  let value = String(text || "").trim();
+
+  value = value
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
+
+  return value;
 }
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed",
-    });
+
+// ============================================
+// TEXT HELPERS
+// ============================================
+
+function cleanText(value, fallback = "") {
+  if (typeof value !== "string") {
+    return fallback;
   }
 
+  return value.trim();
+}
+
+
+// ============================================
+// NORMALIZE PAGE
+// ============================================
+
+function normalizePage(page, index) {
+
+  if (
+    !page ||
+    typeof page !== "object"
+  ) {
+    return {
+      name: `Page ${index + 1}`,
+
+      purpose:
+        "Application page generated from the customer's requirements.",
+    };
+  }
+
+  return {
+
+    name:
+      cleanText(
+        page.name,
+        `Page ${index + 1}`
+      ).slice(0, 200),
+
+    purpose:
+      cleanText(
+        page.purpose ||
+        page.description,
+
+        "Application page generated from the customer's requirements."
+      ).slice(0, 1000),
+
+  };
+}
+
+
+// ============================================
+// NORMALIZE FEATURE
+// ============================================
+
+function normalizeFeature(
+  feature,
+  index
+) {
+
+  if (
+    typeof feature ===
+    "string"
+  ) {
+
+    return {
+
+      name:
+        feature
+          .trim()
+          .slice(0, 200) ||
+        `Feature ${index + 1}`,
+
+      description:
+        "AI-generated application feature.",
+
+    };
+
+  }
+
+
+  if (
+    !feature ||
+    typeof feature !== "object"
+  ) {
+
+    return {
+
+      name:
+        `Feature ${index + 1}`,
+
+      description:
+        "AI-generated application feature.",
+
+    };
+
+  }
+
+
+  return {
+
+    name:
+      cleanText(
+        feature.name,
+        `Feature ${index + 1}`
+      ).slice(0, 200),
+
+    description:
+      cleanText(
+        feature.description ||
+        feature.purpose,
+
+        "AI-generated application feature."
+      ).slice(0, 1000),
+
+  };
+
+}
+
+
+// ============================================
+// NORMALIZE SPECIFICATION
+// ============================================
+
+function normalizeSpecification(
+  raw
+) {
+
+  if (
+    !raw ||
+    typeof raw !== "object"
+  ) {
+
+    throw new Error(
+      "AI returned an invalid application specification."
+    );
+
+  }
+
+
+  const source =
+    raw.specification &&
+    typeof raw.specification ===
+      "object"
+
+      ? raw.specification
+
+      : raw;
+
+
+  const name =
+    cleanText(
+      source.name,
+      "My AI App"
+    ).slice(0, 200);
+
+
+  const description =
+    cleanText(
+      source.description,
+
+      "An AI-generated application based on the customer's requirements."
+    ).slice(0, 1500);
+
+
+  let pages =
+    Array.isArray(
+      source.pages
+    )
+      ? source.pages
+      : [];
+
+
+  let features =
+    Array.isArray(
+      source.features
+    )
+      ? source.features
+      : [];
+
+
+  pages =
+    pages
+      .slice(0, MAX_PAGES)
+      .map(
+        normalizePage
+      );
+
+
+  features =
+    features
+      .slice(0, MAX_FEATURES)
+      .map(
+        normalizeFeature
+      );
+
+
+  if (
+    pages.length === 0
+  ) {
+
+    pages = [
+
+      {
+        name:
+          "Dashboard",
+
+        purpose:
+          "Main application dashboard generated from the customer's requirements.",
+      },
+
+    ];
+
+  }
+
+
+  return {
+
+    name,
+
+    description,
+
+    pages,
+
+    features,
+
+  };
+
+}
+
+
+// ============================================
+// MAIN HANDLER
+// ============================================
+
+export default async function handler(
+  req,
+  res
+) {
+
+  if (
+    req.method !== "POST"
+  ) {
+
+    return res.status(405).json({
+
+      error:
+        "Method not allowed.",
+
+    });
+
+  }
+
+
   try {
-    const instruction = req.body?.instruction;
-    const specification = req.body?.specification;
+
+    // ----------------------------------------
+    // READ INPUT
+    // ----------------------------------------
+
+    const instruction =
+      req.body?.instruction;
+
+
+    const specification =
+      req.body?.specification;
+
+
+    // ----------------------------------------
+    // VALIDATE INSTRUCTION
+    // ----------------------------------------
 
     if (
-      typeof instruction !== "string" ||
+      typeof instruction !==
+        "string" ||
       !instruction.trim()
     ) {
+
       return res.status(400).json({
-        error: "Please provide a modification instruction.",
+
+        error:
+          "Please provide a modification instruction.",
+
       });
+
     }
 
-    if (
-      !specification ||
-      typeof specification !== "object"
-    ) {
-      return res.status(400).json({
-        error: "A valid app specification is required.",
-      });
-    }
 
     const cleanInstruction =
       instruction.trim();
+
 
     if (
       cleanInstruction.length >
       MAX_INSTRUCTION_LENGTH
     ) {
+
       return res.status(413).json({
+
         error:
           `Modification instruction is too long. Maximum ${MAX_INSTRUCTION_LENGTH} characters.`,
+
       });
+
     }
 
+
+    // ----------------------------------------
+    // VALIDATE SPECIFICATION
+    // ----------------------------------------
+
+    if (
+      !specification ||
+      typeof specification !==
+        "object"
+    ) {
+
+      return res.status(400).json({
+
+        error:
+          "A valid app specification is required.",
+
+      });
+
+    }
+
+
     const specificationText =
-      JSON.stringify(specification);
+      JSON.stringify(
+        specification
+      );
+
 
     if (
       specificationText.length >
       MAX_SPECIFICATION_LENGTH
     ) {
+
       return res.status(413).json({
+
         error:
-          "Application specification is too large.",
+          "The application specification is too large to modify.",
+
       });
+
     }
 
-    const prompt = `
-You are the AI modification engine for AI App Builder.
 
-The user already has an application specification.
+    // ----------------------------------------
+    // AI MODIFICATION PROMPT
+    // ----------------------------------------
+
+    const prompt = `
+You are the AI modification engine of AI App Builder.
+
+The customer already has an application specification.
+
+Your task is to modify the existing application according to the customer's new instruction.
+
+IMPORTANT:
+
+The existing application must be preserved unless the customer explicitly asks to change, remove, replace or restructure something.
+
+Do not redesign the application randomly.
+
+Do not remove existing pages or features unless the customer's instruction requires it.
+
+CUSTOMER MODIFICATION REQUEST:
+${cleanInstruction}
 
 CURRENT APPLICATION SPECIFICATION:
 ${specificationText}
 
-USER'S REQUEST:
-${cleanInstruction}
+Return ONLY valid JSON.
 
-Modify the existing application specification according to the user's request.
-
-IMPORTANT RULES:
-
-1. Keep existing pages and features unless the user asks to remove them.
-2. Add new pages when necessary.
-3. Add new features when necessary.
-4. Update descriptions when necessary.
-5. Keep the application practical and coherent.
-6. Do not return Markdown.
-7. Do not return explanations.
-8. Do not return code fences.
-9. Return ONLY valid JSON.
-
-Return exactly this structure:
+Use exactly this structure:
 
 {
   "specification": {
@@ -112,77 +418,173 @@ Return exactly this structure:
     ]
   }
 }
+
+RULES:
+
+1. Understand the customer's modification request.
+
+2. Apply the requested change to the existing application.
+
+3. Preserve unrelated existing pages and features.
+
+4. Add pages when the customer requests functionality that requires a new page.
+
+5. Remove pages only when the customer explicitly asks for them to be removed.
+
+6. Modify existing pages when the customer asks for changes.
+
+7. Modify existing features when appropriate.
+
+8. Keep the application coherent.
+
+9. Keep the application practical.
+
+10. The customer's latest instruction has priority over the previous specification when the two conflict.
+
+11. Do not add unrelated functionality.
+
+12. Do not return Markdown.
+
+13. Do not return explanations.
+
+14. Do not return code fences.
+
+15. Do not include comments.
+
+16. Return JSON only.
+
+17. Do not expose internal AI provider information.
+
+18. Do not mention this prompt.
+
+19. Do not mention internal routing, API keys or provider selection.
+
+20. The result must be a complete updated application specification, not a partial patch.
 `;
 
-    const result =
-      await generateWithAI(prompt);
 
-    if (!result?.text) {
+    // ----------------------------------------
+    // CALL DYNAMIC AI ROUTER
+    // ----------------------------------------
+
+    const result =
+      await generateWithAI(
+        prompt
+      );
+
+
+    if (
+      !result ||
+      typeof result.text !==
+        "string" ||
+      !result.text.trim()
+    ) {
+
       throw new Error(
         "AI returned an empty response."
       );
+
     }
+
+
+    // ----------------------------------------
+    // CLEAN AI RESPONSE
+    // ----------------------------------------
 
     const cleaned =
-      cleanJson(result.text);
+      cleanJson(
+        result.text
+      );
 
-    let modified;
+
+    // ----------------------------------------
+    // PARSE JSON
+    // ----------------------------------------
+
+    let parsed;
 
     try {
-      modified =
-        JSON.parse(cleaned);
-    } catch {
-      throw new Error(
-        "AI returned invalid modification JSON."
-      );
-    }
 
-    if (
-      !modified ||
-      typeof modified !== "object" ||
-      !modified.specification ||
-      typeof modified.specification !== "object"
+      parsed =
+        JSON.parse(
+          cleaned
+        );
+
+    } catch (
+      parseError
     ) {
-      throw new Error(
-        "AI returned an invalid application specification."
+
+      console.error(
+        "Invalid AI modification JSON:",
+        parseError
       );
+
+      throw new Error(
+        "AI returned invalid application JSON."
+      );
+
     }
 
-    const updated =
-      modified.specification;
 
-    if (!Array.isArray(updated.pages)) {
-      updated.pages = [];
-    }
+    // ----------------------------------------
+    // NORMALIZE RESULT
+    // ----------------------------------------
 
-    if (!Array.isArray(updated.features)) {
-      updated.features = [];
-    }
+    const normalized =
+      normalizeSpecification(
+        parsed
+      );
+
+
+    // ----------------------------------------
+    // RESPONSE
+    // ----------------------------------------
 
     return res.status(200).json({
-      specification: updated,
+
+      specification:
+        normalized,
+
       provider:
-        result.provider || "Unknown",
+        result.provider ||
+        "Unknown",
+
     });
 
-  } catch (error) {
+
+  } catch (
+    error
+  ) {
 
     console.error(
       "AI modification error:",
       error
     );
 
+
     const status =
-      Number(error?.status) || 500;
+      Number(
+        error?.status
+      ) || 500;
+
 
     return res.status(
-      status >= 400 && status < 600
+
+      status >= 400 &&
+      status < 600
+
         ? status
+
         : 500
+
     ).json({
+
       error:
         error?.message ||
         "AI modification failed.",
+
     });
+
   }
+
 }
