@@ -8,7 +8,7 @@ const FREE_FIRST_PROVIDERS = [
   },
   {
     provider: "gemini",
-    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    model: process.env.GEMINI_MODEL || "gemini-3.6-flash",
     local: false,
     priority: 2,
     enabled: () => Boolean(process.env.GEMINI_API_KEY),
