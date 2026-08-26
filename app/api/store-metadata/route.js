@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "../../../lib/supabase/server.js";
 
 const clean = (value, max) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
 
@@ -43,6 +44,10 @@ function buildMetadata({ appName, description, category, keywords, language = "e
 
 export async function POST(request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+
     const body = await request.json();
     if (!body?.appName) return NextResponse.json({ error: "appName is required" }, { status: 400 });
     return NextResponse.json(buildMetadata(body));
