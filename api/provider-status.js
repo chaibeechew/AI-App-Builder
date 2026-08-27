@@ -9,11 +9,12 @@ export default async function handler(req, res) {
     const providers = getProviderStatus();
     return res.status(200).json({
       ok: true,
+      configuredCount: providers.filter((provider) => provider.configured).length,
       providers: providers.map((provider) => ({
         name: provider.name,
         type: provider.type,
-        configured: true,
-        cooldown: provider.cooldown,
+        configured: Boolean(provider.configured),
+        available: Boolean(provider.available),
         failures: provider.failures,
         success: provider.success,
       })),
