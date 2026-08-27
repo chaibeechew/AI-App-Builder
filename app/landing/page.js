@@ -27,7 +27,7 @@ export default function LandingPage() {
         <h1>Your idea.<br /><span>Your app.</span></h1>
         <p>Turn a simple idea into a real app in minutes. No coding experience required.</p>
         <div className="actions">
-          <Link className="primary" href="/auth?next=/">Create My App →</Link>
+          <Link className="primary" href="/">Create My App →</Link>
           <a className="secondary" href="#demo">See How It Works</a>
         </div>
         <div className="trust">English · 简体中文 · 繁體中文 · 日本語 · 한국어 · ไทย</div>
