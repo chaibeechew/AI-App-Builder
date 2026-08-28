@@ -12,20 +12,12 @@ export const SOOLENAI_VOICE = Object.freeze({
   },
   provider: "elevenlabs",
   model: "eleven_multilingual_v2",
-  languages: [
-    "zh",
-    "en",
-    "ja",
-    "fr",
-    "ms",
-    "es",
-    "de",
-  ],
+  languages: ["zh", "en", "ja", "fr", "ms", "es", "de"],
   voiceIdEnv: "SOOLENAI_VOICE_ID",
 });
 
 export function getSoolenAIVoiceId() {
-  const voiceId = process.env.SOLOENAI_VOICE_ID;
+  const voiceId = process.env.SOOLENAI_VOICE_ID;
   if (!voiceId) {
     throw new Error("SOOLENAI_VOICE_ID is not configured.");
   }
