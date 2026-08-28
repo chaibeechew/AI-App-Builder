@@ -34,6 +34,19 @@ export const CREATE_APP_FLOW = Object.freeze({
   accessibilityProfiles: ["kids", "adult", "senior", "screen_reader", "large_text", "voice_navigation"],
 });
 
+export const USER_FEATURE_CONTROLS = Object.freeze({
+  voiceInput: { userControlled: true, defaultEnabled: false },
+  imageInput: { userControlled: true, defaultEnabled: true },
+  handDrawnSketch: { userControlled: true, defaultEnabled: true },
+  documentUpload: { userControlled: true, defaultEnabled: true },
+  appLanguage: { userControlled: true, defaultEnabled: true },
+  chatMode: { userControlled: true, defaultEnabled: true },
+  voiceOutput: { userControlled: true, defaultEnabled: false },
+  notifications: { userControlled: true, defaultEnabled: true },
+  familyTesting: { userControlled: true, defaultEnabled: false },
+  accessibility: { userControlled: true, defaultEnabled: true },
+});
+
 export const DEVICE_AI_COMPUTE_POLICY = Object.freeze({
   enabled: true,
   mandatoryForFreePlatform: true,
