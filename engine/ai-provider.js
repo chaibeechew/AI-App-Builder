@@ -29,6 +29,7 @@ async function callOpenAICompatible({ baseUrl, apiKey, model, prompt }) {
 async function callGroq(prompt) { return callOpenAICompatible({ baseUrl: "https://api.groq.com/openai/v1", apiKey: process.env.GROQ_API_KEY, model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile", prompt }); }
 async function callCerebras(prompt) { return callOpenAICompatible({ baseUrl: "https://api.cerebras.ai/v1", apiKey: process.env.CEREBRAS_API_KEY, model: process.env.CEREBRAS_MODEL || "llama-3.3-70b", prompt }); }
 async function callDeepSeek(prompt) { return callOpenAICompatible({ baseUrl: "https://api.deepseek.com", apiKey: process.env.DEEPSEEK_API_KEY, model: process.env.DEEPSEEK_MODEL || "deepseek-chat", prompt }); }
+async function callXAI(prompt) { return callOpenAICompatible({ baseUrl: "https://api.x.ai/v1", apiKey: process.env.XAI_API_KEY, model: process.env.XAI_MODEL || "grok-4-1-fast-non-reasoning", prompt }); }
 async function callOpenAI(prompt) { return callOpenAICompatible({ baseUrl: "https://api.openai.com/v1", apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL || "gpt-5.6", prompt }); }
 
 export async function generateWithAI(prompt) {
@@ -39,12 +40,13 @@ export async function generateWithAI(prompt) {
     case "groq": return callGroq(prompt);
     case "cerebras": return callCerebras(prompt);
     case "deepseek": return callDeepSeek(prompt);
+    case "xai": return callXAI(prompt);
     case "openai": return callOpenAI(prompt);
-    default: throw new Error(`Unsupported AI provider: ${provider}`);
+    default: throw new Error(`Unsupported AI provider: ${provider || "none"}`);
   }
 }
 
-const FALLBACK_ORDER = ["ollama", "gemini", "groq", "cerebras", "deepseek", "openai"];
+const FALLBACK_ORDER = ["gemini", "groq", "cerebras", "deepseek", "xai", "openai", "ollama"];
 
 function isConfigured(provider) {
   const keys = {
@@ -53,6 +55,7 @@ function isConfigured(provider) {
     groq: process.env.GROQ_API_KEY,
     cerebras: process.env.CEREBRAS_API_KEY,
     deepseek: process.env.DEEPSEEK_API_KEY,
+    xai: process.env.XAI_API_KEY,
     openai: process.env.OPENAI_API_KEY,
   };
   return Boolean(keys[provider]);
