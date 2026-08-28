@@ -35,6 +35,8 @@ export const PRODUCT_POLICY = Object.freeze({
       enterprise: { priceUsd: 499 },
       futureRevenueShareAfterBuyoutPercent: 0,
       selectionRequiredBeforePublish: true,
+      unavailableAfterPublish: true,
+      cannotBePurchasedAfterPublish: true,
     },
   },
   coreFlow: ["create", "modify", "preview", "test", "publish", "rollback"],
@@ -48,4 +50,5 @@ export const BUYOUT_LICENSE_POLICY = Object.freeze({
   enterprisePriceUsd: 499,
   revenueShareAfterBuyoutPercent: 0,
   mustSelectBeforePublish: true,
+  publishedAppBuyoutAvailable: false,
 });
