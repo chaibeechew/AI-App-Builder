@@ -1,0 +1,31 @@
+name: Security 50 Regression
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_ref:
+        description: 'Branch to test'
+        required: true
+        default: 'feature/soolen-staging-2'
+        type: string
+
+jobs:
+  security-50:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.test_ref }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Run 50 security/provider regression cases
+        run: node tests/security/provider-routing-50.js
+      - name: Build application
+        run: npm run build
