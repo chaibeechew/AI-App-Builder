@@ -28,6 +28,19 @@ export const PRODUCT_POLICY = Object.freeze({
       appliesTo: "app_revenue_only",
       excludesCustomerProductOrServiceTransactions: true,
     },
+    referral: {
+      enabled: true,
+      rewardType: "ai_app_credits",
+      cashPayout: false,
+      transferable: false,
+      cryptoExchange: false,
+      externalUse: false,
+      platformOnly: true,
+      allowedUses: ["create_app", "modify_app", "ai_processing", "premium_creation_tools"],
+      doesNotChangeRevenueShare: true,
+      doesNotChangeBuyoutLicense: true,
+      antiFraudRequired: true,
+    },
     buyout: {
       oneAppOneLicense: true,
       personal: { priceUsd: 49 },
@@ -51,4 +64,15 @@ export const BUYOUT_LICENSE_POLICY = Object.freeze({
   revenueShareAfterBuyoutPercent: 0,
   mustSelectBeforePublish: true,
   publishedAppBuyoutAvailable: false,
+});
+
+export const REFERRAL_CREDIT_POLICY = Object.freeze({
+  rewardType: "ai_app_credits",
+  redeemableOnlyInsidePlatform: true,
+  cashPayout: false,
+  transferable: false,
+  cryptoExchange: false,
+  externalUse: false,
+  allowedUses: ["create_app", "modify_app", "ai_processing", "premium_creation_tools"],
+  antiFraudRequired: true,
 });
