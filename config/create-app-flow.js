@@ -34,6 +34,52 @@ export const CREATE_APP_FLOW = Object.freeze({
   accessibilityProfiles: ["kids", "adult", "senior", "screen_reader", "large_text", "voice_navigation"],
 });
 
+export const DEVICE_AI_COMPUTE_POLICY = Object.freeze({
+  enabled: true,
+  mandatoryForFreePlatform: true,
+  customerToggleAvailable: false,
+  purpose: "supported_local_ai_tasks_to_reduce_cloud_usage_and_help_keep_free_platform_available",
+  allowedTasks: [
+    "ocr",
+    "image_preprocessing",
+    "local_small_model_inference",
+    "ui_processing",
+    "data_preprocessing",
+    "app_testing",
+  ],
+  safeguards: {
+    no_cryptocurrency_mining: true,
+    no_unrelated_computation: true,
+    no_malicious_resource_use: true,
+    pauseWhenLowBattery: true,
+    pauseWhenDeviceOverheats: true,
+    pauseWhenSystemResourcesAreInsufficient: true,
+    respectOperatingSystemBackgroundLimits: true,
+    avoidHighLoadDuringImportantUserOperations: true,
+  },
+  disclosure: {
+    shownToCustomer: true,
+    requiredForFreePlatform: true,
+  },
+});
+
+export const FREE_PLATFORM_TECHNICAL_CONTRIBUTION = Object.freeze({
+  enabled: true,
+  anonymizedTechnicalAndPerformanceDataMayBeUsed: true,
+  purposes: ["technology_improvement", "performance", "safety", "reliability"],
+  prohibitedAutomaticTrainingData: [
+    "customer_content",
+    "personal_information",
+    "business_data",
+    "uploaded_files",
+    "private_photos",
+    "customer_voice_content",
+    "app_database_data",
+    "customer_lists",
+  ],
+  explicitAuthorizationRequiredForCustomerContentTraining: true,
+});
+
 export const PUBLISH_APPLICATION_ASSISTANT = Object.freeze({
   enabled: true,
   prefill: {
