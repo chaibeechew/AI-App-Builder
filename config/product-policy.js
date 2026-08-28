@@ -50,6 +50,18 @@ export const PRODUCT_POLICY = Object.freeze({
       selectionRequiredBeforePublish: true,
       unavailableAfterPublish: true,
       cannotBePurchasedAfterPublish: true,
+      sourceCodeAccess: {
+        enabled: true,
+        storedInsideCustomerAppFolder: true,
+        hiddenFolder: true,
+        folderPurpose: "customer_owned_buyout_source_code",
+        visibleToNonBuyoutCustomers: false,
+        writableByNonBuyoutCustomers: false,
+        readableByBuyoutCustomer: true,
+        writableByBuyoutCustomer: true,
+        accessEnforcedServerSide: true,
+        uiHiddenIsNotSecurityBoundary: true,
+      },
     },
   },
   coreFlow: ["create", "modify", "preview", "test", "publish", "rollback"],
@@ -64,6 +76,15 @@ export const BUYOUT_LICENSE_POLICY = Object.freeze({
   revenueShareAfterBuyoutPercent: 0,
   mustSelectBeforePublish: true,
   publishedAppBuyoutAvailable: false,
+  sourceCodeFolder: {
+    storedInsideCustomerAppFolder: true,
+    hiddenFolder: true,
+    buyoutCustomerCanRead: true,
+    buyoutCustomerCanWrite: true,
+    nonBuyoutCustomerCanRead: false,
+    nonBuyoutCustomerCanWrite: false,
+    serverSideAccessControlRequired: true,
+  },
 });
 
 export const REFERRAL_CREDIT_POLICY = Object.freeze({
