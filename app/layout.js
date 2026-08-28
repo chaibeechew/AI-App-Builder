@@ -1,10 +1,11 @@
 import "./globals.css";
 import "./landscape-theme.css";
 import AccountNav from "./components/AccountNav";
+import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 
 export const metadata = {
   title: "AI App Builder",
-  description: "Create powerful apps with AI",
+  description: "Create powerful apps with Soolen AI",
 };
 
 export default function RootLayout({ children }) {
@@ -13,6 +14,7 @@ export default function RootLayout({ children }) {
       <body>
         <AccountNav />
         {children}
+        <SoolenVoiceAssistant />
       </body>
     </html>
   );
