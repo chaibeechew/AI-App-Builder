@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { selectProvider, selectProviderBeforeLimit, AI_ROUTING_POLICY } from "../lib/ai/provider-router.js";
+import { selectProvider, selectProviderBeforeLimit, AI_ROUTING_POLICY } from "../../lib/ai/provider-router.js";
 
 const providers = ["local-llama", "gemini", "deepseek"];
 
