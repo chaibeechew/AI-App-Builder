@@ -20,9 +20,12 @@ export async function POST(request) {
 
     const body = await request.json();
     const idea = String(body?.idea || body?.prompt || "").trim();
+    const voiceTranscript = String(body?.voiceTranscript || body?.transcript || "").trim();
+    const referenceImages = Array.isArray(body?.referenceImages || body?.imageRefs) ? (body.referenceImages || body.imageRefs).filter((v) => typeof v === "string" && v.trim()).slice(0, 10) : [];
     chargeRequestId = String(body?.requestId || crypto.randomUUID()).trim();
-    if (!idea) return NextResponse.json({ success:false,error:"Please describe the app you want to build." }, { status:400 });
-    if (idea.length > 8000) return NextResponse.json({ success:false,error:"App description is too long." }, { status:413 });
+    if (!idea && !voiceTranscript) return NextResponse.json({ success:false,error:"Please describe the app you want to build." }, { status:400 });
+    const combinedInput = [idea, voiceTranscript].filter(Boolean).join("\n\n");
+    if (combinedInput.length > 8000) return NextResponse.json({ success:false,error:"App description is too long." }, { status:413 });
 
     const { data: entitlement, error: entitlementError } = await supabase.rpc("consume_app_builder_entitlement", { p_operation:"create", p_app_id:null });
     if (entitlementError) throw entitlementError;
@@ -35,7 +38,7 @@ export async function POST(request) {
       charged = charge?.charged !== false;
     } else entitlementSource = entitlement.source;
 
-    const result = await runAutonomousEngine(idea);
+    const result = await runAutonomousEngine(idea || voiceTranscript, { voiceTranscript, referenceImages });
     const normalized = normalizeAppSpec(result?.specification);
     const test = selfTestGeneratedApp(normalized);
     if (!test.ok) throw new Error(`Generated app failed self-test: ${test.errors.join("; ")}`);
@@ -43,11 +46,9 @@ export async function POST(request) {
     const appName = String(specification.name || "Untitled App").trim();
     const appDescription = String(specification.description || "").trim();
 
-    // Persist the generated app before returning success. The explicit owner filter and
-    // returning row make the save operation observable and prevent a false APP READY state.
     const { data: app, error: appError } = await supabase
       .from("apps")
-      .insert({ owner_id:user.id,name:appName,description:appDescription,source_prompt:idea,visibility:"private",publish_status:"draft" })
+      .insert({ owner_id:user.id,name:appName,description:appDescription,source_prompt:combinedInput,visibility:"private",publish_status:"draft" })
       .select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status")
       .single();
     if (appError) throw new Error(`App save failed: ${appError.message}`);
@@ -55,7 +56,7 @@ export async function POST(request) {
 
     const { data: version, error: versionError } = await supabase
       .from("app_versions")
-      .insert({ app_id:app.id,version_no:1,specification,change_summary:"Initial AI-generated application",created_by:user.id })
+      .insert({ app_id:app.id,version_no:1,specification,change_summary:"Initial Soolen AI-generated application",created_by:user.id })
       .select("id,version_no,created_at")
       .single();
     if (versionError) throw new Error(`App version save failed: ${versionError.message}`);
