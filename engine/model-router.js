@@ -35,23 +35,16 @@ const FREE_FIRST_PROVIDERS = [
     enabled: () => Boolean(process.env.DEEPSEEK_API_KEY),
   },
   {
-    provider: "xai",
-    model: process.env.XAI_MODEL || "grok-4-1-fast-non-reasoning",
-    local: false,
-    priority: 6,
-    enabled: () => Boolean(process.env.XAI_API_KEY),
-  },
-  {
     provider: "openai",
     model: process.env.OPENAI_MODEL || "gpt-5.6",
     local: false,
-    priority: 7,
+    priority: 6,
     enabled: () => Boolean(process.env.OPENAI_API_KEY),
   },
 ];
 
 export function getProvider() {
-  const configured = (process.env.AI_PROVIDER || "").trim().toLowerCase();
+  const configured = (process.env.AI_PROVIDER || "").toLowerCase();
 
   if (configured && configured !== "auto") {
     return configured;
