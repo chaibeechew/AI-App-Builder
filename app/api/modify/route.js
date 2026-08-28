@@ -3,9 +3,24 @@ import { createClient } from "../../../lib/supabase/server.js";
 import { normalizeAppSpec } from "../../../lib/generator/runtime-guard.js";
 import { buildAppExplanation } from "../../../lib/generator/app-explanation.js";
 import { selfTestGeneratedApp } from "../../../lib/generator/self-test.js";
+import { generateWithFallback } from "../../../engine/ai-provider.js";
 
-const GEMINI_MODEL = "gemini-3.6-flash";
 const MODIFY_CREDIT_COST = Math.max(1, Number(process.env.APP_MODIFY_CREDIT_COST || 5));
+
+function extractJson(text) {
+  const raw = String(text || "").trim();
+  try { return JSON.parse(raw); } catch {}
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenced) {
+    try { return JSON.parse(fenced[1]); } catch {}
+  }
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    try { return JSON.parse(raw.slice(start, end + 1)); } catch {}
+  }
+  throw new Error("AI returned invalid JSON.");
+}
 
 export async function POST(request) {
   let supabase=null, charged=false, chargeRequestId=null;
@@ -34,18 +49,13 @@ export async function POST(request) {
       charge=c;charged=c?.charged!==false;
     }
 
-    const apiKey=process.env.GEMINI_API_KEY;
-    if(!apiKey)throw new Error("AI service is not configured.");
     const prompt=`You are the modification engine for an AI App Builder. Modify the existing app according to this instruction:\n"${instruction}"\nCurrent specification:\n${JSON.stringify(specification,null,2)}\nReturn ONLY valid JSON with name, description, pages, features, dataModels and actions. Preserve existing functionality unless the instruction requires a change. No markdown.`;
-    const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:.2,responseMimeType:"application/json"}})});
-    const data=await response.json();
-    if(!response.ok)throw new Error("AI modification service request failed.");
-    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text;if(!text)throw new Error("AI returned an empty modification response.");
-    let modified;try{modified=JSON.parse(text);}catch{throw new Error("AI returned invalid JSON.");}
+    const ai = await generateWithFallback(prompt);
+    const modified=extractJson(ai.result);
     const normalized=normalizeAppSpec(modified);const test=selfTestGeneratedApp(normalized);if(!test.ok)throw new Error(`Modified app failed self-test: ${test.errors.join("; ")}`);
     modified=test.normalizedSpec;
     let savedVersion=null;
     if(appId){const {data:latest,error:latestError}=await supabase.from("app_versions").select("version_no").eq("app_id",appId).order("version_no",{ascending:false}).limit(1).maybeSingle();if(latestError)throw latestError;const nextVersion=(latest?.version_no||0)+1;const {data:version,error:versionError}=await supabase.from("app_versions").insert({app_id:appId,version_no:nextVersion,specification:modified,change_summary:instruction,created_by:user.id}).select("id,version_no,created_at").single();if(versionError)throw versionError;savedVersion=version;const {error:updateError}=await supabase.from("apps").update({name:String(modified.name||"Untitled App"),description:String(modified.description||""),current_version_id:version.id}).eq("id",appId).eq("owner_id",user.id);if(updateError)throw updateError;}
-    return NextResponse.json({success:true,specification:modified,appId,version:savedVersion,explanation:buildAppExplanation(modified),selfTest:test,entitlement:{source:entitlementSource,charged},credits:{charged:charged?MODIFY_CREDIT_COST:0,requestId:chargeRequestId,balance:charge?.balance??null}});
+    return NextResponse.json({success:true,provider:ai.provider,specification:modified,appId,version:savedVersion,explanation:buildAppExplanation(modified),selfTest:test,entitlement:{source:entitlementSource,charged},credits:{charged:charged?MODIFY_CREDIT_COST:0,requestId:chargeRequestId,balance:charge?.balance??null}});
   }catch(error){console.error("Modify API error:",error);if(supabase&&charged&&chargeRequestId)await supabase.rpc("refund_ai_credits",{p_request_id:chargeRequestId,p_amount:MODIFY_CREDIT_COST,p_description:"AI modification failed - automatic refund",p_metadata:{operation:"modify"}});return NextResponse.json({error:"Unable to modify the app. Any charged credits were automatically refunded."},{status:500});}
 }
