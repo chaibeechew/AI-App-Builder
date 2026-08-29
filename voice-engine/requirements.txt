@@ -1,0 +1,7 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+pydantic==2.11.7
+requests==2.32.4
+torch==2.7.1
+torchaudio==2.7.1
+chatterbox-tts==0.1.2
