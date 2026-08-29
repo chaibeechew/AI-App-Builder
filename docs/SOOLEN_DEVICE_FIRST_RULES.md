@@ -38,11 +38,13 @@ The Automation Engine coordinates build, test, repair, preview, packaging and me
 
 All executable build steps must run in a constrained sandbox with an allowlist, resource limits and explicit task scope. Generated code must not receive unrestricted host-system access.
 
-## 5. Video v1 rule
+## 5. Video duration is device-driven
 
-Soolen AI Video v1 has a maximum standard output duration of 30 seconds.
+Soolen AI must not impose a permanent architectural 30-second video limit. Video duration is a user choice subject to available authorized compute, storage, memory, battery/power, thermal limits and model/runtime capability.
 
-Long generation should be decomposed into short scenes where useful, for example six 5-second scenes, and then assembled. Device capability determines resolution, concurrency and model size.
+The product may offer convenient presets such as 10 seconds, 30 seconds, 1 minute and 3 minutes, while allowing longer durations when the active runtime can support them. A device that cannot efficiently process the requested duration should not silently fail; Soolen AI should estimate the workload and offer lower resolution, smaller models, sequential rendering, longer processing time, or an authorized compute-pool option.
+
+Long generation should be decomposed into short scenes/chunks and assembled automatically. For example, a 3-minute project can be planned as many independently renderable scenes. Device capability determines scene size, resolution, concurrency and model size.
 
 The pipeline may include text-to-video, image-to-video, photo animation, video editing, real-person-to-cartoon stylization, cartoon-to-realistic-human-style interpretation, authorized voice processing, AI narration, music, captions and final MP4 assembly.
 
