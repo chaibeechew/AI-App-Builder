@@ -1,5 +1,6 @@
 import "./globals.css";
 import "./landscape-theme.css";
+import "./modern-product-theme.css";
 import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 
