@@ -1,10 +1,11 @@
-// Hardened executor boundary. A deployment adapter must supply an actual container/browser backend.
-const BLOCKED_PACKAGES=["child_process","node:child_process","dockerode","ssh2","puppeteer-extra-plugin-stealth"];
-export function dependencySecurity(spec={}){const text=JSON.stringify(spec);const blocked=BLOCKED_PACKAGES.filter(x=>text.includes(x));return {passed:blocked.length===0,blocked};}
-export function productionGate({build,runtime,security,privacy}={}){const checks={build:build?.passed===true,runtime:runtime?.passed===true,security:security?.passed===true,privacy:privacy?.passed===true};return {passed:Object.values(checks).every(Boolean),checks,status:Object.values(checks).every(Boolean)?"ready-to-preview":"blocked"};}
-export function createExecutor(backend){
- return {
-  async build(ws){const dep=dependencySecurity(ws.specification);if(!dep.passed)return {passed:false,status:"dependency-blocked",errors:dep.blocked.map(x=>`blocked-package:${x}`)};if(typeof backend?.build!=="function")return {passed:null,status:"container-backend-not-connected",errors:["Container backend not connected"]};return backend.build(ws);},
-  async test(ws,plan){if(typeof backend?.test!=="function")return {passed:null,status:"browser-backend-not-connected",errors:["Browser backend not connected"]};return backend.test(ws,plan);}
- };
-}
+// Hardened executor boundary. Dependency policy inspects manifests instead of arbitrary specification text.
+const BLOCKED_DEPENDENCIES=new Set(["dockerode","ssh2","puppeteer-extra-plugin-stealth"]);
+const BLOCKED_BUILTINS=["child_process","node:child_process"];
+const ALLOWED_SCRIPTS=new Set(["dev","build","start","test"]);
+function sourceFiles(spec={}){return Array.isArray(spec.sourceFiles)?spec.sourceFiles:Array.isArray(spec.files)?spec.files:[];}
+function manifest(spec={}){const file=sourceFiles(spec).find(f=>String(f?.path||"")==="package.json");if(!file)return {value:null,error:"PACKAGE_JSON_MISSING"};try{return {value:JSON.parse(String(file.content||"{}")),error:null};}catch{return {value:null,error:"PACKAGE_JSON_INVALID"};}}
+function dependencyNames(pkg={}){return [...Object.keys(pkg.dependencies||{}),...Object.keys(pkg.devDependencies||{}),...Object.keys(pkg.optionalDependencies||{})];}
+export function dependencySecurity(spec={}){const errors=[],m=manifest(spec);if(m.error)errors.push(m.error);const pkg=m.value||{},deps=dependencyNames(pkg);for(const name of deps)if(BLOCKED_DEPENDENCIES.has(name))errors.push(`BLOCKED_DEPENDENCY:${name}`);for(const name of deps)if(/^(file:|git\+|https?:)/i.test(String(pkg.dependencies?.[name]||pkg.devDependencies?.[name]||pkg.optionalDependencies?.[name]||"")))errors.push(`UNAPPROVED_DEPENDENCY_SOURCE:${name}`);for(const [name,value] of Object.entries(pkg.scripts||{})){if(!ALLOWED_SCRIPTS.has(name))errors.push(`UNAPPROVED_SCRIPT:${name}`);if(/[;&|`]|
+|\r/.test(String(value)))errors.push(`UNSAFE_SCRIPT:${name}`);}for(const f of sourceFiles(spec)){const path=String(f?.path||""),content=String(f?.content||"");if(/\.(?:js|jsx|mjs|cjs|ts|tsx)$/.test(path)){for(const mod of BLOCKED_BUILTINS)if(new RegExp(`(?:from\\s*["']${mod.replace(":","\\:")}["']|require\\(\\s*["']${mod.replace(":","\\:")}["']\\s*\\))`).test(content))errors.push(`BLOCKED_RUNTIME_IMPORT:${path}:${mod}`);}}return {passed:errors.length===0,blocked:errors,status:errors.length?"dependency-policy-blocked":"dependency-policy-passed"};}
+export function productionGate({build,runtime,security,privacy}={}){const checks={build:build?.passed===true,runtime:runtime?.passed===true,security:security?.passed===true,privacy:privacy?.passed===true};const passed=Object.values(checks).every(Boolean);return {passed,checks,status:passed?"ready-to-preview":"blocked"};}
+export function createExecutor(backend){return {async build(ws){const dep=dependencySecurity(ws.specification);if(!dep.passed)return {passed:false,status:"dependency-blocked",errors:dep.blocked};if(typeof backend?.build!=="function")return {passed:null,status:"container-backend-not-connected",errors:["Container backend not connected"]};return backend.build(ws);},async test(ws,plan){if(typeof backend?.test!=="function")return {passed:null,status:"browser-backend-not-connected",errors:["Browser backend not connected"]};return backend.test(ws,plan);}};}
