@@ -9,7 +9,7 @@ import torch
 import torchaudio
 from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
-app = FastAPI(title="SoolenAI Open Voice Engine", version="0.1.0")
+app = FastAPI(title="SoolenAI Open Voice Engine", version="0.1.1")
 MODEL = None
 LANGUAGE_MAP = {"zh": "zh", "en": "en", "ja": "ja", "fr": "fr", "ms": "ms", "es": "es", "de": "de"}
 
@@ -23,7 +23,7 @@ def get_model():
     global MODEL
     if MODEL is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        MODEL = ChatterboxMultilingualTTS.from_pretrained(device=device)
+        MODEL = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
     return MODEL
 
 def download_sample(url: str) -> str:
@@ -43,7 +43,7 @@ def download_sample(url: str) -> str:
 
 @app.get("/health")
 def health():
-    return {"ok": True, "engine": "chatterbox_multilingual", "voice": "soolenai"}
+    return {"ok": True, "engine": "chatterbox_multilingual_v3", "voice": "soolenai"}
 
 @app.post("/tts")
 def tts(req: TTSRequest):
