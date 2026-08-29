@@ -8,6 +8,10 @@ const MAX_VIDEO=200*1024*1024;
 const imageTasks=new Set(["animate-photo","restyle-photo","real-to-cartoon","cartoon-to-real"]);
 const videoTasks=new Set(["edit-video","real-video-to-cartoon","cartoon-video-to-real"]);
 
+function parseJson(value,fallback={}){
+ try{return value?JSON.parse(String(value)):fallback;}catch{return fallback;}
+}
+
 export async function POST(request){
  try{
   const supabase=await createClient();
@@ -26,6 +30,9 @@ export async function POST(request){
   const music=String(form.get("music"))==="true";
   const captions=String(form.get("captions"))==="true";
   const consent=String(form.get("consent"))==="true";
+  const executionTarget=String(form.get("executionTarget")||"device");
+  const preferredChunkSeconds=Number(form.get("preferredChunkSeconds")||15);
+  const deviceCapabilities=parseJson(form.get("deviceCapabilities"),{});
   const referenceImage=form.get("referenceImage");
   const sourceVideo=form.get("sourceVideo");
   const voiceFile=form.get("voiceFile");
@@ -54,13 +61,14 @@ export async function POST(request){
   const transformations={
    "real-to-cartoon":{inputType:"real-person-image",outputType:"cartoon-stylized",preserve:["identity","pose","clothing","composition"]},
    "cartoon-to-real":{inputType:"cartoon-or-illustration",outputType:"realistic-human-style",preserve:["character-design","costume","colors","expression","composition"]},
-   "real-video-to-cartoon":{inputType:"real-person-video",outputType:"cartoon-stylized-video",preserve:["identity","motion","timing","camera","audio"]},
-   "cartoon-video-to-real":{inputType:"cartoon-video",outputType:"realistic-human-style-video",preserve:["character-design","motion","timing","camera","audio"]}
+   "real-video-to-cartoon":{inputType:"real-person-video",outputType:"cartoon-stylized-video",preserve:["identity","motion","timing","camera","audio","scene-continuity"]},
+   "cartoon-video-to-real":{inputType:"cartoon-video",outputType:"realistic-human-style-video",preserve:["character-design","motion","timing","camera","audio","scene-continuity"]}
   };
   const transformation=transformations[task]||null;
 
   const result=await generateSoolenVideo({
    prompt,task,mode,duration,language,voiceSource,voice,style,music,captions,userId:user.id,
+   executionTarget,preferredChunkSeconds,deviceCapabilities,
    transformation:transformation?JSON.stringify(transformation):null,
    referenceImage:hasImage?referenceImage:null,
    sourceVideo:hasVideo?sourceVideo:null,
