@@ -1,0 +1,235 @@
+/* AI App Builder — modern product visual system
+   Visual direction: premium nature + glass UI + contemporary product design.
+   This layer is intentionally independent from the app logic so visual polish can evolve safely.
+*/
+:root {
+  --aib-ink: #08231d;
+  --aib-deep: #061915;
+  --aib-green: #087a52;
+  --aib-green-2: #11a36d;
+  --aib-mint: #d9f4e7;
+  --aib-gold: #e8c76b;
+  --aib-glass: rgba(8, 35, 29, .70);
+  --aib-glass-light: rgba(255,255,255,.74);
+  --aib-line: rgba(255,255,255,.20);
+}
+
+body {
+  background: var(--aib-deep) !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.app-shell {
+  min-height: 100svh !important;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(255,218,135,.28), transparent 24%),
+    linear-gradient(180deg, #dcebe7 0%, #f3f6f2 45%, #0b3027 100%) !important;
+}
+
+.scene {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255,235,175,.34), transparent 20%),
+    linear-gradient(180deg, #b8d4d7 0%, #dce8e3 38%, #17483d 68%, #061a15 100%) !important;
+}
+
+.scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0,24,19,.20), transparent 24%, transparent 76%, rgba(0,24,19,.18)),
+    radial-gradient(ellipse at 50% 58%, transparent 0 34%, rgba(3,22,17,.25) 100%);
+  pointer-events: none;
+}
+
+.topbar {
+  padding: 20px clamp(18px, 4vw, 46px) !important;
+  background: linear-gradient(180deg, rgba(4,27,22,.62), rgba(4,27,22,0)) !important;
+}
+
+.brand-icon {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 13px !important;
+  background: linear-gradient(145deg, #0c875a, #075b43) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.25) !important;
+}
+
+.brand b { letter-spacing: -.02em !important; }
+
+.ai-ready, .new-button {
+  border: 1px solid rgba(255,255,255,.42) !important;
+  background: rgba(255,255,255,.78) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.14), inset 0 1px rgba(255,255,255,.75) !important;
+  backdrop-filter: blur(18px) saturate(1.2) !important;
+}
+
+.create-screen, .workspace {
+  width: min(1080px, calc(100% - 32px)) !important;
+  max-width: 1080px !important;
+  margin-inline: auto !important;
+}
+
+.hero-copy {
+  text-shadow: 0 2px 20px rgba(0,0,0,.16);
+}
+
+.hero-copy h1 {
+  letter-spacing: -.055em !important;
+  font-weight: 780 !important;
+  font-size: clamp(44px, 7vw, 82px) !important;
+  line-height: .98 !important;
+}
+
+.hero-copy h1 em {
+  color: #087a52 !important;
+  font-style: normal !important;
+}
+
+.create-card,
+.overview,
+.phone-preview,
+.modify-box,
+.mini-preview,
+.success {
+  border: 1px solid rgba(255,255,255,.42) !important;
+  box-shadow: 0 24px 70px rgba(0,35,27,.22), inset 0 1px rgba(255,255,255,.35) !important;
+  backdrop-filter: blur(26px) saturate(1.15) !important;
+}
+
+.create-card {
+  background: rgba(247,250,247,.70) !important;
+  border-radius: 28px !important;
+  padding: clamp(20px, 4vw, 34px) !important;
+}
+
+.create-card textarea {
+  min-height: 150px !important;
+  border: 1px solid rgba(8,61,47,.16) !important;
+  background: rgba(255,255,255,.62) !important;
+  border-radius: 18px !important;
+  font-size: 17px !important;
+  line-height: 1.55 !important;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,.04) !important;
+}
+
+.create-card textarea:focus {
+  outline: 2px solid rgba(17,163,109,.22) !important;
+  border-color: rgba(17,163,109,.58) !important;
+}
+
+.generate, .primary {
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 15px !important;
+  background: linear-gradient(135deg, #087a52, #0ca56f) !important;
+  box-shadow: 0 12px 30px rgba(0,104,71,.28), inset 0 1px rgba(255,255,255,.25) !important;
+  font-weight: 750 !important;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease !important;
+}
+
+.generate:hover, .primary:hover {
+  transform: translateY(-1px) !important;
+  filter: saturate(1.08) brightness(1.03) !important;
+  box-shadow: 0 16px 36px rgba(0,104,71,.34), inset 0 1px rgba(255,255,255,.28) !important;
+}
+
+.secondary {
+  border: 1px solid rgba(255,255,255,.45) !important;
+  background: rgba(255,255,255,.62) !important;
+  color: var(--aib-ink) !important;
+  border-radius: 14px !important;
+  backdrop-filter: blur(18px) !important;
+}
+
+.workspace-head h1 {
+  letter-spacing: -.045em !important;
+  font-weight: 780 !important;
+}
+
+.page-tabs {
+  padding: 6px !important;
+  border-radius: 16px !important;
+  background: rgba(5,34,28,.55) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.page-tabs button {
+  border-radius: 11px !important;
+  transition: background .18s ease, transform .18s ease !important;
+}
+
+.page-tabs button.active {
+  background: rgba(255,255,255,.92) !important;
+  color: var(--aib-ink) !important;
+  box-shadow: 0 5px 18px rgba(0,0,0,.12) !important;
+}
+
+.feature-card, .preview-feature {
+  border: 1px solid rgba(255,255,255,.17) !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.08) !important;
+  transition: transform .18s ease, background .18s ease !important;
+}
+
+.feature-card:hover, .preview-feature:hover {
+  transform: translateY(-2px) !important;
+  background: rgba(255,255,255,.13) !important;
+}
+
+.modify-box {
+  border-radius: 22px !important;
+  background: rgba(5,35,29,.72) !important;
+}
+
+.modify-row input {
+  border-radius: 13px !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background: rgba(255,255,255,.09) !important;
+}
+
+.modify-row button {
+  border-radius: 13px !important;
+  background: linear-gradient(135deg, #087a52, #0ca56f) !important;
+}
+
+.success {
+  border-radius: 28px !important;
+  background: rgba(5,35,29,.72) !important;
+}
+
+.modal-backdrop {
+  backdrop-filter: blur(12px) !important;
+}
+
+.modal {
+  border: 1px solid rgba(255,255,255,.22) !important;
+  box-shadow: 0 30px 100px rgba(0,0,0,.36) !important;
+  backdrop-filter: blur(30px) saturate(1.2) !important;
+}
+
+.simple-flow {
+  opacity: .96 !important;
+}
+
+.privacy {
+  opacity: .78 !important;
+}
+
+@media (max-width: 700px) {
+  .topbar { padding: 14px 16px !important; }
+  .brand small, .ai-ready { display: none !important; }
+  .create-screen, .workspace { width: calc(100% - 20px) !important; }
+  .hero-copy h1 { font-size: clamp(42px, 13vw, 62px) !important; }
+  .create-card { border-radius: 22px !important; padding: 16px !important; }
+  .simple-flow { gap: 6px !important; font-size: 11px !important; }
+  .simple-flow i { display: none !important; }
+  .workspace-head { gap: 14px !important; }
+  .workspace-head .actions { width: 100% !important; }
+  .workspace-head .actions button { flex: 1 !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
