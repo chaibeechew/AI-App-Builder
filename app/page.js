@@ -10,7 +10,7 @@ const questions=[
 ];
 const steps=[["Understanding your idea",12],["Planning your app",32],["Building",58],["Testing and correcting",82],["Preparing preview",96]];
 const friendlyError=(value)=>{const m=String(value||"").toLowerCase();if(m.includes("authentication"))return"Please sign in before building your app.";if(m.includes("verify"))return"Please verify your account first.";if(m.includes("insufficient credits"))return"You need more build credits before creating another app.";if(m.includes("rate")||m.includes("429"))return"AI is busy right now. Please try again shortly.";return"We couldn't finish this build yet. Your idea is safe—please try again."};
-async function readJson(r){const type=r.headers.get("content-type")||"";if(!type.toLowerCase().includes("application/json"))return {};try{return await r.json()}catch{return {}}}}
+async function readJson(r){const type=r.headers.get("content-type")||"";if(!type.toLowerCase().includes("application/json"))return {};try{return await r.json()}catch{return {}}}
 
 export default function Home(){
  const[idea,setIdea]=useState("");const[mode,setMode]=useState("quick");const[answers,setAnswers]=useState({});const[loading,setLoading]=useState(false);const[step,setStep]=useState(0);const[plan,setPlan]=useState(null);const[screen,setScreen]=useState("home");const[error,setError]=useState("");const[modify,setModify]=useState("");const[modifyLoading,setModifyLoading]=useState(false);const[installPrompt,setInstallPrompt]=useState(null);const[installMessage,setInstallMessage]=useState("");const supabase=useMemo(()=>createClient(),[]);
