@@ -1,0 +1,6 @@
+// Privacy verification for materialized generated projects.
+// This is a conservative static gate; runtime privacy still requires isolated browser/network tests.
+const SECRET_PATTERNS=[/process\.env\.[A-Z0-9_]+/g,/BEGIN (RSA|OPENSSH|EC) PRIVATE KEY/g,/password\s*[:=]\s*["'][^"']+["']/ig,/api[_-]?key\s*[:=]\s*["'][^"']+["']/ig,/authorization\s*[:=]\s*["']Bearer\s+[^"']+["']/ig];
+const EXFIL_PATTERNS=[/fetch\s*\(\s*["']https?:\/\//ig,/axios\.(post|put|patch)\s*\(\s*["']https?:\/\//ig,/new\s+WebSocket\s*\(\s*["']wss?:\/\//ig];
+function sourceText(ws={}){const files=ws.specification?.sourceFiles||ws.specification?.files||[];return Array.isArray(files)?files.map(f=>String(f?.content||"")).join("\n"):JSON.stringify(ws.specification||{});}
+export function verifyWorkspacePrivacy(ws={}){const text=sourceText(ws),findings=[];for(const p of SECRET_PATTERNS)if(p.test(text))findings.push("possible-secret-or-credential-reference");for(const p of EXFIL_PATTERNS)if(p.test(text))findings.push("external-network-data-path");const networkDenied=ws.policy?.network==="deny";if(!networkDenied)findings.push("sandbox-network-not-denied");return {passed:findings.length===0,status:findings.length?"privacy-blocked":"privacy-static-pass",findings:[...new Set(findings)].slice(0,50),scope:"static-source-and-sandbox-policy"};}
