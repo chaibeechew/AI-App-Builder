@@ -22,11 +22,13 @@ export default function GeneratedAppClient({ appId, app, specification }) {
   const [search, setSearch] = useState("");
   const [installPrompt, setInstallPrompt] = useState(null);
   const [notice, setNotice] = useState("");
+  const [demoMode, setDemoMode] = useState(false);
   const page = pages.find((entry) => entry.route === route) || pages[0];
   const entity = entities[0];
   const fields = Array.isArray(entity?.[1]?.fields) ? entity[1].fields.slice(0, 8) : ["name", "details"];
 
   useEffect(() => {
+    setDemoMode(new URLSearchParams(window.location.search).get("demo") === "1");
     try {
       const saved = JSON.parse(localStorage.getItem(`generatedApp:${appId}:records`) || "[]");
       if (Array.isArray(saved)) setRecords(saved);
@@ -74,7 +76,7 @@ export default function GeneratedAppClient({ appId, app, specification }) {
   const foreground = text(colors.textColor, "#102c23");
 
   return <main className="generatedApp" style={{ "--primary": primary, "--accent": accent, "--background": background, "--surface": surface, "--foreground": foreground }}>
-    <header className="appHeader"><div><small>AI APP BUILDER · LIVE APP</small><h1>{app.name}</h1><p>{app.description || specification?.description}</p></div><div className="headerActions"><button onClick={shareApp}>Share</button><button onClick={installApp}>Install</button></div></header>
+    <header className="appHeader"><div><small>{demoMode ? "AI APP BUILDER · DEMO PREVIEW" : "AI APP BUILDER · LIVE APP"}</small><h1>{app.name}</h1><p>{app.description || specification?.description}</p></div><div className="headerActions">{demoMode ? <button className="approveDemo" onClick={() => window.location.assign(`/release/${appId}`)}>Approve Demo →</button> : <><button onClick={shareApp}>Share</button><button onClick={installApp}>Install</button></>}</div></header>
     <nav>{navigation.map((entry, index) => <button key={index} className={(entry.route || "/") === route ? "active" : ""} onClick={() => setRoute(entry.route || "/")}>{itemName(entry, `Page ${index + 1}`)}</button>)}</nav>
     <section className="heroCard"><small>{text(page.route, "/")}</small><h2>{text(page.name, "Home")}</h2><p>{text(page.description || page.purpose, "Your application workspace.")}</p></section>
     <section className="grid">
