@@ -2,6 +2,8 @@
 import { useEffect,useMemo,useState } from "react";
 import { createClient } from "../lib/supabase/client";
 
+// Demo approval opens the separate three-option release center.
+
 const questions=[
  {key:"users",label:"Who will use this app?",placeholder:"e.g. my family, children, customers, my team"},
  {key:"goal",label:"What should this app help them do?",placeholder:"e.g. learn, play, sell, organize, create"},
