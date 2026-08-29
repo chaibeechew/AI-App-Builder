@@ -1,0 +1,9 @@
+// Platform isolation driver contract for Soolen Executor Backend.
+// The provider must run every job in a fresh container/microVM; never on this control-plane host.
+const REQUIRED=["createJob","putFiles","runBuild","runBrowserTests","destroyJob"];
+export function validateIsolationProvider(provider){const missing=REQUIRED.filter(k=>typeof provider?.[k]!=="function");return {passed:missing.length===0,missing};}
+function filesFrom(spec={}){const files=Array.isArray(spec.sourceFiles)?spec.sourceFiles:Array.isArray(spec.files)?spec.files:[];return files.slice(0,500).map(f=>({path:String(f?.path||"").slice(0,500),content:String(f?.content||"").slice(0,250000)}));}
+function limits(policy={}){return {network:"deny",nonRoot:true,readOnlyRoot:true,noHostMounts:true,noDockerSocket:true,noSecrets:true,memoryMB:Math.min(Number(policy.maxMemoryMB)||768,1024),cpu:Math.min(Number(policy.maxCpu)||2,2),pids:Math.min(Number(policy.maxPids)||128,128),diskMB:1024,outputBytes:2_000_000};}
+export function createPlatformIsolationDriver(provider){const valid=validateIsolationProvider(provider);async function job(request,kind){if(!valid.passed)return {passed:null,status:"isolation-provider-not-connected",errors:valid.missing.map(x=>`missing-provider:${x}`)};let id;try{id=await provider.createJob({workspaceId:request.workspaceId,limits:limits(request.policy)});await provider.putFiles(id,filesFrom(request.specification));if(kind==="build")return await provider.runBuild(id,{commands:["install","build"],timeoutMs:Math.min(Number(request.policy?.maxBuildMs)||120000,120000)});return await provider.runBrowserTests(id,{plan:request.plan||{},timeoutMs:Math.min(Number(request.policy?.maxTestMs)||60000,60000),externalNetwork:false});}catch(e){return {passed:false,status:`isolated-${kind}-failed`,errors:[String(e?.message||`${kind}-failed`).slice(0,500)]};}finally{if(id)await provider.destroyJob(id).catch(()=>{});}}
+return {build:r=>job(r,"build"),test:r=>job(r,"test")};}
+}
