@@ -20,7 +20,7 @@ function retryable(e) {
     status === 408 || status === 409 || status === 425 || status === 429 || status >= 500 ||
     text.includes("quota") || text.includes("rate limit") || text.includes("rate_limit") ||
     text.includes("resource_exhausted") || text.includes("too many requests") ||
-    text.includes("model not found") || text.includes("does not exist") ||
+    text.includes("model not found") || text.includes("model_not_found") || text.includes("does not exist") ||
     text.includes("temporarily unavailable") || text.includes("capacity") || text.includes("overloaded");
 }
 
@@ -60,7 +60,6 @@ async function callOpenAI({ name, keyEnv, modelEnv, defaultModel, baseUrl, promp
   const model = (process.env[modelEnv] || defaultModel || "").trim();
   if (!model) throw err(`${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_MODEL_NOT_CONFIGURED`);
 
-  // Important: provider-specific headers are added first; Authorization is written last.
   const headers = {
     "Content-Type": "application/json",
     ...extraHeaders,
@@ -84,7 +83,7 @@ async function callGemini(prompt) {
   const rawKey = process.env.GEMINI_API_KEY;
   const key = typeof rawKey === "string" ? rawKey.trim() : "";
   if (!key) throw err("GEMINI_NOT_CONFIGURED");
-  const model = (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim();
+  const model = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const response = await fetchTimeout(url, {
     method: "POST",
@@ -98,7 +97,7 @@ async function callGemini(prompt) {
 }
 
 const PROVIDERS = [
-  { name: "Gemini", type: "gemini", keyEnv: "GEMINI_API_KEY", modelEnv: "GEMINI_MODEL", defaultModel: "gemini-2.5-flash", priority: 10 },
+  { name: "Gemini", type: "gemini", keyEnv: "GEMINI_API_KEY", modelEnv: "GEMINI_MODEL", defaultModel: "gemini-3.6-flash", priority: 10 },
   { name: "Groq", keyEnv: "GROQ_API_KEY", modelEnv: "GROQ_MODEL", defaultModel: "llama-3.3-70b-versatile", baseUrl: "https://api.groq.com/openai/v1", priority: 20 },
   { name: "OpenRouter", keyEnv: "OPENROUTER_API_KEY", modelEnv: "OPENROUTER_MODEL", defaultModel: "openrouter/free", baseUrl: "https://openrouter.ai/api/v1", priority: 30, extraHeaders: { "HTTP-Referer": process.env.APP_URL || "https://ai-app-builder-lovat.vercel.app", "X-Title": "AI App Builder" } },
   { name: "Cerebras", keyEnv: "CEREBRAS_API_KEY", modelEnv: "CEREBRAS_MODEL", defaultModel: "llama-3.3-70b", baseUrl: "https://api.cerebras.ai/v1", priority: 40 },
@@ -113,26 +112,29 @@ export async function generateWithAI(prompt) {
   if (typeof prompt !== "string" || !prompt.trim()) throw err("AI prompt is empty.", 400);
   const failures = [];
 
-  for (const p of PROVIDERS.sort((a, b) => a.priority - b.priority)) {
+  for (const p of PROVIDERS.slice().sort((a, b) => a.priority - b.priority)) {
     try {
-      let result;
-      if (p.type === "gemini") result = await callGemini(prompt.trim());
-      else result = await callOpenAI({ ...p, prompt: prompt.trim() });
+      const result = p.type === "gemini"
+        ? await callGemini(prompt.trim())
+        : await callOpenAI({ ...p, prompt: prompt.trim() });
       return result;
     } catch (e) {
       const message = String(e?.message || e || "Unknown provider error");
       failures.push(`${p.name}: ${message}`);
       console.warn(`[AI Provider skipped] ${p.name}: ${message}`);
-      // Any provider configuration/auth/quota/model/server failure is isolated.
-      // Continue immediately to the next configured provider.
-      if (retryable(e) || message.endsWith("_NOT_CONFIGURED") || message.endsWith("_MODEL_NOT_CONFIGURED")) continue;
       continue;
     }
   }
 
-  throw err("All configured AI providers are currently unavailable. Automatic provider failover was attempted.", 503);
+  const configuredFailures = failures.filter(message => !/_NOT_CONFIGURED(?:$|:)|_MODEL_NOT_CONFIGURED(?:$|:)/.test(message));
+  const detail = configuredFailures.length ? ` Last provider errors: ${configuredFailures.slice(0, 3).join(" | ")}` : "";
+  throw err(`All configured AI providers are currently unavailable. Automatic provider failover was attempted.${detail}`, 503);
 }
 
 export function getProviderStatus() {
-  return PROVIDERS.map(p => ({ name: p.name, configured: p.type === "gemini" ? configured(process.env.GEMINI_API_KEY) : configured(process.env[p.keyEnv]), model: process.env[p.modelEnv] || p.defaultModel }));
+  return PROVIDERS.map(p => ({
+    name: p.name,
+    configured: p.type === "gemini" ? configured(process.env.GEMINI_API_KEY) : configured(process.env[p.keyEnv]),
+    model: process.env[p.modelEnv] || p.defaultModel
+  }));
 }
