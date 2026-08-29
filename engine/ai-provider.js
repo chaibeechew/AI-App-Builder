@@ -1,87 +1,10 @@
 import { getProviderConfig } from "./model-router.js";
 
-async function callOllama(prompt) {
-  const baseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-  const response = await fetch(`${baseUrl}/api/generate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: getProviderConfig().model, prompt, stream: false }) });
-  if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
-  const data = await response.json();
-  return data.response || "";
-}
-
-async function callGemini(prompt) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("Gemini API key not configured");
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-  if (!response.ok) throw new Error(`Gemini error: ${response.status}`);
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("") || "";
-}
-
-async function callOpenAICompatible({ baseUrl, apiKey, model, prompt }) {
-  if (!apiKey) throw new Error("API key not configured");
-  const response = await fetch(`${baseUrl}/chat/completions`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], temperature: 0.2 }) });
-  if (!response.ok) throw new Error(`AI provider error: ${response.status}`);
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || "";
-}
-
-async function callGroq(prompt) { return callOpenAICompatible({ baseUrl: "https://api.groq.com/openai/v1", apiKey: process.env.GROQ_API_KEY, model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile", prompt }); }
-async function callCerebras(prompt) { return callOpenAICompatible({ baseUrl: "https://api.cerebras.ai/v1", apiKey: process.env.CEREBRAS_API_KEY, model: process.env.CEREBRAS_MODEL || "llama-3.3-70b", prompt }); }
-async function callDeepSeek(prompt) { return callOpenAICompatible({ baseUrl: "https://api.deepseek.com", apiKey: process.env.DEEPSEEK_API_KEY, model: process.env.DEEPSEEK_MODEL || "deepseek-chat", prompt }); }
-async function callXAI(prompt) { return callOpenAICompatible({ baseUrl: "https://api.x.ai/v1", apiKey: process.env.XAI_API_KEY, model: process.env.XAI_MODEL || "grok-4-1-fast-non-reasoning", prompt }); }
-async function callOpenAI(prompt) { return callOpenAICompatible({ baseUrl: "https://api.openai.com/v1", apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL || "gpt-5.6", prompt }); }
-
-export async function generateWithAI(prompt) {
-  const { provider } = getProviderConfig();
-  switch (provider) {
-    case "ollama": return callOllama(prompt);
-    case "gemini": return callGemini(prompt);
-    case "groq": return callGroq(prompt);
-    case "cerebras": return callCerebras(prompt);
-    case "deepseek": return callDeepSeek(prompt);
-    case "xai": return callXAI(prompt);
-    case "openai": return callOpenAI(prompt);
-    default: throw new Error(`Unsupported AI provider: ${provider || "none"}`);
-  }
-}
-
-const FALLBACK_ORDER = ["gemini", "groq", "cerebras", "deepseek", "xai", "openai", "ollama"];
-
-function isConfigured(provider) {
-  const keys = {
-    ollama: process.env.OLLAMA_BASE_URL,
-    gemini: process.env.GEMINI_API_KEY,
-    groq: process.env.GROQ_API_KEY,
-    cerebras: process.env.CEREBRAS_API_KEY,
-    deepseek: process.env.DEEPSEEK_API_KEY,
-    xai: process.env.XAI_API_KEY,
-    openai: process.env.OPENAI_API_KEY,
-  };
-  return Boolean(keys[provider]);
-}
-
-export async function generateWithFallback(prompt) {
-  const configuredProvider = getProviderConfig().provider;
-  const startIndex = FALLBACK_ORDER.indexOf(configuredProvider);
-  const providers = startIndex >= 0 ? [...FALLBACK_ORDER.slice(startIndex), ...FALLBACK_ORDER.slice(0, startIndex)] : FALLBACK_ORDER;
-  const errors = [];
-
-  for (const provider of providers) {
-    if (!isConfigured(provider)) continue;
-    const originalProvider = process.env.AI_PROVIDER;
-    try {
-      process.env.AI_PROVIDER = provider;
-      const result = await generateWithAI(prompt);
-      if (result) return { provider, result };
-      errors.push({ provider, error: "Empty AI response" });
-    } catch (error) {
-      errors.push({ provider, error: error?.message || "Unknown error" });
-    } finally {
-      if (originalProvider === undefined) delete process.env.AI_PROVIDER;
-      else process.env.AI_PROVIDER = originalProvider;
-    }
-  }
-
-  throw new Error(`All configured AI providers failed: ${JSON.stringify(errors)}`);
-}
+async function callOllama(prompt){const baseUrl=process.env.OLLAMA_BASE_URL||"http://localhost:11434";const r=await fetch(`${baseUrl}/api/generate`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:getProviderConfig().model,prompt,stream:false,options:{temperature:0.2}})});if(!r.ok)throw new Error(`Ollama error: ${r.status}`);const d=await r.json();return d.response||"";}
+async function callGemini(prompt){const key=process.env.GEMINI_API_KEY;if(!key)throw new Error("Gemini API key not configured");const model=process.env.GEMINI_MODEL||"gemini-2.5-flash";const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.2,responseMimeType:"application/json"}})});if(!r.ok)throw new Error(`Gemini error: ${r.status}`);const d=await r.json();return d.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";}
+async function compatible({baseUrl,apiKey,model,prompt}){if(!apiKey)throw new Error("API key not configured");const r=await fetch(`${baseUrl}/chat/completions`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${apiKey}`},body:JSON.stringify({model,messages:[{role:"user",content:prompt}],temperature:0.2})});if(!r.ok)throw new Error(`AI provider error: ${r.status}`);const d=await r.json();return d.choices?.[0]?.message?.content||"";}
+const calls={groq:p=>compatible({baseUrl:"https://api.groq.com/openai/v1",apiKey:process.env.GROQ_API_KEY,model:process.env.GROQ_MODEL||"llama-3.3-70b-versatile",prompt:p}),cerebras:p=>compatible({baseUrl:"https://api.cerebras.ai/v1",apiKey:process.env.CEREBRAS_API_KEY,model:process.env.CEREBRAS_MODEL||"llama-3.3-70b",prompt:p}),deepseek:p=>compatible({baseUrl:"https://api.deepseek.com",apiKey:process.env.DEEPSEEK_API_KEY,model:process.env.DEEPSEEK_MODEL||"deepseek-chat",prompt:p}),xai:p=>compatible({baseUrl:"https://api.x.ai/v1",apiKey:process.env.XAI_API_KEY,model:process.env.XAI_MODEL||"grok-4-1-fast-non-reasoning",prompt:p}),openai:p=>compatible({baseUrl:"https://api.openai.com/v1",apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||"gpt-5.6",prompt:p})};
+export async function generateWithAI(prompt){const{provider}=getProviderConfig();if(provider==="ollama")return callOllama(prompt);if(provider==="gemini")return callGemini(prompt);if(calls[provider])return calls[provider](prompt);throw new Error(`Unsupported AI provider: ${provider||"none"}`);}
+const ORDER=["gemini","groq","cerebras","deepseek","xai","openai","ollama"];
+function configured(p){return p==="ollama"?Boolean(process.env.OLLAMA_BASE_URL):p==="gemini"?Boolean(process.env.GEMINI_API_KEY):Boolean(process.env[`${p.toUpperCase()}_API_KEY`]);}
+export async function generateWithFallback(prompt){const selected=getProviderConfig().provider;const start=ORDER.indexOf(selected);const order=start>=0?[...ORDER.slice(start),...ORDER.slice(0,start)]:ORDER;const errors=[];for(const provider of order){if(!configured(provider))continue;try{const result=provider==="ollama"?await callOllama(prompt):provider==="gemini"?await callGemini(prompt):await calls[provider](prompt);if(result)return{provider,result};}catch(e){errors.push({provider,error:e?.message||"Unknown error"});}}throw new Error(`All configured AI providers failed: ${JSON.stringify(errors)}`);}
