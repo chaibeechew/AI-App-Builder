@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "../../../lib/supabase/server.js";
+import { generateWithAI } from "../../../api/lib_ai_v3.js";
 
 export async function POST(request) {
   try {
@@ -24,21 +25,15 @@ export async function POST(request) {
 
     history.push({ role: "user", content: message });
 
-    const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-    const model = process.env.OLLAMA_MODEL || "llama3.2:3b";
+    const prompt = history
+      .map((item) => `${item.role === "user" ? "User" : "Soolen AI"}: ${item.content}`)
+      .join("\n\n");
+    const result = await generateWithAI(prompt);
 
-    const response = await fetch(`${ollamaBaseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages: history, stream: false }),
+    return NextResponse.json({
+      content: result?.text || "Soolen AI returned no content.",
+      provider: result?.provider || "Soolen AI",
     });
-
-    if (!response.ok) {
-      return NextResponse.json({ error: `Ollama returned HTTP ${response.status}.` }, { status: 502 });
-    }
-
-    const data = await response.json();
-    return NextResponse.json({ content: data?.message?.content || "Ollama returned no content." });
   } catch (error) {
     console.error("CHAT_API_ERROR:", error);
     return NextResponse.json({ error: "Unable to process chat request." }, { status: 500 });
