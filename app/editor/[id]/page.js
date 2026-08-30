@@ -99,7 +99,7 @@ export default function AppEditor({ params }) {
   const currentVersion = versions.find((item) => item.id === app?.current_version_id) || versions[0];
 
   return (
-    <main className="editorPage">
+    <main className="editorPage" style={{"--editor-photo":`url("${themePhotos[photoIndex]}")`}}>
       <header className="editorHeader">
         <div>
           <Link href="/my-apps" className="backLink">← My Apps</Link>
