@@ -1,3 +1,5 @@
+import { filterProvidersByCost } from "../lib/soolen/cost-policy.js";
+
 const PROVIDERS=[
 {provider:"gateway",model:process.env.AI_GATEWAY_MODEL||null,local:false,priority:0,enabled:()=>Boolean(process.env.AI_GATEWAY_API_KEY&&process.env.AI_GATEWAY_MODEL)},
 {provider:"gemini",model:process.env.GEMINI_MODEL||"gemini-2.5-flash",local:false,priority:1,enabled:()=>Boolean(process.env.GEMINI_API_KEY)},
@@ -11,7 +13,8 @@ const PROVIDERS=[
 {provider:"openai",model:process.env.OPENAI_MODEL||"gpt-5.6",local:false,priority:9,enabled:()=>Boolean(process.env.OPENAI_API_KEY)},
 {provider:"ollama",model:process.env.OLLAMA_MODEL||"llama3.2:3b",local:true,priority:10,enabled:()=>Boolean(process.env.OLLAMA_BASE_URL)},
 {provider:"soolen-local",model:"rules-v1",local:true,priority:99,enabled:()=>true}];
-export function getProvider(){const configured=(process.env.AI_PROVIDER||"").trim().toLowerCase();if(configured&&configured!=="auto")return configured;return PROVIDERS.filter(x=>x.enabled()).sort((a,b)=>a.priority-b.priority)[0]?.provider||null}
+function allowedProviders(){const enabled=PROVIDERS.filter(x=>x.enabled()).sort((a,b)=>a.priority-b.priority);const allowed=new Set(filterProvidersByCost(enabled.map(x=>x.provider)));return enabled.filter(x=>allowed.has(x.provider))}
+export function getProvider(){const configured=(process.env.AI_PROVIDER||"").trim().toLowerCase();const allowed=allowedProviders();if(configured&&configured!=="auto"&&allowed.some(x=>x.provider===configured))return configured;return allowed[0]?.provider||null}
 export function getModel(){const provider=getProvider();return PROVIDERS.find(x=>x.provider===provider)?.model||null}
 export function getProviderConfig(){const provider=getProvider(),config=PROVIDERS.find(x=>x.provider===provider);return{provider,model:config?.model||null,local:config?.local||false,priority:config?.priority??99}}
-export function getAvailableProviders(){return PROVIDERS.filter(x=>x.enabled()).sort((a,b)=>a.priority-b.priority).map(({provider,model,local,priority})=>({provider,model,local,priority}))}
+export function getAvailableProviders(){return allowedProviders().map(({provider,model,local,priority})=>({provider,model,local,priority}))}
