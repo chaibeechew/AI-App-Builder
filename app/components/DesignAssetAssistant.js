@@ -186,8 +186,8 @@ export default function DesignAssetAssistant({ mode = "create", initialBrief = "
     <div className="guide">
       <label>Style<div className="chips">{STYLE_CHOICES.map((value) => <button type="button" key={value} className={style === value ? "selected" : ""} onClick={() => setStyle(value)}>{value}</button>)}</div></label>
       <label>Layout<div className="chips">{LAYOUT_CHOICES.map((value) => <button type="button" key={value} className={layout === value ? "selected" : ""} onClick={() => setLayout(value)}>{value}</button>)}</div></label>
-      <label>Talk to AI about the background, colors and atmosphere<input value={background} onChange={(event) => setBackground(event.target.value)} placeholder="Example: deep jade glass cards, cinematic city at night, gold details"/></label>
-      <label>What should AI keep, change or emphasize?<textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Example: follow my sketch for the home page; keep checkout simple; show the product video near the top."/></label>
+      <label>Talk to AI about the background, colors and atmosphere<input maxLength={500} value={background} onChange={(event) => setBackground(event.target.value)} placeholder="Example: deep jade glass cards, cinematic city at night, gold details"/></label>
+      <label>What should AI keep, change or emphasize?<textarea maxLength={1800} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Example: follow my sketch for the home page; keep checkout simple; show the product video near the top."/></label>
     </div>
     {error && <p className="assistantError">{error}</p>}
     <div className="briefStatus"><span>✓ Design brief ready</span><small>{assets.length} reference{assets.length === 1 ? "" : "s"} · editable before AI builds</small></div>
