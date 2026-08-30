@@ -92,7 +92,7 @@ async function callGemini(prompt) {
   const rawKey = process.env.GEMINI_API_KEY;
   const key = typeof rawKey === "string" ? rawKey.trim() : "";
   if (!key) throw err("GEMINI_NOT_CONFIGURED");
-  const model = (process.env.GEMINI_MODEL || "gemini-3.6-flash").trim();
+  const model = (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const response = await fetchTimeout(url, {
     method: "POST",
@@ -106,7 +106,7 @@ async function callGemini(prompt) {
 }
 
 const PROVIDERS = [
-  { name: "Gemini", type: "gemini", keyEnv: "GEMINI_API_KEY", modelEnv: "GEMINI_MODEL", defaultModel: "gemini-3.6-flash", priority: 10 },
+  { name: "Gemini", type: "gemini", keyEnv: "GEMINI_API_KEY", modelEnv: "GEMINI_MODEL", defaultModel: "gemini-2.5-flash", priority: 10 },
   { name: "Groq", type: "openai", keyEnv: "GROQ_API_KEY", modelEnv: "GROQ_MODEL", defaultModel: "llama-3.3-70b-versatile", baseUrl: "https://api.groq.com/openai/v1", priority: 20 },
   { name: "OpenRouter", type: "openai", keyEnv: "OPENROUTER_API_KEY", modelEnv: "OPENROUTER_MODEL", defaultModel: "openrouter/free", baseUrl: "https://openrouter.ai/api/v1", priority: 30, extraHeaders: { "HTTP-Referer": process.env.APP_URL || "https://ai-app-builder-lovat.vercel.app", "X-Title": "AI App Builder" } },
   { name: "Hugging Face", type: "openai", keyEnv: "HF_TOKEN", modelEnv: "HF_MODEL", defaultModel: "Qwen/Qwen2.5-Coder-32B-Instruct:fastest", baseUrl: "https://router.huggingface.co/v1", priority: 35 },
