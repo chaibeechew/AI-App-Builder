@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "../../lib/supabase/client";
 
-const STEPS = ["Name check", "Understand idea", "Read references", "Generate App + Website", "Quality check", "Preview"];
+const STEPS = ["Name check", "Understand idea", "Read + save media", "Generate App + Website", "Place customer media", "Quality check", "Preview"];
 
 export default function CreatePage() {
   const supabase = useMemo(() => createClient(), []);
@@ -17,17 +17,24 @@ export default function CreatePage() {
   const [error, setError] = useState("");
   const [learning, setLearning] = useState(false);
   const [referenceReady, setReferenceReady] = useState(false);
+  const [assetCount, setAssetCount] = useState(0);
 
   useEffect(() => {
     function syncReference() {
-      try { setReferenceReady(Boolean(sessionStorage.getItem("soolenReferenceAnalysis"))); } catch {}
+      try {
+        setReferenceReady(Boolean(sessionStorage.getItem("soolenReferenceAnalysis")));
+        const ids = JSON.parse(sessionStorage.getItem("soolenPendingAssetIds") || "[]");
+        setAssetCount(Array.isArray(ids) ? ids.length : 0);
+      } catch { setAssetCount(0); }
     }
     syncReference();
-    window.addEventListener("soolen-app-idea", (event) => {
+    const handler = (event) => {
       const value = String(event?.detail?.idea || "").trim();
       if (value) setIdea(value);
       syncReference();
-    });
+    };
+    window.addEventListener("soolen-app-idea", handler);
+    return () => window.removeEventListener("soolen-app-idea", handler);
   }, []);
 
   async function checkName() {
@@ -65,13 +72,19 @@ export default function CreatePage() {
       }
 
       let referenceBrief = "";
-      try { referenceBrief = sessionStorage.getItem("soolenReferenceAnalysis") || ""; } catch {}
+      let assetIds = [];
+      try {
+        referenceBrief = sessionStorage.getItem("soolenReferenceAnalysis") || "";
+        const parsed = JSON.parse(sessionStorage.getItem("soolenPendingAssetIds") || "[]");
+        assetIds = Array.isArray(parsed) ? parsed.filter((value) => typeof value === "string") : [];
+      } catch {}
+
       const finalIdea = [
         `CUSTOMER APP NAME: ${appName.trim()}`,
         `CUSTOMER IDEA: ${idea.trim()}`,
         referenceBrief,
         "ONE-CLICK BUILD RULE: Create both a functional App and responsive Website from this request.",
-        "MEDIA RULE: Customer-uploaded images/video/sketches are requirements and inspiration. Place customer-owned media where appropriate; do not copy third-party branding, text, images, code or distinctive layouts.",
+        "MEDIA RULE: Customer-uploaded images/video/sketches are requirements and customer-owned project assets. Place useful media on relevant generated pages; do not copy third-party branding, text, images, code or distinctive layouts.",
         "INNOVATION RULE: Learn the intent, workflow and preferences of this project, then reimagine and improve them into original work.",
         `LEARNING CONSENT: ${learning ? "Customer allows anonymized product-pattern learning; never reuse raw private assets or personal content." : "Project-only learning. Do not use this customer's private content to improve other customers' projects."}`,
         "QUALITY RULE: Prioritize stability, security, privacy, comfort, beauty and naturalness.",
@@ -80,11 +93,16 @@ export default function CreatePage() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea: finalIdea, requestedName: appName.trim(), innovationLearningConsent: learning }),
+        body: JSON.stringify({ idea: finalIdea, requestedName: appName.trim(), innovationLearningConsent: learning, assetIds }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result?.specification) throw new Error(result?.error || "Build failed.");
       const id = result?.app?.id;
+      try {
+        sessionStorage.removeItem("soolenPendingAssetIds");
+        sessionStorage.removeItem("soolenPendingAssetMeta");
+        sessionStorage.removeItem("soolenReferenceAnalysis");
+      } catch {}
       if (id) window.location.assign(`/app-dashboard/${id}`);
       else setMessage("App + Website generated. Open Project Center to continue.");
     } catch (err) {
@@ -98,7 +116,7 @@ export default function CreatePage() {
     <div className="backdrop" />
     <div className="wrap">
       <header><Link href="/studio">← Studio</Link><span>SOOLENAI · ONE-CLICK CREATE</span></header>
-      <section className="hero"><small>UPLOAD / DESCRIBE → GENERATE → PREVIEW → PUBLISH</small><h1>One click from idea<br/>to <em>App + Website.</em></h1><p>Give SoolenAI the name, idea, photos, videos, sketches or brand references. SoolenAI understands, reimagines, builds, checks and prepares the project.</p></section>
+      <section className="hero"><small>UPLOAD / DESCRIBE → GENERATE → PREVIEW → PUBLISH</small><h1>One click from idea<br/>to <em>App + Website.</em></h1><p>Give SoolenAI the name, idea, photos, videos, sketches or brand references. SoolenAI understands, reimagines, builds, places your media, checks and prepares the project.</p></section>
 
       <section className="builder">
         <div className="main">
@@ -110,7 +128,7 @@ export default function CreatePage() {
           <label>2 · Tell SoolenAI what to build</label>
           <textarea value={idea} onChange={(e)=>setIdea(e.target.value)} placeholder="Example: Build a premium real estate CRM App and customer Website with listings, appointments, WhatsApp enquiries and agent profiles." maxLength={7000}/>
 
-          <div className="uploadInfo"><div><b>{referenceReady?"✓ Visual references ready":"＋ Add photos, video or sketches"}</b><span>Use the floating Add references button. SoolenAI will analyze the visual intent and combine it with your text.</span></div></div>
+          <div className="uploadInfo"><div><b>{referenceReady?`✓ ${assetCount || "Visual"} customer media ready`:"＋ Add photos, video or sketches"}</b><span>Use the floating Add references button. SoolenAI analyzes the media, saves customer-owned files privately and associates them with the generated project.</span></div></div>
 
           <label className="consent"><input type="checkbox" checked={learning} onChange={(e)=>setLearning(e.target.checked)}/><span><b>Allow anonymized product-pattern learning</b><small>Optional and off by default. Raw private photos, videos, personal data and customer content are not reused for other customers.</small></span></label>
 
