@@ -44,7 +44,41 @@ function videoPoster(file) {
   });
 }
 
+function visualHints(imageData) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 48; canvas.height = 48;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      context.drawImage(image, 0, 0, 48, 48);
+      const pixels = context.getImageData(0, 0, 48, 48).data;
+      const buckets = new Map(); let light = 0; let dark = 0; let saturation = 0;
+      for (let index = 0; index < pixels.length; index += 16) {
+        const red = pixels[index], green = pixels[index + 1], blue = pixels[index + 2];
+        const max = Math.max(red, green, blue), min = Math.min(red, green, blue);
+        const luminance = .2126 * red + .7152 * green + .0722 * blue;
+        if (luminance > 210) light++; if (luminance < 55) dark++;
+        saturation += max ? (max - min) / max : 0;
+        const key = [red, green, blue].map((value) => Math.min(255, Math.round(value / 48) * 48).toString(16).padStart(2, "0")).join("");
+        buckets.set(key, (buckets.get(key) || 0) + 1);
+      }
+      const total = pixels.length / 16;
+      const dominantColors = [...buckets.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([value]) => `#${value}`);
+      const detectedRegions = [
+        image.width > image.height * 1.2 ? "landscape-layout" : image.height > image.width * 1.2 ? "portrait-mobile-layout" : "balanced-square-layout",
+        dark / total > .45 ? "dark-background" : light / total > .45 ? "light-background" : "mixed-lighting",
+        saturation / total < .16 ? "low-saturation-or-sketch" : "color-rich-reference",
+      ];
+      resolve({ dominantColors, detectedRegions, likelyUI: /sketch|wire|mock|screen|layout|稿|界面|排版/i.test(file?.name || "") || saturation / total < .12 });
+    };
+    image.onerror = () => resolve({ dominantColors: [], detectedRegions: [], likelyUI: false });
+    image.src = imageData;
+  });
+}
+
 async function inspectImage(imageData, file, extra = {}) {
+  const hints = await visualHints(imageData);
   const response = await fetch("/api/images/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -52,8 +86,9 @@ async function inspectImage(imageData, file, extra = {}) {
       imageData,
       mimeType: "image/jpeg",
       uiAnalysis: {
-        likelyUI: /sketch|wire|mock|screen|layout|稿|界面|排版/i.test(file.name),
-        detectedRegions: extra.kind === "video" ? ["video-reference-frame"] : ["visual-reference"],
+        likelyUI: hints.likelyUI,
+        detectedRegions: [...(extra.kind === "video" ? ["video-reference-frame"] : ["visual-reference"]), ...hints.detectedRegions],
+        dominantColors: hints.dominantColors,
         textHints: [file.name],
       },
     }),
@@ -67,6 +102,7 @@ async function inspectImage(imageData, file, extra = {}) {
 
 export default function DesignAssetAssistant({ mode = "create", initialBrief = "", onBriefChange, onContinue }) {
   const inputRef = useRef(null);
+  const assetsRef = useRef([]);
   const [assets, setAssets] = useState([]);
   const [style, setStyle] = useState("");
   const [layout, setLayout] = useState("");
@@ -78,7 +114,9 @@ export default function DesignAssetAssistant({ mode = "create", initialBrief = "
   const brief = useMemo(() => {
     const references = assets.map((asset, index) => {
       const size = asset.analysis?.dimensions;
-      return `Reference ${index + 1}: ${asset.kind} "${asset.name}"${size ? ` (${size.width}×${size.height})` : ""}${asset.duration ? ` (${Math.round(asset.duration)}s)` : ""}. Use it for visual direction and layout only; do not identify private people.`;
+      const colors = Array.isArray(asset.analysis?.dominantColors) ? asset.analysis.dominantColors.join(", ") : "";
+      const regions = Array.isArray(asset.analysis?.detectedRegions) ? asset.analysis.detectedRegions.join(", ") : "";
+      return `Reference ${index + 1}: ${asset.kind} "${asset.name}"${size ? ` (${size.width}×${size.height})` : ""}${asset.duration ? ` (${Math.round(asset.duration)}s)` : ""}. Visual cues: ${[regions, colors && `palette ${colors}`].filter(Boolean).join("; ") || "general visual reference"}. Use it for visual direction and layout only; do not identify private people.`;
     });
     return [
       "SOOLEN DESIGN COLLABORATION BRIEF",
@@ -92,7 +130,8 @@ export default function DesignAssetAssistant({ mode = "create", initialBrief = "
   }, [assets, background, layout, notes, style]);
 
   useEffect(() => { onBriefChange?.(brief); }, [brief, onBriefChange]);
-  useEffect(() => () => assets.forEach((asset) => asset.objectUrl && URL.revokeObjectURL(asset.objectUrl)), [assets]);
+  useEffect(() => { assetsRef.current = assets; }, [assets]);
+  useEffect(() => () => assetsRef.current.forEach((asset) => asset.objectUrl && URL.revokeObjectURL(asset.objectUrl)), []);
 
   async function addFiles(event) {
     const files = Array.from(event.target.files || []).slice(0, 6);
