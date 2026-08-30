@@ -35,7 +35,7 @@ export async function POST(request) {
     const appId=body?.appId||null;
     chargeRequestId=String(body?.requestId||crypto.randomUUID()).trim();
     if(!instruction)return NextResponse.json({error:"Modification instruction is required."},{status:400});
-    if(instruction.length>4000)return NextResponse.json({error:"Modification instruction is too long."},{status:413});
+    if(instruction.length>8000)return NextResponse.json({error:"Modification instruction is too long."},{status:413});
     if(!specification)return NextResponse.json({error:"App specification is required."},{status:400});
     if(appId){const {data:owned,error:e}=await supabase.from("apps").select("id").eq("id",appId).eq("owner_id",user.id).single();if(e||!owned)return NextResponse.json({error:"App not found or access denied."},{status:404});}
 
