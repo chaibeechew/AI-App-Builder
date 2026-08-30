@@ -5,15 +5,15 @@ const modules = [
   {name:"AI Build",description:"Generate App + Website from text, voice, photo, video, sketch or reference.",href:"/",live:true},
   {name:"Project Center",description:"Keep projects, status, previews and publishing in one workspace.",href:"/my-apps",live:true},
   {name:"Templates",description:"Browse 3,000+ industry inspirations and Trending 100, then AI Reimagine.",href:"/templates",live:true},
-  {name:"Visual Editor",description:"Select content and visual areas, then refine them with AI instructions.",href:"/my-apps",live:false},
+  {name:"Visual Editor",description:"Select content and visual areas, then refine them with AI instructions.",href:"/my-apps",live:true},
   {name:"Brand Kit",description:"Reuse logo, colors, fonts and company identity across every project.",href:"/brand-kit",live:true},
   {name:"Asset Library",description:"Keep reusable images, videos, logos and documents inside the workspace.",href:"/asset-library",live:true},
-  {name:"Database",description:"Plan data, relationships, permissions and business records from the app idea.",live:false},
+  {name:"Database",description:"Plan data, relationships, permissions and business records from the app idea without exposing the underlying provider.",href:"/my-apps",live:true},
   {name:"Automations",description:"Connect forms, CRM, email, notifications and follow-up workflows.",live:false},
   {name:"Integrations",description:"Prepare connections for payments, maps, calendar, email, messaging and APIs.",live:false},
   {name:"Monetization",description:"Subscriptions, plans, one-time payments, memberships and customer billing.",live:false},
   {name:"Version History",description:"Save meaningful changes and prepare rollback points before publishing.",href:"/my-apps",live:true},
-  {name:"Quality Gate",description:"Check stability, security, privacy, comfort, beauty and naturalness.",live:true},
+  {name:"Quality Gate",description:"Check stability, security, privacy, comfort, beauty and naturalness.",href:"/my-apps",live:true},
   {name:"Publish Center",description:"One flow for Web, PWA, iPhone, Android and custom-domain release.",href:"/my-apps",live:true},
   {name:"Analytics",description:"Measure traffic, conversions, usage and product health after launch.",live:false},
   {name:"AI Operations",description:"Use AI to review issues, user feedback and improvement opportunities.",live:false},
@@ -38,6 +38,7 @@ export default function StudioPage() {
           <Link href="/templates" className="secondary">Browse Inspirations</Link>
           <Link href="/brand-kit" className="secondary">Brand Kit</Link>
           <Link href="/asset-library" className="secondary">Asset Library</Link>
+          <Link href="/my-apps" className="secondary">Project Data</Link>
         </div>
       </section>
 
@@ -60,7 +61,7 @@ export default function StudioPage() {
       </section>
 
       <section className="flowBar">
-        <b>Idea</b><i>→</i><b>Design</b><i>→</i><b>Build</b><i>→</i><b>Quality</b><i>→</i><b>Preview</b><i>→</i><b>Publish</b><i>→</i><b>Improve</b>
+        <b>Idea</b><i>→</i><b>Design</b><i>→</i><b>Build</b><i>→</i><b>Data</b><i>→</i><b>Quality</b><i>→</i><b>Preview</b><i>→</i><b>Publish</b><i>→</i><b>Improve</b>
       </section>
 
       <style>{`
