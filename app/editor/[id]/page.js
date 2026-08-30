@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import DesignAssetAssistant from "../../components/DesignAssetAssistant";
 
 const themePhotos=["/soolen-hero-v2.webp","/soolen-hero-zh-tw.webp","/soolen-hero-ja.webp","/soolen-hero-fr.webp","/soolen-hero-ko.webp","/soolen-hero-th.webp","/soolen-hero-es.webp","/soolen-hero-ar.webp"];
 
@@ -10,6 +11,7 @@ export default function AppEditor({ params }) {
   const [app, setApp] = useState(null);
   const [versions, setVersions] = useState([]);
   const [instruction, setInstruction] = useState("");
+  const [referenceBrief, setReferenceBrief] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -22,6 +24,7 @@ export default function AppEditor({ params }) {
 
   useEffect(() => {
     if (!appId) return;
+    try { const saved = sessionStorage.getItem(`soolenDesignBrief:${appId}`); if (saved) { setReferenceBrief(saved); sessionStorage.removeItem(`soolenDesignBrief:${appId}`); } } catch {}
     loadApp();
   }, [appId]);
 
@@ -56,7 +59,7 @@ export default function AppEditor({ params }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           appId,
-          instruction: instruction.trim(),
+          instruction: [instruction.trim(), referenceBrief].filter(Boolean).join("\n\n"),
           specification: current?.specification,
         }),
       });
@@ -116,7 +119,8 @@ export default function AppEditor({ params }) {
       <section className="modifyPanel">
         <div className="eyebrow">MODIFY</div>
         <h2>Continue editing this app</h2>
-        <textarea value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Example: Add a user profile page with editable name, photo and settings." />
+        <textarea value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Example: Follow my sketch for the home page, use the uploaded video as a hero demo, and keep checkout simple." />
+        <DesignAssetAssistant mode="modify" initialBrief={referenceBrief} onBriefChange={setReferenceBrief}/>
         <button onClick={modify} disabled={saving || !instruction.trim()}>{saving ? "Saving…" : "Apply change →"}</button>
         {message && <div className="success">{message}</div>}
         {error && <div className="error">{error}</div>}
