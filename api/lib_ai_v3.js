@@ -52,7 +52,13 @@ function openAIText(data, provider) {
   return text.trim();
 }
 
-async function callOpenAI({ name, keyEnv, modelEnv, defaultModel, baseUrl, prompt, extraHeaders = {} }) {
+async function callOpenAI({ name, keyEnv, modelEnv, defaultModel, baseUrl, prompt, extraHeaders = {}, requiredEnvs = [] }) {
+  for (const envName of requiredEnvs) {
+    if (!configured(process.env[envName])) {
+      throw err(`${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_NOT_CONFIGURED`);
+    }
+  }
+
   const rawKey = process.env[keyEnv];
   const key = typeof rawKey === "string" ? rawKey.trim() : "";
   if (!key) throw err(`${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_NOT_CONFIGURED`);
@@ -60,13 +66,16 @@ async function callOpenAI({ name, keyEnv, modelEnv, defaultModel, baseUrl, promp
   const model = (process.env[modelEnv] || defaultModel || "").trim();
   if (!model) throw err(`${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_MODEL_NOT_CONFIGURED`);
 
+  const resolvedBaseUrl = typeof baseUrl === "function" ? baseUrl() : baseUrl;
+  if (!configured(resolvedBaseUrl)) throw err(`${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_NOT_CONFIGURED`);
+
   const headers = {
     "Content-Type": "application/json",
     ...extraHeaders,
     Authorization: `Bearer ${key}`
   };
 
-  const response = await fetchTimeout(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
+  const response = await fetchTimeout(`${resolvedBaseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -98,14 +107,17 @@ async function callGemini(prompt) {
 
 const PROVIDERS = [
   { name: "Gemini", type: "gemini", keyEnv: "GEMINI_API_KEY", modelEnv: "GEMINI_MODEL", defaultModel: "gemini-3.6-flash", priority: 10 },
-  { name: "Groq", keyEnv: "GROQ_API_KEY", modelEnv: "GROQ_MODEL", defaultModel: "llama-3.3-70b-versatile", baseUrl: "https://api.groq.com/openai/v1", priority: 20 },
-  { name: "OpenRouter", keyEnv: "OPENROUTER_API_KEY", modelEnv: "OPENROUTER_MODEL", defaultModel: "openrouter/free", baseUrl: "https://openrouter.ai/api/v1", priority: 30, extraHeaders: { "HTTP-Referer": process.env.APP_URL || "https://ai-app-builder-lovat.vercel.app", "X-Title": "AI App Builder" } },
-  { name: "Cerebras", keyEnv: "CEREBRAS_API_KEY", modelEnv: "CEREBRAS_MODEL", defaultModel: "llama-3.3-70b", baseUrl: "https://api.cerebras.ai/v1", priority: 40 },
-  { name: "Mistral", keyEnv: "MISTRAL_API_KEY", modelEnv: "MISTRAL_MODEL", defaultModel: "mistral-small-latest", baseUrl: "https://api.mistral.ai/v1", priority: 50 },
-  { name: "Together", keyEnv: "TOGETHER_API_KEY", modelEnv: "TOGETHER_MODEL", defaultModel: "meta-llama/Llama-3.3-70B-Instruct-Turbo", baseUrl: "https://api.together.xyz/v1", priority: 60 },
-  { name: "Fireworks", keyEnv: "FIREWORKS_API_KEY", modelEnv: "FIREWORKS_MODEL", defaultModel: "accounts/fireworks/models/llama-v3p3-70b-instruct", baseUrl: "https://api.fireworks.ai/inference/v1", priority: 70 },
-  { name: "DeepSeek", keyEnv: "DEEPSEEK_API_KEY", modelEnv: "DEEPSEEK_MODEL", defaultModel: "deepseek-chat", baseUrl: "https://api.deepseek.com/v1", priority: 80 },
-  { name: "xAI", keyEnv: "XAI_API_KEY", modelEnv: "XAI_MODEL", defaultModel: "grok-3-mini", baseUrl: "https://api.x.ai/v1", priority: 90 }
+  { name: "Groq", type: "openai", keyEnv: "GROQ_API_KEY", modelEnv: "GROQ_MODEL", defaultModel: "llama-3.3-70b-versatile", baseUrl: "https://api.groq.com/openai/v1", priority: 20 },
+  { name: "OpenRouter", type: "openai", keyEnv: "OPENROUTER_API_KEY", modelEnv: "OPENROUTER_MODEL", defaultModel: "openrouter/free", baseUrl: "https://openrouter.ai/api/v1", priority: 30, extraHeaders: { "HTTP-Referer": process.env.APP_URL || "https://ai-app-builder-lovat.vercel.app", "X-Title": "AI App Builder" } },
+  { name: "Hugging Face", type: "openai", keyEnv: "HF_TOKEN", modelEnv: "HF_MODEL", defaultModel: "Qwen/Qwen2.5-Coder-32B-Instruct:fastest", baseUrl: "https://router.huggingface.co/v1", priority: 35 },
+  { name: "Cerebras", type: "openai", keyEnv: "CEREBRAS_API_KEY", modelEnv: "CEREBRAS_MODEL", defaultModel: "llama-3.3-70b", baseUrl: "https://api.cerebras.ai/v1", priority: 40 },
+  { name: "Cloudflare Workers AI", type: "openai", keyEnv: "CLOUDFLARE_AI_API_TOKEN", modelEnv: "CLOUDFLARE_AI_MODEL", defaultModel: "@cf/meta/llama-3.3-70b-instruct-fp8-fast", baseUrl: () => `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_AI_ACCOUNT_ID || ""}/ai/v1`, requiredEnvs: ["CLOUDFLARE_AI_ACCOUNT_ID"], priority: 45 },
+  { name: "Mistral", type: "openai", keyEnv: "MISTRAL_API_KEY", modelEnv: "MISTRAL_MODEL", defaultModel: "mistral-small-latest", baseUrl: "https://api.mistral.ai/v1", priority: 50 },
+  { name: "Together", type: "openai", keyEnv: "TOGETHER_API_KEY", modelEnv: "TOGETHER_MODEL", defaultModel: "meta-llama/Llama-3.3-70B-Instruct-Turbo", baseUrl: "https://api.together.xyz/v1", priority: 60 },
+  { name: "Fireworks", type: "openai", keyEnv: "FIREWORKS_API_KEY", modelEnv: "FIREWORKS_MODEL", defaultModel: "accounts/fireworks/models/llama-v3p3-70b-instruct", baseUrl: "https://api.fireworks.ai/inference/v1", priority: 70 },
+  { name: "DeepSeek", type: "openai", keyEnv: "DEEPSEEK_API_KEY", modelEnv: "DEEPSEEK_MODEL", defaultModel: "deepseek-chat", baseUrl: "https://api.deepseek.com/v1", priority: 80 },
+  { name: "xAI", type: "openai", keyEnv: "XAI_API_KEY", modelEnv: "XAI_MODEL", defaultModel: "grok-3-mini", baseUrl: "https://api.x.ai/v1", priority: 90 },
+  { name: "OpenAI", type: "openai", keyEnv: "OPENAI_API_KEY", modelEnv: "OPENAI_MODEL", defaultModel: "gpt-5-mini", baseUrl: "https://api.openai.com/v1", priority: 100 }
 ];
 
 export async function generateWithAI(prompt) {
@@ -122,6 +134,9 @@ export async function generateWithAI(prompt) {
       const message = String(e?.message || e || "Unknown provider error");
       failures.push(`${p.name}: ${message}`);
       console.warn(`[AI Provider skipped] ${p.name}: ${message}`);
+      if (!retryable(e) && !message.endsWith("_NOT_CONFIGURED") && !message.endsWith("_MODEL_NOT_CONFIGURED")) {
+        continue;
+      }
       continue;
     }
   }
@@ -132,9 +147,20 @@ export async function generateWithAI(prompt) {
 }
 
 export function getProviderStatus() {
-  return PROVIDERS.map(p => ({
-    name: p.name,
-    configured: p.type === "gemini" ? configured(process.env.GEMINI_API_KEY) : configured(process.env[p.keyEnv]),
-    model: process.env[p.modelEnv] || p.defaultModel
-  }));
+  return PROVIDERS.map(p => {
+    const requiredReady = (p.requiredEnvs || []).every(envName => configured(process.env[envName]));
+    const isConfigured = p.type === "gemini"
+      ? configured(process.env.GEMINI_API_KEY)
+      : configured(process.env[p.keyEnv]) && requiredReady;
+
+    return {
+      name: p.name,
+      type: p.type,
+      configured: isConfigured,
+      available: isConfigured,
+      failures: 0,
+      success: 0,
+      model: process.env[p.modelEnv] || p.defaultModel
+    };
+  });
 }
