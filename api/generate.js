@@ -4,17 +4,13 @@ const MAX_IDEA_LENGTH = 5000;
 const MAX_PAGES = 30;
 const MAX_FEATURES = 100;
 
-function cleanJson(text) {
-  let value = String(text || "").trim();
-  value = value
+function extractJsonObject(text) {
+  let value = String(text || "").trim()
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
 
-  // Providers occasionally prepend harmless prose despite the JSON-only
-  // instruction. Extract the first balanced JSON object without accepting
-  // arbitrary trailing provider text.
   const start = value.indexOf("{");
   if (start < 0) return value;
 
@@ -24,26 +20,22 @@ function cleanJson(text) {
 
   for (let i = start; i < value.length; i += 1) {
     const char = value[i];
-
     if (inString) {
       if (escaped) escaped = false;
       else if (char === "\\") escaped = true;
       else if (char === '"') inString = false;
       continue;
     }
-
     if (char === '"') {
       inString = true;
       continue;
     }
-
     if (char === "{") depth += 1;
     else if (char === "}") {
       depth -= 1;
       if (depth === 0) return value.slice(start, i + 1).trim();
     }
   }
-
   return value;
 }
 
@@ -74,6 +66,21 @@ function normalizeFeature(feature, index) {
   };
 }
 
+function looksLikePlaceholder(spec) {
+  const name = String(spec?.name || "").trim().toLowerCase();
+  const description = String(spec?.description || "").trim().toLowerCase();
+  const firstPageName = String(spec?.pages?.[0]?.name || "").trim().toLowerCase();
+  const firstPagePurpose = String(spec?.pages?.[0]?.purpose || "").trim().toLowerCase();
+
+  return (
+    !name ||
+    ["app name", "my ai app"].includes(name) ||
+    ["short description", "short description of the application"].includes(description) ||
+    firstPageName === "page name" ||
+    firstPagePurpose === "what this page does"
+  );
+}
+
 function normalizeSpecification(raw) {
   if (!raw || typeof raw !== "object" || !raw.specification || typeof raw.specification !== "object") {
     throw new Error("AI returned an invalid application specification.");
@@ -88,11 +95,18 @@ function normalizeSpecification(raw) {
   pages = pages.slice(0, MAX_PAGES).map(normalizePage);
   features = features.slice(0, MAX_FEATURES).map(normalizeFeature);
 
-  if (pages.length === 0) {
-    pages = [{ name: "Dashboard", purpose: "Main application dashboard generated from the customer's requirements." }];
+  if (pages.length === 0) throw new Error("AI returned an incomplete application specification.");
+
+  const specification = { name, description, pages, features };
+  if (looksLikePlaceholder(specification)) {
+    throw new Error("AI returned placeholder content instead of a real application specification.");
   }
 
-  return { specification: { name, description, pages, features } };
+  return { specification };
+}
+
+function parseAIResponse(text) {
+  return JSON.parse(extractJsonObject(text));
 }
 
 export default async function handler(req, res) {
@@ -110,46 +124,56 @@ export default async function handler(req, res) {
     const prompt = `
 You are the core application-planning engine of AI App Builder.
 
-Transform the customer's requirements into a practical application specification.
+Transform the customer's requirements into a practical, specific application specification.
 The customer's requirements are the source of truth. Do not replace the idea with a generic template.
 
 CUSTOMER REQUIREMENTS:
 ${cleanIdea}
 
-Return ONLY valid JSON using exactly this structure:
+Return ONLY one valid JSON object using exactly this structure:
 {
   "specification": {
-    "name": "App name",
-    "description": "Short description of the application",
-    "pages": [{ "name": "Page name", "purpose": "What this page does" }],
-    "features": [{ "name": "Feature name", "description": "What this feature does" }]
+    "name": "Real application name",
+    "description": "Real application description",
+    "pages": [{ "name": "Real page name", "purpose": "Real page purpose" }],
+    "features": [{ "name": "Real feature name", "description": "Real feature description" }]
   }
 }
 
 Rules:
 1. Preserve the customer's requested workflow, users, roles, industry and important requirements.
 2. Every page and feature must directly support the requested application.
-3. Do not add unrelated features merely to make the app look bigger.
-4. Create multiple pages when logically required.
+3. Create multiple pages when logically required.
+4. Do not return placeholders such as "App name", "Page name", "What this page does" or "Short description".
 5. Return JSON only: no Markdown, explanations, code fences or comments.
 6. Do not expose internal AI provider information.
 `;
 
-    const result = await generateWithAI(prompt);
-    if (!result || typeof result.text !== "string" || !result.text.trim()) throw new Error("AI returned an empty response.");
+    let lastError;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        const result = await generateWithAI(
+          attempt === 1
+            ? prompt
+            : `${prompt}\n\nIMPORTANT RETRY: The previous output was invalid or generic. Return STRICT JSON ONLY with a real app name, real pages and real purposes. Start with { and end with }.`
+        );
 
-    let parsed;
-    try {
-      parsed = JSON.parse(cleanJson(result.text));
-    } catch (parseError) {
-      console.error("Invalid AI JSON:", parseError);
-      throw new Error("AI returned invalid application JSON.");
+        if (!result || typeof result.text !== "string" || !result.text.trim()) {
+          throw new Error("AI returned an empty response.");
+        }
+
+        const parsed = parseAIResponse(result.text);
+        return res.status(200).json({
+          ...normalizeSpecification(parsed),
+          provider: result.provider || "Unknown",
+        });
+      } catch (error) {
+        lastError = error;
+        console.error(`AI generation attempt ${attempt} failed:`, error);
+      }
     }
 
-    return res.status(200).json({
-      ...normalizeSpecification(parsed),
-      provider: result.provider || "Unknown",
-    });
+    throw lastError || new Error("AI generation failed.");
   } catch (error) {
     console.error("AI generation error:", error);
     const status = Number(error?.status) || 500;
