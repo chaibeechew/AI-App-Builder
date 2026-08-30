@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../../../../lib/supabase/server.js";
-import { assessBuildQuality } from "../../../../../../lib/buildStandards.js";
+import { createClient } from "../../../../../lib/supabase/server.js";
+import { assessBuildQuality } from "../../../../../lib/buildStandards.js";
 
 export async function GET(_request, { params }) {
   try {
@@ -33,15 +33,7 @@ export async function GET(_request, { params }) {
     const criticalPassed = security >= 60 && privacy >= 60 && stability >= 60;
     const releaseReady = criticalPassed && report.overall >= 75;
 
-    return NextResponse.json({
-      success: true,
-      app: { id: app.id, name: app.name },
-      version: { id: version.id, versionNo: version.version_no },
-      report,
-      releaseReady,
-      criticalPassed,
-      note: "This automated gate reviews the saved specification. Production release still requires runtime, dependency, infrastructure and real-device testing.",
-    });
+    return NextResponse.json({ success: true, app: { id: app.id, name: app.name }, version: { id: version.id, versionNo: version.version_no }, report, releaseReady, criticalPassed, note: "This automated gate reviews the saved specification. Production release still requires runtime, dependency, infrastructure and real-device testing." });
   } catch (error) {
     console.error("QUALITY_GATE_API_ERROR:", error);
     return NextResponse.json({ error: "Unable to run the automatic quality gate." }, { status: 500 });
