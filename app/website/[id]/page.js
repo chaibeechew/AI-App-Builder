@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server.js";
+import AnalyticsTracker from "../../components/AnalyticsTracker.js";
 
 function label(value, fallback) {
   if (typeof value === "string" && value.trim()) return value.trim();
@@ -34,6 +35,7 @@ export default async function CustomerWebsite({ params, searchParams }) {
   const showDomainHelp = query?.domain === "1";
 
   return <main className="site" style={{ "--primary": primary, "--accent": accent }}>
+    <AnalyticsTracker appId={id} channel="website" eventName="website_view"/>
     {isOwner && <div className="ownerBar"><span>{app.publish_status === "published" ? "LIVE CUSTOMER WEBSITE" : "WEBSITE PREVIEW"}</span><div><Link href={`/app-dashboard/${id}`}>Project Folder</Link><Link href={`/release/${id}`}>Publish Options</Link></div></div>}
     {showDomainHelp && isOwner && <div className="domainHelp"><b>Custom domain</b><span>Publish the website first, then connect the customer’s domain from this project’s Website settings.</span><Link href={`/release/${id}`}>Back to Website settings</Link></div>}
     <header className="nav"><a className="logo" href="#home">✦ {app.name}</a><nav>{pages.slice(0, 5).map((page, index) => <a key={index} href={`#section-${index}`}>{label(page, `Page ${index + 1}`)}</a>)}</nav><a className="cta small" href="#contact">Contact</a></header>
