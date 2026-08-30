@@ -23,23 +23,11 @@ const LANGUAGES = [
   ["ru-RU", "Русский"],
 ];
 
-const ACKNOWLEDGEMENTS = {
+const ACK = {
   "zh-CN": "我听到了。你可以继续修改，或者开始制作应用。",
   "zh-HK": "我聽到了。你可以繼續修改，或者開始製作應用。",
   "ms-MY": "Saya sudah dengar. Anda boleh terus mengubah atau mula membina aplikasi.",
   "id-ID": "Saya sudah mendengar. Anda dapat mengubahnya atau mulai membuat aplikasi.",
-  "ta-MY": "நான் கேட்டேன். நீங்கள் தொடர்ந்து திருத்தலாம் அல்லது செயலியை உருவாக்கலாம்.",
-  "hi-IN": "मैंने सुन लिया। आप इसे बदल सकते हैं या ऐप बनाना शुरू कर सकते हैं।",
-  "ja-JP": "聞き取りました。内容を編集するか、アプリの作成を始められます。",
-  "ko-KR": "잘 들었습니다. 내용을 수정하거나 앱 만들기를 시작할 수 있습니다.",
-  "th-TH": "ได้ยินแล้ว คุณสามารถแก้ไขหรือเริ่มสร้างแอปได้",
-  "vi-VN": "Tôi đã nghe rõ. Bạn có thể chỉnh sửa hoặc bắt đầu tạo ứng dụng.",
-  "ar-SA": "لقد سمعتك. يمكنك تعديل الفكرة أو البدء في إنشاء التطبيق.",
-  "es-ES": "Te he escuchado. Puedes editar la idea o empezar a crear la aplicación.",
-  "fr-FR": "Je vous ai entendu. Vous pouvez modifier l’idée ou commencer à créer l’application.",
-  "de-DE": "Ich habe Sie verstanden. Sie können die Idee bearbeiten oder die App erstellen.",
-  "pt-BR": "Eu ouvi você. Você pode editar a ideia ou começar a criar o aplicativo.",
-  "ru-RU": "Я вас услышал. Можно изменить идею или начать создание приложения.",
   "en-US": "I heard you. You can keep editing or start building your app.",
 };
 
@@ -64,26 +52,10 @@ function normalizeLanguage(value) {
   return "en-US";
 }
 
-function detectLanguageFromText(text, fallback) {
-  const value = String(text || "");
-  if (/[\u4e00-\u9fff]/.test(value)) return fallback === "zh-HK" ? "zh-HK" : "zh-CN";
-  if (/[\u3040-\u30ff]/.test(value)) return "ja-JP";
-  if (/[\uac00-\ud7af]/.test(value)) return "ko-KR";
-  if (/[\u0e00-\u0e7f]/.test(value)) return "th-TH";
-  if (/[\u0b80-\u0bff]/.test(value)) return "ta-MY";
-  if (/[\u0900-\u097f]/.test(value)) return "hi-IN";
-  if (/[\u0600-\u06ff]/.test(value)) return "ar-SA";
-  if (/[\u0400-\u04ff]/.test(value)) return "ru-RU";
-  return fallback;
-}
-
 function friendly(error) {
   const message = String(error?.message || error || "");
-  if (/permission|notallowed|denied/i.test(message)) {
-    return "Microphone is off. Enable Microphone for Safari in iPhone Settings, then try again.";
-  }
-  if (/no-speech/i.test(message)) return "No speech was detected. Move closer to the microphone and try again.";
-  if (/language-not-supported/i.test(message)) return "This language is not supported by the current browser voice engine. Please choose another language.";
+  if (/permission|notallowed|denied/i.test(message)) return "Microphone permission is unavailable. You can still type your idea below.";
+  if (/no-speech/i.test(message)) return "No speech detected. Try again or type your idea below.";
   return "Voice input is unavailable right now. You can still type your idea below.";
 }
 
@@ -104,44 +76,24 @@ export default function SoolenVoiceAssistant() {
   }, []);
 
   function deviceLanguage() {
-    const preferred = navigator.languages?.[0] || navigator.language || document.documentElement.lang || "en-US";
-    return normalizeLanguage(preferred);
+    return normalizeLanguage(navigator.languages?.[0] || navigator.language || "en-US");
   }
 
   function recognitionLanguage() {
     return language === "auto" ? deviceLanguage() : language;
   }
 
-  function speak(value, requestedLanguage) {
+  function speak(value) {
     const message = String(value || "").trim();
-    if (!message) return;
-    if (!("speechSynthesis" in window) || !window.SpeechSynthesisUtterance) {
-      setStatus("Voice output is not supported by this browser.");
-      return;
-    }
-
+    if (!message || !("speechSynthesis" in window) || !window.SpeechSynthesisUtterance) return;
     window.speechSynthesis.cancel();
-    const selected = detectLanguageFromText(message, requestedLanguage || recognitionLanguage());
     const utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = selected;
+    utterance.lang = recognitionLanguage();
     utterance.rate = 0.95;
-    utterance.pitch = 1;
-    const voices = window.speechSynthesis.getVoices();
-    const exactVoice = voices.find((voice) => normalizeLanguage(voice.lang) === selected);
-    if (exactVoice) utterance.voice = exactVoice;
     utterance.onstart = () => setSpeaking(true);
     utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => {
-      setSpeaking(false);
-      setStatus("Voice output could not be played. Check that the iPhone is not in silent mode.");
-    };
+    utterance.onerror = () => setSpeaking(false);
     window.speechSynthesis.speak(utterance);
-    window.speechSynthesis.resume();
-  }
-
-  function speakConfirmation() {
-    const selected = detectLanguageFromText(finalText.current, recognitionLanguage());
-    speak(ACKNOWLEDGEMENTS[selected] || ACKNOWLEDGEMENTS["en-US"], selected);
   }
 
   function start() {
@@ -149,7 +101,7 @@ export default function SoolenVoiceAssistant() {
     try {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        setStatus("Voice recognition is not available in this browser. On iPhone, open this website in Safari.");
+        setStatus("Voice recognition is unavailable in this browser. You can type your idea below.");
         return;
       }
 
@@ -163,9 +115,9 @@ export default function SoolenVoiceAssistant() {
       recognition.onresult = (event) => {
         let completed = finalText.current;
         let interim = "";
-        for (let index = event.resultIndex; index < event.results.length; index += 1) {
-          const transcript = event.results[index][0]?.transcript || "";
-          if (event.results[index].isFinal) completed = `${completed} ${transcript}`.trim();
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const transcript = event.results[i][0]?.transcript || "";
+          if (event.results[i].isFinal) completed = `${completed} ${transcript}`.trim();
           else interim += transcript;
         }
         finalText.current = completed;
@@ -182,15 +134,15 @@ export default function SoolenVoiceAssistant() {
         setRecording(false);
         speech.current = null;
         if (finalText.current.trim()) {
-          setStatus("Speech captured. Review the text, play it back, or send it to the builder.");
-          if (voiceReply) speakConfirmation();
+          setStatus("Speech captured. Review it or build your app.");
+          if (voiceReply) speak(ACK[recognitionLanguage()] || ACK["en-US"]);
         }
       };
 
       speech.current = recognition;
       recognition.start();
       setRecording(true);
-      setStatus(`Listening in ${LANGUAGES.find(([code]) => code === recognition.lang)?.[1] || recognition.lang}…`);
+      setStatus("Listening…");
     } catch (error) {
       setStatus(friendly(error));
       setRecording(false);
@@ -198,9 +150,7 @@ export default function SoolenVoiceAssistant() {
   }
 
   function stop() {
-    if (speech.current) {
-      try { speech.current.stop(); } catch {}
-    }
+    try { speech.current?.stop(); } catch {}
     setRecording(false);
   }
 
@@ -223,53 +173,67 @@ export default function SoolenVoiceAssistant() {
 
   return (
     <>
-      <button className="sv-fab" onClick={() => { setOpen(true); setStatus(""); }}>🎙️<span>Voice Idea</span></button>
+      <button className="sv-fab" onClick={() => { setOpen(true); setStatus(""); }} aria-label="Voice idea">🎙️<span>Voice Idea</span></button>
       {open && (
-        <div className="sv-backdrop">
+        <div className="sv-backdrop" role="dialog" aria-modal="true">
           <div className="sv-panel">
-            <button className="sv-close" onClick={() => { stop(); stopSpeaking(); setOpen(false); }}>×</button>
-            <div className="sv-kicker">SOOLEN AI · MULTILINGUAL VOICE</div>
-            <h2>Speak in your language</h2>
-            <p>Choose a language for best accuracy. Auto follows your iPhone language.</p>
+            <button className="sv-close" onClick={() => { stop(); stopSpeaking(); setOpen(false); }} aria-label="Close">×</button>
 
-            <label>VOICE LANGUAGE</label>
-            <select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={recording}>
+            <div className="sv-topline">
+              <div className="sv-globe">◎</div>
+              <div className="sv-brand">AI App Builder<div className="sv-brandline" /></div>
+              <div className="sv-langtag">EN⌄</div>
+            </div>
+
+            <div className="sv-heroicon">🎙️</div>
+            <h2>Speak in your language</h2>
+            <p className="sv-sub">Choose a language for best accuracy.<br />Auto follows your iPhone language.</p>
+
+            <label className="sv-label">VOICE LANGUAGE</label>
+            <select value={language} onChange={(e) => setLanguage(e.target.value)} disabled={recording}>
               {LANGUAGES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
             </select>
 
-            <button className={recording ? "sv-mic recording" : "sv-mic"} onClick={recording ? stop : start}>
-              {recording ? "■ STOP LISTENING" : "🎙️ START TALKING"}
-            </button>
-
-            <label>YOUR APP IDEA</label>
-            <textarea value={text} onChange={(event) => { setText(event.target.value); finalText.current = event.target.value; }} placeholder="Speak or type in any supported language." />
-
-            <div className="sv-actions">
-              <button className="sv-play" onClick={speaking ? stopSpeaking : () => speak(text, recognitionLanguage())} disabled={!text.trim()}>
-                {speaking ? "■ STOP VOICE" : "🔊 PLAY BACK"}
-              </button>
-              <label className="sv-toggle"><input type="checkbox" checked={voiceReply} onChange={(event) => setVoiceReply(event.target.checked)} /> AI voice confirmation</label>
+            <div className="sv-privacycard">
+              <div className="sv-shield">✓</div>
+              <div><strong>Your voice is private and secure</strong><span>Voice input starts only when you tap the microphone.</span></div>
             </div>
 
+            <div className="sv-voicecard">
+              <button className={recording ? "sv-mic recording" : "sv-mic"} onClick={recording ? stop : start}>
+                <span className="sv-micicon">🎤</span>
+              </button>
+              <strong>{recording ? "Listening…" : "Tap to start speaking"}</strong>
+              <span>{recording ? "Speak naturally in your selected language." : "We’ll convert your speech to text instantly."}</span>
+              <div className="sv-wave">▮ ▪ ▮ ▪ ▪ ▮ ▪ ▮ ▪ ▪ ▮ ▪ ▮ ▪ ▮</div>
+              <button className="sv-play" onClick={speaking ? stopSpeaking : () => speak(text)} disabled={!text.trim()}>
+                {speaking ? "■ STOP PLAYBACK" : "▶ PLAY BACK LAST RECORDING"}
+              </button>
+            </div>
+
+            <label className="sv-label">YOUR APP IDEA</label>
+            <textarea value={text} onChange={(e) => { setText(e.target.value); finalText.current = e.target.value; }} placeholder="Speak or type the app you want to build." />
+
+            <label className="sv-toggle"><input type="checkbox" checked={voiceReply} onChange={(e) => setVoiceReply(e.target.checked)} /> AI voice confirmation</label>
             <button className="sv-build" onClick={sendToBuilder}>🚀 BUILD MY APP →</button>
             {status && <div className="sv-status">{status}</div>}
-            <small className="privacy">Microphone starts only after you tap START TALKING. Audio stays in the browser voice service.</small>
           </div>
         </div>
       )}
+
       <style jsx global>{`
-        .sv-fab{position:fixed;right:18px;bottom:18px;z-index:40;border:1px solid #dfb853;border-radius:999px;padding:14px 20px;background:linear-gradient(135deg,#063b30,#0c8d62);color:#fff;font-size:16px;font-weight:900;box-shadow:0 14px 35px #0005;cursor:pointer}.sv-fab span{margin-left:8px}
-        .sv-backdrop{position:fixed;inset:0;z-index:50;background:#001712cc;backdrop-filter:blur(8px);display:grid;place-items:center;padding:18px}
-        .sv-panel{position:relative;width:min(540px,100%);max-height:94vh;overflow:auto;background:linear-gradient(180deg,#f8fbf9,#edf4f0);color:#102e25;border:1px solid #d5b45c;border-radius:28px;padding:30px;box-shadow:0 30px 90px #0007}
-        .sv-close{position:absolute;right:16px;top:10px;border:0;background:none;font-size:34px;color:#526b62}.sv-kicker{font-size:11px;letter-spacing:.18em;color:#087b55;font-weight:950}
-        .sv-panel h2{font-size:34px;line-height:1.08;margin:12px 35px 10px 0}.sv-panel p{font-size:16px;line-height:1.55;color:#61736d}
-        .sv-panel>label{display:block;font-size:12px;font-weight:900;margin:12px 0 8px}.sv-panel select{width:100%;border:1px solid #cfdcd6;border-radius:13px;padding:13px;background:#fff;color:#12372c;font:inherit}
-        .sv-mic,.sv-build,.sv-play{border:0;border-radius:16px;padding:16px;font-size:16px;font-weight:950;cursor:pointer}.sv-mic{width:100%;background:#0b4739;color:#fff;margin:12px 0 18px}.sv-mic.recording{background:#9b4339}
-        .sv-panel textarea{width:100%;min-height:140px;border:1px solid #cfdcd6;border-radius:16px;padding:15px;font:inherit;color:#12372c;background:#fff;box-sizing:border-box}
-        .sv-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;margin-top:10px}.sv-play{background:#dfeae5;color:#164c3c}.sv-play:disabled{opacity:.5}.sv-toggle{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800}.sv-toggle input{width:auto;margin:0}
-        .sv-build{width:100%;margin-top:12px;background:linear-gradient(135deg,#ffe797,#dca63b);color:#171006;box-shadow:0 10px 25px #c9973644}
-        .sv-status{margin-top:12px;padding:11px;border-radius:11px;background:#e5eee9;color:#34594c;font-size:13px}.privacy{display:block;text-align:center;margin-top:12px;color:#71827c}
-        @media(max-width:600px){.sv-panel{padding:25px 20px}.sv-panel h2{font-size:29px}.sv-fab{right:14px;bottom:14px}.sv-actions{grid-template-columns:1fr}}
+        .sv-fab{position:fixed;right:18px;bottom:18px;z-index:40;border:1px solid #e1b83d;border-radius:999px;padding:14px 20px;background:#0a6d54;color:#fff;font-size:16px;font-weight:900;box-shadow:0 14px 35px #0004;cursor:pointer}.sv-fab span{margin-left:8px}
+        .sv-backdrop{position:fixed;inset:0;z-index:50;background:#00130fcf;backdrop-filter:blur(8px);display:grid;place-items:center;padding:12px}
+        .sv-panel{position:relative;width:min(560px,100%);max-height:96vh;overflow:auto;background:#fffdf7;color:#151d1a;border-radius:28px;padding:28px;box-shadow:0 30px 90px #0007}
+        .sv-close{position:absolute;right:14px;top:9px;border:0;background:none;font-size:32px;color:#68716d;cursor:pointer}
+        .sv-topline{display:grid;grid-template-columns:44px 1fr 60px;align-items:center;margin-bottom:20px}.sv-globe{font-size:31px;color:#f4b71b;font-weight:900}.sv-brand{text-align:center;font-size:24px;font-weight:950}.sv-brandline{width:78px;height:5px;border-radius:999px;background:#f3b617;margin:8px auto 0}.sv-langtag{justify-self:end;border:1px solid #eee3cf;border-radius:14px;padding:10px 12px;font-weight:900;background:#fff}
+        .sv-heroicon{width:92px;height:92px;border-radius:999px;display:grid;place-items:center;margin:10px auto 18px;background:#fff4cf;font-size:42px}.sv-panel h2{text-align:center;font-size:34px;line-height:1.08;margin:0 0 10px}.sv-sub{text-align:center;font-size:17px;line-height:1.5;color:#69716d;margin:0 0 24px}
+        .sv-label{display:block;font-size:12px;font-weight:950;margin:14px 0 8px;letter-spacing:.04em}.sv-panel select,.sv-panel textarea{width:100%;border:1px solid #ddd8cb;border-radius:16px;padding:14px 16px;background:#fff;color:#17201d;font:inherit;box-sizing:border-box}.sv-panel textarea{min-height:120px;resize:vertical}
+        .sv-privacycard{display:flex;gap:14px;align-items:center;background:#fff8e7;border-radius:20px;padding:18px;margin:18px 0}.sv-shield{width:44px;height:44px;border-radius:13px;background:#f2b311;color:#fff;display:grid;place-items:center;font-size:24px;font-weight:950}.sv-privacycard strong{display:block;font-size:15px}.sv-privacycard span{display:block;color:#727772;font-size:13px;margin-top:4px}
+        .sv-voicecard{border:1px solid #eee4d1;border-radius:24px;padding:22px;text-align:center;background:#fffefb}.sv-mic{width:86px;height:86px;border:0;border-radius:999px;background:#ffc21f;box-shadow:0 12px 28px #d99c1745;cursor:pointer}.sv-mic.recording{animation:svpulse 1.2s infinite}.sv-micicon{font-size:34px}.sv-voicecard strong{display:block;font-size:22px;margin-top:15px}.sv-voicecard>span{display:block;color:#6f7672;margin-top:8px}.sv-wave{color:#f0bb32;letter-spacing:5px;margin:22px 0}.sv-play{width:100%;border:0;border-radius:16px;padding:14px;background:#fff;color:#5d615f;box-shadow:0 6px 18px #0000000c;font-weight:900}.sv-play:disabled{opacity:.45}
+        .sv-toggle{display:flex;align-items:center;gap:10px;font-weight:900;margin:18px 0 14px}.sv-toggle input{width:20px;height:20px;accent-color:#f1b517}.sv-build{width:100%;border:0;border-radius:18px;padding:17px;background:linear-gradient(90deg,#ffd84c,#ffc11f);font-size:18px;font-weight:950;cursor:pointer}.sv-status{margin-top:12px;border-radius:14px;padding:11px 13px;background:#edf7f1;color:#1e5f49;font-size:13px;font-weight:750}
+        @keyframes svpulse{0%,100%{box-shadow:0 0 0 0 #ffc21f55}50%{box-shadow:0 0 0 14px #ffc21f00}}
+        @media(max-width:600px){.sv-backdrop{padding:0}.sv-panel{width:100%;height:100%;max-height:none;border-radius:0;padding:24px 20px 34px}.sv-panel h2{font-size:31px}.sv-fab{right:12px;bottom:12px}.sv-fab span{display:none}}
       `}</style>
     </>
   );
