@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server.js";
 import GeneratedAppClient from "./GeneratedAppClient";
+import AnalyticsTracker from "../../components/AnalyticsTracker.js";
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -33,5 +34,5 @@ export default async function GeneratedAppPage({ params }) {
   const current = versions?.find((version) => version.id === app.current_version_id) || versions?.[0];
   if (!current?.specification) notFound();
 
-  return <GeneratedAppClient appId={id} app={app} specification={current.specification} />;
+  return <><AnalyticsTracker appId={id} channel="app" eventName="app_view"/><GeneratedAppClient appId={id} app={app} specification={current.specification} /></>;
 }
