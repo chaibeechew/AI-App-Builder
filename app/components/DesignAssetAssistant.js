@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const STYLE_CHOICES = ["Premium", "Minimal", "Playful", "Cinematic", "Corporate", "Editorial"];
 const LAYOUT_CHOICES = ["Story landing page", "Dashboard", "Marketplace", "Mobile-first cards", "Full-screen visual"];
-const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
 
 function readAsDataUrl(file) {
@@ -84,7 +84,7 @@ async function inspectImage(imageData, file, extra = {}) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       imageData,
-      mimeType: "image/jpeg",
+      mimeType: extra.kind === "video" ? "image/jpeg" : file.type || "image/jpeg",
       uiAnalysis: {
         likelyUI: hints.likelyUI,
         detectedRegions: [...(extra.kind === "video" ? ["video-reference-frame"] : ["visual-reference"]), ...hints.detectedRegions],
@@ -144,7 +144,7 @@ export default function DesignAssetAssistant({ mode = "create", initialBrief = "
         const isVideo = file.type.startsWith("video/");
         const isImage = file.type.startsWith("image/");
         if (!isImage && !isVideo) throw new Error(`${file.name}: please upload an image, sketch or video.`);
-        if (isImage && file.size > MAX_IMAGE_BYTES) throw new Error(`${file.name}: image must be under 6 MB.`);
+        if (isImage && file.size > MAX_IMAGE_BYTES) throw new Error(`${file.name}: image must be under 5 MB.`);
         if (isVideo && file.size > MAX_VIDEO_BYTES) throw new Error(`${file.name}: video must be under 40 MB.`);
         if (isVideo) {
           const frame = await videoPoster(file);
