@@ -252,6 +252,7 @@ export default function SoolenVoiceAssistant() {
             </div>
 
             <button className="sv-build" onClick={sendToBuilder}>🚀 BUILD MY APP →</button>
+            <button className="sv-center" onClick={() => window.location.assign("/soolen-ai")}>✦ OPEN SOOLEN AI CAPABILITY CENTER</button>
             {status && <div className="sv-status">{status}</div>}
             <small className="privacy">Microphone starts only after you tap START TALKING. Audio stays in the browser voice service.</small>
           </div>
@@ -264,10 +265,10 @@ export default function SoolenVoiceAssistant() {
         .sv-close{position:absolute;right:16px;top:10px;border:0;background:none;font-size:34px;color:#526b62}.sv-kicker{font-size:11px;letter-spacing:.18em;color:#087b55;font-weight:950}
         .sv-panel h2{font-size:34px;line-height:1.08;margin:12px 35px 10px 0}.sv-panel p{font-size:16px;line-height:1.55;color:#61736d}
         .sv-panel>label{display:block;font-size:12px;font-weight:900;margin:12px 0 8px}.sv-panel select{width:100%;border:1px solid #cfdcd6;border-radius:13px;padding:13px;background:#fff;color:#12372c;font:inherit}
-        .sv-mic,.sv-build,.sv-play{border:0;border-radius:16px;padding:16px;font-size:16px;font-weight:950;cursor:pointer}.sv-mic{width:100%;background:#0b4739;color:#fff;margin:12px 0 18px}.sv-mic.recording{background:#9b4339}
+        .sv-mic,.sv-build,.sv-play,.sv-center{border:0;border-radius:16px;padding:16px;font-size:16px;font-weight:950;cursor:pointer}.sv-mic{width:100%;background:#0b4739;color:#fff;margin:12px 0 18px}.sv-mic.recording{background:#9b4339}
         .sv-panel textarea{width:100%;min-height:140px;border:1px solid #cfdcd6;border-radius:16px;padding:15px;font:inherit;color:#12372c;background:#fff;box-sizing:border-box}
         .sv-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;margin-top:10px}.sv-play{background:#dfeae5;color:#164c3c}.sv-play:disabled{opacity:.5}.sv-toggle{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800}.sv-toggle input{width:auto;margin:0}
-        .sv-build{width:100%;margin-top:12px;background:linear-gradient(135deg,#ffe797,#dca63b);color:#171006;box-shadow:0 10px 25px #c9973644}
+        .sv-build{width:100%;margin-top:12px;background:linear-gradient(135deg,#ffe797,#dca63b);color:#171006;box-shadow:0 10px 25px #c9973644}.sv-center{width:100%;margin-top:9px;background:#14392e;color:#fff;border:0;border-radius:14px;padding:13px;font-weight:900}
         .sv-status{margin-top:12px;padding:11px;border-radius:11px;background:#e5eee9;color:#34594c;font-size:13px}.privacy{display:block;text-align:center;margin-top:12px;color:#71827c}
         @media(max-width:600px){.sv-panel{padding:25px 20px}.sv-panel h2{font-size:29px}.sv-fab{right:14px;bottom:14px}.sv-actions{grid-template-columns:1fr}}
       `}</style>
