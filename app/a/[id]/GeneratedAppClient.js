@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { trackProjectEvent } from "../../components/AnalyticsTracker.js";
 
 function text(value, fallback = "") {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
@@ -10,7 +11,7 @@ function itemName(value, fallback) {
   return typeof value === "string" ? value : text(value?.name || value?.label || value?.title, fallback);
 }
 
-export default function GeneratedAppClient({ appId, app, specification }) {
+export default function GeneratedAppClient({ appId, app, specification, customerMedia=[] }) {
   const pages = Array.isArray(specification?.pages) && specification.pages.length ? specification.pages : [{ id: "home", name: "Home", route: "/", description: app.description, components: [] }];
   const navigation = Array.isArray(specification?.navigation) && specification.navigation.length ? specification.navigation : pages.map((page) => ({ label: page.name, route: page.route }));
   const features = Array.isArray(specification?.features) ? specification.features : [];
@@ -26,6 +27,11 @@ export default function GeneratedAppClient({ appId, app, specification }) {
   const page = pages.find((entry) => entry.route === route) || pages[0];
   const entity = entities[0];
   const fields = Array.isArray(entity?.[1]?.fields) ? entity[1].fields.slice(0, 8) : ["name", "details"];
+  const visibleMedia = useMemo(()=>{
+    const pageName=String(page?.name||"").toLowerCase();
+    const matched=(customerMedia||[]).filter(item=>String(item?.page||"").toLowerCase()===pageName);
+    return (matched.length?matched:customerMedia||[]).slice(0,8);
+  },[customerMedia,page]);
 
   useEffect(() => {
     setDemoMode(new URLSearchParams(window.location.search).get("demo") === "1");
@@ -46,10 +52,12 @@ export default function GeneratedAppClient({ appId, app, specification }) {
     setRecords(next);
     setDraft({});
     try { localStorage.setItem(`generatedApp:${appId}:records`, JSON.stringify(next)); } catch {}
+    trackProjectEvent({appId,eventName:"record_saved",channel:"app",metadata:{page:page?.name||"Main"}});
     setNotice("Saved successfully.");
   }
 
   async function installApp() {
+    trackProjectEvent({appId,eventName:"install_prompt",channel:"app"});
     if (installPrompt) {
       await installPrompt.prompt();
       await installPrompt.userChoice;
@@ -60,6 +68,7 @@ export default function GeneratedAppClient({ appId, app, specification }) {
   }
 
   async function shareApp() {
+    trackProjectEvent({appId,eventName:"share",channel:"app"});
     const payload = { title: app.name, text: app.description || app.name, url: window.location.href.split("?")[0] };
     if (navigator.share) await navigator.share(payload);
     else {
@@ -77,8 +86,9 @@ export default function GeneratedAppClient({ appId, app, specification }) {
 
   return <main className="generatedApp" style={{ "--primary": primary, "--accent": accent, "--background": background, "--surface": surface, "--foreground": foreground }}>
     <header className="appHeader"><div><small>{demoMode ? "AI APP BUILDER · DEMO PREVIEW" : "AI APP BUILDER · LIVE APP"}</small><h1>{app.name}</h1><p>{app.description || specification?.description}</p></div><div className="headerActions">{demoMode ? <button className="approveDemo" onClick={() => window.location.assign(`/release/${appId}`)}>Approve Demo →</button> : <><button onClick={shareApp}>Share</button><button onClick={installApp}>Install</button></>}</div></header>
-    <nav>{navigation.map((entry, index) => <button key={index} className={(entry.route || "/") === route ? "active" : ""} onClick={() => setRoute(entry.route || "/")}>{itemName(entry, `Page ${index + 1}`)}</button>)}</nav>
+    <nav>{navigation.map((entry, index) => <button key={index} className={(entry.route || "/") === route ? "active" : ""} onClick={() => {setRoute(entry.route || "/");trackProjectEvent({appId,eventName:"page_view",channel:"app",metadata:{page:itemName(entry,`Page ${index+1}`)}})}}>{itemName(entry, `Page ${index + 1}`)}</button>)}</nav>
     <section className="heroCard"><small>{text(page.route, "/")}</small><h2>{text(page.name, "Home")}</h2><p>{text(page.description || page.purpose, "Your application workspace.")}</p></section>
+    {!!visibleMedia.length && <section className="mediaGallery">{visibleMedia.map((item)=><article key={item.id}>{String(item.mimeType||"").startsWith("video/")?<video src={item.url} controls playsInline preload="metadata"/>:<img src={item.url} alt={item.alt||item.name||"Customer media"}/>}<div><small>{item.role||"CUSTOMER MEDIA"}</small><b>{item.name||"Project media"}</b></div></article>)}</section>}
     <section className="grid">
       {(Array.isArray(page.components) ? page.components : []).map((component, index) => <article className="card" key={index}><span>✦</span><h3>{itemName(component, `Section ${index + 1}`)}</h3><p>{typeof component === "object" ? text(component.description || component.purpose, "Interactive application section") : "Interactive application section"}</p></article>)}
       {features.slice(0, 8).map((feature, index) => <article className="card" key={`feature-${index}`}><span>✓</span><h3>{itemName(feature, `Feature ${index + 1}`)}</h3><p>{typeof feature === "object" ? text(feature.description, "Ready to use") : "Ready to use"}</p></article>)}
@@ -87,11 +97,11 @@ export default function GeneratedAppClient({ appId, app, specification }) {
       <div className="panel"><small>{entity ? entity[0] : "APP DATA"}</small><h2>Add information</h2><form onSubmit={saveRecord}>{fields.map((field) => { const key = typeof field === "string" ? field : text(field?.name, "value"); return <label key={key}>{key.replaceAll("_", " ")}<input required value={draft[key] || ""} onChange={(event) => setDraft((value) => ({ ...value, [key]: event.target.value }))}/></label>; })}<button type="submit">Save</button></form></div>
       <div className="panel"><small>SAVED DATA</small><h2>{records.length} records</h2><input className="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search…"/><div className="recordList">{filtered.map((record) => <article key={record.id}>{fields.map((field) => { const key = typeof field === "string" ? field : text(field?.name, "value"); return record[key] ? <p key={key}><b>{key.replaceAll("_", " ")}:</b> {record[key]}</p> : null; })}</article>)}{!filtered.length && <p className="empty">No saved information yet.</p>}</div></div>
     </section>
-    {!!actions.length && <section className="actionBar">{actions.slice(0, 6).map((action, index) => <button key={index} onClick={() => setNotice(`${itemName(action, "Action")} completed.`)}>{itemName(action, `Action ${index + 1}`)}</button>)}</section>}
+    {!!actions.length && <section className="actionBar">{actions.slice(0, 6).map((action, index) => <button key={index} onClick={() => {trackProjectEvent({appId,eventName:"cta_click",channel:"app",metadata:{action:itemName(action,"Action")}});setNotice(`${itemName(action, "Action")} completed.`)}}>{itemName(action, `Action ${index + 1}`)}</button>)}</section>}
     {notice && <div className="notice" onClick={() => setNotice("")}>{notice}</div>}
     <footer>Created with AI App Builder · Data saved on this device</footer>
     <style jsx global>{`
-      .accountNav,.sv-fab{display:none!important}.generatedApp{min-height:100vh;background:var(--background);color:var(--foreground);padding:22px;font-family:Inter,system-ui,-apple-system,sans-serif}.appHeader,.generatedApp nav,.heroCard,.grid,.workspace,.actionBar,.generatedApp footer{max-width:1080px;margin-left:auto;margin-right:auto}.appHeader{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.appHeader small,.heroCard small,.panel>small{color:var(--primary);font-weight:900;letter-spacing:.14em}.appHeader h1{font-size:clamp(34px,7vw,62px);margin:7px 0}.appHeader p{max-width:680px;line-height:1.6}.headerActions{display:flex;gap:8px}.headerActions button,.generatedApp nav button,.actionBar button,.panel form button{border:0;border-radius:12px;padding:11px 14px;background:var(--surface);color:var(--primary);font-weight:850;box-shadow:0 5px 18px #0001}.generatedApp nav{display:flex;gap:8px;overflow:auto;padding:18px 0}.generatedApp nav button.active{background:var(--primary);color:#fff}.heroCard{padding:26px;border-radius:24px;background:var(--primary);color:#fff}.heroCard small{color:#fff9}.heroCard h2{font-size:36px;margin:8px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px}.card,.panel{background:var(--surface);border-radius:19px;padding:20px;box-shadow:0 8px 28px #0000000c}.card span{color:var(--accent);font-size:22px}.card h3{margin:10px 0 7px}.card p{opacity:.7;line-height:1.5}.workspace{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.panel h2{margin:7px 0 16px}.panel form{display:grid;gap:10px}.panel label{font-size:12px;font-weight:800;text-transform:capitalize}.panel input{width:100%;box-sizing:border-box;margin-top:5px;border:1px solid #0002;border-radius:10px;padding:11px;background:transparent;color:inherit}.panel form button{background:var(--primary);color:#fff;margin-top:5px}.search{margin:0 0 10px!important}.recordList{display:grid;gap:8px;max-height:360px;overflow:auto}.recordList article{padding:11px;border-radius:12px;background:var(--background)}.recordList p{margin:4px 0;font-size:13px}.empty{opacity:.6}.actionBar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actionBar button{background:var(--accent);color:#171006}.notice{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);padding:13px 18px;border-radius:13px;background:#102c23;color:#fff;z-index:20;box-shadow:0 12px 40px #0004}.generatedApp footer{text-align:center;padding:36px 0 12px;opacity:.6;font-size:12px}@media(max-width:700px){.generatedApp{padding:16px}.appHeader{display:block}.headerActions{margin-top:12px}.workspace{grid-template-columns:1fr}.heroCard h2{font-size:30px}}
+      .accountNav,.sv-fab{display:none!important}.generatedApp{min-height:100vh;background:var(--background);color:var(--foreground);padding:22px;font-family:Inter,system-ui,-apple-system,sans-serif}.appHeader,.generatedApp nav,.heroCard,.mediaGallery,.grid,.workspace,.actionBar,.generatedApp footer{max-width:1080px;margin-left:auto;margin-right:auto}.appHeader{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.appHeader small,.heroCard small,.panel>small{color:var(--primary);font-weight:900;letter-spacing:.14em}.appHeader h1{font-size:clamp(34px,7vw,62px);margin:7px 0}.appHeader p{max-width:680px;line-height:1.6}.headerActions{display:flex;gap:8px}.headerActions button,.generatedApp nav button,.actionBar button,.panel form button{border:0;border-radius:12px;padding:11px 14px;background:var(--surface);color:var(--primary);font-weight:850;box-shadow:0 5px 18px #0001}.generatedApp nav{display:flex;gap:8px;overflow:auto;padding:18px 0}.generatedApp nav button.active{background:var(--primary);color:#fff}.heroCard{padding:26px;border-radius:24px;background:var(--primary);color:#fff}.heroCard small{color:#fff9}.heroCard h2{font-size:36px;margin:8px 0}.mediaGallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}.mediaGallery article{overflow:hidden;border-radius:20px;background:var(--surface);box-shadow:0 8px 28px #0001}.mediaGallery img,.mediaGallery video{width:100%;height:220px;display:block;object-fit:cover;background:#0b1c17}.mediaGallery article>div{padding:12px}.mediaGallery small,.mediaGallery b{display:block}.mediaGallery small{color:var(--primary);font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.mediaGallery b{margin-top:4px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px}.card,.panel{background:var(--surface);border-radius:19px;padding:20px;box-shadow:0 8px 28px #0000000c}.card span{color:var(--accent);font-size:22px}.card h3{margin:10px 0 7px}.card p{opacity:.7;line-height:1.5}.workspace{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.panel h2{margin:7px 0 16px}.panel form{display:grid;gap:10px}.panel label{font-size:12px;font-weight:800;text-transform:capitalize}.panel input{width:100%;box-sizing:border-box;margin-top:5px;border:1px solid #0002;border-radius:10px;padding:11px;background:transparent;color:inherit}.panel form button{background:var(--primary);color:#fff;margin-top:5px}.search{margin:0 0 10px!important}.recordList{display:grid;gap:8px;max-height:360px;overflow:auto}.recordList article{padding:11px;border-radius:12px;background:var(--background)}.recordList p{margin:4px 0;font-size:13px}.empty{opacity:.6}.actionBar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actionBar button{background:var(--accent);color:#171006}.notice{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);padding:13px 18px;border-radius:13px;background:#102c23;color:#fff;z-index:20;box-shadow:0 12px 40px #0004}.generatedApp footer{text-align:center;padding:36px 0 12px;opacity:.6;font-size:12px}@media(max-width:700px){.generatedApp{padding:16px}.appHeader{display:block}.headerActions{margin-top:12px}.workspace{grid-template-columns:1fr}.heroCard h2{font-size:30px}.mediaGallery img,.mediaGallery video{height:190px}}
     `}</style>
   </main>;
 }
