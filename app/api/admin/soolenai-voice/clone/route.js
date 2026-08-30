@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "../../../../../lib/supabase/server.js";
+import { getSoolenCostMode } from "../../../../../lib/soolen/cost-policy.js";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,13 @@ export async function POST(request) {
     const role = user.app_metadata?.role || user.user_metadata?.role;
     if (role !== "admin") {
       return NextResponse.json({ error: "Admin permission required." }, { status: 403 });
+    }
+
+    if (getSoolenCostMode() === "zero") {
+      return NextResponse.json({
+        error: "Paid cloud voice cloning is disabled in zero-cost mode. Use the approved sample with the local Soolen TTS worker.",
+        code: "ZERO_COST_POLICY_BLOCKED",
+      }, { status: 503 });
     }
 
     const apiKey = process.env.ELEVENLABS_API_KEY;
