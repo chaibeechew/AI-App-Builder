@@ -55,6 +55,15 @@ export async function POST(request) {
         tier,
       }, { status: 402 });
     }
+    if (advancedRequested && !resolved.providers.premiumRouting) {
+      return NextResponse.json({
+        error: resolved.policy.mode === "zero"
+          ? "Advanced reasoning needs a connected local Ollama model in zero-cost mode."
+          : "Advanced reasoning provider is not configured.",
+        code: "LOCAL_MODEL_SETUP_REQUIRED",
+        tier,
+      }, { status: 503 });
+    }
     if (!resolved.providers.text.length) {
       return NextResponse.json({
         error: "No authorized AI provider is configured for this capability tier.",
