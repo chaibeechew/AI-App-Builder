@@ -29,17 +29,17 @@ export async function POST(request){
   supabase=await createClient();const {data:{user},error:userError}=await supabase.auth.getUser();
   if(userError||!user)return NextResponse.json({success:false,error:"Authentication required."},{status:401});
   if(!user.confirmed_at&&!user.email_confirmed_at&&!user.phone_confirmed_at)return NextResponse.json({success:false,error:"Please verify your email or phone before creating an app."},{status:403});
-  const body=await request.json();const idea=String(body?.idea||body?.prompt||"").trim();const voiceTranscript=String(body?.voiceTranscript||body?.transcript||"").trim();
+  const body=await request.json();const idea=String(body?.idea||body?.prompt||"").trim();const voiceTranscript=String(body?.voiceTranscript||body?.transcript||"").trim();const designBrief=String(body?.designBrief||"").trim().slice(0,6000);
   const referenceImages=Array.isArray(body?.referenceImages||body?.imageRefs)?(body.referenceImages||body.imageRefs).filter(v=>typeof v==="string"&&v.trim()).slice(0,10):[];
   const language=String(body?.language||"en").trim(),industry=String(body?.industry||"technology").trim();const terminology=Array.isArray(body?.terminology)?body.terminology:[];const createDemoVideo=Boolean(body?.createDemoVideo);
   chargeRequestId=String(body?.requestId||crypto.randomUUID()).trim();if(!idea&&!voiceTranscript)return NextResponse.json({success:false,error:"Please describe the app you want to build."},{status:400});
-  const combinedInput=[idea,voiceTranscript].filter(Boolean).join("\n\n");if(combinedInput.length>8000)return NextResponse.json({success:false,error:"App description is too long."},{status:413});
+  const combinedInput=[idea,voiceTranscript,designBrief&&!idea.includes(designBrief)?designBrief:""].filter(Boolean).join("\n\n");if(combinedInput.length>14000)return NextResponse.json({success:false,error:"App description is too long."},{status:413});
   const {data:entitlement,error:entitlementError}=await supabase.rpc("consume_app_builder_entitlement",{p_operation:"create",p_app_id:null});if(entitlementError)throw entitlementError;
   if(!entitlement?.allowed){const {data:charge,error:chargeError}=await supabase.rpc("consume_ai_credits",{p_amount:GENERATE_CREDIT_COST,p_request_id:chargeRequestId,p_description:"AI app generation",p_metadata:{operation:"generate"}});if(chargeError){if(chargeError.message?.toLowerCase().includes("insufficient credits"))return NextResponse.json({success:false,error:"Insufficient credits.",requiredCredits:GENERATE_CREDIT_COST},{status:402});throw chargeError;}charged=charge?.charged!==false;}else entitlementSource=entitlement.source;
 
-  const generationOptions={voiceTranscript,referenceImages,language,industry,terminology,createDemoVideo};
+  const generationOptions={voiceTranscript,referenceImages,designBrief,language,industry,terminology,createDemoVideo};
   const adult=await runSoolenAdultMode({taskType:"app-build",goal:combinedInput,privateData:referenceImages.length>0,requirements:body?.requirements||{},executors:[{id:"soolen-autonomous-engine",available:true,local:false,requiresNetwork:true,baseScore:50,historicalSuccess:0.5}],permissions:{network:true,privateUpload:referenceImages.length>0}}, {
-   execute:async()=>runAutonomousEngine(idea||voiceTranscript,generationOptions),
+   execute:async()=>runAutonomousEngine(combinedInput,generationOptions),
    verify:async(result)=>{
      const report=verifyGeneration(result);
      return {passed:report.passed,report};
