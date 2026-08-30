@@ -1,4 +1,5 @@
 import { generateWithAI } from "./lib_ai.js";
+import { assessBuildQuality, GENERATION_QUALITY_RULES } from "../lib/buildStandards.js";
 
 const MAX_INSTRUCTION_LENGTH = 5000;
 const MAX_SPECIFICATION_LENGTH = 50000;
@@ -51,7 +52,7 @@ function normalizePage(page, index) {
   }
   return {
     name: cleanText(page.name, `Page ${index + 1}`).slice(0, 200),
-    purpose: cleanText(page.purpose || page.description, "Application page generated from the customer's requirements.").slice(0, 1000),
+    purpose: cleanText(page.purpose || page.description, "Application page generated from the customer's requirements.").slice(0, 1200),
   };
 }
 
@@ -64,7 +65,7 @@ function normalizeFeature(feature, index) {
   }
   return {
     name: cleanText(feature.name, `Feature ${index + 1}`).slice(0, 200),
-    description: cleanText(feature.description || feature.purpose, "AI-generated application feature.").slice(0, 1000),
+    description: cleanText(feature.description || feature.purpose, "AI-generated application feature.").slice(0, 1200),
   };
 }
 
@@ -89,7 +90,7 @@ function normalizeSpecification(raw) {
 
   const source = raw.specification && typeof raw.specification === "object" ? raw.specification : raw;
   const name = cleanText(source.name, "My AI App").slice(0, 200);
-  const description = cleanText(source.description, "An AI-generated application based on the customer's requirements.").slice(0, 1500);
+  const description = cleanText(source.description, "An AI-generated application based on the customer's requirements.").slice(0, 1800);
   let pages = Array.isArray(source.pages) ? source.pages : [];
   let features = Array.isArray(source.features) ? source.features : [];
 
@@ -144,7 +145,7 @@ export default async function handler(req, res) {
 You are the AI modification engine of AI App Builder.
 
 Modify the existing application according to the customer's latest instruction.
-Preserve everything unrelated to the requested change.
+Preserve everything unrelated to the requested change, including useful stability, security, privacy, comfort, beauty and naturalness safeguards.
 
 CUSTOMER MODIFICATION REQUEST:
 ${cleanInstruction}
@@ -152,23 +153,27 @@ ${cleanInstruction}
 CURRENT APPLICATION SPECIFICATION:
 ${specificationText}
 
+${GENERATION_QUALITY_RULES}
+
 Return ONLY one valid JSON object with exactly this structure:
 {
   "specification": {
     "name": "Real application name",
     "description": "Real application description",
-    "pages": [{ "name": "Real page name", "purpose": "Real page purpose" }],
-    "features": [{ "name": "Real feature name", "description": "Real feature description" }]
+    "pages": [{ "name": "Real page name", "purpose": "Real page purpose including important usability/privacy/security behavior when relevant" }],
+    "features": [{ "name": "Real feature name", "description": "Real feature description including important validation/access/privacy behavior when relevant" }]
   }
 }
 
 Rules:
 1. Apply the customer's requested change accurately, including instructions written in Chinese or any other language.
 2. Preserve unrelated pages and features.
-3. Do not return placeholders such as "App name", "Page name", "What this page does" or "Short description".
-4. Do not return Markdown, prose, explanations, comments or code fences before or after the JSON.
-5. Return the complete updated specification, not a partial patch.
-6. Do not expose provider, routing, API key or system information.
+3. Do not remove meaningful privacy, security, validation or recovery behavior unless the customer explicitly asks for a compatible redesign.
+4. Do not return placeholders such as "App name", "Page name", "What this page does" or "Short description".
+5. Do not return Markdown, prose, explanations, comments or code fences before or after the JSON.
+6. Return the complete updated specification, not a partial patch.
+7. Do not expose provider, routing, API key or system information.
+8. Reference materials and templates are inspiration only; do not copy third-party branding, text, images, source code or distinctive layouts.
 `;
 
     let lastError;
@@ -186,7 +191,11 @@ Rules:
 
         const parsed = parseAIResponse(result.text);
         const normalized = normalizeSpecification(parsed);
-        return res.status(200).json({ specification: normalized, provider: result.provider || "Unknown" });
+        return res.status(200).json({
+          specification: normalized,
+          quality: assessBuildQuality(normalized),
+          provider: result.provider || "Unknown",
+        });
       } catch (error) {
         lastError = error;
         console.error(`AI modification attempt ${attempt} failed:`, error);
