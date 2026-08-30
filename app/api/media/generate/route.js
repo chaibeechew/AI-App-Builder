@@ -2,6 +2,7 @@ import {NextResponse} from "next/server";
 import {createClient} from "../../../../lib/supabase/server.js";
 import {generateSoolenVideo,SoolenVideoEngineError} from "../../../../lib/soolen/video-engine.js";
 import {sanitizeDeviceCapabilities,createDataHandlingPolicy} from "../../../../lib/soolen/security-policy.js";
+import {getSoolenSubscription,requirePaidTier} from "../../../../lib/soolen/user-tier.js";
 
 const MAX_AUDIO=20*1024*1024;
 const MAX_IMAGE=20*1024*1024;
@@ -38,6 +39,11 @@ export async function POST(request){
   const referenceImage=form.get("referenceImage");
   const sourceVideo=form.get("sourceVideo");
   const voiceFile=form.get("voiceFile");
+
+  if(executionTarget!=="device"){
+   const subscription=await getSoolenSubscription(supabase,user.id);
+   if(!requirePaidTier(subscription))return noStore({success:false,error:"Cloud and shared video rendering require an active paid plan.",code:"UPGRADE_REQUIRED"},402);
+  }
 
   if(!prompt)return noStore({success:false,error:"Please describe what you want Soolen AI to create or change."},400);
   if(prompt.length>MAX_PROMPT)return noStore({success:false,error:"Description is too long."},413);
