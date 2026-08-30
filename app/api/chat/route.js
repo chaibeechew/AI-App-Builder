@@ -1,25 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../lib/supabase/server.js";
 import { generateWithFallback } from "../../../engine/ai-provider.js";
-import { planTier, resolveSoolenCapabilities } from "../../../lib/soolen/capability-registry.js";
+import { resolveSoolenCapabilities } from "../../../lib/soolen/capability-registry.js";
+import { getSoolenSubscription } from "../../../lib/soolen/user-tier.js";
 
 const MAX_MESSAGE = 12000;
 const MAX_HISTORY_MESSAGES = 20;
 const MAX_HISTORY_ITEM = 4000;
-
-async function resolveUserTier(supabase, userId) {
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .select("status,subscription_plans(code)")
-    .eq("user_id", userId)
-    .in("status", ["active", "trialing"])
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) return "free";
-  const plan = Array.isArray(data?.subscription_plans) ? data.subscription_plans[0] : data?.subscription_plans;
-  return planTier(plan?.code, data?.status);
-}
 
 function safeHistory(messages) {
   return (Array.isArray(messages) ? messages : [])
@@ -58,7 +45,7 @@ export async function POST(request) {
     if (!message) return NextResponse.json({ error: "Message is required." }, { status: 400 });
     if (message.length > MAX_MESSAGE) return NextResponse.json({ error: "Message is too long." }, { status: 413 });
 
-    const tier = await resolveUserTier(supabase, user.id);
+    const { tier } = await getSoolenSubscription(supabase, user.id);
     const resolved = resolveSoolenCapabilities({ tier });
     const advancedRequested = body?.mode === "advanced";
     if (advancedRequested && tier === "free") {
