@@ -3,6 +3,7 @@ import {createClient} from "../../../../lib/supabase/server.js";
 import {generateSoolenVideo,SoolenVideoEngineError} from "../../../../lib/soolen/video-engine.js";
 import {sanitizeDeviceCapabilities,createDataHandlingPolicy} from "../../../../lib/soolen/security-policy.js";
 import {getSoolenSubscription,requirePaidTier} from "../../../../lib/soolen/user-tier.js";
+import {getSoolenCostMode} from "../../../../lib/soolen/cost-policy.js";
 
 const MAX_AUDIO=20*1024*1024;
 const MAX_IMAGE=20*1024*1024;
@@ -41,6 +42,7 @@ export async function POST(request){
   const voiceFile=form.get("voiceFile");
 
   if(executionTarget!=="device"){
+   if(getSoolenCostMode()==="zero")return noStore({success:false,error:"Zero-cost mode uses Device Compute only. Cloud and shared rendering are disabled.",code:"ZERO_COST_DEVICE_ONLY"},503);
    const subscription=await getSoolenSubscription(supabase,user.id);
    if(!requirePaidTier(subscription))return noStore({success:false,error:"Cloud and shared video rendering require an active paid plan.",code:"UPGRADE_REQUIRED"},402);
   }
