@@ -1,4 +1,5 @@
 import { generateWithAI } from "./lib_ai_v3.js";
+import { assessBuildQuality, GENERATION_QUALITY_RULES } from "../lib/buildStandards.js";
 
 const MAX_IDEA_LENGTH = 5000;
 const MAX_PAGES = 30;
@@ -49,7 +50,7 @@ function normalizePage(page, index) {
   }
   return {
     name: cleanText(page.name, `Page ${index + 1}`).slice(0, 200),
-    purpose: cleanText(page.purpose || page.description, "Application page generated from the customer's requirements.").slice(0, 1000),
+    purpose: cleanText(page.purpose || page.description, "Application page generated from the customer's requirements.").slice(0, 1200),
   };
 }
 
@@ -62,7 +63,7 @@ function normalizeFeature(feature, index) {
   }
   return {
     name: cleanText(feature.name, `Feature ${index + 1}`).slice(0, 200),
-    description: cleanText(feature.description || feature.purpose, "AI-generated application feature.").slice(0, 1000),
+    description: cleanText(feature.description || feature.purpose, "AI-generated application feature.").slice(0, 1200),
   };
 }
 
@@ -88,7 +89,7 @@ function normalizeSpecification(raw) {
 
   const source = raw.specification;
   const name = cleanText(source.name, "My AI App").slice(0, 200);
-  const description = cleanText(source.description, "An AI-generated application based on the customer's requirements.").slice(0, 1500);
+  const description = cleanText(source.description, "An AI-generated application based on the customer's requirements.").slice(0, 1800);
   let pages = Array.isArray(source.pages) ? source.pages : [];
   let features = Array.isArray(source.features) ? source.features : [];
 
@@ -102,7 +103,7 @@ function normalizeSpecification(raw) {
     throw new Error("AI returned placeholder content instead of a real application specification.");
   }
 
-  return { specification };
+  return specification;
 }
 
 function parseAIResponse(text) {
@@ -124,19 +125,21 @@ export default async function handler(req, res) {
     const prompt = `
 You are the core application-planning engine of AI App Builder.
 
-Transform the customer's requirements into a practical, specific application specification.
+Transform the customer's requirements into a practical, specific application specification for an original App + Website.
 The customer's requirements are the source of truth. Do not replace the idea with a generic template.
 
 CUSTOMER REQUIREMENTS:
 ${cleanIdea}
+
+${GENERATION_QUALITY_RULES}
 
 Return ONLY one valid JSON object using exactly this structure:
 {
   "specification": {
     "name": "Real application name",
     "description": "Real application description",
-    "pages": [{ "name": "Real page name", "purpose": "Real page purpose" }],
-    "features": [{ "name": "Real feature name", "description": "Real feature description" }]
+    "pages": [{ "name": "Real page name", "purpose": "Real page purpose including important usability/privacy/security behavior when relevant" }],
+    "features": [{ "name": "Real feature name", "description": "Real feature description including important validation/access/privacy behavior when relevant" }]
   }
 }
 
@@ -144,9 +147,11 @@ Rules:
 1. Preserve the customer's requested workflow, users, roles, industry and important requirements.
 2. Every page and feature must directly support the requested application.
 3. Create multiple pages when logically required.
-4. Do not return placeholders such as "App name", "Page name", "What this page does" or "Short description".
-5. Return JSON only: no Markdown, explanations, code fences or comments.
-6. Do not expose internal AI provider information.
+4. Include practical safeguards instead of vague claims such as "secure" or "private".
+5. Do not return placeholders such as "App name", "Page name", "What this page does" or "Short description".
+6. Return JSON only: no Markdown, explanations, code fences or comments.
+7. Do not expose internal AI provider information.
+8. References, templates and uploaded materials are inspiration inputs only; do not copy third-party branding, text, images, source code or distinctive layouts.
 `;
 
     let lastError;
@@ -155,7 +160,7 @@ Rules:
         const result = await generateWithAI(
           attempt === 1
             ? prompt
-            : `${prompt}\n\nIMPORTANT RETRY: The previous output was invalid or generic. Return STRICT JSON ONLY with a real app name, real pages and real purposes. Start with { and end with }.`
+            : `${prompt}\n\nIMPORTANT RETRY: The previous output was invalid or generic. Return STRICT JSON ONLY with a real app name, real pages, real purposes and concrete quality safeguards. Start with { and end with }.`
         );
 
         if (!result || typeof result.text !== "string" || !result.text.trim()) {
@@ -163,8 +168,12 @@ Rules:
         }
 
         const parsed = parseAIResponse(result.text);
+        const specification = normalizeSpecification(parsed);
+        const quality = assessBuildQuality(specification);
+
         return res.status(200).json({
-          ...normalizeSpecification(parsed),
+          specification,
+          quality,
           provider: result.provider || "Unknown",
         });
       } catch (error) {
