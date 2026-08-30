@@ -62,26 +62,28 @@ export default function SoolenAICenter() {
   }
 
   const tier = data?.subscription?.tier || "free";
+  const advancedReady = Boolean(data?.providers?.premiumRouting);
+  const costMode = data?.policy?.mode || "zero";
   const readyCount = (data?.capabilities || []).filter((item) => item.status === "ready" || item.status === "integration_ready").length;
 
   return <main className="soolenCenter">
     <div className="aurora"/>
     <header>
       <Link href="/" className="back">← AI App Builder</Link>
-      <div className="tier">{tier.toUpperCase()} · {readyCount} READY</div>
+      <div className="tier">{tier.toUpperCase()} · {costMode.toUpperCase()} COST · {readyCount} READY</div>
     </header>
 
     <section className="hero">
       <small>SOOLEN AI · CAPABILITY CENTER</small>
       <h1>一个入口，连接 Soolen AI 的全部能力。</h1>
       <p>思考、写作、多语言、App + Website、代码、图片、语音和影片都由同一个权限系统管理。免费能力直接使用；付费能力只有在有效订阅与服务授权同时通过后才开启。</p>
-      <div className="policy"><span>✓ Server-checked subscription</span><span>✓ Authorized providers only</span><span>✓ Automatic fallback</span><span>✓ No copied private models</span></div>
+      <div className="policy"><span>✓ RM0 metered AI spend</span><span>✓ Device + local first</span><span>✓ Server-checked subscription</span><span>✓ Authorized providers only</span><span>✓ Automatic fallback</span><span>✓ No copied private models</span></div>
     </section>
 
     <section className="chat">
       <div className="chatHead">
         <div><small>SOOLEN CONVERSATION</small><h2>What do you want to do?</h2></div>
-        <label className={tier === "free" ? "mode locked" : "mode"}><input type="checkbox" checked={advanced} disabled={tier === "free"} onChange={(event) => setAdvanced(event.target.checked)}/> Advanced multi-model {tier === "free" && "· Paid"}</label>
+        <label className={!advancedReady ? "mode locked" : "mode"}><input type="checkbox" checked={advanced} disabled={!advancedReady} onChange={(event) => setAdvanced(event.target.checked)}/> Advanced local reasoning {!advancedReady && "· Connect Ollama"}</label>
       </div>
       <div className="messages">
         {!messages.length && <div className="welcome"><b>Try asking Soolen AI:</b><span>“Design a premium real-estate App and customer website.”</span><span>“Analyze my layout references and suggest a better mobile flow.”</span><span>“Write, test and repair this feature.”</span></div>}
