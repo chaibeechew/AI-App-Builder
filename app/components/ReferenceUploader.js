@@ -155,7 +155,13 @@ export default function ReferenceUploader() {
       const brief = `Use these customer references only as inspiration and requirements context. Reimagine them into an original App + Website; do not copy third-party branding, text, images, code or distinctive layouts.\n\nVISUAL REFERENCE ANALYSIS:\n${value.analysis}`;
       setAnalysis(value.analysis);
       try { sessionStorage.setItem("soolenReferenceAnalysis", brief); } catch {}
-      window.dispatchEvent(new CustomEvent("soolen-app-idea", { detail: { idea: brief } }));
+
+      const existingIdea = String(document.querySelector("textarea")?.value || "").trim();
+      const combinedIdea = existingIdea && !existingIdea.includes("VISUAL REFERENCE ANALYSIS:")
+        ? `${existingIdea}\n\n${brief}`
+        : brief;
+      window.dispatchEvent(new CustomEvent("soolen-app-idea", { detail: { idea: combinedIdea } }));
+      setOpen(false);
     } catch (e) {
       setError(e?.message || "Unable to analyze references.");
     } finally {
@@ -191,7 +197,7 @@ export default function ReferenceUploader() {
         </div>}
 
         {!!items.length && <button className="analyze" type="button" onClick={analyzeAndUse} disabled={analyzing}>{analyzing ? "AI analyzing references…" : "AI ANALYZE + USE FOR BUILD →"}</button>}
-        {analysis && <div className="analysis"><b>✓ Reference brief added to the builder</b><span>You can now add your own text instructions before pressing Build App + Website.</span></div>}
+        {analysis && <div className="analysis"><b>✓ Reference brief added to the builder</b><span>Your own text is preserved and combined with the AI visual brief.</span></div>}
         {error && <div className="referenceError">{error}</div>}
         <div className="referenceRule"><b>AI rule:</b> Analyze → understand → reimagine → generate an original App + Website. Do not copy third-party branding, text, images, code or distinctive layouts.</div>
       </section>}
