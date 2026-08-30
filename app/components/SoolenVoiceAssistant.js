@@ -96,10 +96,12 @@ export default function SoolenVoiceAssistant() {
   const [language, setLanguage] = useState("auto");
   const [voiceReply, setVoiceReply] = useState(true);
   const speech = useRef(null);
+  const audio = useRef(null);
   const finalText = useRef("");
 
   useEffect(() => () => {
     try { speech.current?.abort(); } catch {}
+    try { audio.current?.player?.pause(); if (audio.current?.url) URL.revokeObjectURL(audio.current.url); } catch {}
     try { window.speechSynthesis?.cancel(); } catch {}
   }, []);
 
@@ -112,16 +114,12 @@ export default function SoolenVoiceAssistant() {
     return language === "auto" ? deviceLanguage() : language;
   }
 
-  function speak(value, requestedLanguage) {
-    const message = String(value || "").trim();
-    if (!message) return;
+  function speakWithDevice(message, selected) {
     if (!("speechSynthesis" in window) || !window.SpeechSynthesisUtterance) {
       setStatus("Voice output is not supported by this browser.");
       return;
     }
-
     window.speechSynthesis.cancel();
-    const selected = detectLanguageFromText(message, requestedLanguage || recognitionLanguage());
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = selected;
     utterance.rate = 0.95;
@@ -137,6 +135,40 @@ export default function SoolenVoiceAssistant() {
     };
     window.speechSynthesis.speak(utterance);
     window.speechSynthesis.resume();
+  }
+
+  async function speak(value, requestedLanguage) {
+    const message = String(value || "").trim();
+    if (!message) return;
+    const selected = detectLanguageFromText(message, requestedLanguage || recognitionLanguage());
+    stopSpeaking();
+    try {
+      const response = await fetch("/api/soolenai/voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: message, language: selected }),
+      });
+      if (!response.ok) throw new Error("Use device voice fallback.");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const player = new Audio(url);
+      audio.current = { player, url };
+      player.onplay = () => setSpeaking(true);
+      player.onended = () => {
+        setSpeaking(false);
+        URL.revokeObjectURL(url);
+        if (audio.current?.url === url) audio.current = null;
+      };
+      player.onerror = () => {
+        setSpeaking(false);
+        URL.revokeObjectURL(url);
+        if (audio.current?.url === url) audio.current = null;
+        speakWithDevice(message, selected);
+      };
+      await player.play();
+    } catch {
+      speakWithDevice(message, selected);
+    }
   }
 
   function speakConfirmation() {
@@ -206,6 +238,11 @@ export default function SoolenVoiceAssistant() {
 
   function stopSpeaking() {
     try { window.speechSynthesis.cancel(); } catch {}
+    try {
+      audio.current?.player?.pause();
+      if (audio.current?.url) URL.revokeObjectURL(audio.current.url);
+      audio.current = null;
+    } catch {}
     setSpeaking(false);
   }
 
