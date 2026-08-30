@@ -19,7 +19,7 @@ export const SOOLENAI_VOICE = Object.freeze({
   paidProvider: "elevenlabs",
   paidProviderApiKeyEnv: "ELEVENLABS_API_KEY",
   model: "chatterbox_multilingual_voice_clone",
-  languages: ["zh", "en", "ja", "fr", "ms", "es", "de"],
+  languages: ["zh","zh-CN","zh-HK","zh-TW","en","en-US","ms","ms-MY","id","id-ID","ta","ta-MY","hi","hi-IN","ja","ja-JP","ko","ko-KR","th","th-TH","vi","vi-VN","ar","ar-SA","es","es-ES","fr","fr-FR","de","de-DE","pt","pt-BR","ru","ru-RU"],
   voiceIdEnv: "SOOLENAI_VOICE_ID",
 });
 
