@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "../../../../lib/supabase/server.js";
 import { getSoolenAIVoiceId, getSoolenAIVoiceProvider, SOOLENAI_VOICE } from "../../../../config/soolenai-voice.js";
 import { getSoolenSubscription, requirePaidTier } from "../../../../lib/soolen/user-tier.js";
+import { getSoolenCostMode } from "../../../../lib/soolen/cost-policy.js";
 
 export const runtime = "nodejs";
 
@@ -83,12 +84,14 @@ export async function POST(request) {
     const openSourceReady = Boolean(process.env[SOOLENAI_VOICE.openSourceEndpointEnv] && process.env[SOOLENAI_VOICE.openSourceSampleUrlEnv]);
     const paidReady = Boolean(process.env[SOOLENAI_VOICE.paidProviderApiKeyEnv] && process.env[SOOLENAI_VOICE.voiceIdEnv]);
     const subscription = await getSoolenSubscription(supabase, user.id);
+    if (!requirePaidTier(subscription)) return NextResponse.json({ error: "Soolen neural voice requires an active paid plan. Device voice remains available at no cost.", code: "UPGRADE_REQUIRED" }, { status: 402 });
 
-    if ((provider === "open_source" || provider === "local") && openSourceReady) return synthesizeWithOpenSource({ text, language });
-    if ((provider === "elevenlabs" || (!openSourceReady && paidReady))) {
-      if (!requirePaidTier(subscription)) return NextResponse.json({ error: "Premium neural voice requires an active paid plan.", code: "UPGRADE_REQUIRED" }, { status: 402 });
-      return synthesizeWithElevenLabs({ text, language });
+    if (getSoolenCostMode() === "zero") {
+      if (openSourceReady) return synthesizeWithOpenSource({ text, language });
+      return NextResponse.json({ error: "Connect the open-source Soolen TTS worker to use neural voice in zero-cost mode.", code: "LOCAL_TTS_SETUP_REQUIRED" }, { status: 503 });
     }
+    if ((provider === "open_source" || provider === "local") && openSourceReady) return synthesizeWithOpenSource({ text, language });
+    if (provider === "elevenlabs" || (!openSourceReady && paidReady)) return synthesizeWithElevenLabs({ text, language });
     if (openSourceReady) return synthesizeWithOpenSource({ text, language });
     return NextResponse.json({ error: "No SoolenAI voice provider is configured.", code: "PROVIDER_SETUP_REQUIRED" }, { status: 503 });
   } catch (error) {
