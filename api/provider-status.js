@@ -1,4 +1,4 @@
-import { getProviderStatus } from './lib_ai.js';
+import { getProviderStatus } from './lib_ai_v3.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -17,6 +17,7 @@ export default async function handler(req, res) {
         available: Boolean(provider.available),
         failures: provider.failures,
         success: provider.success,
+        model: provider.model,
       })),
     });
   } catch (error) {
