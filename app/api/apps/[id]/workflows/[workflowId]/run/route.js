@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../../../../../../lib/supabase/server.js";
-import { sendManagedEmail, sendManagedSms, createManagedCalendarEvent } from "../../../../../../../../lib/integrations/server.js";
+import { createClient } from "../../../../../../../lib/supabase/server.js";
+import { sendManagedEmail, sendManagedSms, createManagedCalendarEvent } from "../../../../../../../lib/integrations/server.js";
 
 function cleanPayload(value){
   if(!value||typeof value!=="object"||Array.isArray(value))return {};
