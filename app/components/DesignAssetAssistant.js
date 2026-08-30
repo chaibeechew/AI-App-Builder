@@ -44,7 +44,7 @@ function videoPoster(file) {
   });
 }
 
-function visualHints(imageData) {
+function visualHints(imageData, file) {
   return new Promise((resolve) => {
     const image = new Image();
     image.onload = () => {
@@ -78,7 +78,7 @@ function visualHints(imageData) {
 }
 
 async function inspectImage(imageData, file, extra = {}) {
-  const hints = await visualHints(imageData);
+  const hints = await visualHints(imageData, file);
   const response = await fetch("/api/images/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
