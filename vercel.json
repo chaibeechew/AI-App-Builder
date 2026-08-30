@@ -2,5 +2,8 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "devCommand": "next dev"
+  "devCommand": "next dev",
+  "git": {
+    "deploymentEnabled": true
+  }
 }
