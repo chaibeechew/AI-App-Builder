@@ -64,20 +64,22 @@ export default function SoolenAICenter() {
   const tier = data?.subscription?.tier || "free";
   const advancedReady = Boolean(data?.providers?.premiumRouting);
   const costMode = data?.policy?.mode || "zero";
+  const freeRotation = costMode === "free";
+  const providerNames = data?.providers?.text || [];
   const readyCount = (data?.capabilities || []).filter((item) => item.status === "ready" || item.status === "integration_ready").length;
 
   return <main className="soolenCenter">
     <div className="aurora"/>
     <header>
       <Link href="/" className="back">← AI App Builder</Link>
-      <div className="tier">{tier.toUpperCase()} · {costMode.toUpperCase()} COST · {readyCount} READY</div>
+      <div className="tier">{tier.toUpperCase()} · {freeRotation ? "FREE ROTATION" : `${costMode.toUpperCase()} COST`} · {readyCount} READY</div>
     </header>
 
     <section className="hero">
       <small>SOOLEN AI · CAPABILITY CENTER</small>
       <h1>一个入口，连接 Soolen AI 的全部能力。</h1>
       <p>思考、写作、多语言、App + Website、代码、图片、语音和影片都由同一个权限系统管理。免费能力直接使用；付费能力只有在有效订阅与服务授权同时通过后才开启。</p>
-      <div className="policy"><span>✓ RM0 metered AI spend</span><span>✓ Device + local first</span><span>✓ Server-checked subscription</span><span>✓ Authorized providers only</span><span>✓ Automatic fallback</span><span>✓ No copied private models</span></div>
+      <div className="policy"><span>✓ {freeRotation ? "Free quotas + hard-stop accounts" : "RM0 metered AI spend"}</span><span>✓ Device + local first</span><span>✓ Server-checked subscription</span><span>✓ Authorized providers only</span><span>✓ Automatic cooldown + fallback</span><span>✓ {providerNames.length} providers connected</span></div>
     </section>
 
     <section className="chat">
