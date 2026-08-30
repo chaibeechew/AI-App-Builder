@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../../../../lib/supabase/server.js";
+import { createClient } from "../../../../../lib/supabase/server.js";
 
 async function ownedApp(supabase,id,userId){
   const {data}=await supabase.from("apps").select("id,name,owner_id").eq("id",id).eq("owner_id",userId).single();
@@ -22,14 +22,7 @@ export async function POST(request,{params}){
     if(!user)return NextResponse.json({error:"Authentication required."},{status:401});
     const app=await ownedApp(supabase,id,user.id); if(!app)return NextResponse.json({error:"Project not found."},{status:404});
     const body=await request.json().catch(()=>({}));
-    const memory={
-      brandPreferences:body?.memory?.brandPreferences||{},
-      userPreferences:body?.memory?.userPreferences||{},
-      workflowPreferences:body?.memory?.workflowPreferences||{},
-      contentGuidance:String(body?.memory?.contentGuidance||"").slice(0,6000),
-      learnedFrom:["customer instructions","approved project changes","customer-owned references"],
-      rawPrivateAssetsReusableAcrossCustomers:false
-    };
+    const memory={brandPreferences:body?.memory?.brandPreferences||{},userPreferences:body?.memory?.userPreferences||{},workflowPreferences:body?.memory?.workflowPreferences||{},contentGuidance:String(body?.memory?.contentGuidance||"").slice(0,6000),learnedFrom:["customer instructions","approved project changes","customer-owned references"],rawPrivateAssetsReusableAcrossCustomers:false};
     const scope=body?.learningScope==="anonymized_patterns"?"anonymized_patterns":"project_only";
     const {data,error}=await supabase.from("project_memory").upsert({app_id:id,owner_id:user.id,memory_json:memory,learning_scope:scope,updated_at:new Date().toISOString()},{onConflict:"app_id"}).select("id,memory_json,learning_scope,updated_at").single();
     if(error)throw error;
