@@ -22,7 +22,7 @@ export async function GET() {
         tier,
         planName: subscription.planName,
         status: subscription?.status || "none",
-        currentPeriodEnd: subscription?.current_period_end || null,
+        currentPeriodEnd: subscription?.currentPeriodEnd || null,
       },
       ...resolved,
     });
