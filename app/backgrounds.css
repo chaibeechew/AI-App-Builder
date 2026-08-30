@@ -1,0 +1,67 @@
+/* SoolenAI global cinematic background rotation */
+
+:root {
+  --soolen-bg-1: url('/02ACE732-9849-4674-8901-E264BCA5C02D.png');
+  --soolen-bg-2: url('/16C890C3-470F-45D7-AB7C-0F08539322D6.png');
+  --soolen-bg-3: url('/2B8051D6-C2AB-4A04-A0D3-D4066F8E26E4.png');
+  --soolen-bg-4: url('/38CC3932-F760-486C-9918-50FC5223EE57.png');
+  --soolen-bg-5: url('/423B3D58-BB70-4022-A930-4E0035A98F53.png');
+  --soolen-bg-6: url('/484C7EEC-E270-4F7A-AA4D-27ECF4BFF93B.png');
+  --soolen-bg-7: url('/9E5FBDF9-3CCA-4D65-B5C4-3AFF1370F377.png');
+  --soolen-bg-8: url('/C13C3DC4-6862-448D-B8D1-F19394BFE57C.png');
+}
+
+.bg,
+.authPage {
+  background-position: center !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+  animation: soolenLandscapeCycle 64s infinite steps(1, end) !important;
+}
+
+.bg {
+  background-image:
+    linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)),
+    var(--soolen-bg-1) !important;
+}
+
+.authPage {
+  background-image:
+    linear-gradient(rgba(1,10,12,.28), rgba(1,8,10,.72)),
+    var(--soolen-bg-1) !important;
+}
+
+@keyframes soolenLandscapeCycle {
+  0%, 12.49% {
+    background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-1);
+  }
+  12.5%, 24.99% {
+    background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-2);
+  }
+  25%, 37.49% {
+    background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-3);
+  }
+  37.5%, 49.99% {
+    background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-4);
+  }
+  50%, 62.49% {
+    background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-5);
+  }
+  62.5%, 74.99% {
+    background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-6);
+  }
+  75%, 87.49% {
+    background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-7);
+  }
+  87.5%, 100% {
+    background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg,
+  .authPage {
+    animation: none !important;
+  }
+}
