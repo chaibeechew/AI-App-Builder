@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "../../../../lib/supabase/server.js";
 import { getSoolenAIVoiceId, getSoolenAIVoiceProvider, SOOLENAI_VOICE } from "../../../../config/soolenai-voice.js";
+import { getSoolenSubscription, requirePaidTier } from "../../../../lib/soolen/user-tier.js";
 
 export const runtime = "nodejs";
 
@@ -59,7 +60,7 @@ async function synthesizeWithElevenLabs({ text, language }) {
   const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`, {
     method: "POST",
     headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ text, model_id: "eleven_multilingual_v2", apply_language_text_normalization: language === "ja" }),
+    body: JSON.stringify({ text, model_id: "eleven_multilingual_v2", apply_language_text_normalization: language.startsWith("ja") }),
   });
   if (!response.ok) return NextResponse.json({ error: "SoolenAI paid voice provider failed." }, { status: 502 });
   return new Response(await response.arrayBuffer(), { status: 200, headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" } });
@@ -79,9 +80,17 @@ export async function POST(request) {
     if (!SOOLENAI_VOICE.languages.includes(language)) return NextResponse.json({ error: "Unsupported SoolenAI language." }, { status: 400 });
 
     const provider = getSoolenAIVoiceProvider();
-    if (provider === "open_source" || provider === "local") return synthesizeWithOpenSource({ text, language });
-    if (provider === "elevenlabs") return synthesizeWithElevenLabs({ text, language });
-    return NextResponse.json({ error: `Unsupported SoolenAI voice provider: ${provider}` }, { status: 400 });
+    const openSourceReady = Boolean(process.env[SOOLENAI_VOICE.openSourceEndpointEnv] && process.env[SOOLENAI_VOICE.openSourceSampleUrlEnv]);
+    const paidReady = Boolean(process.env[SOOLENAI_VOICE.paidProviderApiKeyEnv] && process.env[SOOLENAI_VOICE.voiceIdEnv]);
+    const subscription = await getSoolenSubscription(supabase, user.id);
+
+    if ((provider === "open_source" || provider === "local") && openSourceReady) return synthesizeWithOpenSource({ text, language });
+    if ((provider === "elevenlabs" || (!openSourceReady && paidReady))) {
+      if (!requirePaidTier(subscription)) return NextResponse.json({ error: "Premium neural voice requires an active paid plan.", code: "UPGRADE_REQUIRED" }, { status: 402 });
+      return synthesizeWithElevenLabs({ text, language });
+    }
+    if (openSourceReady) return synthesizeWithOpenSource({ text, language });
+    return NextResponse.json({ error: "No SoolenAI voice provider is configured.", code: "PROVIDER_SETUP_REQUIRED" }, { status: 503 });
   } catch (error) {
     console.error("SOOLENAI_VOICE_API_ERROR:", error);
     return NextResponse.json({ error: "Unable to generate SoolenAI voice." }, { status: 500 });
