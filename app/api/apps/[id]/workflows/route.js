@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../../../../lib/supabase/server.js";
+import { createClient } from "../../../../../lib/supabase/server.js";
 
 async function ownedApp(supabase,id,userId){
   const {data}=await supabase.from("apps").select("id,name,owner_id").eq("id",id).eq("owner_id",userId).single();
