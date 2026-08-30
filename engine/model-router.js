@@ -1,4 +1,5 @@
 const PROVIDERS=[
+{provider:"gateway",model:process.env.AI_GATEWAY_MODEL||null,local:false,priority:0,enabled:()=>Boolean(process.env.AI_GATEWAY_API_KEY&&process.env.AI_GATEWAY_MODEL)},
 {provider:"gemini",model:process.env.GEMINI_MODEL||"gemini-2.5-flash",local:false,priority:1,enabled:()=>Boolean(process.env.GEMINI_API_KEY)},
 {provider:"groq",model:process.env.GROQ_MODEL||"llama-3.3-70b-versatile",local:false,priority:2,enabled:()=>Boolean(process.env.GROQ_API_KEY)},
 {provider:"cerebras",model:process.env.CEREBRAS_MODEL||"llama-3.3-70b",local:false,priority:3,enabled:()=>Boolean(process.env.CEREBRAS_API_KEY)},
