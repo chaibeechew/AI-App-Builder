@@ -9,7 +9,8 @@ const PROVIDERS=[
 {provider:"openrouter",model:process.env.OPENROUTER_MODEL||"openai/gpt-4o-mini",local:false,priority:7,enabled:()=>Boolean(process.env.OPENROUTER_API_KEY)},
 {provider:"xai",model:process.env.XAI_MODEL||"grok-4-1-fast-non-reasoning",local:false,priority:8,enabled:()=>Boolean(process.env.XAI_API_KEY)},
 {provider:"openai",model:process.env.OPENAI_MODEL||"gpt-5.6",local:false,priority:9,enabled:()=>Boolean(process.env.OPENAI_API_KEY)},
-{provider:"ollama",model:process.env.OLLAMA_MODEL||"llama3.2:3b",local:true,priority:10,enabled:()=>Boolean(process.env.OLLAMA_BASE_URL)}];
+{provider:"ollama",model:process.env.OLLAMA_MODEL||"llama3.2:3b",local:true,priority:10,enabled:()=>Boolean(process.env.OLLAMA_BASE_URL)},
+{provider:"soolen-local",model:"rules-v1",local:true,priority:99,enabled:()=>true}];
 export function getProvider(){const configured=(process.env.AI_PROVIDER||"").trim().toLowerCase();if(configured&&configured!=="auto")return configured;return PROVIDERS.filter(x=>x.enabled()).sort((a,b)=>a.priority-b.priority)[0]?.provider||null}
 export function getModel(){const provider=getProvider();return PROVIDERS.find(x=>x.provider===provider)?.model||null}
 export function getProviderConfig(){const provider=getProvider(),config=PROVIDERS.find(x=>x.provider===provider);return{provider,model:config?.model||null,local:config?.local||false,priority:config?.priority??99}}
