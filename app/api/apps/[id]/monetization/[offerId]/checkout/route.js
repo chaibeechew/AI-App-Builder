@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../../../../../../lib/supabase/server.js";
-import { createManagedCheckout } from "../../../../../../../../lib/integrations/server.js";
+import { createClient } from "../../../../../../../lib/supabase/server.js";
+import { createManagedCheckout } from "../../../../../../../lib/integrations/server.js";
 
 export async function POST(request,{params}){
   try{
