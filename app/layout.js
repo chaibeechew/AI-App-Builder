@@ -6,6 +6,7 @@ import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 import ProductCopyFix from "./components/ProductCopyFix";
 import ReferenceUploader from "./components/ReferenceUploader";
+import StudioLauncher from "./components/StudioLauncher";
 
 export const metadata = {
   title: "AI App Builder",
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
         <ProductCopyFix />
         <AccountNav />
         {children}
+        <StudioLauncher />
         <ReferenceUploader />
         <SoolenVoiceAssistant />
       </body>
