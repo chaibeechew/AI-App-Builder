@@ -14,7 +14,7 @@ export default function ProductCopyFix(){
     const fix=()=>{
       const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
       for(const node of nodes){const tag=node.parentElement?.tagName;if(["SCRIPT","STYLE","TEXTAREA","INPUT"].includes(tag))continue;const next=rewrite(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;}
-      document.querySelectorAll("button,a").forEach(el=>{const t=(el.textContent||"").trim();if(/Generate My App/i.test(t)||/^✨?\s*Build App\s*→?$/i.test(t))el.textContent="🚀 BUILD APP + WEBSITE →";});
+      document.querySelectorAll("button,a").forEach(el=>{const t=(el.textContent||"").trim();if(/Generate My App|BUILD MY APP/i.test(t)||/^✨?\s*Build App\s*→?$/i.test(t))el.textContent="🚀 BUILD APP + WEBSITE →";});
       if(document.title!==rewrite(document.title))document.title=rewrite(document.title);
     };
     fix();const o=new MutationObserver(fix);o.observe(document.body,{childList:true,subtree:true,characterData:true});return()=>o.disconnect();

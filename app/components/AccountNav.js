@@ -1,57 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect,useRef,useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 
-export default function AccountNav() {
-  const router = useRouter();
-  const [supabase, setSupabase] = useState(null);
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const client = createClient();
-    setSupabase(client);
-    let mounted = true;
-    client.auth.getUser().then(({ data }) => {
-      if (mounted) setUser(data.user || null);
-    });
-    return () => { mounted = false; };
-  }, []);
-
-  async function signOut() {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    router.replace("/auth");
-    router.refresh();
-  }
-
-  function openProjects() {
-    router.push("/my-apps");
-  }
-
-  if (!user) return null;
-
-  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email || "Account";
-
-  return (
-    <div className="accountNav">
-      <button className="ownerName" onClick={openProjects} title="Open Project Center">{displayName}</button>
-      <button className="projectButton" onClick={openProjects}>📁 Project Center</button>
-      <button className="studioButton" onClick={() => router.push("/studio")}>✦ Studio</button>
-      <button className="chatButton" onClick={() => router.push("/community-chat")}>Community</button>
-      <button onClick={() => router.push("/credits")}>Credits</button>
-      <button onClick={signOut}>Sign out</button>
-      <style jsx>{`
-        .accountNav{position:fixed;right:18px;top:16px;z-index:1000;display:flex;gap:8px;align-items:center;padding:7px;border:1px solid rgba(216,191,98,.2);border-radius:13px;background:rgba(3,16,13,.88);backdrop-filter:blur(12px)}
-        button{border:0;background:transparent;color:#d8bf62;text-decoration:none;font-size:12px;font-weight:800;padding:8px 10px;border-radius:9px;cursor:pointer}
-        button:hover{background:rgba(216,191,98,.08)}
-        .ownerName{color:#fff;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .projectButton{background:rgba(216,191,98,.12);border:1px solid rgba(216,191,98,.28)}
-        .studioButton{background:linear-gradient(135deg,rgba(238,207,115,.18),rgba(96,159,125,.10));border:1px solid rgba(238,207,115,.24);color:#f0d57c}
-        .chatButton{background:rgba(121,215,172,.08);border:1px solid rgba(121,215,172,.16);color:#9fe2c1}
-        @media(max-width:720px){.accountNav{right:8px;left:8px;top:8px;justify-content:flex-end;flex-wrap:wrap}.accountNav button{font-size:11px;padding:7px 8px}.ownerName{max-width:110px}}
-      `}</style>
-    </div>
-  );
+export default function AccountNav(){
+  const router=useRouter();const rootRef=useRef(null);const[supabase,setSupabase]=useState(null);const[user,setUser]=useState(null);const[open,setOpen]=useState(false);
+  useEffect(()=>{const client=createClient();setSupabase(client);let mounted=true;client.auth.getUser().then(({data})=>{if(mounted)setUser(data.user||null)});const close=e=>{if(rootRef.current&&!rootRef.current.contains(e.target))setOpen(false)};document.addEventListener("pointerdown",close);return()=>{mounted=false;document.removeEventListener("pointerdown",close)}},[]);
+  async function signOut(){if(!supabase)return;setOpen(false);await supabase.auth.signOut();router.replace("/auth");router.refresh();}
+  function go(path){setOpen(false);router.push(path)}
+  if(!user)return null;
+  const displayName=user.user_metadata?.full_name||user.user_metadata?.name||user.email?.split("@")[0]||"Account";
+  return <div className="accountNav" ref={rootRef}><button className="accountTrigger" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-label="Open account menu"><span className="avatar">{String(displayName).slice(0,1).toUpperCase()}</span><b>{displayName}</b><i>⌄</i></button>{open&&<div className="accountMenu"><small>AI BUILD APP & WEB</small><button onClick={()=>go("/my-apps")}>📁 My Projects</button><button onClick={()=>go("/studio")}>✦ Studio</button><button onClick={()=>go("/community-chat")}>Community</button><button onClick={()=>go("/credits")}>Credits</button><button className="signout" onClick={signOut}>Sign out</button></div>}<style jsx>{`.accountNav{position:fixed;right:14px;top:70px;z-index:1000;font-family:Inter,system-ui,-apple-system,sans-serif}.accountTrigger{display:flex;align-items:center;gap:8px;max-width:220px;border:1px solid rgba(216,191,98,.26);border-radius:999px;padding:6px 10px 6px 6px;background:rgba(3,16,13,.9);color:#fff;box-shadow:0 12px 34px #0006;backdrop-filter:blur(14px);cursor:pointer}.avatar{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#f1d77c,#b88428);color:#07130e;font-weight:1000}.accountTrigger b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}.accountTrigger i{color:#d8bf62;font-style:normal}.accountMenu{position:absolute;right:0;top:46px;width:210px;padding:10px;border:1px solid rgba(216,191,98,.25);border-radius:17px;background:#03120ff5;box-shadow:0 22px 60px #0009;backdrop-filter:blur(20px)}.accountMenu small{display:block;padding:6px 8px 9px;color:#d8bf62;font-size:9px;letter-spacing:.13em;font-weight:900}.accountMenu button{display:block;width:100%;border:0;border-radius:10px;background:transparent;color:#dce7e2;text-align:left;padding:10px 9px;font-weight:800;cursor:pointer}.accountMenu button:hover{background:#ffffff0d}.accountMenu .signout{margin-top:5px;border-top:1px solid #ffffff10;color:#ffb9b2}@media(max-width:720px){.accountNav{right:10px;top:62px}.accountTrigger{max-width:165px}.accountTrigger b{max-width:94px}.accountMenu{width:200px}}`}</style></div>;
 }
