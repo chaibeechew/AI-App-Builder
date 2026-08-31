@@ -58,7 +58,7 @@ export async function POST(request) {
       memoryRow=memory||null;
     }
 
-    const {data:entitlement,error:entitlementError}=await supabase.rpc("consume_app_builder_entitlement",{p_operation:"modify",p_app_id:appId});
+    const {data:entitlement,error:entitlementError}=await supabase.rpc("consume_app_builder_entitlement",{p_operation:"modify",p_app_id:appId,p_request_id:chargeRequestId});
     if(entitlementError)throw entitlementError;
     const entitlementSource=entitlement?.allowed?entitlement.source:null;
     let charge=null;
