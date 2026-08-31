@@ -47,6 +47,8 @@ jobs:
         run: node scripts/genre-specialist-tests.mjs
       - name: Advanced genre runtime contract tests
         run: node scripts/advanced-game-genres-tests.mjs
+      - name: Remaining specialist genres and Live Transport contract tests
+        run: node scripts/remaining-genres-and-transport-tests.mjs
       - name: MOBA Runtime V1 contract tests
         run: node scripts/moba-runtime-v1-tests.mjs
       - name: Aviation knowledge contract tests
