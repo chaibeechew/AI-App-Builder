@@ -36,7 +36,7 @@ assert.match(mainGenerate,/isMobileGameIdea/);
 assert.match(mainGenerate,/x-soolen-game-gateway/);
 assert.match(mainGenerate,/professional\.active/);
 assert.match(mainGenerate,/PRO_GAME_CREATOR_REQUIRED/);
-assert.ok(mainGenerate.indexOf("if(isMobileGameIdea(combinedInput))")<mainGenerate.indexOf("consumeAppBuilderEntitlement"),"Pro game gate must run before ordinary entitlement/credit charging");
+assert.ok(mainGenerate.indexOf("if(isMobileGameIdea(combinedInput))")<mainGenerate.indexOf("const entitlement=await consumeAppBuilderEntitlement"),"Pro game gate must run before ordinary entitlement/credit charging");
 assert.match(builder,/\/api\/game\/generate/);
 assert.match(builder,/PRO · FAIR PRICE · FAIR USE/);
 assert.doesNotMatch(builder,/RM\s?\d/i);
