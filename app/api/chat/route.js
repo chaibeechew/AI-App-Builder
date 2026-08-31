@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "../../../lib/supabase/server.js";
-import { generateWithAI } from "../../../api/lib_ai_v3.js";
+import { generateWithFallback } from "../../../engine/ai-provider.js";
 
 export async function POST(request) {
   try {
@@ -21,17 +21,18 @@ export async function POST(request) {
 
     const history = messages
       .filter((m) => m && typeof m.content === "string")
-      .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content }));
+      .slice(-20)
+      .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content.slice(0, 4000) }));
 
-    history.push({ role: "user", content: message });
+    history.push({ role: "user", content: String(message).slice(0, 4000) });
 
     const prompt = history
       .map((item) => `${item.role === "user" ? "User" : "Soolen AI"}: ${item.content}`)
       .join("\n\n");
-    const result = await generateWithAI(prompt);
+    const result = await generateWithFallback(prompt);
 
     return NextResponse.json({
-      content: result?.text || "Soolen AI returned no content.",
+      content: result?.result || "Soolen AI returned no content.",
       provider: result?.provider || "Soolen AI",
     });
   } catch (error) {
