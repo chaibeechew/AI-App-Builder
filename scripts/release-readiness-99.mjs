@@ -13,6 +13,7 @@ const editor = read('app/editor/[id]/page.js');
 const auth = read('app/auth/page.js');
 const modify = read('app/api/modify/route.js');
 const generate = read('app/api/generate/route.js');
+const autonomous = read('engine/autonomous-engine.js');
 const workflow = read('.github/workflows/consolidation-ci.yml');
 const readiness = read('lib/release-readiness.js');
 const videoApiIndex = read('app/api/video/projects/route.js') + read('app/api/video/storyboard/route.js');
@@ -29,10 +30,10 @@ const checks = [
   ['Publish route blocks below strict target', publish.includes('Publishing is locked until the project reaches') && publish.includes('releaseReady: false')],
   ['All six dimensions are centrally required', ['stability','security','privacy','comfort','beauty','naturalness'].every((k)=>readiness.includes(`"${k}"`))],
   ['99 is described as internal target not zero-defect guarantee', readiness.includes('not a guarantee of zero bugs')],
-  ['Generation receives explicit quality rules', generate.includes('GENERATION_QUALITY_RULES')],
+  ['Generation receives explicit quality rules', autonomous.includes('GENERATION_QUALITY_RULES') && generate.includes('runAutonomousEngine')],
   ['Premium visual direction is generated', contains('engine/autonomous-engine.js',['designSystem','backgroundDirection','heroDirection','layoutSignature'])],
   ['Fair Price Fair Use customer policy exists', policy.includes('Fair Price · Fair Use')],
-  ['Free first App + Website continues until first publish', policy.includes('freeUntilFirstPublish') && policy.includes('modifyUntilPublished')],
+  ['Free first App + Website continues until first publish', policy.includes('freeFirstProject') && policy.includes('includesReasonableAiModificationUntilReady: true') && policy.includes('endsWhenProjectIsPublished: true')],
   ['Standard remains USD 10 one-time', policy.includes('priceUsd: 10') && policy.includes('billing: "one_time"')],
   ['Pro remains USD 68 for 365 days without auto-renew', policy.includes('priceUsd: 68') && policy.includes('accessDays: 365') && policy.includes('autoRenew: false')],
   ['Price review is at three years and increase optional', policy.includes('reviewIntervalYears: 3') && policy.includes('increaseIsOptional: true')],
