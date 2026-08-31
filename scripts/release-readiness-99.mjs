@@ -17,6 +17,7 @@ const autonomous = read('engine/autonomous-engine.js');
 const workflow = read('.github/workflows/consolidation-ci.yml');
 const readiness = read('lib/release-readiness.js');
 const videoApiIndex = read('app/api/video/projects/route.js') + read('app/api/video/storyboard/route.js');
+const releaseTests = read('scripts/release-policy-tests.mjs');
 
 const checks = [
   ['Core build route persists generated projects', contains('app/api/generate/route.js',['app_versions','specification'])],
@@ -48,6 +49,8 @@ const checks = [
   ['Integration center exists', exists('app/integrations/[id]/page.js')],
   ['Analytics and AI operations exist', exists('app/analytics/[id]/page.js') && exists('app/operations/[id]/page.js')],
   ['Video Studio is present without pretending provider completion', exists('app/video-studio/page.js') && !/final provider connected|fully connected video provider|guaranteed mp4/i.test(videoApiIndex)],
+  ['Release policy regression tests cover fail-closed behavior', releaseTests.includes('Any quality dimension below 99 must fail') && releaseTests.includes('Missing dimensions must fail closed')],
+  ['CI runs release tests before readiness gate', workflow.indexOf('npm run test:release') >= 0 && workflow.indexOf('npm run test:release') < workflow.indexOf('npm run quality:99')],
   ['CI runs readiness gate before build', workflow.indexOf('npm run quality:99') >= 0 && workflow.indexOf('npm run quality:99') < workflow.indexOf('npm run build')],
   ['CI builds exact branch', workflow.includes('integration/primary-consolidation')],
   ['No fake security or zero-bug marketing claims in quality policy', !/guaranteed security|100% secure|zero bugs guaranteed/i.test(read('lib/buildStandards.js'))],
