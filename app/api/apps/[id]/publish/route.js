@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
-import { assessBuildQuality, RELEASE_READINESS_SCORE } from "../../../../../lib/buildStandards.js";
+import { assessBuildQuality } from "../../../../../lib/buildStandards.js";
+import { evaluateReleaseReadiness, RELEASE_POLICY_NOTE } from "../../../../../lib/release-readiness.js";
 
 export async function POST(_request, { params }) {
   try {
@@ -16,13 +17,15 @@ export async function POST(_request, { params }) {
     if (versionError || !version) return NextResponse.json({ error: "Current project version could not be verified." }, { status: 409 });
 
     const quality = assessBuildQuality(version.specification || {});
-    const everyDimensionAtTarget = quality.dimensions.every((item) => item.score >= RELEASE_READINESS_SCORE);
-    const releaseReady = everyDimensionAtTarget && quality.overall >= RELEASE_READINESS_SCORE;
-    if (!releaseReady) return NextResponse.json({
-      error: `Publishing is locked until the project reaches ${RELEASE_READINESS_SCORE}/100 overall and in every quality dimension.`,
+    const readiness = evaluateReleaseReadiness(quality);
+    if (!readiness.releaseReady) return NextResponse.json({
+      error: `Publishing is locked until the project reaches ${readiness.requiredScore}/100 overall and in every quality dimension.`,
       quality,
-      target: RELEASE_READINESS_SCORE,
+      target: readiness.requiredScore,
       releaseReady: false,
+      belowTarget: readiness.belowTarget,
+      missingDimensions: readiness.missing,
+      note: RELEASE_POLICY_NOTE,
       next: `/release/${id}`,
     }, { status: 409 });
 
@@ -32,7 +35,7 @@ export async function POST(_request, { params }) {
       return NextResponse.json({ error: "Unable to publish the App and Website." }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, app: updated, quality, target: RELEASE_READINESS_SCORE, releaseReady: true, path: `/a/${id}`, appPath: `/a/${id}`, websitePath: `/website/${id}` });
+    return NextResponse.json({ success: true, app: updated, quality, target: readiness.requiredScore, releaseReady: true, note: RELEASE_POLICY_NOTE, path: `/a/${id}`, appPath: `/a/${id}`, websitePath: `/website/${id}` });
   } catch (error) {
     console.error("PROJECT_PUBLISH_API_ERROR:", error);
     return NextResponse.json({ error: "Unable to publish the App and Website." }, { status: 500 });
