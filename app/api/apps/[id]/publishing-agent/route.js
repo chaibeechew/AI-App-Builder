@@ -33,7 +33,7 @@ export async function GET(_request, { params }) {
     const [{ data: version }, { data: listing }, { data: projectAssets }] = await Promise.all([
       supabase.from("app_versions").select("id,version_no,specification").eq("id", app.current_version_id).eq("app_id", id).single(),
       supabase.from("store_listings").select("id,version_id,language,apple,google_play,checklist,customer_approved_at,updated_at").eq("app_id", id).eq("version_id", app.current_version_id).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("project_assets").select("id,asset_id,placement,suggested_role").eq("app_id", id).eq("owner_id", user.id),
+      supabase.from("project_assets").select("id,asset_id,suggested_page,suggested_role,placement_reason").eq("app_id", id).eq("owner_id", user.id),
     ]);
 
     if (!version) return NextResponse.json({ error: "Current project version not found." }, { status: 404 });
