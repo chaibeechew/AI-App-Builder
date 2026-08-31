@@ -8,6 +8,7 @@ const exists=(p)=>fs.existsSync(path.join(root,p));
 
 const readiness=read('lib/non-production-readiness.js');
 const home=read('app/page.js');
+const create=read('app/create/page.js');
 const dashboard=read('app/app-dashboard/[id]/page.js');
 const pro=read('app/pro/[id]/page.js');
 const proAssistant=read('app/pro/[id]/ProAssistant.js');
@@ -43,6 +44,11 @@ assert.match(home,/external store fees stay separate/,'Home promotion copy must 
 assert.match(home,/appId,requestId:newRequestId\("modify"\)/,'Home AI changes must modify the saved project and use a safe request id.');
 assert.match(home,/versionId:d\?\.version\?\.id/,'Home AI changes must keep the client aligned with the newly saved version.');
 assert.match(home,/Production stays locked until approved/,'Home must not imply Production is automatically promoted.');
+assert.match(create,/requestId:requestId\("create"\)/,'Autonomous Create must bind generation to a request id for safe entitlement retries.');
+assert.match(create,/high_performance_desktop/,'High-end desktop Create must map to the device class accepted by the server runtime.');
+assert.doesNotMatch(create,/desktop_pro/,'Autonomous Create must not send an unsupported desktop_pro device class.');
+assert.match(create,/Production publishing remains held until explicitly approved/,'Autonomous Create must keep Production explicitly held.');
+assert.match(create,/not trademark clearance/i,'Name Check must not be presented as legal trademark clearance.');
 
 assert.ok(exists('app/pro/[id]/page.js')&&exists('app/pro/[id]/ProAssistant.js'),'Professional Mode workspace must exist.');
 assert.match(proAssistant,/\/api\/modify/,'Professional Mode AI assistant must route natural-language changes through versioned AI modify.');
@@ -128,6 +134,7 @@ assert.match(pro,/Advanced control with AI assistance|Professional Workspace/,'P
 
 console.log('✓ Non-production 100-point contract is explicit and Production remains held');
 console.log('✓ Home creation and AI modification flows are request-bound and version-aware');
+console.log('✓ Autonomous Create uses supported compute classes and request-bound generation');
 console.log('✓ Free-first-project messaging is clear without hiding external store fees');
 console.log('✓ Customer Data, Automations, Connections and Payments use one no-code vocabulary');
 console.log('✓ Free/Standard/Pro access is server-controlled, request-bound and expiry-aware');
