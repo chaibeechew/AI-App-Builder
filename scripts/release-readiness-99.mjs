@@ -4,45 +4,63 @@ import path from 'node:path';
 const root = process.cwd();
 const read = (p) => fs.existsSync(path.join(root,p)) ? fs.readFileSync(path.join(root,p),'utf8') : '';
 const exists = (p) => fs.existsSync(path.join(root,p));
+const contains = (p, terms=[]) => terms.every((term) => read(p).includes(term));
+
+const publish = read('app/api/apps/[id]/publish/route.js');
+const quality = read('app/api/apps/[id]/quality/route.js');
+const policy = read('config/product-policy.js');
+const editor = read('app/editor/[id]/page.js');
+const auth = read('app/auth/page.js');
+const modify = read('app/api/modify/route.js');
+const generate = read('app/api/generate/route.js');
+const workflow = read('.github/workflows/consolidation-ci.yml');
+const readiness = read('lib/release-readiness.js');
+const videoApiIndex = read('app/api/video/projects/route.js') + read('app/api/video/storyboard/route.js');
 
 const checks = [
-  ['Core build route', exists('app/api/generate/route.js')],
-  ['AI modify route', exists('app/api/modify/route.js')],
-  ['No-code editor', exists('app/editor/[id]/page.js')],
-  ['Project dashboard', exists('app/app-dashboard/[id]/page.js')],
-  ['Quality gate API', exists('app/api/apps/[id]/quality/route.js')],
-  ['Publish API', exists('app/api/apps/[id]/publish/route.js')],
-  ['99 release threshold', /RELEASE_SCORE_REQUIRED\s*=\s*99|overall\s*>=\s*99/.test(read('app/api/apps/[id]/publish/route.js'))],
-  ['Security/privacy/stability required at 99', ['stability','security','privacy'].every(k => read('app/api/apps/[id]/publish/route.js').includes(`${k}`)) && read('app/api/apps/[id]/publish/route.js').includes('99')],
-  ['Pricing policy', exists('config/product-policy.js')],
-  ['Free first project until publish', read('config/product-policy.js').includes('freeUntilFirstPublish')],
-  ['Fair Price Fair Use', read('config/product-policy.js').includes('Fair Price · Fair Use')],
-  ['Pro annual one-payment policy', read('config/product-policy.js').includes('priceUsd: 68') && read('config/product-policy.js').includes('accessDays: 365')],
-  ['Store metadata AI helper', exists('app/api/store-metadata/route.js')],
-  ['Publishing workspace', exists('app/publish/[id]/page.js')],
-  ['Apple/Google fees external', read('config/product-policy.js').includes('chargedByAiAppBuilder: false') && read('config/product-policy.js').includes('collectedByAiAppBuilder: false')],
-  ['Version history', exists('app/app-dashboard/[id]/versions/page.js')],
-  ['Workflow UI/API present', exists('app/workflows/[id]/page.js') || exists('app/api/workflows')],
-  ['Database builder present', exists('app/database/[id]/page.js')],
-  ['Integration center present', exists('app/integrations/[id]/page.js')],
-  ['Analytics present', exists('app/analytics/[id]/page.js')],
-  ['AI operations present', exists('app/operations/[id]/page.js')],
-  ['Video studio shell present', exists('app/video-studio/page.js')],
-  ['CI build configured', exists('.github/workflows/consolidation-ci.yml') && read('.github/workflows/consolidation-ci.yml').includes('npm run build')],
-  ['No fake zero-bug guarantee in quality policy', !/zero bugs|guaranteed security|100% secure/i.test(read('lib/buildStandards.js'))],
+  ['Core build route persists generated projects', contains('app/api/generate/route.js',['app_versions','specification'])],
+  ['AI modify route versions changes', modify.includes('app_versions') && modify.includes('version_no')],
+  ['No-code editor uses natural-language AI modify', editor.includes('/api/modify') && editor.includes('textarea')],
+  ['No-code editor preserves version history access', editor.includes('Version History') && editor.includes('Rollback')],
+  ['Project dashboard keeps simple preview/change/publish actions', contains('app/app-dashboard/[id]/page.js',['Open App Demo','Preview Website','Publishing'])],
+  ['Central release policy exists', contains('lib/release-readiness.js',['RELEASE_SCORE_REQUIRED = 99','evaluateReleaseReadiness','PRODUCTION_EVIDENCE_REQUIREMENTS'])],
+  ['Quality API uses shared release evaluator', quality.includes('evaluateReleaseReadiness')],
+  ['Publish API uses shared release evaluator', publish.includes('evaluateReleaseReadiness')],
+  ['Publish route blocks below strict target', publish.includes('Publishing is locked until the project reaches') && publish.includes('releaseReady: false')],
+  ['All six dimensions are centrally required', ['stability','security','privacy','comfort','beauty','naturalness'].every((k)=>readiness.includes(`"${k}"`))],
+  ['99 is described as internal target not zero-defect guarantee', readiness.includes('not a guarantee of zero bugs')],
+  ['Generation receives explicit quality rules', generate.includes('GENERATION_QUALITY_RULES')],
+  ['Premium visual direction is generated', contains('engine/autonomous-engine.js',['designSystem','backgroundDirection','heroDirection','layoutSignature'])],
+  ['Fair Price Fair Use customer policy exists', policy.includes('Fair Price · Fair Use')],
+  ['Free first App + Website continues until first publish', policy.includes('freeUntilFirstPublish') && policy.includes('modifyUntilPublished')],
+  ['Standard remains USD 10 one-time', policy.includes('priceUsd: 10') && policy.includes('billing: "one_time"')],
+  ['Pro remains USD 68 for 365 days without auto-renew', policy.includes('priceUsd: 68') && policy.includes('accessDays: 365') && policy.includes('autoRenew: false')],
+  ['Price review is at three years and increase optional', policy.includes('reviewIntervalYears: 3') && policy.includes('increaseIsOptional: true')],
+  ['License/buyout plan remains available', contains('config/product-policy.js',['oneAppOneLicense','personal: { priceUsd: 49 }','business: { priceUsd: 199 }','enterprise: { priceUsd: 499 }'])],
+  ['Apple/Google developer fees are never collected by platform', policy.includes('chargedByAiAppBuilder: false') && policy.includes('collectedByAiAppBuilder: false')],
+  ['Store publishing requires customer review', policy.includes('customerMustReviewBeforeSubmission: true')],
+  ['Store metadata assistant exists', exists('app/api/store-metadata/route.js') && exists('app/publish/[id]/page.js')],
+  ['Email OTP path exists', auth.includes('signInWithOtp') && auth.includes('verifyOtp')],
+  ['SMS remains safely feature-flagged while provider is paused', auth.includes('NEXT_PUBLIC_SMS_AUTH_ENABLED')],
+  ['Database builder exists', exists('app/database/[id]/page.js')],
+  ['Workflow automation exists', exists('app/workflows/[id]/page.js')],
+  ['Integration center exists', exists('app/integrations/[id]/page.js')],
+  ['Analytics and AI operations exist', exists('app/analytics/[id]/page.js') && exists('app/operations/[id]/page.js')],
+  ['Video Studio is present without pretending provider completion', exists('app/video-studio/page.js') && !/final provider connected|fully connected video provider|guaranteed mp4/i.test(videoApiIndex)],
+  ['CI runs readiness gate before build', workflow.indexOf('npm run quality:99') >= 0 && workflow.indexOf('npm run quality:99') < workflow.indexOf('npm run build')],
+  ['CI builds exact branch', workflow.includes('integration/primary-consolidation')],
+  ['No fake security or zero-bug marketing claims in quality policy', !/guaranteed security|100% secure|zero bugs guaranteed/i.test(read('lib/buildStandards.js'))],
 ];
 
-const passed = checks.filter(([,ok])=>ok).length;
-const total = checks.length;
-const score = Math.round((passed/total)*100);
-console.log(`Platform structural readiness: ${score}/100 (${passed}/${total})`);
+const failed = checks.filter(([,ok])=>!ok);
+const passed = checks.length - failed.length;
+const score = Math.round((passed/checks.length)*100);
+console.log(`Platform repository readiness: ${score}/100 (${passed}/${checks.length})`);
 for (const [name,ok] of checks) console.log(`${ok?'✓':'✗'} ${name}`);
 
-// This script measures repository-level structural readiness only. It cannot prove runtime reliability,
-// real-device behavior, provider availability, security posture, store approval, or payment success.
-// Those require live E2E evidence before production promotion.
-if (score < 99) {
-  console.error('\nRelease blocked: structural readiness is below 99.');
+if (failed.length) {
+  console.error(`\nRelease blocked: ${failed.length} repository readiness check(s) failed.`);
   process.exit(1);
 }
-console.log('\nStructural 99 gate passed. Live E2E and real-device evidence are still required before Production promotion.');
+
+console.log('\nRepository 99 gate passed. Production promotion still requires live environment, provider, payment and real-device evidence where applicable.');
