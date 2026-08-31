@@ -37,6 +37,8 @@ jobs:
         run: node scripts/industry-capability-tests.mjs
       - name: Mobile game and AI media capability contract tests
         run: node scripts/mobile-game-capability-tests.mjs
+      - name: Pro Game Runtime V1 contract tests
+        run: node scripts/game-runtime-v1-tests.mjs
       - name: Zero-cost Vercel function budget guard
         run: node scripts/vercel-function-budget-tests.mjs
       - name: 100-point structural readiness gate
