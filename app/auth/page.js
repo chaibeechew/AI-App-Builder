@@ -113,7 +113,7 @@ function AuthForm() {
   if (checkingSession) return <main className="authLoading">Checking your session…</main>;
 
   return <main className="authPage"><div className="shade" />
-    <header className="brand"><span className="brandMark">S</span><span>SOOLENAI</span><span className="slash">/</span><strong>AI APP BUILDER</strong></header>
+    <header className="brand"><span className="brandMark">S</span><span>SOOLENAI</span><span className="slash">/</span><strong>AI BUILD APP & WEB</strong></header>
     <div className="authCard">
       <div className="authEyebrow">SECURE VERIFICATION</div><h1>Sign in with a verification code</h1><p className="authIntro">Use a one-time 6-digit Email Code. No password required.</p>
       <div className="authTabs"><button type="button" className="active" onClick={() => switchMethod("email")}>✉ Email Code</button><button type="button" className="comingSoon" disabled={!SMS_AUTH_ENABLED} onClick={() => switchMethod("sms")}>◉ SMS {SMS_AUTH_ENABLED ? "Code" : "· Coming Soon"}</button></div>
