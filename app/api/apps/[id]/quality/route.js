@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
-import { assessBuildQuality, RELEASE_READINESS_SCORE } from "../../../../../lib/buildStandards.js";
+import { assessBuildQuality } from "../../../../../lib/buildStandards.js";
+import { evaluateReleaseReadiness, RELEASE_POLICY_NOTE } from "../../../../../lib/release-readiness.js";
 
 export async function GET(_request, { params }) {
   try {
@@ -17,18 +18,19 @@ export async function GET(_request, { params }) {
     if (versionError || !version) return NextResponse.json({ error: "Current version could not be loaded." }, { status: 409 });
 
     const report = assessBuildQuality(version.specification || {});
-    const everyDimensionAtTarget = report.dimensions.every((item) => item.score >= RELEASE_READINESS_SCORE);
-    const releaseReady = everyDimensionAtTarget && report.overall >= RELEASE_READINESS_SCORE;
+    const readiness = evaluateReleaseReadiness(report);
 
     return NextResponse.json({
       success: true,
       app: { id: app.id, name: app.name },
       version: { id: version.id, versionNo: version.version_no },
-      target: RELEASE_READINESS_SCORE,
+      target: readiness.requiredScore,
       report,
-      releaseReady,
-      criticalPassed: everyDimensionAtTarget,
-      note: `Release is blocked until the saved specification reaches ${RELEASE_READINESS_SCORE}/100 overall and in every quality dimension. Runtime, dependency, infrastructure, payment, integration and real-device checks remain separate production requirements.`,
+      releaseReady: readiness.releaseReady,
+      criticalPassed: readiness.releaseReady,
+      belowTarget: readiness.belowTarget,
+      missingDimensions: readiness.missing,
+      note: `${RELEASE_POLICY_NOTE} Current project release requires ${readiness.requiredScore}/100 overall and in every quality dimension.`,
     });
   } catch (error) {
     console.error("QUALITY_GATE_API_ERROR:", error);
