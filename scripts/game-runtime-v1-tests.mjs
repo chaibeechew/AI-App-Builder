@@ -24,6 +24,7 @@ const player=fs.readFileSync("app/a/[id]/GameRuntimeClient.js","utf8");
 const generatedPage=fs.readFileSync("app/a/[id]/page.js","utf8");
 const banner=fs.readFileSync("app/components/CreationCapabilityBanner.js","utf8");
 const studio=fs.readFileSync("app/studio/page.js","utf8");
+const proMode=fs.readFileSync("lib/pro-mode.js","utf8");
 
 assert.match(route,/getAppBuilderAccess/);
 assert.match(route,/professional\.active/);
@@ -52,8 +53,13 @@ assert.match(generatedPage,/productType==="mobile_game"/);
 for(const name of ["AI Art Generator","AI Video Generator","AI Photo & Video Generator","AI Avatar Creator"]){assert.match(banner,new RegExp(name.replace(/[&]/g,"\\&")));assert.match(studio,new RegExp(name.replace(/[&]/g,"\\&")));}
 assert.match(banner,/\/game-builder/);
 assert.match(studio,/Pro Game Creator/);
+assert.match(proMode,/gameCreator/);
+assert.match(proMode,/normalGenuineUseIncluded: true/);
+assert.match(proMode,/noSurprisePerClickCharges: true/);
+assert.match(proMode,/name: "Pro Game Creator"/);
+assert.match(proMode,/href: "\/game-builder"/);
 assert.doesNotMatch(banner,/RM\s?\d/i);
 
 console.log("✓ Mobile Game Creator is Professional-only, the main generator cannot bypass the gate, and game fair-use protection runs before ordinary credits are charged");
 console.log("✓ Game Runtime V1 provides a real playable 2D vertical slice foundation with touch, physics/collision, player/enemy, progression, score/health, save/load, audio and pause/restart");
-console.log("✓ AI Art, AI Video, AI Photo & Video and AI Avatar entry points are unified across homepage, Studio and game creation workflow without copied RM price cards");
+console.log("✓ AI Art, AI Video, AI Photo & Video and AI Avatar entry points are unified across homepage, Studio, Professional workspace and game creation workflow without copied RM price cards");
