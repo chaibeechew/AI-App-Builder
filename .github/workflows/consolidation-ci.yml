@@ -33,6 +33,8 @@ jobs:
         run: node scripts/project-readiness-tests.mjs
       - name: Publishing Readiness contract tests
         run: node scripts/publishing-readiness-tests.mjs
+      - name: Industry capability planning contract tests
+        run: node scripts/industry-capability-tests.mjs
       - name: 100-point structural readiness gate
         run: npm run quality:100
       - run: npm run build
