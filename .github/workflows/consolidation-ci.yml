@@ -21,4 +21,6 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
+      - name: 99-point structural readiness gate
+        run: npm run quality:99
       - run: npm run build
