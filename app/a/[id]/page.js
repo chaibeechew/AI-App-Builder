@@ -3,6 +3,7 @@ import { createClient } from "../../../lib/supabase/server.js";
 import GeneratedAppClient from "./GeneratedAppClient";
 import GameRuntimeClient from "./GameRuntimeClient";
 import MobaRuntimeClient from "./MobaRuntimeClient";
+import AirCombatRuntimeClient from "./AirCombatRuntimeClient";
 import AnalyticsTracker from "../../components/AnalyticsTracker.js";
 
 export async function generateMetadata({ params }) {
@@ -33,7 +34,11 @@ export default async function GeneratedAppPage({ params }) {
   const media=await loadProjectMedia(supabase,id);
   const specification=current.specification;
   const isGame=specification?.productType==="mobile_game"||specification?.game?.enabled===true;
-  const isMoba=isGame&&(specification?.game?.archetype==="moba"||String(specification?.game?.genre||"").toLowerCase().includes("moba"));
-  const runtime=isMoba?<MobaRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isGame?<GameRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:<GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
-  return <><AnalyticsTracker appId={id} channel={isGame?"game":"app"} eventName={isMoba?"moba_runtime_view":isGame?"game_runtime_view":"app_view"}/>{runtime}</>;
+  const archetype=String(specification?.game?.archetype||"").toLowerCase();
+  const genre=String(specification?.game?.genre||"").toLowerCase();
+  const isMoba=isGame&&(archetype==="moba"||genre.includes("moba"));
+  const isAirCombat=isGame&&!isMoba&&(archetype==="air_combat"||genre.includes("air combat")||genre.includes("flight"));
+  const runtime=isMoba?<MobaRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isAirCombat?<AirCombatRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isGame?<GameRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:<GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
+  const eventName=isMoba?"moba_runtime_view":isAirCombat?"air_combat_runtime_view":isGame?"game_runtime_view":"app_view";
+  return <><AnalyticsTracker appId={id} channel={isGame?"game":"app"} eventName={eventName}/>{runtime}</>;
 }
