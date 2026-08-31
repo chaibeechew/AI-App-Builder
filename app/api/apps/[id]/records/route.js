@@ -38,6 +38,7 @@ function cleanRecord(input,allowed){
   if(!Object.keys(record).length)throw new Error("Record has no supported fields.");
   return record;
 }
+function validUuid(value){return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||""));}
 async function context(id){
   const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();
   if(!user)return {error:NextResponse.json({error:"Authentication required."},{status:401})};
@@ -71,9 +72,23 @@ export async function POST(request,{params}){
   }catch(error){console.error("APP_RECORDS_POST_ERROR",error);return NextResponse.json({error:"Unable to save project record."},{status:500});}
 }
 
+export async function PATCH(request,{params}){
+  try{
+    const {id}=await params;const ctx=await context(id);if(ctx.error)return ctx.error;const body=await request.json().catch(()=>({}));const recordId=String(body?.recordId||"").trim();if(!validUuid(recordId))return NextResponse.json({error:"Valid record id required."},{status:400});
+    const entity=resolveEntity(ctx.entities,body?.entity);const allowed=ctx.entities.get(entity)||[];let record;
+    try{record=cleanRecord(body?.record,allowed);}catch(error){return NextResponse.json({error:error.message},{status:400});}
+    const expectedUpdatedAt=String(body?.expectedUpdatedAt||"").trim();const now=new Date().toISOString();
+    let query=ctx.supabase.from("app_data_records").update({record_json:record,updated_at:now}).eq("id",recordId).eq("app_id",id).eq("owner_id",ctx.user.id).eq("entity_name",entity);
+    if(expectedUpdatedAt)query=query.eq("updated_at",expectedUpdatedAt);
+    const {data,error}=await query.select("id,entity_name,record_json,created_at,updated_at").maybeSingle();if(error)throw error;
+    if(!data)return NextResponse.json({error:expectedUpdatedAt?"This record changed since it was loaded. Refresh before overwriting newer data.":"Record not found or entity does not match."},{status:expectedUpdatedAt?409:404});
+    return NextResponse.json({success:true,record:{id:data.id,data:data.record_json,createdAt:data.created_at,updatedAt:data.updated_at}});
+  }catch(error){console.error("APP_RECORDS_PATCH_ERROR",error);return NextResponse.json({error:"Unable to update project record."},{status:500});}
+}
+
 export async function DELETE(request,{params}){
   try{
-    const {id}=await params;const ctx=await context(id);if(ctx.error)return ctx.error;const body=await request.json().catch(()=>({}));const recordId=String(body?.recordId||"").trim();if(!/^[0-9a-f-]{36}$/i.test(recordId))return NextResponse.json({error:"Valid record id required."},{status:400});
+    const {id}=await params;const ctx=await context(id);if(ctx.error)return ctx.error;const body=await request.json().catch(()=>({}));const recordId=String(body?.recordId||"").trim();if(!validUuid(recordId))return NextResponse.json({error:"Valid record id required."},{status:400});
     const {error}=await ctx.supabase.from("app_data_records").delete().eq("id",recordId).eq("app_id",id).eq("owner_id",ctx.user.id);if(error)throw error;return NextResponse.json({success:true});
   }catch(error){console.error("APP_RECORDS_DELETE_ERROR",error);return NextResponse.json({error:"Unable to delete project record."},{status:500});}
 }
