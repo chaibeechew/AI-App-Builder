@@ -19,6 +19,7 @@ const workflow=read('app/api/apps/[id]/workflows/[workflowId]/run/route.js');
 const database=read('app/api/apps/[id]/database/route.js');
 const checkout=read('app/api/apps/[id]/monetization/[offerId]/checkout/route.js');
 const video=read('app/api/video/projects/[id]/compile/route.js');
+const orchestrator=read('lib/build/orchestrator.js');
 const policy=read('config/product-policy.js');
 
 assert.match(readiness,/NON_PRODUCTION_SCORE_REQUIRED = 100/,'Non-production readiness must require 100.');
@@ -31,6 +32,9 @@ assert.match(policy,/explicitApprovalRequiredBeforeProduction: true/,'Production
 assert.ok(exists('app/pro/[id]/page.js')&&exists('app/pro/[id]/ProAssistant.js'),'Professional Mode workspace must exist.');
 assert.match(proAssistant,/\/api\/modify/,'Professional Mode AI assistant must route natural-language changes through versioned AI modify.');
 assert.match(proAssistant,/requestId/,'Professional Mode changes must carry a request id for safe retries.');
+assert.match(proAssistant,/buildAutonomousPlan/,'Professional Mode must classify natural-language requests into matching project modules.');
+assert.match(proAssistant,/\/api\/apps\/\$\{appId\}\/bootstrap/,'Professional Mode must synchronize supported data, automation and video modules after AI changes.');
+assert.match(proAssistant,/Customer confirmation \/ setup still needed/,'Professional Mode must separate safe AI actions from customer/external confirmation.');
 assert.match(editor,/Version History & Rollback/,'No-code editor must preserve undo/rollback access.');
 assert.match(editor,/TARGET: whole App \+ Website|TARGET PAGE/,'No-code editor must support scoped natural-language changes.');
 
@@ -51,6 +55,8 @@ assert.match(metadataSave,/current project version/,'Store metadata must be limi
 
 assert.match(workflow,/idempotencyKey/,'Workflow execution must support idempotency.');
 assert.match(workflow,/status:"failed"/,'Workflow execution must record catastrophic failures.');
+assert.match(orchestrator,/type:"send_whatsapp"/,'Autonomous WhatsApp workflows must use the action type supported by the runtime executor.');
+assert.doesNotMatch(orchestrator,/type:"whatsapp"/,'Unsupported legacy WhatsApp workflow action must not be generated.');
 assert.match(database,/No API keys, passwords or payment credentials/,'Database builder must prohibit credentials in generated business tables.');
 assert.match(checkout,/idempotencyKey/,'Checkout creation must support idempotency.');
 assert.match(checkout,/Offer amount is outside the supported range/,'Checkout must validate server-side offer amounts.');
@@ -62,7 +68,7 @@ assert.equal(dashboardHasPro,true,'Project dashboard must expose Professional Mo
 assert.match(pro,/Advanced control with AI assistance|Professional Workspace/,'Professional Mode must explain its AI-assisted control model.');
 
 console.log('✓ Non-production 100-point contract is explicit and Production remains held');
-console.log('✓ AI editing, Pro Mode and rollback paths are present');
+console.log('✓ Professional AI can change the project and synchronize supported modules');
 console.log('✓ Publishing Agent separates AI-filled data, customer truth and external store actions');
 console.log('✓ Changed store metadata invalidates stale customer approval');
 console.log('✓ Workflow, database, payment and video reliability contracts are present');
