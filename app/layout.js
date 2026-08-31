@@ -13,11 +13,12 @@ import PremiumJourneyTheme from "./components/PremiumJourneyTheme";
 import PreciseEditAssistant from "./components/PreciseEditAssistant";
 import GeneratedDataManager from "./components/GeneratedDataManager";
 import PublishingReadinessMount from "./components/PublishingReadinessMount";
+import CreationCapabilityBanner from "./components/CreationCapabilityBanner";
 import { PRODUCT_BRAND } from "../lib/ai/premium-visual-policy.js";
 
 export const metadata = {
   title: PRODUCT_BRAND.name,
-  description: "Describe, upload or sketch what you want. AI designs, builds, tests and prepares your App + Website for use.",
+  description: "Describe, upload or sketch what you want. SoolenAI designs, builds, tests and prepares your App, Website or Mobile Game for iOS, Android and web preview workflows.",
 };
 
 export default function RootLayout({ children }) {
@@ -29,6 +30,7 @@ export default function RootLayout({ children }) {
         <AdaptiveWallpaperEngine />
         <AccountNav />
         {children}
+        <CreationCapabilityBanner />
         <PreciseEditAssistant />
         <GeneratedDataManager />
         <PublishingReadinessMount />
