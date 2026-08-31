@@ -21,10 +21,11 @@ assert.match(publish,/\.eq\(\s*["']owner_id["']\s*,\s*user\.id\s*\)/,'Publish mu
 assert.match(quality,/\.eq\(\s*["']owner_id["']\s*,\s*user\.id\s*\)/,'Quality review must enforce project ownership server-side.');
 assert.match(publish,/evaluateReleaseReadiness/,'Publishing must use the shared fail-closed release evaluator.');
 
+assert.match(buyoutHardening,/alter function public\.has_active_buyout\(uuid, uuid\) rename to has_active_buyout_legacy/,'Legacy default-argument helper must be renamed before the safe overload is introduced.');
 assert.match(buyoutHardening,/function public\.has_active_buyout\(p_app_id uuid\)/,'Buyout helper must expose only the app id argument.');
 assert.match(buyoutHardening,/auth\.uid\(\)/,'Buyout helper must bind access to the authenticated user.');
-assert.match(buyoutHardening,/drop function if exists public\.has_active_buyout\(uuid, uuid\)/,'Legacy arbitrary-user helper must be removed after policy migration.');
-assert.doesNotMatch(buyoutHardening,/grant execute on function public\.has_active_buyout\(uuid, uuid\)/,'Legacy two-argument helper must never be granted after hardening.');
+assert.match(buyoutHardening,/drop function public\.has_active_buyout_legacy\(uuid, uuid\)/,'Legacy arbitrary-user helper must be removed after policy migration.');
+assert.doesNotMatch(buyoutHardening,/grant execute on function public\.has_active_buyout(?:_legacy)?\(uuid, uuid\)/,'Legacy two-argument helper must never be granted after hardening.');
 
 const forbiddenClientNames=[
   'SUPABASE_SERVICE_ROLE_KEY','VERCEL_TOKEN','OPENROUTER_API_KEY','GROQ_API_KEY','GEMINI_API_KEY',
@@ -59,5 +60,5 @@ assert.deepEqual(leaked,[],'Client bundles must never reference server secrets.'
 console.log('✓ Critical mutation/readiness routes authenticate server-side');
 console.log('✓ Project ownership is enforced on modify, publish and quality routes');
 console.log('✓ Generated projects are assigned to the authenticated owner');
-console.log('✓ Buyout source-code RLS helper is auth-bound and legacy probe signature is removed');
+console.log('✓ Buyout source-code RLS helper is auth-bound and legacy probe signature is removed safely');
 console.log(`✓ ${clientFiles.length} client component(s) scanned with no server-secret references`);
