@@ -28,8 +28,10 @@ export async function POST(request,{params}){
     const origin=safeOrigin(request);
     const result=await createManagedCheckout({name:offer.name,description:offer.description,amount,currency,mode,successUrl:`${origin}/monetization/${id}?checkout=success`,cancelUrl:`${origin}/monetization/${id}?checkout=cancel`,clientReferenceId:`${id}:${offer.id}`,idempotencyKey});
     if(result.status!=="completed")return NextResponse.json({success:false,status:result.status,error:"Managed Payments is not configured yet."},{status:409});
-    const {error:logError}=await supabase.from("payment_checkout_logs").insert({app_id:id,offer_id:offer.id,owner_id:user.id,external_checkout_id:result.checkoutId,status:"created"});
+    const {data:existingLog}=await supabase.from("payment_checkout_logs").select("id").eq("app_id",id).eq("offer_id",offer.id).eq("owner_id",user.id).eq("external_checkout_id",result.checkoutId).limit(1).maybeSingle();
+    let logError=null;
+    if(!existingLog){const logged=await supabase.from("payment_checkout_logs").insert({app_id:id,offer_id:offer.id,owner_id:user.id,external_checkout_id:result.checkoutId,status:"created"});logError=logged.error||null;}
     if(logError)console.error("CHECKOUT_LOG_ERROR",logError);
-    return NextResponse.json({success:true,url:result.url,checkoutId:result.checkoutId,requestId:requestBucket,trackingRecorded:!logError});
+    return NextResponse.json({success:true,url:result.url,checkoutId:result.checkoutId,requestId:requestBucket,replayed:Boolean(existingLog),trackingRecorded:Boolean(existingLog)||!logError});
   }catch(error){console.error("CHECKOUT_CREATE_ERROR",error);return NextResponse.json({error:error?.message||"Unable to create checkout."},{status:500});}
 }
