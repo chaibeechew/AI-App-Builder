@@ -25,6 +25,8 @@ jobs:
         run: npm run test:release
       - name: Security and ownership contract tests
         run: npm run test:security
+      - name: Runtime reliability contract tests
+        run: npm run test:runtime
       - name: 100-point structural readiness gate
         run: npm run quality:100
       - run: npm run build
