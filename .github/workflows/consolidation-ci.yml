@@ -47,6 +47,8 @@ jobs:
         run: node scripts/aviation-knowledge-tests.mjs
       - name: Air Combat Runtime V1 and 3D foundation contract tests
         run: node scripts/air-combat-runtime-v1-tests.mjs
+      - name: Authoritative multiplayer core contract tests
+        run: node scripts/multiplayer-authority-v1-tests.mjs
       - name: Zero-cost Vercel function budget guard
         run: node scripts/vercel-function-budget-tests.mjs
       - name: 100-point structural readiness gate
