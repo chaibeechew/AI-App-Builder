@@ -32,9 +32,8 @@ assert.ok(plan.knowledge.environment.some(item=>/cloud/i.test(item)));
 assert.ok(plan.knowledge.ai.some(item=>/formation/i.test(item)));
 assert.ok(plan.knowledge.controls.some(item=>/touch/i.test(item)));
 assert.ok(plan.knowledge.performance.some(item=>/60fps/i.test(item)));
-assert.match(plan.brief,/public non-classified/i);
+assert.match(plan.brief,/public high-level/i);
 assert.match(plan.brief,/classified performance/i);
-assert.match(plan.brief,/weapon-construction instructions/i);
 
 const game=inferMobileGamePlan("Build a realistic fighter jet air combat game for iPhone and Android with carrier operations and weather");
 assert.equal(game.matched,true);
@@ -45,9 +44,16 @@ assert.equal(game.aviation?.matched,true);
 assert.ok(game.screens.includes("Hangar / aircraft select"));
 assert.ok(game.screens.includes("Flight HUD / instruments"));
 assert.ok(game.systems.some(item=>item.startsWith("AVIATION:")));
+assert.ok(game.systems.some(item=>/public non-classified aircraft knowledge/i.test(item)));
+assert.ok(game.systems.some(item=>/weapon-construction instructions/i.test(item)));
+assert.ok(game.systems.some(item=>/real attack procedures/i.test(item)));
 
 const engine=fs.readFileSync("engine/autonomous-engine.js","utf8");
 const builder=fs.readFileSync("app/game-builder/page.js","utf8");
+const aviationSource=fs.readFileSync("lib/ai/aviation-knowledge.js","utf8");
+assert.match(aviationSource,/Public, non-classified knowledge/i);
+assert.match(aviationSource,/weapon-construction instructions/i);
+assert.match(aviationSource,/real-world attack procedures/i);
 assert.match(engine,/AVIATION \/ AIR COMBAT ENGINEERING MODE/);
 assert.match(engine,/game\.archetype to air_combat/);
 assert.match(engine,/mergeAviationSpecification/);
