@@ -23,6 +23,6 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Release policy regression tests
         run: npm run test:release
-      - name: 99-point structural readiness gate
-        run: npm run quality:99
+      - name: 100-point structural readiness gate
+        run: npm run quality:100
       - run: npm run build
