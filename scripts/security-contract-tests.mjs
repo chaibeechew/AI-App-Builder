@@ -23,6 +23,8 @@ assert.match(publish,/evaluateReleaseReadiness/,'Publishing must use the shared 
 
 assert.match(buyoutHardening,/alter function public\.has_active_buyout\(uuid, uuid\) rename to has_active_buyout_legacy/,'Legacy default-argument helper must be renamed before the safe overload is introduced.');
 assert.match(buyoutHardening,/function public\.has_active_buyout\(p_app_id uuid\)/,'Buyout helper must expose only the app id argument.');
+assert.match(buyoutHardening,/security invoker/,'Auth-bound buyout helper must run with caller privileges so RLS remains effective.');
+assert.doesNotMatch(buyoutHardening,/function public\.has_active_buyout\(p_app_id uuid\)[\s\S]{0,120}security definer/,'Public buyout helper must not be SECURITY DEFINER.');
 assert.match(buyoutHardening,/auth\.uid\(\)/,'Buyout helper must bind access to the authenticated user.');
 assert.match(buyoutHardening,/drop function public\.has_active_buyout_legacy\(uuid, uuid\)/,'Legacy arbitrary-user helper must be removed after policy migration.');
 assert.doesNotMatch(buyoutHardening,/grant execute on function public\.has_active_buyout(?:_legacy)?\(uuid, uuid\)/,'Legacy two-argument helper must never be granted after hardening.');
@@ -60,5 +62,5 @@ assert.deepEqual(leaked,[],'Client bundles must never reference server secrets.'
 console.log('✓ Critical mutation/readiness routes authenticate server-side');
 console.log('✓ Project ownership is enforced on modify, publish and quality routes');
 console.log('✓ Generated projects are assigned to the authenticated owner');
-console.log('✓ Buyout source-code RLS helper is auth-bound and legacy probe signature is removed safely');
+console.log('✓ Buyout source-code RLS helper is auth-bound, SECURITY INVOKER and legacy probe signature is removed safely');
 console.log(`✓ ${clientFiles.length} client component(s) scanned with no server-secret references`);
