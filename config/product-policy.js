@@ -22,6 +22,20 @@ export const PRODUCT_POLICY = Object.freeze({
   },
   pricing: {
     philosophy: "fair_price_fair_use",
+    fairPriceFairUse: {
+      customerFacingName: "Fair Price · Fair Use",
+      principles: [
+        "Give genuine customers useful included access before asking them to pay for more.",
+        "Do not degrade ordinary product quality to force an upgrade.",
+        "Use safeguards against automated abuse, credential sharing, resale and excessive resource consumption that harms other customers.",
+        "When an optional paid overage or extra compute purchase exists, show the price before the customer confirms it.",
+        "Do not create surprise per-click charges.",
+        "Usage limits may differ for unusually expensive features such as heavy video generation, rendering or other high-compute operations.",
+        "If a temporary restriction is applied for service protection, explain it clearly and preserve the customer's project and ownership.",
+      ],
+      implementationModel: "included_access_first_then_optional_transparent_extra_usage_where_supported",
+      note: "This policy adopts similar customer-friendly usage principles seen in major AI products: included plan access first, transparent optional extra usage where supported, and abuse guardrails. It is SoolenAI's own policy and should not be presented as an OpenAI endorsement or official OpenAI policy name.",
+    },
     standard: {
       priceUsd: 10,
       billing: "one_time",
@@ -50,12 +64,18 @@ export const PRODUCT_POLICY = Object.freeze({
     fairUse: {
       enabled: true,
       principle: "Normal genuine customer use should feel generous. Limits exist to protect service reliability and prevent automated abuse, resale, excessive compute consumption and activity that harms other customers.",
+      includedUsageFirst: true,
+      optionalExtraUsageOnlyWhereSupported: true,
       noSurprisePerClickCharges: true,
       transparentBeforePaidOverage: true,
       preserveCustomerProjectsAfterProExpiry: true,
       proExpiryRemovesAdvancedServiceAccessNotOwnership: true,
       adaptiveComputeAndProviderRouting: true,
       abuseProtectionRequired: true,
+      credentialSharingRestricted: true,
+      resaleRestricted: true,
+      automatedExtractionAbuseRestricted: true,
+      temporaryProtectionLimitsAllowed: true,
     },
   },
   publishing: {
