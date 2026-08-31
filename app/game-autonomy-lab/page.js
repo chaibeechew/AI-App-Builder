@@ -34,7 +34,7 @@ function LockLoop(){
 
 function SaveEconomy(){
   const save=recoverSaveSnapshot({schemaVersion:1,data:{coins:12,level:3},checksum:"broken"},{schemaVersion:2,defaults:{coins:0,level:1,inventory:[]},migrate:(data,from)=>from===1?{...data,inventory:[]}:data});
-  const economy=stressEconomy({baseState:{goods:[{id:"ore",price:12,floor:4,ceiling:40,supply:100,demand:100}]},step:(state,input)=>({goods:state.goods.map(g=>{const supply=Math.max(1,g.supply*(input.supplyMultiplier||1)),demand=g.demand*(input.demandMultiplier||1),price:Math.max(g.floor,Math.min(g.ceiling,g.price*(demand/supply)));return{...g,supply,demand,price};})}),maxTicks:24});
+  const economy=stressEconomy({baseState:{goods:[{id:"ore",price:12,floor:4,ceiling:40,supply:100,demand:100}]},step:(state,input)=>({goods:state.goods.map(g=>{const supply=Math.max(1,g.supply*(input.supplyMultiplier||1)),demand=g.demand*(input.demandMultiplier||1),price=Math.max(g.floor,Math.min(g.ceiling,g.price*(demand/supply)));return{...g,supply,demand,price};})}),maxTicks:24});
   return <div className="grid"><div className="card"><h2>Save Corruption Recovery</h2><div className="metric">{save.recoveredFromCorruption?"RECOVERED":"VALID"}</div><div className="mono">{JSON.stringify(save,null,2)}</div></div><div className="card"><h2>Economy Abuse Matrix</h2><div className="metric">{economy.passed?"PASS":"RISK"}</div><div className="mono">{JSON.stringify({passed:economy.passed,risks:economy.exploitRisks},null,2)}</div></div></div>;
 }
 
