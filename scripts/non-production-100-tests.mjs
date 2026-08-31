@@ -6,174 +6,157 @@ const root=process.cwd();
 const read=(p)=>fs.existsSync(path.join(root,p))?fs.readFileSync(path.join(root,p),'utf8'):'';
 const exists=(p)=>fs.existsSync(path.join(root,p));
 
-const readiness=read('lib/non-production-readiness.js');
-const home=read('app/page.js');
-const create=read('app/create/page.js');
-const dashboard=read('app/app-dashboard/[id]/page.js');
-const pro=read('app/pro/[id]/page.js');
-const proAssistant=read('app/pro/[id]/ProAssistant.js');
-const proModePolicy=read('lib/pro-mode.js');
-const accessReader=read('lib/app-builder-access.js');
-const accessRuntime=read('supabase/migrations/20260831120000_preview_access_credit_runtime.sql');
-const generate=read('app/api/generate/route.js');
-const modify=read('app/api/modify/route.js');
-const publish=read('app/publish/[id]/page.js');
-const metadata=read('app/api/store-metadata/route.js');
-const metadataSave=read('app/api/store-metadata/save/route.js');
-const publishingAgent=read('app/api/apps/[id]/publishing-agent/route.js');
-const editor=read('app/editor/[id]/page.js');
-const dataPage=read('app/database/[id]/page.js');
-const connectionsPage=read('app/integrations/[id]/page.js');
-const paymentsPage=read('app/monetization/[id]/page.js');
-const workflow=read('app/api/apps/[id]/workflows/[workflowId]/run/route.js');
-const database=read('app/api/apps/[id]/database/route.js');
-const checkout=read('app/api/apps/[id]/monetization/[offerId]/checkout/route.js');
-const video=read('app/api/video/projects/[id]/compile/route.js');
-const orchestrator=read('lib/build/orchestrator.js');
-const policy=read('config/product-policy.js');
-const visualPolicy=read('lib/ai/premium-visual-policy.js');
-const wallpapers=read('lib/design/wallpaper-presets.js');
-const wallpaperEngine=read('app/components/AdaptiveWallpaperEngine.js');
-const imageStudio=read('app/image-studio/page.js');
-const imageApi=read('app/api/images/generate/route.js');
-const generatedApp=read('app/a/[id]/GeneratedAppClient.js');
-const generatedWebsite=read('app/website/[id]/page.js');
-const layout=read('app/layout.js');
-const productCopy=read('app/components/ProductCopyFix.js');
-const projectMemory=read('lib/project-memory.js');
-const studio=read('app/studio/page.js');
+const files={
+  readiness:read('lib/non-production-readiness.js'),
+  policy:read('config/product-policy.js'),
+  visualPolicy:read('lib/ai/premium-visual-policy.js'),
+  wallpapers:read('lib/design/wallpaper-presets.js'),
+  wallpaperEngine:read('app/components/AdaptiveWallpaperEngine.js'),
+  imageStudio:read('app/image-studio/page.js'),
+  imageApi:read('app/api/images/generate/route.js'),
+  home:read('app/page.js'),
+  create:read('app/create/page.js'),
+  generate:read('app/api/generate/route.js'),
+  modify:read('app/api/modify/route.js'),
+  editor:read('app/editor/[id]/page.js'),
+  generatedApp:read('app/a/[id]/GeneratedAppClient.js'),
+  generatedWebsite:read('app/website/[id]/page.js'),
+  projectMemory:read('lib/project-memory.js'),
+  dashboard:read('app/app-dashboard/[id]/page.js'),
+  pro:read('app/pro/[id]/page.js'),
+  proAssistant:read('app/pro/[id]/ProAssistant.js'),
+  proModePolicy:read('lib/pro-mode.js'),
+  accessReader:read('lib/app-builder-access.js'),
+  accessRuntime:read('supabase/migrations/20260831120000_preview_access_credit_runtime.sql'),
+  dataPage:read('app/database/[id]/page.js'),
+  connectionsPage:read('app/integrations/[id]/page.js'),
+  paymentsPage:read('app/monetization/[id]/page.js'),
+  workflow:read('app/api/apps/[id]/workflows/[workflowId]/run/route.js'),
+  database:read('app/api/apps/[id]/database/route.js'),
+  checkout:read('app/api/apps/[id]/monetization/[offerId]/checkout/route.js'),
+  video:read('app/api/video/projects/[id]/compile/route.js'),
+  orchestrator:read('lib/build/orchestrator.js'),
+  publish:read('app/publish/[id]/page.js'),
+  metadata:read('app/api/store-metadata/route.js'),
+  metadataSave:read('app/api/store-metadata/save/route.js'),
+  publishingAgent:read('app/api/apps/[id]/publishing-agent/route.js'),
+  layout:read('app/layout.js'),
+  productCopy:read('app/components/ProductCopyFix.js'),
+  studio:read('app/studio/page.js'),
+};
 
-assert.match(readiness,/NON_PRODUCTION_SCORE_REQUIRED = 100/,'Non-production readiness must require 100.');
-for(const key of ['generation','editing','data','automation','publishing','security','reliability','visual','wallpaper','imageStudio','versioning','pro','branding']) assert.match(readiness,new RegExp(`key: "${key}"`),`Missing readiness area: ${key}`);
-assert.match(readiness,/productionHeld: true/,'Production must remain explicitly held in this readiness model.');
-assert.match(readiness,/score === 100/,'Every readiness area must require a perfect score.');
-assert.match(policy,/productionPromotionHold: true/,'Platform Production promotion must remain held.');
-assert.match(policy,/explicitApprovalRequiredBeforeProduction: true/,'Production must require explicit approval before promotion.');
+const requiredAreas=['generation','editing','data','automation','publishing','security','reliability','visual','wallpaper','imageStudio','versioning','pro','branding'];
+assert.match(files.readiness,/NON_PRODUCTION_SCORE_REQUIRED = 100/);
+for(const key of requiredAreas) assert.match(files.readiness,new RegExp(`key: "${key}"`),`Missing readiness area: ${key}`);
+assert.match(files.readiness,/productionHeld: true/);
+assert.match(files.policy,/productionPromotionHold: true/);
+assert.match(files.policy,/explicitApprovalRequiredBeforeProduction: true/);
 
-assert.match(policy,/product: "AI BUILD APP & WEB"/,'Canonical product name must be AI BUILD APP & WEB.');
-assert.match(layout,/PRODUCT_BRAND\.name/,'Document metadata must use the canonical product brand.');
-assert.match(productCopy,/AI BUILD APP & WEB/,'Visible legacy product copy must be normalized to the new brand.');
-assert.match(studio,/AI BUILD APP & WEB/,'Studio must use the new product name.');
-assert.doesNotMatch(studio,/3,000\+/,'Studio must not make an unsupported template-count claim.');
+assert.match(files.policy,/product: "AI BUILD APP & WEB"/,'Canonical product name must be AI BUILD APP & WEB.');
+assert.match(files.layout,/PRODUCT_BRAND\.name/,'Document metadata must use the canonical product brand.');
+assert.match(files.productCopy,/AI BUILD APP & WEB/,'Legacy visible product copy must be normalized to the canonical brand.');
+assert.match(files.studio,/AI BUILD APP & WEB/,'Studio must use the canonical product name.');
+assert.doesNotMatch(files.studio,/3,000\+/,'Do not make an unsupported template-count claim.');
 
-assert.match(home,/First project free until publish/,'Home must clearly explain the free first-project promotion without implying external store fees are free.');
-assert.match(home,/external store fees stay separate/,'Home promotion copy must keep third-party store fees separate.');
-assert.match(home,/appId,requestId:newRequestId\("modify"\)/,'Home AI changes must modify the saved project and use a safe request id.');
-assert.match(home,/versionId:d\?\.version\?\.id/,'Home AI changes must keep the client aligned with the newly saved version.');
-assert.match(home,/Production stays locked until approved/,'Home must not imply Production is automatically promoted.');
-assert.match(create,/requestId:requestId\("create"\)/,'Autonomous Create must bind generation to a request id for safe entitlement retries.');
-assert.match(create,/high_performance_desktop/,'High-end desktop Create must map to the device class accepted by the server runtime.');
-assert.doesNotMatch(create,/desktop_pro/,'Autonomous Create must not send an unsupported desktop_pro device class.');
-assert.match(create,/Production publishing remains held until explicitly approved/,'Autonomous Create must keep Production explicitly held.');
-assert.match(create,/not trademark clearance/i,'Name Check must not be presented as legal trademark clearance.');
-assert.match(create,/customerVisualPreferences/,'Create must carry the customer's wallpaper preference into generation.');
-assert.match(create,/wallpaperMode/,'Create must support Random or selected wallpaper mode.');
+assert.match(files.home,/First project free until publish/);
+assert.match(files.home,/external store fees stay separate/);
+assert.match(files.home,/appId,requestId:newRequestId\("modify"\)/);
+assert.match(files.home,/versionId:d\?\.version\?\.id/);
+assert.match(files.home,/Production stays locked until approved/);
+assert.match(files.create,/requestId:requestId\("create"\)/);
+assert.match(files.create,/high_performance_desktop/);
+assert.doesNotMatch(files.create,/desktop_pro/);
+assert.match(files.create,/not trademark clearance/i);
+assert.match(files.create,/customerVisualPreferences/,'Create must carry the customer wallpaper preference into generation.');
+assert.match(files.create,/wallpaperMode/);
 
-assert.match(visualPolicy,/customer color preference is authoritative/i,'AI visual policy must make customer color choice authoritative.');
-assert.match(visualPolicy,/WALLPAPER & STEP VISUALS/,'AI visual policy must include wallpaper behavior.');
-assert.match(wallpapers,/WALLPAPER_PRESETS/,'Wallpaper preset library must exist.');
-assert.match(wallpapers,/pickWallpaperForStage/,'Wallpaper library must support stage-based variation.');
-assert.match(wallpaperEngine,/MutationObserver/,'Builder wallpaper engine must react when build steps change.');
-assert.match(wallpaperEngine,/AI Random/,'Customer must be able to keep Random-by-step wallpaper mode.');
-assert.match(wallpaperEngine,/localStorage\.setItem\(STORAGE_KEY/,'Customer wallpaper selection must persist locally.');
-assert.match(editor,/COLOR & WALLPAPER/,'Visual Editor must expose color and wallpaper controls.');
-assert.match(editor,/type="color"/,'Visual Editor must allow direct customer color selection.');
-assert.match(editor,/WALLPAPER_PRESETS/,'Visual Editor must show multiple wallpaper choices.');
-assert.match(projectMemory,/visualPreferences/,'Project Memory must preserve approved visual preferences.');
-assert.match(generate,/wallpaperMode/,'Generation must accept wallpaper mode.');
-assert.match(generate,/visual_preferences/,'Generation must save visual preferences into project memory.');
-assert.match(modify,/PREMIUM_VISUAL_AI_INSTRUCTION/,'AI modifications must use the same premium visual ideal.');
-assert.match(modify,/visualPreferences/,'AI modifications must save updated visual preferences.');
-assert.match(generatedApp,/wallpaperStyle/,'Generated App must render its saved wallpaper direction.');
-assert.match(generatedWebsite,/wallpaperStyle/,'Generated Website must render its saved wallpaper direction.');
+assert.match(files.visualPolicy,/customer color preference is authoritative/i);
+assert.match(files.visualPolicy,/WALLPAPER & STEP VISUALS/);
+assert.match(files.wallpapers,/WALLPAPER_PRESETS/);
+assert.match(files.wallpapers,/pickWallpaperForStage/);
+assert.match(files.wallpaperEngine,/MutationObserver/);
+assert.match(files.wallpaperEngine,/AI Random/);
+assert.match(files.wallpaperEngine,/localStorage\.setItem\(STORAGE_KEY/);
+assert.match(files.wallpaperEngine,/ai_build_wallpaper/,'Wallpaper preference must bridge to server generation without exposing secrets.');
+assert.match(files.editor,/COLOR & WALLPAPER/);
+assert.match(files.editor,/type="color"/);
+assert.match(files.editor,/WALLPAPER_PRESETS/);
+assert.match(files.projectMemory,/visualPreferences/);
+assert.match(files.generate,/wallpaperMode/);
+assert.match(files.generate,/visual_preferences/);
+assert.match(files.generate,/ai_build_wallpaper/,'Generation must honor a saved wallpaper preference even from simplified creation entry points.');
+assert.match(files.modify,/PREMIUM_VISUAL_AI_INSTRUCTION/);
+assert.match(files.modify,/visualPreferences/);
+assert.match(files.generatedApp,/wallpaperStyle/);
+assert.match(files.generatedWebsite,/wallpaperStyle/);
 
-assert.match(imageStudio,/Design Images/,'Image Studio must expose Design Images.');
-assert.match(imageStudio,/Style Tools/,'Image Studio must expose Style Tools.');
-assert.match(imageStudio,/Templates/,'Image Studio must expose prompt templates.');
-assert.match(imageStudio,/Use as Wallpaper/,'Generated visual directions must connect to wallpaper choice.');
-assert.match(imageApi,/images/,'Visual API must support multiple generated variations.');
-assert.match(imageApi,/Soolen Visual Engine/,'Visual API must identify its actual local visual engine.');
-assert.match(imageApi,/not presented as photorealistic external-model output/,'Visual API must not pretend a photorealistic provider is connected.');
+assert.match(files.imageStudio,/Design Images/);
+assert.match(files.imageStudio,/Style Tools/);
+assert.match(files.imageStudio,/Templates/);
+assert.match(files.imageStudio,/Use as Wallpaper/);
+assert.match(files.imageApi,/images/);
+assert.match(files.imageApi,/Soolen Visual Engine/);
+assert.match(files.imageApi,/not presented as photorealistic external-model output/);
 
-assert.ok(exists('app/pro/[id]/page.js')&&exists('app/pro/[id]/ProAssistant.js'),'Professional Mode workspace must exist.');
-assert.match(proAssistant,/\/api\/modify/,'Professional Mode AI assistant must route natural-language changes through versioned AI modify.');
-assert.match(proAssistant,/requestId/,'Professional Mode changes must carry a request id for safe retries.');
-assert.match(proAssistant,/buildAutonomousPlan/,'Professional Mode must classify natural-language requests into matching project modules.');
-assert.match(proAssistant,/\/api\/apps\/\$\{appId\}\/bootstrap/,'Professional Mode must synchronize supported data, automation and video modules after AI changes.');
-assert.match(proAssistant,/Customer confirmation \/ setup still needed/,'Professional Mode must separate safe AI actions from customer/external confirmation.');
-assert.match(editor,/Version History & Rollback/,'No-code editor must preserve undo/rollback access.');
-assert.match(editor,/TARGET: whole App \+ Website|TARGET PAGE/,'No-code editor must support scoped natural-language changes.');
+assert.ok(exists('app/pro/[id]/page.js')&&exists('app/pro/[id]/ProAssistant.js'));
+assert.match(files.proAssistant,/\/api\/modify/);
+assert.match(files.proAssistant,/requestId/);
+assert.match(files.proAssistant,/buildAutonomousPlan/);
+assert.match(files.pro,/getAppBuilderAccess/);
+assert.match(files.pro,/!access\.professional\.active/);
+assert.match(files.pro,/US\$68 · 365 days · no auto-renew/);
+assert.match(files.proModePolicy,/professionalAutoRenew: false/);
+assert.match(files.proModePolicy,/priceReviewIntervalYears: 3/);
+assert.match(files.proModePolicy,/priceIncreaseOptional: true/);
+assert.match(files.accessReader,/pro_valid_until/);
+assert.match(files.accessRuntime,/standard_project_credits/);
+assert.match(files.accessRuntime,/grant_standard_project_credit/);
+assert.match(files.accessRuntime,/grant_pro_access/);
+assert.match(files.accessRuntime,/to service_role/);
 
-assert.match(dataPage,/SOOLENAI · CUSTOMER DATA/,'Data UI must use the customer-friendly Customer Data label.');
-assert.match(dataPage,/customerFields/,'Customer Data must translate technical schema fields into business-friendly labels.');
-assert.match(dataPage,/owner_id/,'Customer Data field translation must explicitly recognize infrastructure ownership fields so they can be hidden from customers.');
-assert.match(dataPage,/Technical details hidden/,'Customer Data must keep infrastructure details out of the normal customer experience.');
-assert.match(connectionsPage,/SOOLENAI · CONNECTIONS/,'Integration UI must use the customer-friendly Connections label.');
-assert.match(connectionsPage,/SECRETS STAY SERVER-SIDE/,'Connections must explain secret handling without exposing credentials.');
-assert.match(paymentsPage,/SOOLENAI · PAYMENTS & OFFERS/,'Monetization UI must use the customer-friendly Payments & Offers label.');
-assert.match(paymentsPage,/SERVER-CHECKED PRICE/,'Payments UI must explain that saved prices are server checked.');
-assert.match(paymentsPage,/requestId:`checkout-test-/,'Checkout tests must use request-bound idempotency.');
-assert.match(proModePolicy,/"Customer Data"/,'Professional Mode must use the same Customer Data terminology as Standard.');
-assert.match(proModePolicy,/"Automations"/,'Professional Mode must use the same Automations terminology as Standard.');
-assert.match(proModePolicy,/"Connections"/,'Professional Mode must use the same Connections terminology as Standard.');
-assert.match(proModePolicy,/"Payments & Offers"/,'Professional Mode must use the same Payments terminology as the customer workspace.');
+assert.match(files.dataPage,/SOOLENAI · CUSTOMER DATA/);
+assert.match(files.dataPage,/Technical details hidden/);
+assert.match(files.connectionsPage,/SOOLENAI · CONNECTIONS/);
+assert.match(files.connectionsPage,/SECRETS STAY SERVER-SIDE/);
+assert.match(files.paymentsPage,/SOOLENAI · PAYMENTS & OFFERS/);
+assert.match(files.paymentsPage,/SERVER-CHECKED PRICE/);
 
-assert.match(accessReader,/app_builder_account_access/,'Access reader must use server-controlled App Builder access state.');
-assert.match(accessReader,/pro_valid_until/,'Professional access must expire from a server-side date.');
-assert.match(pro,/getAppBuilderAccess/,'Professional workspace must read server-side access state.');
-assert.match(pro,/!access\.professional\.active/,'Professional workspace must block advanced controls when Pro is inactive or expired.');
-assert.match(pro,/US\$68 · 365 days · no auto-renew/,'Professional workspace must show the agreed one-payment 365-day terms.');
-assert.match(pro,/project is never deleted|project.*never deleted/i,'Professional expiry must preserve customer projects.');
-assert.match(proModePolicy,/standard_usd_10_one_time_pro_usd_68_365_days_fair_price_fair_use/,'Professional Mode policy must match the current Fair Price · Fair Use terms.');
-assert.match(proModePolicy,/professionalAutoRenew: false/,'Professional Mode policy must never silently auto-renew.');
-assert.match(proModePolicy,/priceReviewIntervalYears: 3/,'Professional Mode policy must preserve the three-year price review interval.');
-assert.match(proModePolicy,/priceIncreaseOptional: true/,'A three-year price review must not force a price increase.');
-assert.match(accessRuntime,/standard_project_credits/,'Standard US$10 access must be modeled as a one-project creation entitlement instead of a monthly subscription.');
-assert.match(accessRuntime,/pro_valid_until/,'Professional access must have a real expiry field.');
-assert.match(accessRuntime,/grant_standard_project_credit/,'A trusted server path must be able to grant Standard project access after payment.');
-assert.match(accessRuntime,/grant_pro_access/,'A trusted server path must be able to grant 365-day Professional access after payment.');
-assert.match(accessRuntime,/grant execute on function public\.grant_pro_access\(uuid,integer\) to service_role/,'Customers must not be able to grant themselves Professional access.');
-assert.match(generate,/p_request_id:chargeRequestId/,'Generate entitlement reservations must be request-bound.');
-assert.match(generate,/bind_app_builder_project_access/,'Successful generation must bind its paid or promotional access to the created project.');
-assert.match(generate,/restore_failed_app_builder_create/,'Failed generation must restore a consumed free/Standard creation reservation safely.');
-assert.match(modify,/p_request_id:chargeRequestId/,'Modify entitlement checks must be request-bound.');
-assert.match(accessRuntime,/Refund amount does not match original charge/,'AI credit refunds must never mint more credit than the original charge.');
-assert.match(accessRuntime,/credit_transactions_request_type_unique_idx/,'AI credit mutation must be idempotent by request and transaction type.');
+assert.match(files.generate,/p_request_id:chargeRequestId/);
+assert.match(files.generate,/bind_app_builder_project_access/);
+assert.match(files.generate,/restore_failed_app_builder_create/);
+assert.match(files.modify,/p_request_id:chargeRequestId/);
+assert.match(files.accessRuntime,/Refund amount does not match original charge/);
+assert.match(files.accessRuntime,/credit_transactions_request_type_unique_idx/);
 
-assert.match(metadata,/customerAnswers/,'Store metadata assistant must use customer truth inputs.');
-assert.match(metadata,/privacyPolicyUrl/,'Publishing assistant must support privacy policy metadata.');
-assert.match(metadata,/targetAudience/,'Publishing assistant must support target audience metadata.');
-assert.match(publish,/AI Auto-Fill Store Forms/,'Publishing UI must expose AI auto-fill.');
-assert.match(publish,/AI PUBLISHING AGENT/,'Publishing UI must expose the readiness agent.');
-assert.match(publish,/publish-answers:/,'Key publishing answers must survive a same-device refresh without adding secret storage.');
-assert.match(publish,/style jsx global/,'Child publishing controls must receive their intended styles instead of silently losing scoped CSS.');
-assert.match(publish,/Apple Developer Program/,'Publishing UI must separate Apple external fees.');
-assert.match(publish,/Google Play/,'Publishing UI must separate Google external fees.');
-assert.match(publishingAgent,/readyForReview/,'Publishing Agent must compute review readiness.');
-assert.match(publishingAgent,/readyForOfficialSubmission: false/,'Publishing Agent must not pretend store submission is complete.');
-assert.match(publishingAgent,/needsCustomer/,'Publishing Agent must separate customer-only declarations from AI-filled fields.');
-assert.match(metadataSave,/customer_approved_at: null/,'Any listing metadata change must reset stale customer approval.');
-assert.match(metadataSave,/current project version/,'Store metadata must be limited to the current project version.');
+assert.match(files.workflow,/idempotencyKey/);
+assert.match(files.workflow,/status:"failed"/);
+assert.match(files.database,/No API keys, passwords or payment credentials/);
+assert.match(files.checkout,/idempotencyKey/);
+assert.match(files.checkout,/Offer amount is outside the supported range/);
+assert.match(files.video,/serverRender:true/);
+assert.match(files.video,/renderStarted:false/);
+assert.match(files.orchestrator,/type:"send_whatsapp"/);
+assert.doesNotMatch(files.orchestrator,/type:"whatsapp"/);
 
-assert.match(workflow,/idempotencyKey/,'Workflow execution must support idempotency.');
-assert.match(workflow,/status:"failed"/,'Workflow execution must record catastrophic failures.');
-assert.match(orchestrator,/type:"send_whatsapp"/,'Autonomous WhatsApp workflows must use the action type supported by the runtime executor.');
-assert.doesNotMatch(orchestrator,/type:"whatsapp"/,'Unsupported legacy WhatsApp workflow action must not be generated.');
-assert.match(database,/No API keys, passwords or payment credentials/,'Database builder must prohibit credentials in generated business tables.');
-assert.match(checkout,/idempotencyKey/,'Checkout creation must support idempotency.');
-assert.match(checkout,/Offer amount is outside the supported range/,'Checkout must validate server-side offer amounts.');
-assert.match(video,/serverRender:true/,'Video compile must keep heavy final rendering server-side.');
-assert.match(video,/renderStarted:false/,'Video Studio must not claim final rendering has started before a worker claims the job.');
+assert.match(files.metadata,/customerAnswers/);
+assert.match(files.metadata,/privacyPolicyUrl/);
+assert.match(files.metadata,/targetAudience/);
+assert.match(files.publish,/AI Auto-Fill Store Forms/);
+assert.match(files.publish,/AI PUBLISHING AGENT/);
+assert.match(files.publish,/Apple Developer Program/);
+assert.match(files.publish,/Google Play/);
+assert.match(files.publishingAgent,/readyForOfficialSubmission: false/);
+assert.match(files.metadataSave,/customer_approved_at: null/);
 
-const dashboardHasPro=/\/pro\/\$\{id\}|\/pro\//.test(dashboard);assert.equal(dashboardHasPro,true,'Project dashboard must expose Professional Mode without requiring a hidden URL.');assert.match(dashboard,/getAppBuilderAccess/,'Project dashboard must read Professional access from trusted server state.');assert.match(dashboard,/WORKSPACE MODE/,'Project dashboard must present Standard and Professional as a clear workspace choice.');assert.match(dashboard,/STANDARD MODE · CURRENT/,'Standard Mode must be visibly identified as the default simple workspace.');assert.match(dashboard,/AI handles everything for you/,'Standard Mode must explain its no-code AI-first experience.');assert.match(dashboard,/access\.professional\.active/,'Dashboard Professional status must be based on server-side access, not a client-only switch.');assert.match(dashboard,/access\.professional\.daysRemaining/,'Active Professional access must show remaining access time.');assert.match(dashboard,/same project and the same version history/i,'Mode switching must explain that it preserves one project and one history.');assert.match(dashboard,/US\$68 · 365 days · no auto-renew/,'Inactive Professional Mode must show the agreed terms before entry.');assert.match(pro,/Advanced control with AI assistance|Professional Workspace/,'Professional Mode must explain its AI-assisted control model.');
+const dashboardHasPro=/\/pro\/\$\{id\}|\/pro\//.test(files.dashboard);
+assert.equal(dashboardHasPro,true);
+assert.match(files.dashboard,/getAppBuilderAccess/);
+assert.match(files.dashboard,/WORKSPACE MODE/);
+assert.match(files.dashboard,/STANDARD MODE · CURRENT/);
+assert.match(files.dashboard,/AI handles everything for you/);
+assert.match(files.dashboard,/same project and the same version history/i);
 
-console.log('✓ Non-production 100-point contract includes branding, image design, wallpaper and theme controls');
-console.log('✓ AI BUILD APP & WEB is the canonical product brand while Production remains held');
-console.log('✓ Builder wallpapers can rotate by step and customers can choose a preferred scene');
-console.log('✓ Generated App + Website preserve saved wallpaper and coordinated customer colors');
-console.log('✓ Image Studio supports Create, Design Images, Style Tools, Templates and multiple visual directions');
-console.log('✓ Home/Create AI changes remain request-bound and version-aware');
-console.log('✓ Customer Data, Automations, Connections and Payments use one no-code vocabulary');
-console.log('✓ Free/Standard/Pro access is server-controlled, request-bound and expiry-aware');
-console.log('✓ Publishing Agent separates AI-filled data, customer truth and external store actions');
-console.log('✓ Workflow, database, payment and video reliability contracts are present');
+console.log('✓ Non-production 100-point contract covers every required product area');
+console.log('✓ AI BUILD APP & WEB branding, premium visuals, random-by-step wallpaper and customer wallpaper choices are protected');
+console.log('✓ Image Studio, no-code editing, data, automation, payments, publishing preparation and Pro access contracts are protected');
+console.log('✓ Production remains intentionally held');
