@@ -52,7 +52,8 @@ assert.equal(customerPrepared.readyForOfficialSubmission,false);
 
 const route=fs.readFileSync("app/api/apps/[id]/publishing-agent/route.js","utf8");
 const panel=fs.readFileSync("app/publish/[id]/PublishingReadinessPanel.js","utf8");
-const layout=fs.readFileSync("app/publish/[id]/layout.js","utf8");
+const mount=fs.readFileSync("app/components/PublishingReadinessMount.js","utf8");
+const rootLayout=fs.readFileSync("app/layout.js","utf8");
 const saveRoute=fs.readFileSync("app/api/store-metadata/save/route.js","utf8");
 const approveRoute=fs.readFileSync("app/api/store-metadata/approve/route.js","utf8");
 const publishRoute=fs.readFileSync("app/api/publish/request/route.js","utf8");
@@ -76,7 +77,11 @@ assert.match(panel,/Terms \/ EULA/);
 assert.match(panel,/Save My Declarations/);
 assert.match(panel,/Nothing was submitted to Apple or Google/i);
 assert.match(panel,/Official App Store \/ Google Play submission remains/);
-assert.match(layout,/PublishingReadinessPanel/);
+assert.match(mount,/usePathname/);
+assert.match(mount,/^.*\/publish\\\//m);
+assert.match(mount,/PublishingReadinessPanel/);
+assert.match(rootLayout,/PublishingReadinessMount/);
+assert.equal(fs.existsSync("app/publish/[id]/layout.js"),false,"Publishing readiness must not add a dynamic server layout/function");
 for(const source of [saveRoute,approveRoute,publishRoute])assert.match(source,/createAdminClient/);
 assert.match(saveRoute,/owner_id", user\.id/);
 assert.match(approveRoute,/owner_id", user\.id/);
@@ -92,3 +97,4 @@ assert.match(migration,/grant select on public\.store_listings to authenticated/
 console.log("✓ Publishing Agent checks icon, screenshots, customer declarations, device-permission purposes and Apple/Android external release requirements without claiming official submission success");
 console.log("✓ Customer can resolve Terms and permission-purpose gaps in project memory while official age-rating/store submission remain external evidence");
 console.log("✓ Store listing approval, metadata saves and publish-request writes are owner-verified server-only operations; public client tables remain read-only");
+console.log("✓ Store Readiness stays client-mounted and scoped to /publish without creating an extra dynamic Vercel function");
