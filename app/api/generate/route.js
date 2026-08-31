@@ -8,6 +8,7 @@ import { verifyGeneratedAppExecution, buildRepairInstruction } from "../../../li
 import { createClient } from "../../../lib/supabase/server.js";
 
 const GENERATE_CREDIT_COST=Math.max(1,Number(process.env.APP_GENERATE_CREDIT_COST||10));
+const HEX_COLOR=/^#[0-9a-f]{6}$/i;
 
 function verifyGeneration(result){
   const normalized=normalizeAppSpec(result?.specification);
@@ -39,6 +40,7 @@ function choosePlacement(asset,pages=[]){
   target=target||candidates[0]||null;
   return {suggested_page:target?.page?.name||"Main",suggested_role:role,placement_reason:reason};
 }
+function safeColor(value){const v=String(value||"").trim();return HEX_COLOR.test(v)?v:"";}
 
 export async function POST(request){
  let supabase=null,charged=false,chargeRequestId=null,entitlementSource=null,entitlementReserved=false,createdAppId=null,accessBound=false;
@@ -51,6 +53,10 @@ export async function POST(request){
   const assetIds=Array.isArray(body?.assetIds)?[...new Set(body.assetIds.filter((value)=>typeof value==="string"&&value.trim()).map((value)=>value.trim()))].slice(0,20):[];
   const referenceImages=Array.isArray(body?.referenceImages||body?.imageRefs)?(body.referenceImages||body.imageRefs).filter(v=>typeof v==="string"&&v.trim()).slice(0,10):[];
   const language=String(body?.language||"en").trim(),industry=String(body?.industry||"technology").trim();const terminology=Array.isArray(body?.terminology)?body.terminology:[];const createDemoVideo=Boolean(body?.createDemoVideo);
+  const themeMode=["auto","preset","custom"].includes(body?.themeMode)?body.themeMode:"auto";
+  const themePreset=String(body?.themePreset||"auto").trim().slice(0,60);
+  const primaryColor=safeColor(body?.primaryColor),accentColor=safeColor(body?.accentColor),backgroundColor=safeColor(body?.backgroundColor);
+  const styleRequest=String(body?.styleRequest||"").trim().slice(0,500);
   chargeRequestId=String(body?.requestId||crypto.randomUUID()).trim();if(!idea&&!voiceTranscript)return NextResponse.json({success:false,error:"Please describe the app you want to build."},{status:400});
   const combinedInput=[requestedName?`CUSTOMER-CHOSEN APP NAME: ${requestedName}`:"",idea,voiceTranscript].filter(Boolean).join("\n\n");if(combinedInput.length>8000)return NextResponse.json({success:false,error:"App description is too long."},{status:413});
 
@@ -60,11 +66,11 @@ export async function POST(request){
   const {data:entitlement,error:entitlementError}=await supabase.rpc("consume_app_builder_entitlement",{p_operation:"create",p_app_id:null,p_request_id:chargeRequestId});if(entitlementError)throw entitlementError;
   if(!entitlement?.allowed){const {data:charge,error:chargeError}=await supabase.rpc("consume_ai_credits",{p_amount:GENERATE_CREDIT_COST,p_request_id:chargeRequestId,p_description:"AI app generation",p_metadata:{operation:"generate"}});if(chargeError){if(chargeError.message?.toLowerCase().includes("insufficient credits"))return NextResponse.json({success:false,error:"Insufficient credits.",requiredCredits:GENERATE_CREDIT_COST},{status:402});throw chargeError;}charged=charge?.charged!==false;}else {entitlementSource=entitlement.source;entitlementReserved=true;}
 
-  const generationOptions={voiceTranscript,referenceImages,language,industry,terminology,createDemoVideo,brandKit:brandKit||null};
-  const adult=await runSoolenAdultMode({taskType:"app-build",goal:buildInput,privateData:referenceImages.length>0||assetIds.length>0,requirements:{...(body?.requirements||{}),brandKit:brandKit||undefined,requestedName:requestedName||undefined},executors:[{id:"soolen-autonomous-engine",available:true,local:false,requiresNetwork:true,baseScore:50,historicalSuccess:0.5}],permissions:{network:true,privateUpload:referenceImages.length>0||assetIds.length>0}}, {
+  const generationOptions={voiceTranscript,referenceImages,language,industry,terminology,createDemoVideo,brandKit:brandKit||null,themeMode,themePreset,primaryColor,accentColor,backgroundColor,styleRequest};
+  const adult=await runSoolenAdultMode({taskType:"app-build",goal:buildInput,privateData:referenceImages.length>0||assetIds.length>0,requirements:{...(body?.requirements||{}),brandKit:brandKit||undefined,requestedName:requestedName||undefined,themeMode,themePreset,primaryColor,accentColor,backgroundColor,styleRequest},executors:[{id:"soolen-autonomous-engine",available:true,local:false,requiresNetwork:true,baseScore:50,historicalSuccess:0.5}],permissions:{network:true,privateUpload:referenceImages.length>0||assetIds.length>0}}, {
    execute:async()=>runAutonomousEngine(buildInput,generationOptions),
    verify:async(result)=>{const report=verifyGeneration(result);return {passed:report.passed,report};},
-   repair:async({result,review,verification})=>{const report=verification?.report||verifyGeneration(result);const criticFailures=(review?.failed||[]).map(x=>x.id);const instruction=buildRepairInstruction(report.execution||{});return runAutonomousEngine(`${buildInput}\n\nSOOLEN AUTONOMOUS REPAIR MODE\n${instruction}\nCritic failures: ${criticFailures.join(", ")||"none"}\nSelf-test failures: ${(report.selfTest?.errors||[]).join(", ")||"none"}\nDo not remove working features. Preserve the saved Brand Kit unless it conflicts with accessibility or safety. Preserve the customer's chosen app name. Return the full corrected specification only.`,generationOptions);}
+   repair:async({result,review,verification})=>{const report=verification?.report||verifyGeneration(result);const criticFailures=(review?.failed||[]).map(x=>x.id);const instruction=buildRepairInstruction(report.execution||{});return runAutonomousEngine(`${buildInput}\n\nSOOLEN AUTONOMOUS REPAIR MODE\n${instruction}\nCritic failures: ${criticFailures.join(", ")||"none"}\nSelf-test failures: ${(report.selfTest?.errors||[]).join(", ")||"none"}\nDo not remove working features. Preserve the saved Brand Kit and customer-selected color/theme direction unless it conflicts with accessibility or safety. Preserve the customer's chosen app name. Return the full corrected specification only.`,generationOptions);}
   });
   if(adult.status!=="verified")throw new Error("Soolen Super Brain could not verify the generated app after autonomous repair attempts.");
   const verified=verifyGeneration(adult.result);if(!verified.passed)throw new Error(`Generated app failed final verification: ${verified.errors.join("; ")}`);
@@ -84,13 +90,13 @@ export async function POST(request){
     if(mediaAssignments.length){const {error:mapError}=await supabase.from("project_assets").upsert(mediaAssignments,{onConflict:"app_id,asset_id"});if(mapError)console.warn("PROJECT_MEDIA_MAP_ERROR:",mapError.message);}
   }
 
-  const memoryPayload={requested_name:requestedName||specification.name,learning_scope:body?.innovationLearningConsent?"anonymized-patterns-opt-in":"project-only",media_preferences:mediaAssignments.map((item)=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role})),last_build_at:new Date().toISOString()};
+  const memoryPayload={requested_name:requestedName||specification.name,learning_scope:body?.innovationLearningConsent?"anonymized-patterns-opt-in":"project-only",visual_preferences:{themeMode,themePreset,primaryColor,accentColor,backgroundColor,styleRequest},media_preferences:mediaAssignments.map((item)=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role})),last_build_at:new Date().toISOString()};
   const {error:memoryError}=await supabase.from("project_memory").upsert({app_id:app.id,owner_id:user.id,memory_json:memoryPayload,updated_at:new Date().toISOString()},{onConflict:"app_id"});if(memoryError)console.warn("PROJECT_MEMORY_SAVE_ERROR:",memoryError.message);
 
   const {error:referralError}=await supabase.rpc("record_first_app_referral_reward");if(referralError)console.warn("Referral qualification could not be recorded:",referralError.message);
-  return NextResponse.json({success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},media:{attached:mediaAssignments.length,assignments:mediaAssignments.map((item)=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryPayload.learning_scope,saved:true},superBrain:{mode:adult.mode,status:adult.status,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:savedApp.id,name:savedApp.name,versionId:version.id,versionNo:version.version_no,visibility:savedApp.visibility,publishStatus:savedApp.publish_status}});
+  return NextResponse.json({success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},theme:{mode:themeMode,preset:themePreset,primaryColor,accentColor,backgroundColor},media:{attached:mediaAssignments.length,assignments:mediaAssignments.map((item)=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryPayload.learning_scope,saved:true},superBrain:{mode:adult.mode,status:adult.status,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:savedApp.id,name:savedApp.name,versionId:version.id,versionNo:version.version_no,visibility:savedApp.visibility,publishStatus:savedApp.publish_status}});
  }catch(error){
-  console.error("AI App Builder error:",error);
+  console.error("AI BUILD APP & WEB error:",error);
   if(supabase&&createdAppId&&!accessBound){try{await supabase.from("apps").delete().eq("id",createdAppId);}catch{}}
   if(supabase&&entitlementReserved&&!accessBound&&chargeRequestId){try{await supabase.rpc("restore_failed_app_builder_create",{p_request_id:chargeRequestId});}catch{}}
   if(supabase&&charged&&chargeRequestId)await supabase.rpc("refund_ai_credits",{p_request_id:chargeRequestId,p_amount:GENERATE_CREDIT_COST,p_description:"AI generation failed - automatic refund",p_metadata:{operation:"generate"}});
