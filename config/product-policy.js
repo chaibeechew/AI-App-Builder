@@ -20,6 +20,22 @@ export const PRODUCT_POLICY = Object.freeze({
     automaticFallback: true,
     proactiveQuotaSwitch: true,
   },
+  promotion: {
+    freeFirstProject: {
+      enabled: true,
+      purpose: "customer_acquisition_and_product_trial",
+      projectsPerEligibleCustomer: 1,
+      includesAppAndWebsiteGeneration: true,
+      includesReasonableAiModificationUntilReady: true,
+      includesPreviewAndQualityChecks: true,
+      includesPublishingWorkflow: true,
+      endsWhenProjectIsPublished: true,
+      fairUseApplies: true,
+      externalStoreFeesExcluded: true,
+      licenseSelectionPolicyUnchanged: true,
+      note: "Eligible customers can create one App + Website project, refine it with AI until it fits their needs, and complete the SoolenAI publishing workflow without an AI App Builder creation charge. Apple/Google developer fees and other third-party charges remain payable directly to those providers. Existing license rules remain unchanged."
+    }
+  },
   pricing: {
     philosophy: "fair_price_fair_use",
     fairPriceFairUse: {
@@ -34,14 +50,14 @@ export const PRODUCT_POLICY = Object.freeze({
         "If a temporary restriction is applied for service protection, explain it clearly and preserve the customer's project and ownership.",
       ],
       implementationModel: "included_access_first_then_optional_transparent_extra_usage_where_supported",
-      note: "This policy adopts similar customer-friendly usage principles seen in major AI products: included plan access first, transparent optional extra usage where supported, and abuse guardrails. It is SoolenAI's own policy and should not be presented as an OpenAI endorsement or official OpenAI policy name.",
+      note: "This is SoolenAI's own customer policy and should not be presented as an OpenAI endorsement or official OpenAI policy name.",
     },
     standard: {
       priceUsd: 10,
       billing: "one_time",
       existingUserConditionsUnchanged: true,
       qualityParityWithProfessional: true,
-      description: "One-time Standard creation access with the same premium design, stability, security and privacy quality floor.",
+      description: "One-time Standard creation access with the same premium design, stability, security and privacy quality floor after the free first-project promotion or when otherwise applicable.",
     },
     professional: {
       priceUsd: 68,
