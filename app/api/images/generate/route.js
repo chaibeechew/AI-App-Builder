@@ -24,7 +24,7 @@ export async function POST(request){
     const mode=["image","wallpaper","background","hero","icon","product"].includes(body?.mode)?body.mode:"image";const style=String(body?.style||"cinematic").slice(0,40);const paletteName=String(body?.palette||"auto").slice(0,40);const count=Math.min(4,Math.max(1,Number(body?.count)||1));const [basePrimary,baseAccent,baseBackground,textColor]=promptPalette(prompt,paletteName);const primary=safeColor(body?.primaryColor,basePrimary),accent=safeColor(body?.accentColor,baseAccent),background=safeColor(body?.backgroundColor,baseBackground);
 
     const gateway=getImageGenerationConfig();
-    if(mode!=="icon"&&gateway.connected){
+    if(mode!=="icon"&&gateway.configured){
       const generated=await generateExternalImages({prompt,mode,style,palette:paletteName,count,colors:{primary,accent,background}});
       if(generated.generated){
         const images=generated.images.map((item,index)=>({...item,id:item.id||`generated-${index+1}`,mode,style,palette:paletteName,source:"model"}));
