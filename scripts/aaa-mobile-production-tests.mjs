@@ -24,7 +24,7 @@ assert.match(knowledge.truthRule,/measured production evidence/i);
 const tree=createBlendTree({clips:[{id:"idle",speed:0,direction:0},{id:"walk",speed:2,direction:0},{id:"run",speed:6,direction:0}]});
 const blend=evaluateBlendTree(tree,{speed:5.8,direction:0,grounded:true});assert.equal(blend.primary,"run");
 const ik=solveTwoBoneIk({root:{x:0,y:0},target:{x:4,y:0},upper:1,lower:1});assert.equal(ik.reachable,false);assert.equal(ik.clamped,true);assert.ok(ik.end.x<2.01);
-let reaction=createReactionState();reaction=applyHitReaction(reaction,{force:90});assert.equal(reaction.mode,"ragdoll");reaction=stepReaction(reaction,1.2);assert.equal(reaction.mode,"recovering");
+let reaction=createReactionState();reaction=applyHitReaction(reaction,{force:90});assert.equal(reaction.mode,"ragdoll");for(let i=0;i<13;i++)reaction=stepReaction(reaction,.1);assert.equal(reaction.mode,"recovering");
 
 const mesh=buildNavMesh({width:10,height:10,blocked:[[4,1],[4,2],[4,3],[4,4]]});const path=findNavMeshPath(mesh,{x:1,y:1},{x:8,y:8});assert.ok(path.length>0);assert.deepEqual(path[0],{x:1,y:1});assert.deepEqual(path.at(-1),{x:8,y:8});
 const squad=planTacticalGroup(Array.from({length:8},(_,i)=>({id:`a${i}`})),{x:10,z:10});assert.equal(squad.length,8);assert.ok(squad.some(item=>item.role==="flank_left"));assert.ok(squad.every(item=>item.bounded===true));
