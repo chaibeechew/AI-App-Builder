@@ -35,6 +35,8 @@ jobs:
         run: node scripts/publishing-readiness-tests.mjs
       - name: Industry capability planning contract tests
         run: node scripts/industry-capability-tests.mjs
+      - name: Zero-cost Vercel function budget guard
+        run: node scripts/vercel-function-budget-tests.mjs
       - name: 100-point structural readiness gate
         run: npm run quality:100
       - run: npm run build
