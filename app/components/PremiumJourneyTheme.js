@@ -1,0 +1,9 @@
+"use client";
+
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+
+const PREMIUM_PREFIXES=["/create","/app-dashboard/","/editor/","/pro/","/release/","/publish/","/image-studio","/video-studio","/studio","/database/","/workflows/","/integrations/","/monetization/","/analytics/","/operations/"];
+function pageType(path){if(path==="/"||path==="")return"home";if(path.startsWith("/create"))return"create";if(path.startsWith("/app-dashboard/"))return"dashboard";if(path.startsWith("/editor/"))return"editor";if(path.startsWith("/pro/"))return"pro";if(path.startsWith("/release/")||path.startsWith("/publish/"))return"publish";if(path.startsWith("/image-studio"))return"image";if(path.startsWith("/video-studio"))return"video";if(path.startsWith("/database/"))return"data";if(path.startsWith("/workflows/"))return"automation";if(path.startsWith("/integrations/"))return"connect";if(path.startsWith("/monetization/"))return"payments";if(path.startsWith("/analytics/"))return"analytics";return"studio";}
+function stageFor(type){return({home:"idea",create:"understand",dashboard:"preview",editor:"edit",pro:"pro",publish:"publish",image:"media",video:"video",data:"data",automation:"automation",connect:"connect",payments:"payments",analytics:"analytics",studio:"plan"})[type]||"idea";}
+export default function PremiumJourneyTheme(){const pathname=usePathname()||"/";useEffect(()=>{const premium=pathname==="/"||PREMIUM_PREFIXES.some(prefix=>pathname.startsWith(prefix));if(!premium)return;const type=pageType(pathname),stage=stageFor(type),body=document.body;body.dataset.premiumJourney="true";body.dataset.premiumPage=type;body.dataset.premiumStage=stage;try{window.dispatchEvent(new CustomEvent("ai-build-stage-change",{detail:{stage}}))}catch{}return()=>{delete body.dataset.premiumJourney;delete body.dataset.premiumPage;delete body.dataset.premiumStage}},[pathname]);return null;}
