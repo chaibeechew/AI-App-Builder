@@ -60,7 +60,7 @@ assert.match(engine,/mergeAviationSpecification/);
 assert.match(engine,/catalogSeedCount/);
 assert.match(builder,/Air Combat \/ Flight/);
 assert.match(builder,/Aviation Knowledge Core/);
-assert.match(builder,/50\+ Public Aircraft References/);
+assert.match(builder,/Public Aircraft Seeds/);
 
 console.log(`✓ SoolenAI Aviation Knowledge Core seeds ${AIRCRAFT_CATALOG_SEED.length} representative public aircraft references and remains extensible`);
 console.log("✓ Air Combat Engineering Mode covers flight physics, eras/roles, avionics, damage, weather, missions, AI pilots, mobile controls and performance");
