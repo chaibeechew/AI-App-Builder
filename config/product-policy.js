@@ -20,6 +20,41 @@ export const PRODUCT_POLICY = Object.freeze({
     automaticFallback: true,
     proactiveQuotaSwitch: true,
   },
+  pricing: {
+    existingUsd10UserConditionsUnchanged: true,
+    standardMonthlyUsd: 10,
+    professional: {
+      launchMonthlyUsd: 16,
+      internalReferenceMonthlyUsd: 20,
+      lowPriceTargetPercent: 20,
+      pricingLogic: "Launch Professional Mode at 20% below the internal $20 reference while keeping the existing $10 user conditions unchanged.",
+      qualityParityWithStandard: true,
+      addsDeeperControlNotBasicQuality: true,
+    },
+  },
+  publishing: {
+    aiAutoFillStoreForms: true,
+    customerAnswersOnlyKeyQuestions: true,
+    customerMustReviewBeforeSubmission: true,
+    storeApprovalCannotBeGuaranteed: true,
+    externalStoreFees: {
+      chargedByAiAppBuilder: false,
+      collectedByAiAppBuilder: false,
+      appleDeveloperProgram: {
+        payer: "customer_direct_to_apple",
+        currentReferenceUsd: 99,
+        cadence: "annual",
+        officialEnrollmentUrl: "https://developer.apple.com/programs/enroll/",
+      },
+      googlePlayDeveloper: {
+        payer: "customer_direct_to_google",
+        currentReferenceUsd: 25,
+        cadence: "one_time",
+        officialRegistrationUrl: "https://play.google.com/console/signup",
+      },
+      note: "Store fees are external platform fees and may vary by region or change over time. AI App Builder must not mark them up or collect them on behalf of Apple or Google.",
+    },
+  },
   monetization: {
     commercialAppCreatorDefinition: "professional_app_creation_and_operation",
     revenueShareOption: {
