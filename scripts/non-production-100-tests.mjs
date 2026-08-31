@@ -31,13 +31,30 @@ const checkout=read('app/api/apps/[id]/monetization/[offerId]/checkout/route.js'
 const video=read('app/api/video/projects/[id]/compile/route.js');
 const orchestrator=read('lib/build/orchestrator.js');
 const policy=read('config/product-policy.js');
+const visualPolicy=read('lib/ai/premium-visual-policy.js');
+const wallpapers=read('lib/design/wallpaper-presets.js');
+const wallpaperEngine=read('app/components/AdaptiveWallpaperEngine.js');
+const imageStudio=read('app/image-studio/page.js');
+const imageApi=read('app/api/images/generate/route.js');
+const generatedApp=read('app/a/[id]/GeneratedAppClient.js');
+const generatedWebsite=read('app/website/[id]/page.js');
+const layout=read('app/layout.js');
+const productCopy=read('app/components/ProductCopyFix.js');
+const projectMemory=read('lib/project-memory.js');
+const studio=read('app/studio/page.js');
 
 assert.match(readiness,/NON_PRODUCTION_SCORE_REQUIRED = 100/,'Non-production readiness must require 100.');
-for(const key of ['generation','editing','data','automation','publishing','security','reliability','visual','versioning','pro']) assert.match(readiness,new RegExp(`key: "${key}"`),`Missing readiness area: ${key}`);
+for(const key of ['generation','editing','data','automation','publishing','security','reliability','visual','wallpaper','imageStudio','versioning','pro','branding']) assert.match(readiness,new RegExp(`key: "${key}"`),`Missing readiness area: ${key}`);
 assert.match(readiness,/productionHeld: true/,'Production must remain explicitly held in this readiness model.');
 assert.match(readiness,/score === 100/,'Every readiness area must require a perfect score.');
 assert.match(policy,/productionPromotionHold: true/,'Platform Production promotion must remain held.');
 assert.match(policy,/explicitApprovalRequiredBeforeProduction: true/,'Production must require explicit approval before promotion.');
+
+assert.match(policy,/product: "AI BUILD APP & WEB"/,'Canonical product name must be AI BUILD APP & WEB.');
+assert.match(layout,/PRODUCT_BRAND\.name/,'Document metadata must use the canonical product brand.');
+assert.match(productCopy,/AI BUILD APP & WEB/,'Visible legacy product copy must be normalized to the new brand.');
+assert.match(studio,/AI BUILD APP & WEB/,'Studio must use the new product name.');
+assert.doesNotMatch(studio,/3,000\+/,'Studio must not make an unsupported template-count claim.');
 
 assert.match(home,/First project free until publish/,'Home must clearly explain the free first-project promotion without implying external store fees are free.');
 assert.match(home,/external store fees stay separate/,'Home promotion copy must keep third-party store fees separate.');
@@ -49,6 +66,34 @@ assert.match(create,/high_performance_desktop/,'High-end desktop Create must map
 assert.doesNotMatch(create,/desktop_pro/,'Autonomous Create must not send an unsupported desktop_pro device class.');
 assert.match(create,/Production publishing remains held until explicitly approved/,'Autonomous Create must keep Production explicitly held.');
 assert.match(create,/not trademark clearance/i,'Name Check must not be presented as legal trademark clearance.');
+assert.match(create,/customerVisualPreferences/,'Create must carry the customer's wallpaper preference into generation.');
+assert.match(create,/wallpaperMode/,'Create must support Random or selected wallpaper mode.');
+
+assert.match(visualPolicy,/customer color preference is authoritative/i,'AI visual policy must make customer color choice authoritative.');
+assert.match(visualPolicy,/WALLPAPER & STEP VISUALS/,'AI visual policy must include wallpaper behavior.');
+assert.match(wallpapers,/WALLPAPER_PRESETS/,'Wallpaper preset library must exist.');
+assert.match(wallpapers,/pickWallpaperForStage/,'Wallpaper library must support stage-based variation.');
+assert.match(wallpaperEngine,/MutationObserver/,'Builder wallpaper engine must react when build steps change.');
+assert.match(wallpaperEngine,/AI Random/,'Customer must be able to keep Random-by-step wallpaper mode.');
+assert.match(wallpaperEngine,/localStorage\.setItem\(STORAGE_KEY/,'Customer wallpaper selection must persist locally.');
+assert.match(editor,/COLOR & WALLPAPER/,'Visual Editor must expose color and wallpaper controls.');
+assert.match(editor,/type="color"/,'Visual Editor must allow direct customer color selection.');
+assert.match(editor,/WALLPAPER_PRESETS/,'Visual Editor must show multiple wallpaper choices.');
+assert.match(projectMemory,/visualPreferences/,'Project Memory must preserve approved visual preferences.');
+assert.match(generate,/wallpaperMode/,'Generation must accept wallpaper mode.');
+assert.match(generate,/visual_preferences/,'Generation must save visual preferences into project memory.');
+assert.match(modify,/PREMIUM_VISUAL_AI_INSTRUCTION/,'AI modifications must use the same premium visual ideal.');
+assert.match(modify,/visualPreferences/,'AI modifications must save updated visual preferences.');
+assert.match(generatedApp,/wallpaperStyle/,'Generated App must render its saved wallpaper direction.');
+assert.match(generatedWebsite,/wallpaperStyle/,'Generated Website must render its saved wallpaper direction.');
+
+assert.match(imageStudio,/Design Images/,'Image Studio must expose Design Images.');
+assert.match(imageStudio,/Style Tools/,'Image Studio must expose Style Tools.');
+assert.match(imageStudio,/Templates/,'Image Studio must expose prompt templates.');
+assert.match(imageStudio,/Use as Wallpaper/,'Generated visual directions must connect to wallpaper choice.');
+assert.match(imageApi,/images/,'Visual API must support multiple generated variations.');
+assert.match(imageApi,/Soolen Visual Engine/,'Visual API must identify its actual local visual engine.');
+assert.match(imageApi,/not presented as photorealistic external-model output/,'Visual API must not pretend a photorealistic provider is connected.');
 
 assert.ok(exists('app/pro/[id]/page.js')&&exists('app/pro/[id]/ProAssistant.js'),'Professional Mode workspace must exist.');
 assert.match(proAssistant,/\/api\/modify/,'Professional Mode AI assistant must route natural-language changes through versioned AI modify.');
@@ -120,28 +165,15 @@ assert.match(checkout,/Offer amount is outside the supported range/,'Checkout mu
 assert.match(video,/serverRender:true/,'Video compile must keep heavy final rendering server-side.');
 assert.match(video,/renderStarted:false/,'Video Studio must not claim final rendering has started before a worker claims the job.');
 
-const dashboardHasPro=/\/pro\/\$\{id\}|\/pro\//.test(dashboard);
-assert.equal(dashboardHasPro,true,'Project dashboard must expose Professional Mode without requiring a hidden URL.');
-assert.match(dashboard,/getAppBuilderAccess/,'Project dashboard must read Professional access from trusted server state.');
-assert.match(dashboard,/WORKSPACE MODE/,'Project dashboard must present Standard and Professional as a clear workspace choice.');
-assert.match(dashboard,/STANDARD MODE · CURRENT/,'Standard Mode must be visibly identified as the default simple workspace.');
-assert.match(dashboard,/AI handles everything for you/,'Standard Mode must explain its no-code AI-first experience.');
-assert.match(dashboard,/access\.professional\.active/,'Dashboard Professional status must be based on server-side access, not a client-only switch.');
-assert.match(dashboard,/access\.professional\.daysRemaining/,'Active Professional access must show remaining access time.');
-assert.match(dashboard,/same project and the same version history/i,'Mode switching must explain that it preserves one project and one history.');
-assert.match(dashboard,/US\$68 · 365 days · no auto-renew/,'Inactive Professional Mode must show the agreed terms before entry.');
-assert.match(pro,/Advanced control with AI assistance|Professional Workspace/,'Professional Mode must explain its AI-assisted control model.');
+const dashboardHasPro=/\/pro\/\$\{id\}|\/pro\//.test(dashboard);assert.equal(dashboardHasPro,true,'Project dashboard must expose Professional Mode without requiring a hidden URL.');assert.match(dashboard,/getAppBuilderAccess/,'Project dashboard must read Professional access from trusted server state.');assert.match(dashboard,/WORKSPACE MODE/,'Project dashboard must present Standard and Professional as a clear workspace choice.');assert.match(dashboard,/STANDARD MODE · CURRENT/,'Standard Mode must be visibly identified as the default simple workspace.');assert.match(dashboard,/AI handles everything for you/,'Standard Mode must explain its no-code AI-first experience.');assert.match(dashboard,/access\.professional\.active/,'Dashboard Professional status must be based on server-side access, not a client-only switch.');assert.match(dashboard,/access\.professional\.daysRemaining/,'Active Professional access must show remaining access time.');assert.match(dashboard,/same project and the same version history/i,'Mode switching must explain that it preserves one project and one history.');assert.match(dashboard,/US\$68 · 365 days · no auto-renew/,'Inactive Professional Mode must show the agreed terms before entry.');assert.match(pro,/Advanced control with AI assistance|Professional Workspace/,'Professional Mode must explain its AI-assisted control model.');
 
-console.log('✓ Non-production 100-point contract is explicit and Production remains held');
-console.log('✓ Home creation and AI modification flows are request-bound and version-aware');
-console.log('✓ Autonomous Create uses supported compute classes and request-bound generation');
-console.log('✓ Free-first-project messaging is clear without hiding external store fees');
+console.log('✓ Non-production 100-point contract includes branding, image design, wallpaper and theme controls');
+console.log('✓ AI BUILD APP & WEB is the canonical product brand while Production remains held');
+console.log('✓ Builder wallpapers can rotate by step and customers can choose a preferred scene');
+console.log('✓ Generated App + Website preserve saved wallpaper and coordinated customer colors');
+console.log('✓ Image Studio supports Create, Design Images, Style Tools, Templates and multiple visual directions');
+console.log('✓ Home/Create AI changes remain request-bound and version-aware');
 console.log('✓ Customer Data, Automations, Connections and Payments use one no-code vocabulary');
 console.log('✓ Free/Standard/Pro access is server-controlled, request-bound and expiry-aware');
-console.log('✓ Failed first-project generation restores the reserved promotion instead of silently consuming it');
-console.log('✓ Standard/Professional workspace switching is clear, server-aware and keeps one shared project history');
-console.log('✓ Professional AI can change the project and synchronize supported modules only with active Pro access');
 console.log('✓ Publishing Agent separates AI-filled data, customer truth and external store actions');
-console.log('✓ Changed store metadata invalidates stale customer approval');
 console.log('✓ Workflow, database, payment and video reliability contracts are present');
-console.log('✓ Professional Mode is reachable from the project dashboard while expired access remains safely locked');

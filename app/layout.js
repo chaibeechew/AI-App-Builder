@@ -7,10 +7,12 @@ import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 import ProductCopyFix from "./components/ProductCopyFix";
 import ReferenceUploader from "./components/ReferenceUploader";
 import StudioLauncher from "./components/StudioLauncher";
+import AdaptiveWallpaperEngine from "./components/AdaptiveWallpaperEngine";
+import { PRODUCT_BRAND } from "../lib/ai/premium-visual-policy.js";
 
 export const metadata = {
-  title: "AI App Builder",
-  description: "Describe, upload or sketch what you want. AI plans, builds, tests and prepares your App + Website for use.",
+  title: PRODUCT_BRAND.name,
+  description: "Describe, upload or sketch what you want. AI designs, builds, tests and prepares your App + Website for use.",
 };
 
 export default function RootLayout({ children }) {
@@ -18,6 +20,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <ProductCopyFix />
+        <AdaptiveWallpaperEngine />
         <AccountNav />
         {children}
         <StudioLauncher />

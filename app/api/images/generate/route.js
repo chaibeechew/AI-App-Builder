@@ -1,24 +1,27 @@
 import { NextResponse } from "next/server";
+import { WALLPAPER_PRESETS,wallpaperDataUri,pickWallpaperForStage } from "../../../../lib/design/wallpaper-presets.js";
 
-function esc(value) { return String(value).replace(/[&<>\"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c])); }
-function palette(prompt) {
-  const p = prompt.toLowerCase();
-  if (/real estate|property|房地产|房产/.test(p)) return ["#0B3B2E", "#D8BF62", "#F4EFE0"];
-  if (/food|restaurant|咖啡|餐厅/.test(p)) return ["#7B3F24", "#E6A23C", "#FFF4E5"];
-  if (/health|medical|医院|医疗/.test(p)) return ["#126E82", "#78C6A3", "#F2FBFA"];
-  if (/finance|bank|金融|银行/.test(p)) return ["#102A43", "#3C9D9B", "#EAF4F4"];
-  return ["#173F35", "#D8BF62", "#F5F8F5"];
+const HEX=/^#[0-9a-f]{6}$/i;
+function safeColor(value,fallback){const v=String(value||"").trim();return HEX.test(v)?v:fallback;}
+function promptPalette(prompt,preset="auto"){
+  if(preset==="luxury")return ["#10251f","#d8bf62","#050d0b","#f4ead0"];
+  if(preset==="tech")return ["#102a43","#37b6d8","#06121d","#eaf7ff"];
+  if(preset==="pastel")return ["#715b79","#efb6c8","#201725","#fff1f6"];
+  if(preset==="nature")return ["#1e513d","#b8d66b","#07130f","#ecf4df"];
+  const p=String(prompt||"").toLowerCase();if(/real estate|property|房地产|房产/.test(p))return["#0b3b2e","#d8bf62","#03100d","#f4efe0"];if(/food|restaurant|咖啡|餐厅/.test(p))return["#63331f","#e6a23c","#180b07","#fff4e5"];if(/health|medical|医院|医疗/.test(p))return["#126e82","#78c6a3","#04191d","#f2fbfa"];if(/finance|bank|金融|银行/.test(p))return["#102a43","#3c9d9b","#06121d","#eaf4f4"];return["#173f35","#d8bf62","#06120f","#f5f8f5"];
 }
-export async function POST(request) {
-  try {
-    const { prompt, width = 1024, height = 1024 } = await request.json();
-    const cleanPrompt = String(prompt || "").trim();
-    if (!cleanPrompt) return NextResponse.json({ error:"Image prompt is required." }, { status:400 });
-    if (cleanPrompt.length > 4000) return NextResponse.json({ error:"Image prompt is too long." }, { status:413 });
-    const [primary, accent, background] = palette(cleanPrompt);
-    const title = cleanPrompt.split(/[.!?。！？]/)[0].slice(0, 70);
-    const w=Math.min(1536,Math.max(320,Number(width)||1024)), h=Math.min(1536,Math.max(320,Number(height)||1024));
-    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 1024 1024"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${primary}"/><stop offset="1" stop-color="${accent}"/></linearGradient><radialGradient id="r"><stop stop-color="${accent}" stop-opacity=".65"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient></defs><rect width="1024" height="1024" fill="${background}"/><circle cx="820" cy="170" r="300" fill="url(#r)"/><path d="M0 760 Q240 560 500 720 T1024 570 V1024 H0Z" fill="url(#g)"/><rect x="76" y="76" width="872" height="872" rx="64" fill="none" stroke="${primary}" stroke-opacity=".12" stroke-width="3"/><circle cx="220" cy="220" r="84" fill="${primary}"/><path d="M180 220h80M220 180v80" stroke="${accent}" stroke-width="16" stroke-linecap="round"/><text x="76" y="900" fill="${background}" font-family="Arial,sans-serif" font-size="32" font-weight="700">${esc(title)}</text></svg>`;
-    return NextResponse.json({ success:true,image:`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`,engine:"Soolen Image Engine",generated:true,note:"Original programmatic visual; no OpenAI image API used." });
-  } catch(error) { console.error("SOOLEN_IMAGE_ENGINE_ERROR:",error); return NextResponse.json({error:error?.message||"Unable to generate image."},{status:500}); }
+function iconSvg({primary,accent,background,variation=0,title=""}){const mark=variation%3===0?`<path d="M330 520 L512 300 L694 520 L620 520 L620 700 L404 700 L404 520Z" fill="${accent}"/><circle cx="512" cy="455" r="54" fill="${background}"/>`:variation%3===1?`<circle cx="512" cy="512" r="230" fill="${primary}"/><path d="M350 560 C410 360 610 330 690 500 C620 450 550 470 500 590 C455 690 385 660 350 560Z" fill="${accent}"/>`:`<rect x="300" y="300" width="424" height="424" rx="130" fill="${primary}"/><path d="M390 535 Q510 345 635 535 Q510 690 390 535Z" fill="${accent}"/>`;return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs><radialGradient id="g"><stop stop-color="${accent}" stop-opacity=".3"/><stop offset="1" stop-color="${background}" stop-opacity="0"/></radialGradient></defs><rect width="1024" height="1024" rx="190" fill="${background}"/><circle cx="760" cy="230" r="300" fill="url(#g)"/>${mark}${title?`<text x="512" y="850" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="46" font-weight="700">${title.replace(/[<>&]/g,"").slice(0,24)}</text>`:""}</svg>`;}
+
+export async function POST(request){
+  try{
+    const body=await request.json();const prompt=String(body?.prompt||"").trim();if(!prompt)return NextResponse.json({error:"Image prompt is required."},{status:400});if(prompt.length>4000)return NextResponse.json({error:"Image prompt is too long."},{status:413});
+    const mode=["image","wallpaper","background","hero","icon","product"].includes(body?.mode)?body.mode:"image";const style=String(body?.style||"cinematic").slice(0,40);const paletteName=String(body?.palette||"auto").slice(0,40);const count=Math.min(4,Math.max(1,Number(body?.count)||1));const [basePrimary,baseAccent,baseBackground,textColor]=promptPalette(prompt,paletteName);const primary=safeColor(body?.primaryColor,basePrimary),accent=safeColor(body?.accentColor,baseAccent),background=safeColor(body?.backgroundColor,baseBackground);const images=[];
+    for(let i=0;i<count;i++){
+      if(mode==="icon"){
+        const svg=iconSvg({primary,accent,background,variation:i,title:body?.includeText?prompt.split(/[.!?。！？]/)[0]:""});images.push({id:`icon-${i+1}`,image:`data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,mode,style,palette:paletteName});continue;
+      }
+      const wallpaperPreset=pickWallpaperForStage(`${mode}-${style}-${i}`,`${prompt}-${paletteName}`);const image=wallpaperDataUri(wallpaperPreset,{primary,accent,background,surface:textColor});images.push({id:`visual-${i+1}`,image,mode,style,palette:paletteName,wallpaperPreset,wallpaperName:WALLPAPER_PRESETS.find(x=>x.id===wallpaperPreset)?.name||wallpaperPreset});
+    }
+    return NextResponse.json({success:true,image:images[0]?.image||null,images,engine:"Soolen Visual Engine",generated:true,mode,style,palette:paletteName,note:"Original prompt-driven SVG visual generation. This local visual engine is not presented as photorealistic external-model output."});
+  }catch(error){console.error("SOOLEN_VISUAL_ENGINE_ERROR:",error);return NextResponse.json({error:error?.message||"Unable to generate image."},{status:500});}
 }
