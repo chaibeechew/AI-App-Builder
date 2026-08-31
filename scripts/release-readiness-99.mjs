@@ -22,6 +22,8 @@ const releaseTests = read('scripts/release-policy-tests.mjs');
 const checks = [
   ['Core build route persists generated projects', contains('app/api/generate/route.js',['app_versions','specification'])],
   ['AI modify route versions changes', modify.includes('app_versions') && modify.includes('version_no')],
+  ['AI modify applies same generation quality standard', modify.includes('GENERATION_QUALITY_RULES') && modify.includes('assessBuildQuality')],
+  ['AI modify repairs deterministic quality regressions', modify.includes('qualityRegressed') && modify.includes('SoolenAI Quality Repair')],
   ['No-code editor uses natural-language AI modify', editor.includes('/api/modify') && editor.includes('textarea')],
   ['No-code editor preserves version history access', editor.includes('Version History') && editor.includes('Rollback')],
   ['Project dashboard keeps simple preview/change/publish actions', contains('app/app-dashboard/[id]/page.js',['Open App Demo','Preview Website','Publishing'])],
