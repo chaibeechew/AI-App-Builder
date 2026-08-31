@@ -6,6 +6,7 @@ const root=process.cwd();
 const read=(p)=>fs.readFileSync(path.join(root,p),'utf8');
 
 const workflow=read('app/api/apps/[id]/workflows/[workflowId]/run/route.js');
+const workflowPage=read('app/workflows/[id]/page.js');
 const checkout=read('app/api/apps/[id]/monetization/[offerId]/checkout/route.js');
 const integrations=read('lib/integrations/server.js');
 const storePublish=read('app/api/publish/request/route.js');
@@ -20,6 +21,11 @@ assert.match(workflow,/criticalFailure/,'Critical workflow actions must stop saf
 assert.match(workflow,/existing\.status==="started"\?202/,'Duplicate in-progress workflow requests must not execute twice.');
 assert.match(workflow,/status==="failed"\?409/,'Duplicate failed workflow requests must not be reported as successful.');
 assert.match(workflow,/\.eq\("owner_id",user\.id\)/,'Workflow execution must remain owner-scoped.');
+assert.match(workflow,/dryRun=body\?\.dryRun===true/,'Workflow execution must support an explicit safe dry-run mode.');
+assert.match(workflow,/status:"simulated"/,'Safe workflow tests must simulate supported actions before side effects.');
+assert.match(workflow,/No customer data was saved and no external message/i,'Safe workflow tests must disclose that no real side effects occurred.');
+assert.match(workflowPage,/dryRun:true/,'Customer Safe Test must call the side-effect-free API mode.');
+assert.match(workflowPage,/Safe Test checks every step without saving customer data/,'Automation UI must explain Safe Test behavior in plain language.');
 
 assert.match(checkout,/monetization_offers/,'Checkout must load the authoritative server-side offer.');
 assert.match(checkout,/\.eq\("owner_id",user\.id\)/,'Checkout must remain owner-scoped.');
@@ -51,7 +57,7 @@ assert.match(videoCompile,/renderStarted:false/,'Video compile must not falsely 
 assert.match(videoCompile,/will not claim that an MP4 is rendering or complete/,'Video compile must clearly disclose missing final renderer capability.');
 assert.match(videoCompile,/invalid trim range/,'Video clip trim ranges must be validated.');
 
-console.log('✓ Workflow execution is idempotent, bounded and fail-closed for critical actions');
+console.log('✓ Workflow execution is idempotent, bounded, fail-closed and supports side-effect-free Safe Test');
 console.log('✓ Payment checkout uses authoritative offer data, validation, provider timeouts and idempotency');
 console.log('✓ Store publish requests require exact-version approval plus the shared 100-point quality gate');
 console.log('✓ No-code database models reject credential fields and keep rollback history');
