@@ -53,6 +53,8 @@ jobs:
         run: node scripts/game-platform-world-tests.mjs
       - name: Deep RPG open-world and Platform Lab contract tests
         run: node scripts/rpg-open-world-platform-lab-tests.mjs
+      - name: Advanced 3D gameplay and workbench contract tests
+        run: node scripts/advanced-3d-gameplay-tests.mjs
       - name: MOBA Runtime V1 contract tests
         run: node scripts/moba-runtime-v1-tests.mjs
       - name: Aviation knowledge contract tests
