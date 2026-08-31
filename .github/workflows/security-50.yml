@@ -1,31 +1,45 @@
-name: Security 50 Regression
+name: Legacy Security Regression — 100 Gate
 
 on:
   workflow_dispatch:
     inputs:
       test_ref:
-        description: 'Branch to test'
+        description: 'Branch to test (Preview only)'
         required: true
-        default: 'feature/soolen-staging-2'
+        default: 'integration/primary-consolidation'
         type: string
 
 jobs:
-  security-50:
+  legacy-security-regression:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      GEMINI_API_KEY: test
     steps:
-      - name: Checkout staging branch
+      - name: Checkout requested Preview branch
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.test_ref }}
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - name: Install dependencies
-        run: npm install
-      - name: Run 50 security/provider regression cases
-        run: node tests/security/provider-routing-50.js
+        run: npm install --no-audit --no-fund
+      - name: Run current security contract tests
+        run: npm run test:security
+      - name: Run current runtime contract tests
+        run: npm run test:runtime
+      - name: Run current non-production 100 contract
+        run: npm run test:nonprod
+      - name: Run current 100-point gate
+        run: npm run quality:100
       - name: Build application
         run: npm run build
+      # Kept only as a manual compatibility workflow. The old 50-point threshold is retired.
+      # No Production deployment or promotion is allowed here.
