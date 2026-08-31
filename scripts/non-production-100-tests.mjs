@@ -7,6 +7,7 @@ const read=(p)=>fs.existsSync(path.join(root,p))?fs.readFileSync(path.join(root,
 const exists=(p)=>fs.existsSync(path.join(root,p));
 
 const readiness=read('lib/non-production-readiness.js');
+const home=read('app/page.js');
 const dashboard=read('app/app-dashboard/[id]/page.js');
 const pro=read('app/pro/[id]/page.js');
 const proAssistant=read('app/pro/[id]/ProAssistant.js');
@@ -20,6 +21,9 @@ const metadata=read('app/api/store-metadata/route.js');
 const metadataSave=read('app/api/store-metadata/save/route.js');
 const publishingAgent=read('app/api/apps/[id]/publishing-agent/route.js');
 const editor=read('app/editor/[id]/page.js');
+const dataPage=read('app/database/[id]/page.js');
+const connectionsPage=read('app/integrations/[id]/page.js');
+const paymentsPage=read('app/monetization/[id]/page.js');
 const workflow=read('app/api/apps/[id]/workflows/[workflowId]/run/route.js');
 const database=read('app/api/apps/[id]/database/route.js');
 const checkout=read('app/api/apps/[id]/monetization/[offerId]/checkout/route.js');
@@ -34,6 +38,12 @@ assert.match(readiness,/score === 100/,'Every readiness area must require a perf
 assert.match(policy,/productionPromotionHold: true/,'Platform Production promotion must remain held.');
 assert.match(policy,/explicitApprovalRequiredBeforeProduction: true/,'Production must require explicit approval before promotion.');
 
+assert.match(home,/First project free until publish/,'Home must clearly explain the free first-project promotion without implying external store fees are free.');
+assert.match(home,/external store fees stay separate/,'Home promotion copy must keep third-party store fees separate.');
+assert.match(home,/appId,requestId:newRequestId\("modify"\)/,'Home AI changes must modify the saved project and use a safe request id.');
+assert.match(home,/versionId:d\?\.version\?\.id/,'Home AI changes must keep the client aligned with the newly saved version.');
+assert.match(home,/Production stays locked until approved/,'Home must not imply Production is automatically promoted.');
+
 assert.ok(exists('app/pro/[id]/page.js')&&exists('app/pro/[id]/ProAssistant.js'),'Professional Mode workspace must exist.');
 assert.match(proAssistant,/\/api\/modify/,'Professional Mode AI assistant must route natural-language changes through versioned AI modify.');
 assert.match(proAssistant,/requestId/,'Professional Mode changes must carry a request id for safe retries.');
@@ -42,6 +52,20 @@ assert.match(proAssistant,/\/api\/apps\/\$\{appId\}\/bootstrap/,'Professional Mo
 assert.match(proAssistant,/Customer confirmation \/ setup still needed/,'Professional Mode must separate safe AI actions from customer/external confirmation.');
 assert.match(editor,/Version History & Rollback/,'No-code editor must preserve undo/rollback access.');
 assert.match(editor,/TARGET: whole App \+ Website|TARGET PAGE/,'No-code editor must support scoped natural-language changes.');
+
+assert.match(dataPage,/SOOLENAI · CUSTOMER DATA/,'Data UI must use the customer-friendly Customer Data label.');
+assert.match(dataPage,/customerFields/,'Customer Data must translate technical schema fields into business-friendly labels.');
+assert.match(dataPage,/owner_id/,'Customer Data field translation must explicitly recognize infrastructure ownership fields so they can be hidden from customers.');
+assert.match(dataPage,/Technical details hidden/,'Customer Data must keep infrastructure details out of the normal customer experience.');
+assert.match(connectionsPage,/SOOLENAI · CONNECTIONS/,'Integration UI must use the customer-friendly Connections label.');
+assert.match(connectionsPage,/SECRETS STAY SERVER-SIDE/,'Connections must explain secret handling without exposing credentials.');
+assert.match(paymentsPage,/SOOLENAI · PAYMENTS & OFFERS/,'Monetization UI must use the customer-friendly Payments & Offers label.');
+assert.match(paymentsPage,/SERVER-CHECKED PRICE/,'Payments UI must explain that saved prices are server checked.');
+assert.match(paymentsPage,/requestId:`checkout-test-/,'Checkout tests must use request-bound idempotency.');
+assert.match(proModePolicy,/"Customer Data"/,'Professional Mode must use the same Customer Data terminology as Standard.');
+assert.match(proModePolicy,/"Automations"/,'Professional Mode must use the same Automations terminology as Standard.');
+assert.match(proModePolicy,/"Connections"/,'Professional Mode must use the same Connections terminology as Standard.');
+assert.match(proModePolicy,/"Payments & Offers"/,'Professional Mode must use the same Payments terminology as the customer workspace.');
 
 assert.match(accessReader,/app_builder_account_access/,'Access reader must use server-controlled App Builder access state.');
 assert.match(accessReader,/pro_valid_until/,'Professional access must expire from a server-side date.');
@@ -103,6 +127,9 @@ assert.match(dashboard,/US\$68 · 365 days · no auto-renew/,'Inactive Professio
 assert.match(pro,/Advanced control with AI assistance|Professional Workspace/,'Professional Mode must explain its AI-assisted control model.');
 
 console.log('✓ Non-production 100-point contract is explicit and Production remains held');
+console.log('✓ Home creation and AI modification flows are request-bound and version-aware');
+console.log('✓ Free-first-project messaging is clear without hiding external store fees');
+console.log('✓ Customer Data, Automations, Connections and Payments use one no-code vocabulary');
 console.log('✓ Free/Standard/Pro access is server-controlled, request-bound and expiry-aware');
 console.log('✓ Failed first-project generation restores the reserved promotion instead of silently consuming it');
 console.log('✓ Standard/Professional workspace switching is clear, server-aware and keeps one shared project history');
