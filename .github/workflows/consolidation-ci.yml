@@ -45,6 +45,8 @@ jobs:
         run: node scripts/genre-runtime-intelligence-tests.mjs
       - name: RPG Puzzle Action specialist contract tests
         run: node scripts/genre-specialist-tests.mjs
+      - name: Advanced genre runtime contract tests
+        run: node scripts/advanced-game-genres-tests.mjs
       - name: MOBA Runtime V1 contract tests
         run: node scripts/moba-runtime-v1-tests.mjs
       - name: Aviation knowledge contract tests
@@ -53,6 +55,8 @@ jobs:
         run: node scripts/air-combat-runtime-v1-tests.mjs
       - name: Authoritative multiplayer core contract tests
         run: node scripts/multiplayer-authority-v1-tests.mjs
+      - name: MMO architecture readiness contract tests
+        run: node scripts/mmo-architecture-tests.mjs
       - name: Zero-cost Vercel function budget guard
         run: node scripts/vercel-function-budget-tests.mjs
       - name: 100-point structural readiness gate
