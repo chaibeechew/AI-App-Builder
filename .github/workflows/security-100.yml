@@ -1,31 +1,46 @@
-name: Security 100 Production Readiness
+name: Security 100 Preview Readiness
 
 on:
   workflow_dispatch:
     inputs:
       test_ref:
-        description: 'Branch to test'
+        description: 'Branch to test (no Production deployment)'
         required: true
-        default: 'main'
+        default: 'integration/primary-consolidation'
         type: string
 
 jobs:
   security-100:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      GEMINI_API_KEY: test
     steps:
-      - name: Checkout test branch
+      - name: Checkout requested Preview branch
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.test_ref }}
-      - name: Setup Node 24
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
       - name: Install dependencies
-        run: npm install
-      - name: Run 100 production-readiness regression cases
-        run: node tests/security/production-readiness-100.mjs
+        run: npm install --no-audit --no-fund
+      - name: Release policy regression tests
+        run: npm run test:release
+      - name: Security and ownership contract tests
+        run: npm run test:security
+      - name: Runtime reliability contract tests
+        run: npm run test:runtime
+      - name: Non-production product contract tests
+        run: npm run test:nonprod
+      - name: 100-point structural readiness gate
+        run: npm run quality:100
       - name: Build application
         run: npm run build
+      # Production promotion is intentionally excluded. It requires separate explicit approval.
