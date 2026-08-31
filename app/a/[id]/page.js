@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server.js";
 import GeneratedAppClient from "./GeneratedAppClient";
+import GameRuntimeClient from "./GameRuntimeClient";
 import AnalyticsTracker from "../../components/AnalyticsTracker.js";
 
 export async function generateMetadata({ params }) {
@@ -29,5 +30,7 @@ export default async function GeneratedAppPage({ params }) {
   const current = versions?.find((version) => version.id === app.current_version_id) || versions?.[0];
   if (!current?.specification) notFound();
   const media=await loadProjectMedia(supabase,id);
-  return <><AnalyticsTracker appId={id} channel="app" eventName="app_view"/><GeneratedAppClient appId={id} app={app} specification={current.specification} customerMedia={media}/></>;
+  const specification=current.specification;
+  const isGame=specification?.productType==="mobile_game"||specification?.game?.enabled===true;
+  return <><AnalyticsTracker appId={id} channel={isGame?"game":"app"} eventName={isGame?"game_runtime_view":"app_view"}/>{isGame?<GameRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:<GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>}</>;
 }
