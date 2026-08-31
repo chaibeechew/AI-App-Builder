@@ -38,6 +38,15 @@ export const PRODUCT_POLICY = Object.freeze({
       addsDeeperControlNotBasicQuality: true,
       description: "One payment for 12 months of Professional tools, AI Copilot and deeper project control.",
     },
+    reviewPolicy: {
+      reviewIntervalYears: 3,
+      reviewDoesNotRequireIncrease: true,
+      increaseIsOptional: true,
+      mayKeepPriceUnchanged: true,
+      fairPricePrincipleApplies: true,
+      noAutomaticInflationIncrease: true,
+      description: "Pricing may be reviewed once every three years. A review does not mean prices must increase; prices may remain unchanged when the existing price is still fair and sustainable.",
+    },
     fairUse: {
       enabled: true,
       principle: "Normal genuine customer use should feel generous. Limits exist to protect service reliability and prevent automated abuse, resale, excessive compute consumption and activity that harms other customers.",
