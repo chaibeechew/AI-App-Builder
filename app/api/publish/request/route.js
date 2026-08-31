@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../lib/supabase/server.js";
+import { createAdminClient } from "../../../../lib/supabase/admin.js";
 import { assessBuildQuality } from "../../../../lib/buildStandards.js";
 import { evaluateReleaseReadiness, RELEASE_POLICY_NOTE } from "../../../../lib/release-readiness.js";
 
@@ -32,7 +33,9 @@ export async function POST(request) {
 
     const { data: existing } = await supabase.from("publish_requests").select("id,status").eq("app_id", appId).eq("version_id", versionId).eq("platform", platform).eq("requested_by", user.id).in("status", ["customer_approved","building","testing","ready","submitted","published"]).limit(1).maybeSingle();
     if (existing) return NextResponse.json({ success: true, request: existing, duplicate: true, releaseReady: true });
-    const { data, error } = await supabase.from("publish_requests").insert({ app_id: appId, version_id: versionId, store_listing_id: listingId, platform, status: "customer_approved", requested_by: user.id, customer_approved_at: listing.customer_approved_at }).select("id,app_id,version_id,platform,status,created_at").single();
+
+    const admin=createAdminClient();
+    const { data, error } = await admin.from("publish_requests").insert({ app_id: appId, version_id: versionId, store_listing_id: listingId, platform, status: "customer_approved", requested_by: user.id, customer_approved_at: listing.customer_approved_at }).select("id,app_id,version_id,platform,status,created_at").single();
     if (error) return NextResponse.json({ error: "Unable to create publish request." }, { status: 500 });
     return NextResponse.json({ success: true, request: data, releaseReady: true, note: "Store preparation can continue. Store approval and external platform requirements remain outside SoolenAI's control." });
   } catch (error) {
