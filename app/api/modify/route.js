@@ -3,6 +3,7 @@ import { createClient } from "../../../lib/supabase/server.js";
 import { normalizeAppSpec } from "../../../lib/generator/runtime-guard.js";
 import { buildAppExplanation } from "../../../lib/generator/app-explanation.js";
 import { selfTestGeneratedApp } from "../../../lib/generator/self-test.js";
+import { assessBuildQuality, GENERATION_QUALITY_RULES } from "../../../lib/buildStandards.js";
 import { generateWithFallback } from "../../../engine/ai-provider.js";
 import { buildProjectMemoryBrief, mergeProjectMemory } from "../../../lib/project-memory.js";
 
@@ -16,6 +17,21 @@ function extractJson(text) {
   const start = raw.indexOf("{"); const end = raw.lastIndexOf("}");
   if (start >= 0 && end > start) { try { return JSON.parse(raw.slice(start, end + 1)); } catch {} }
   throw new Error("AI returned invalid JSON.");
+}
+
+function normalizeAndTest(raw) {
+  const normalized=normalizeAppSpec(raw);
+  const selfTest=selfTestGeneratedApp(normalized);
+  if(!selfTest.ok)throw new Error(`Modified app failed self-test: ${selfTest.errors.join("; ")}`);
+  const specification=selfTest.normalizedSpec;
+  return { specification, selfTest, quality: assessBuildQuality(specification) };
+}
+
+function qualityRegressed(before,after){
+  if(!before||!after)return false;
+  if(Number(after.overall||0)<Number(before.overall||0))return true;
+  const oldMap=Object.fromEntries((before.dimensions||[]).map(x=>[x.id,Number(x.score||0)]));
+  return (after.dimensions||[]).some(x=>Number(x.score||0)<Number(oldMap[x.id]||0));
 }
 
 export async function POST(request) {
@@ -52,12 +68,25 @@ export async function POST(request) {
     }
 
     const memoryBrief=buildProjectMemoryBrief(memoryRow);
-    const prompt=`You are the modification engine for SoolenAI AI App & Web Creator. Modify the existing app according to this instruction:\n"${instruction}"\n${memoryBrief?`\n${memoryBrief}\n`:""}\nCurrent specification:\n${JSON.stringify(specification,null,2)}\nReturn ONLY valid JSON with name, description, pages, features, dataModels and actions. Preserve existing functionality and remembered project preferences unless the customer's current instruction explicitly changes them. Never reuse private assets across customers. No markdown.`;
+    const currentQuality=assessBuildQuality(normalizeAppSpec(specification));
+    const prompt=`You are the modification engine for SoolenAI AI App & Web Creator. Modify the existing app according to this instruction:\n"${instruction}"\n${memoryBrief?`\n${memoryBrief}\n`:""}\n\nNON-NEGOTIABLE QUALITY STANDARD:\n${GENERATION_QUALITY_RULES}\n\nCurrent specification:\n${JSON.stringify(specification,null,2)}\nReturn ONLY valid JSON with name, description, designSystem, pages, features, dataModels and actions. Preserve existing functionality and remembered project preferences unless the customer's current instruction explicitly changes them. Do not silently remove authentication, permissions, privacy, validation, loading/error states, responsive behavior or accessibility protections. Never reuse private assets across customers. No markdown.`;
     const ai = await generateWithFallback(prompt);
-    const modified=extractJson(ai.result);
-    const normalized=normalizeAppSpec(modified); const test=selfTestGeneratedApp(normalized);
-    if(!test.ok)throw new Error(`Modified app failed self-test: ${test.errors.join("; ")}`);
-    const finalSpec=test.normalizedSpec;
+    let candidate=normalizeAndTest(extractJson(ai.result));
+    let qualityRepairApplied=false;
+
+    if(qualityRegressed(currentQuality,candidate.quality)){
+      const repairPrompt=`You are SoolenAI Quality Repair. The requested edit is valid, but the candidate version reduced deterministic release quality compared with the previous saved specification. Repair the candidate while preserving the customer's requested change and every working feature.\n\nCUSTOMER REQUEST:\n${instruction}\n\nQUALITY STANDARD:\n${GENERATION_QUALITY_RULES}\n\nPREVIOUS QUALITY:\n${JSON.stringify(currentQuality)}\n\nCANDIDATE QUALITY:\n${JSON.stringify(candidate.quality)}\n\nCANDIDATE SPECIFICATION:\n${JSON.stringify(candidate.specification)}\n\nReturn ONLY the complete repaired JSON specification. Do not invent compliance claims or remove functionality.`;
+      const repairedAI=await generateWithFallback(repairPrompt);
+      const repaired=normalizeAndTest(extractJson(repairedAI.result));
+      if(!qualityRegressed(currentQuality,repaired.quality) || repaired.quality.overall>candidate.quality.overall){
+        candidate=repaired;
+        qualityRepairApplied=true;
+      }
+    }
+
+    const finalSpec=candidate.specification;
+    const test=candidate.selfTest;
+    const finalQuality=candidate.quality;
     let savedVersion=null;
     if(appId){
       const {data:latest,error:latestError}=await supabase.from("app_versions").select("version_no").eq("app_id",appId).order("version_no",{ascending:false}).limit(1).maybeSingle();
@@ -71,7 +100,7 @@ export async function POST(request) {
       const {error:memoryError}=await supabase.from("project_memory").upsert({app_id:appId,owner_id:user.id,memory_json:nextMemory,learning_scope:memoryRow?.learning_scope||"project_only",updated_at:new Date().toISOString()},{onConflict:"app_id"});
       if(memoryError)console.warn("PROJECT_MEMORY_MODIFY_SAVE_ERROR",memoryError.message);
     }
-    return NextResponse.json({success:true,provider:ai.provider,specification:finalSpec,appId,version:savedVersion,projectMemory:{applied:Boolean(memoryBrief),updated:Boolean(appId)},explanation:buildAppExplanation(finalSpec),selfTest:test,entitlement:{source:entitlementSource,charged},credits:{charged:charged?MODIFY_CREDIT_COST:0,requestId:chargeRequestId,balance:charge?.balance??null}});
+    return NextResponse.json({success:true,provider:ai.provider,specification:finalSpec,appId,version:savedVersion,projectMemory:{applied:Boolean(memoryBrief),updated:Boolean(appId)},explanation:buildAppExplanation(finalSpec),selfTest:test,quality:{before:currentQuality,after:finalQuality,repairApplied:qualityRepairApplied},entitlement:{source:entitlementSource,charged},credits:{charged:charged?MODIFY_CREDIT_COST:0,requestId:chargeRequestId,balance:charge?.balance??null}});
   }catch(error){
     console.error("Modify API error:",error);
     if(supabase&&charged&&chargeRequestId)await supabase.rpc("refund_ai_credits",{p_request_id:chargeRequestId,p_amount:MODIFY_CREDIT_COST,p_description:"AI modification failed - automatic refund",p_metadata:{operation:"modify"}});
