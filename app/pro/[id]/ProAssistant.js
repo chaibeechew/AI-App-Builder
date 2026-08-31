@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buildAutonomousPlan } from "../../../lib/build/orchestrator.js";
 
@@ -12,8 +12,17 @@ function moduleLabel(key) {
   return ({ database:"Database", workflows:"Automations", video:"Video Studio", integrations:"Connections", payments:"Payments" })[key] || key;
 }
 
-export default function ProAssistant({ appId, initialSpec, quickActions }) {
+async function fetchWithTimeout(url,options={},timeoutMs=20000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  try{return await fetch(url,{...options,signal:controller.signal})}
+  catch(error){if(error?.name==="AbortError"){const timeoutError=new Error("Request reached its safety time limit.");timeoutError.code="CLIENT_TIMEOUT";throw timeoutError}throw error}
+  finally{clearTimeout(timer)}
+}
+
+export default function ProAssistant({ appId, quickActions=[] }) {
   const router = useRouter();
+  const inFlightRef = useRef(false);
   const [instruction, setInstruction] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -25,18 +34,20 @@ export default function ProAssistant({ appId, initialSpec, quickActions }) {
 
   async function runInstruction(text = instruction) {
     const command = String(text || "").trim();
-    if (command.length < 3 || loading) return;
+    if (command.length < 3 || inFlightRef.current) return;
+    inFlightRef.current=true;
     setInstruction(command);
     setLoading(true); setError(""); setSyncedModules([]); setNextTools([]);
     setMessage("AI is reviewing the current project and applying the requested change…");
+    const operationId=requestId();
 
     try {
       const plan = buildAutonomousPlan({ idea: command, createVideo: /video|promo|宣传视频|影片|视频/i.test(command) });
-      const response = await fetch("/api/modify", {
+      const response = await fetchWithTimeout("/api/modify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appId, specification: initialSpec, instruction: command, requestId: requestId() })
-      });
+        body: JSON.stringify({ appId, instruction: command, requestId: operationId })
+      },95000);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.error || "Unable to apply the change.");
 
@@ -46,11 +57,11 @@ export default function ProAssistant({ appId, initialSpec, quickActions }) {
 
       if (autoSyncNeeded) {
         try {
-          const bootstrap = await fetch(`/api/apps/${appId}/bootstrap`, {
+          const bootstrap = await fetchWithTimeout(`/api/apps/${appId}/bootstrap`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan, createVideo: Boolean(plan?.modules?.video) })
-          });
+            body: JSON.stringify({ plan, createVideo: Boolean(plan?.modules?.video), expectedVersionId:data?.version?.id||null })
+          },20000);
           const boot = await bootstrap.json().catch(() => ({}));
           if (!bootstrap.ok) throw new Error(boot?.error || "Module sync failed.");
           const synced = [];
@@ -60,7 +71,9 @@ export default function ProAssistant({ appId, initialSpec, quickActions }) {
           setSyncedModules(synced);
           if (synced.length) autoSyncNote = ` I also synchronized ${synced.map(moduleLabel).join(", ")} from the new version.`;
         } catch (syncError) {
-          autoSyncNote = ` The project version was saved, but an automatic module sync needs attention: ${syncError?.message || "unknown error"}`;
+          autoSyncNote = syncError?.code==="CLIENT_TIMEOUT"
+            ? " The project version was saved, but module synchronization reached its safety time limit. You can reopen the related tool without losing the saved version."
+            : ` The project version was saved, but an automatic module sync needs attention: ${syncError?.message || "unknown error"}`;
         }
       }
 
@@ -75,9 +88,11 @@ export default function ProAssistant({ appId, initialSpec, quickActions }) {
         : `Done. The AI change was applied and checked.${autoSyncNote}`);
       router.refresh();
     } catch (err) {
-      setError(err?.message || "Unable to apply the change.");
+      setError(err?.code==="CLIENT_TIMEOUT"
+        ? "AI reached the browser safety time limit. Refresh this workspace once before retrying so the latest saved version is loaded."
+        : err?.message || "Unable to apply the change.");
       setMessage("");
-    } finally { setLoading(false); }
+    } finally { inFlightRef.current=false; setLoading(false); }
   }
 
   return <section className="assistantPanel">
