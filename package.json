@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "quality:99": "node scripts/release-readiness-99.mjs"
+    "quality:99": "node scripts/release-readiness-99.mjs",
+    "test:release": "node scripts/release-policy-tests.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
