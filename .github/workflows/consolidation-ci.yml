@@ -29,6 +29,8 @@ jobs:
         run: npm run test:runtime
       - name: Non-production 100-point product tests
         run: npm run test:nonprod
+      - name: Project Readiness contract tests
+        run: node scripts/project-readiness-tests.mjs
       - name: 100-point structural readiness gate
         run: npm run quality:100
       - run: npm run build
