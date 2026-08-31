@@ -14,6 +14,9 @@ const editor = read('app/editor/[id]/page.js');
 const dashboard = read('app/app-dashboard/[id]/page.js');
 const proPage = read('app/pro/[id]/page.js');
 const proAssistant = read('app/pro/[id]/ProAssistant.js');
+const accessReader=read('lib/app-builder-access.js');
+const accessRuntime=read('supabase/migrations/20260831120000_preview_access_credit_runtime.sql');
+const creditsApi=read('app/api/credits/route.js');
 const releasePage = read('app/release/[id]/page.js');
 const auth = read('app/auth/page.js');
 const modify = read('app/api/modify/route.js');
@@ -38,7 +41,9 @@ const nonProductionTests=read('scripts/non-production-100-tests.mjs');
 
 const checks = [
   ['Core build route persists generated projects', contains('app/api/generate/route.js',['app_versions','specification'])],
+  ['Generation reserves access by request and restores failed creation', generate.includes('p_request_id:chargeRequestId')&&generate.includes('bind_app_builder_project_access')&&generate.includes('restore_failed_app_builder_create')],
   ['AI modify route versions changes', modify.includes('app_versions') && modify.includes('version_no')],
+  ['AI modify uses request-bound entitlement checks', modify.includes('p_request_id:chargeRequestId')],
   ['AI modify applies same generation quality standard', modify.includes('GENERATION_QUALITY_RULES') && modify.includes('assessBuildQuality')],
   ['AI modify preserves explicit quality evidence', modify.includes('qualityPlan') && modify.includes('at least 3 concrete implementation decisions')],
   ['AI modify repairs deterministic quality regressions', modify.includes('qualityRegressed') && modify.includes('SoolenAI Quality Repair')],
@@ -48,6 +53,10 @@ const checks = [
   ['Project dashboard keeps simple preview/change/publish actions', ['Open App Demo','Preview Website','Publishing'].every(term=>dashboard.includes(term))],
   ['Professional Mode is visible from the project dashboard', dashboard.includes(`/pro/${'${id}'}`) && exists('app/pro/[id]/page.js')],
   ['Professional Mode keeps AI-first natural-language editing', proAssistant.includes('/api/modify') && (proPage.includes('Professional Workspace') || proPage.includes('Advanced control with AI assistance'))],
+  ['Professional tools are gated by server-side 365-day access', proPage.includes('getAppBuilderAccess')&&proPage.includes('!access.professional.active')&&accessReader.includes('pro_valid_until')],
+  ['Standard and Pro grants are server-only financial state', accessRuntime.includes('standard_project_credits')&&accessRuntime.includes('grant_standard_project_credit')&&accessRuntime.includes('grant_pro_access')&&accessRuntime.includes('to service_role')],
+  ['AI credit charge/refund runtime is idempotent and amount-bound', accessRuntime.includes('credit_transactions_request_type_unique_idx')&&accessRuntime.includes('Refund amount does not match original charge')&&accessRuntime.includes("type = 'ai_usage'")],
+  ['Credits API reads the consolidated protected ledger', creditsApi.includes('credit_transactions')&&creditsApi.includes('.maybeSingle()')&&!creditsApi.includes('credit_ledger')],
   ['Central release policy exists at 100', contains('lib/release-readiness.js',['RELEASE_SCORE_REQUIRED = 100','evaluateReleaseReadiness','evaluateProductionEvidence','PRODUCTION_EVIDENCE_REQUIREMENTS'])],
   ['Non-production readiness has its own strict 100-point model', nonProductionReadiness.includes('NON_PRODUCTION_SCORE_REQUIRED = 100') && nonProductionReadiness.includes('productionHeld: true')],
   ['Non-production model covers all important product areas', ['generation','editing','data','automation','publishing','security','reliability','visual','versioning','pro'].every((k)=>nonProductionReadiness.includes(`key: "${k}"`))],
