@@ -9,7 +9,7 @@ revoke all on function public.has_active_buyout_legacy(uuid, uuid) from public, 
 create or replace function public.has_active_buyout(p_app_id uuid)
 returns boolean
 language sql
-security definer
+security invoker
 stable
 set search_path = ''
 as $$
