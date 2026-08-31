@@ -1,30 +1,11 @@
 -- Harden the buyout helper without breaking dependent RLS policies during migration.
--- The legacy two-argument function had p_user_id DEFAULT auth.uid(), which makes a new
--- one-argument overload ambiguous until that default is removed.
+-- The legacy helper has a second parameter with DEFAULT auth.uid(), so a one-argument
+-- overload would be ambiguous. Rename the legacy function first; dependencies follow
+-- its OID safely, then move policies to the new auth-bound function and drop legacy.
 
--- 1) Keep the old signature temporarily, but remove its default argument first.
-create or replace function public.has_active_buyout(p_app_id uuid, p_user_id uuid)
-returns boolean
-language sql
-security definer
-stable
-set search_path = ''
-as $$
-  select p_user_id is not null
-    and exists (
-      select 1
-      from public.apps a
-      join public.app_licenses l on l.app_id = a.id
-      where a.id = p_app_id
-        and a.owner_id = p_user_id
-        and l.owner_id = p_user_id
-        and l.status = 'active'
-    );
-$$;
+alter function public.has_active_buyout(uuid, uuid) rename to has_active_buyout_legacy;
+revoke all on function public.has_active_buyout_legacy(uuid, uuid) from public, anon, authenticated;
 
-revoke all on function public.has_active_buyout(uuid, uuid) from public, anon, authenticated;
-
--- 2) Introduce the public auth-bound helper. Callers can no longer choose another user id.
 create or replace function public.has_active_buyout(p_app_id uuid)
 returns boolean
 language sql
@@ -47,7 +28,6 @@ $$;
 revoke all on function public.has_active_buyout(uuid) from public, anon, authenticated;
 grant execute on function public.has_active_buyout(uuid) to authenticated;
 
--- 3) Move every dependent policy to the safe auth-bound signature.
 drop policy if exists app_folder_nodes_select on public.app_folder_nodes;
 create policy app_folder_nodes_select on public.app_folder_nodes
 for select to authenticated
@@ -131,5 +111,4 @@ create policy app_source_files_delete on public.app_source_files
 for delete to authenticated
 using (owner_id = (select auth.uid()) and public.has_active_buyout(app_id));
 
--- 4) Remove the legacy arbitrary-user signature only after dependencies have moved.
-drop function if exists public.has_active_buyout(uuid, uuid);
+drop function public.has_active_buyout_legacy(uuid, uuid);
