@@ -1,4 +1,4 @@
-name: AI App Builder CI
+name: AI App Builder 100 CI
 
 on:
   push:
@@ -9,23 +9,24 @@ on:
 jobs:
   build-and-validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
       GEMINI_API_KEY: ci-placeholder
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-
       - name: Validate migration filenames
         shell: bash
         run: |
@@ -52,9 +53,18 @@ jobs:
             exit 1
           fi
           echo "Migration filename validation passed."
-
+      - name: Release policy regression tests
+        run: npm run test:release
+      - name: Security and ownership contract tests
+        run: npm run test:security
+      - name: Runtime reliability contract tests
+        run: npm run test:runtime
+      - name: Non-production 100 product contract tests
+        run: npm run test:nonprod
+      - name: 100-point structural readiness gate
+        run: npm run quality:100
       - name: Build Next.js application
         run: npm run build
-
       - name: Report
-        run: echo "Build and migration-structure validation passed."
+        run: echo "100-point code/product validation passed. Production promotion remains a separate explicitly approved action."
+      # This workflow validates code only. It never deploys or promotes Production.
