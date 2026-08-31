@@ -25,7 +25,8 @@ export async function POST(request){
       return json({success:false,code:"GAME_FAIR_USE_TEMPORARY_LIMIT",error:"Game creation is temporarily limited to protect shared compute. Your existing projects are unchanged.",policy:gameFairUseMessage()},429);
     }
 
-    const forwarded=new Request(request.url,{method:"POST",headers:request.headers,body:JSON.stringify({...body,industry:"games",productType:"mobile_game",gameCreatorPolicy:{accessTier:"professional",fairUse:true}})});
+    const headers=new Headers(request.headers);headers.set("x-soolen-game-gateway","professional-fair-use");
+    const forwarded=new Request(request.url,{method:"POST",headers,body:JSON.stringify({...body,industry:"games",productType:"mobile_game",gameCreatorPolicy:{accessTier:"professional",fairUse:true}})});
     const response=await generateApp(forwarded);
     response.headers.set("X-Soolen-Game-Access","professional-fair-use");
     return response;
