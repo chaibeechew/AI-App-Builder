@@ -31,8 +31,9 @@ const readiness=currentGameCreatorEvidence();assert.equal(readiness.internalCore
 
 const lab=fs.readFileSync("app/game-platform-lab/page.js","utf8");for(const token of ["Replay Viewer","Spectator Policy","Guild / Clan","Ranked Board","Achievement","Cloud Save Envelope","UGC Visual Level Editor","Evidence boundary"])assert.ok(lab.includes(token),`Game Platform Lab missing ${token}`);
 assert.match(lab,/provider-neutral local contracts/);assert.match(lab,/public UGC still require verified provider\/backend evidence/);
+const builderLayout=fs.readFileSync("app/game-builder/layout.js","utf8");assert.match(builderLayout,/href="\/game-platform-lab"/);assert.match(builderLayout,/Game Platform Lab/);assert.match(builderLayout,/safe-area-inset-bottom/);
 
 console.log("✓ Deep RPG/Open-world core covers bounded navigation, enemy/Boss AI, animation, VFX, deterministic procedural regions, quest graphs, NPC relationships, crafting and mount/pet state");
 console.log("✓ SoolenAI taxonomy injects deep RPG/open-world engineering when requested instead of treating those features as generic pages");
 console.log("✓ Game Platform Lab exposes replay, spectator, guild, leaderboard/achievement, cloud-save conflict and UGC validation workbenches without faking live services");
-console.log("✓ Game Creator internal 100 now requires deep RPG/open-world and platform-workbench evidence while Production 100 remains externally gated");
+console.log("✓ Game Builder exposes a mobile-safe Game Platform Lab entry and internal 100 requires deep RPG/open-world + workbench evidence while Production 100 remains externally gated");
