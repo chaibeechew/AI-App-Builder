@@ -10,6 +10,7 @@ const publish = read('app/api/apps/[id]/publish/route.js');
 const quality = read('app/api/apps/[id]/quality/route.js');
 const policy = read('config/product-policy.js');
 const editor = read('app/editor/[id]/page.js');
+const releasePage = read('app/release/[id]/page.js');
 const auth = read('app/auth/page.js');
 const modify = read('app/api/modify/route.js');
 const generate = read('app/api/generate/route.js');
@@ -18,6 +19,7 @@ const workflow = read('.github/workflows/consolidation-ci.yml');
 const readiness = read('lib/release-readiness.js');
 const videoApiIndex = read('app/api/video/projects/route.js') + read('app/api/video/storyboard/route.js');
 const releaseTests = read('scripts/release-policy-tests.mjs');
+const securityTests = read('scripts/security-contract-tests.mjs');
 
 const checks = [
   ['Core build route persists generated projects', contains('app/api/generate/route.js',['app_versions','specification'])],
@@ -30,6 +32,8 @@ const checks = [
   ['Project dashboard keeps simple preview/change/publish actions', contains('app/app-dashboard/[id]/page.js',['Open App Demo','Preview Website','Publishing'])],
   ['Central release policy exists at 100', contains('lib/release-readiness.js',['RELEASE_SCORE_REQUIRED = 100','evaluateReleaseReadiness','evaluateProductionEvidence','PRODUCTION_EVIDENCE_REQUIREMENTS'])],
   ['Quality API uses shared release evaluator', quality.includes('evaluateReleaseReadiness')],
+  ['Quality API exposes real-world evidence requirements', quality.includes('productionEvidence') && quality.includes('PRODUCTION_EVIDENCE_LABELS')],
+  ['Publish Center explains real-world evidence separately from score', releasePage.includes('REAL-WORLD RELEASE EVIDENCE') && releasePage.includes('100/100 does not replace live testing')],
   ['Publish API uses shared release evaluator', publish.includes('evaluateReleaseReadiness')],
   ['Publish route blocks below strict target', publish.includes('Publishing is locked until the project reaches') && publish.includes('releaseReady: false')],
   ['All six dimensions are centrally required', ['stability','security','privacy','comfort','beauty','naturalness'].every((k)=>readiness.includes(`"${k}"`))],
@@ -54,7 +58,9 @@ const checks = [
   ['Analytics and AI operations exist', exists('app/analytics/[id]/page.js') && exists('app/operations/[id]/page.js')],
   ['Video Studio is present without pretending provider completion', exists('app/video-studio/page.js') && !/final provider connected|fully connected video provider|guaranteed mp4/i.test(videoApiIndex)],
   ['Release policy regression tests cover 100-point fail-closed behavior', releaseTests.includes('Any quality dimension below 100 must fail') && releaseTests.includes('Missing dimensions must fail closed')],
-  ['CI runs release tests before 100 readiness gate', workflow.indexOf('npm run test:release') >= 0 && workflow.indexOf('npm run test:release') < workflow.indexOf('npm run quality:100')],
+  ['Security contract tests cover ownership and client secrets', securityTests.includes('Client bundles must never reference server secrets') && securityTests.includes('Publish must enforce project ownership server-side')],
+  ['CI runs release tests before security tests', workflow.indexOf('npm run test:release') >= 0 && workflow.indexOf('npm run test:release') < workflow.indexOf('npm run test:security')],
+  ['CI runs security tests before 100 readiness gate', workflow.indexOf('npm run test:security') >= 0 && workflow.indexOf('npm run test:security') < workflow.indexOf('npm run quality:100')],
   ['CI runs 100 readiness gate before build', workflow.indexOf('npm run quality:100') >= 0 && workflow.indexOf('npm run quality:100') < workflow.indexOf('npm run build')],
   ['CI builds exact branch', workflow.includes('integration/primary-consolidation')],
   ['No fake security or zero-bug marketing claims in quality policy', !/guaranteed security|100% secure|zero bugs guaranteed/i.test(read('lib/buildStandards.js'))],
