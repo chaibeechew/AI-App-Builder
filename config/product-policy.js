@@ -1,5 +1,11 @@
 export const PRODUCT_POLICY = Object.freeze({
   product: "AI App Builder",
+  platformRelease: {
+    productionPromotionHold: true,
+    previewValidationFirst: true,
+    explicitApprovalRequiredBeforeProduction: true,
+    note: "Production promotion is intentionally held. Product, code, security, reliability and Preview readiness can continue to 100 without automatically promoting the platform to Production.",
+  },
   data: {
     customerDataOwnership: "customer",
     useUploadedDataForModelTraining: false,
