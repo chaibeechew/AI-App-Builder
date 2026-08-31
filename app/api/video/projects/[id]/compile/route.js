@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../../lib/supabase/server.js";
 import { getVideoComputePolicy } from "../../../../../../lib/video/compute-policy.js";
+import { getVideoRendererConfig, startVideoRender, VideoRenderGatewayError } from "../../../../../../lib/video/render-gateway.js";
 
 function sanitizeClip(value,index){
   return {
@@ -33,14 +34,34 @@ export async function POST(request,{params}){
     if(total>project.max_duration_seconds+0.01)return NextResponse.json({error:`This project is limited to ${project.max_duration_seconds} seconds on the current experience mode.`},{status:400});
 
     const policy=getVideoComputePolicy(project.device_class);
-    const rendererConfigured=Boolean(String(process.env.VIDEO_RENDER_PROVIDER||"").trim()&&String(process.env.VIDEO_RENDER_ENDPOINT||"").trim());
+    const renderer=getVideoRendererConfig();
+    const rendererConfigured=renderer.configured;
     const {data:last}=await supabase.from("video_versions").select("version_no").eq("project_id",id).eq("owner_id",user.id).order("version_no",{ascending:false}).limit(1).maybeSingle();
     const versionNo=(last?.version_no||0)+1;
-    const editJson={version:1,autoConnected:Boolean(body?.autoConnect!==false),aspectRatio:["9:16","16:9","1:1"].includes(body?.aspectRatio)?body.aspectRatio:"9:16",clips:clips.map((clip,index)=>({...clip,order:index})),audio:{musicAssetId:body?.musicAssetId||null,voiceOverAssetId:body?.voiceOverAssetId||null,normalize:true},branding:{logoAssetId:body?.logoAssetId||null},render:{location:"server",quality:body?.quality==="best"?"best":"balanced",devicePreviewOnly:true,rendererConfigured}};
-    const renderStatus=rendererConfigured?"queued":"draft";
-    const {data:version,error}=await supabase.from("video_versions").insert({project_id:id,owner_id:user.id,version_no:versionNo,edit_json:editJson,duration_seconds:total,render_status:renderStatus}).select("id,version_no,duration_seconds,render_status,created_at").single();
+    let editJson={version:1,autoConnected:Boolean(body?.autoConnect!==false),aspectRatio:["9:16","16:9","1:1"].includes(body?.aspectRatio)?body.aspectRatio:"9:16",clips:clips.map((clip,index)=>({...clip,order:index})),audio:{musicAssetId:body?.musicAssetId||null,voiceOverAssetId:body?.voiceOverAssetId||null,normalize:true},branding:{logoAssetId:body?.logoAssetId||null},render:{location:"server",quality:body?.quality==="best"?"best":"balanced",devicePreviewOnly:true,rendererConfigured,provider:rendererConfigured?renderer.provider:null,jobId:null,status:rendererConfigured?"queued":"draft",outputPath:null}};
+    const initialRenderStatus=rendererConfigured?"queued":"draft";
+    const {data:version,error}=await supabase.from("video_versions").insert({project_id:id,owner_id:user.id,version_no:versionNo,edit_json:editJson,duration_seconds:total,render_status:initialRenderStatus}).select("id,version_no,duration_seconds,render_status,created_at").single();
     if(error)throw error;
-    await supabase.from("video_projects").update({edit_json:editJson,status:rendererConfigured?"rendering":"draft",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);
-    return NextResponse.json({success:true,version,renderPlan:{serverRender:true,rendererConfigured,renderStarted:false,autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:rendererConfigured?"Edit version is queued for the configured server renderer. A separate render worker must claim and complete the job before an MP4 can be reported as ready.":"Edit version is saved safely as a draft. No final video renderer is connected yet, so SoolenAI will not claim that an MP4 is rendering or complete."}});
+
+    if(!rendererConfigured){
+      await supabase.from("video_projects").update({edit_json:editJson,status:"draft",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);
+      return NextResponse.json({success:true,version,renderPlan:{serverRender:true,rendererConfigured:false,renderStarted:false,provider:null,jobId:null,outputPath:null,status:"draft",autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:"Edit version is saved safely as a draft. No final video renderer is connected yet, so AI BUILD APP & WEB will not claim that an MP4 is rendering or complete."}});
+    }
+
+    try{
+      const render=await startVideoRender({project,version,editJson});
+      editJson={...editJson,render:{...editJson.render,provider:render.provider,jobId:render.jobId,status:render.status,outputPath:render.outputPath,startedAt:new Date().toISOString()}};
+      const projectStatus=render.status==="completed"?"completed":render.status==="failed"?"failed":"rendering";
+      const {error:versionUpdateError}=await supabase.from("video_versions").update({edit_json:editJson,render_status:render.status,output_path:render.outputPath}).eq("id",version.id).eq("project_id",id).eq("owner_id",user.id);
+      if(versionUpdateError)throw versionUpdateError;
+      await supabase.from("video_projects").update({edit_json:editJson,status:projectStatus,updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);
+      return NextResponse.json({success:true,version:{...version,render_status:render.status,output_path:render.outputPath},renderPlan:{serverRender:true,rendererConfigured:true,renderStarted:true,provider:render.provider,jobId:render.jobId,outputPath:render.outputPath,status:render.status,autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:render.status==="completed"?"Final MP4 output is ready.":"The configured server renderer accepted this version and returned a real render job. Status can now be checked until the MP4 is complete."}});
+    }catch(renderError){
+      const failedJson={...editJson,render:{...editJson.render,status:"failed",failedAt:new Date().toISOString(),errorCode:renderError?.code||"VIDEO_RENDER_FAILED"}};
+      await supabase.from("video_versions").update({edit_json:failedJson,render_status:"failed"}).eq("id",version.id).eq("project_id",id).eq("owner_id",user.id);
+      await supabase.from("video_projects").update({edit_json:failedJson,status:"failed",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);
+      const status=renderError instanceof VideoRenderGatewayError?renderError.status:502;
+      return NextResponse.json({success:false,error:renderError?.message||"The video edit was saved, but the configured renderer could not start.",code:renderError?.code||"VIDEO_RENDER_FAILED",version:{...version,render_status:"failed"},renderPlan:{serverRender:true,rendererConfigured:true,renderStarted:false,provider:renderer.provider,status:"failed",autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:"The edit version is preserved, but final rendering failed to start. No MP4 is reported as ready."}},{status});
+    }
   }catch(error){console.error("VIDEO_COMPILE_ERROR",error);return NextResponse.json({error:error?.message||"Unable to compile video version."},{status:500});}
 }
