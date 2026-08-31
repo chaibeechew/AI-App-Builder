@@ -12,6 +12,7 @@ import AdaptiveWallpaperEngine from "./components/AdaptiveWallpaperEngine";
 import PremiumJourneyTheme from "./components/PremiumJourneyTheme";
 import PreciseEditAssistant from "./components/PreciseEditAssistant";
 import GeneratedDataManager from "./components/GeneratedDataManager";
+import PublishingReadinessMount from "./components/PublishingReadinessMount";
 import { PRODUCT_BRAND } from "../lib/ai/premium-visual-policy.js";
 
 export const metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
         {children}
         <PreciseEditAssistant />
         <GeneratedDataManager />
+        <PublishingReadinessMount />
         <StudioLauncher />
         <ReferenceUploader />
         <SoolenVoiceAssistant />
