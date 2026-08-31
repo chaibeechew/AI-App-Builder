@@ -57,6 +57,8 @@ jobs:
         run: node scripts/advanced-3d-gameplay-tests.mjs
       - name: AAA mobile production and engine lab contract tests
         run: node scripts/aaa-mobile-production-tests.mjs
+      - name: Large-game content production pipeline contract tests
+        run: node scripts/content-production-pipeline-tests.mjs
       - name: MOBA Runtime V1 contract tests
         run: node scripts/moba-runtime-v1-tests.mjs
       - name: Aviation knowledge contract tests
