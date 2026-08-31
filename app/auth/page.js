@@ -1,145 +1,21 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense,useEffect,useMemo,useState } from "react";
+import { useRouter,useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 
-export const dynamic = "force-dynamic";
-const RESEND_SECONDS = 60;
-const SMS_AUTH_ENABLED = process.env.NEXT_PUBLIC_SMS_AUTH_ENABLED === "true";
+export const dynamic="force-dynamic";const RESEND_SECONDS=60;const SMS_AUTH_ENABLED=process.env.NEXT_PUBLIC_SMS_AUTH_ENABLED==="true";
+function normalizePhone(value){const cleaned=String(value||"").replace(/[\s()-]/g,"");if(!/^\+[1-9]\d{7,14}$/.test(cleaned))throw new Error("Use international format, for example +60123456789.");return cleaned;}
+function friendly(error,method){const code=String(error?.code||"").toLowerCase(),raw=String(error?.message||"");if(code==="phone_provider_disabled"||/unsupported phone provider/i.test(raw))return"SMS verification is not enabled yet. Use Email Code for now.";if(code==="over_sms_send_rate_limit")return"Too many SMS codes were requested. Please wait before trying again.";if(code.includes("rate")||/rate limit|security purposes/i.test(raw))return`Please wait about ${RESEND_SECONDS} seconds before requesting another code.`;if(/expired/i.test(raw))return"This verification code has expired. Request a new code.";if(/invalid.*token|token.*invalid|otp.*invalid/i.test(raw))return"The verification code is incorrect. Check it and try again.";return raw||`Unable to ${method==="sms"?"send SMS":"send email"} verification code.`;}
 
-function normalizePhone(value) {
-  const cleaned = String(value || "").replace(/[\s()-]/g, "");
-  if (!/^\+[1-9]\d{7,14}$/.test(cleaned)) throw new Error("Use international format, for example +60123456789.");
-  return cleaned;
+function AuthForm(){
+ const router=useRouter(),searchParams=useSearchParams(),supabase=useMemo(()=>createClient(),[]);const[method,setMethod]=useState("email"),[identifier,setIdentifier]=useState(""),[otp,setOtp]=useState(""),[sent,setSent]=useState(false),[loading,setLoading]=useState(false),[checking,setChecking]=useState(true),[message,setMessage]=useState(""),[error,setError]=useState(""),[resendIn,setResendIn]=useState(0);const referral=(searchParams.get("ref")||"").trim().toUpperCase(),next=searchParams.get("next")||"/";
+ useEffect(()=>{let active=true;supabase.auth.getSession().then(({data})=>{if(!active)return;if(data.session){router.replace(next);router.refresh()}else setChecking(false)});const{data:listener}=supabase.auth.onAuthStateChange((_event,session)=>{if(active&&session){router.replace(next);router.refresh()}});return()=>{active=false;listener.subscription.unsubscribe()}},[supabase,router,next]);
+ useEffect(()=>{if(resendIn<=0)return;const timer=setInterval(()=>setResendIn(v=>Math.max(0,v-1)),1000);return()=>clearInterval(timer)},[resendIn]);
+ function switchMethod(value){if(value==="sms"&&!SMS_AUTH_ENABLED)return;setMethod(value);setIdentifier("");setOtp("");setSent(false);setMessage("");setError("");setResendIn(0)}
+ async function sendCode(event){event?.preventDefault?.();if(loading||(sent&&resendIn>0))return;if(method==="sms"&&!SMS_AUTH_ENABLED){setError("SMS verification is coming soon. Please use Email Code.");return}setLoading(true);setError("");setMessage("");try{const options={shouldCreateUser:true,data:referral?{referral_code:referral}:undefined};if(method==="sms"){const phone=normalizePhone(identifier);const result=await supabase.auth.signInWithOtp({phone,options});if(result.error)throw result.error;setIdentifier(phone);setSent(true);setMessage("SMS verification code sent.")}else{const email=identifier.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(email))throw new Error("Enter a valid email address.");const result=await supabase.auth.signInWithOtp({email,options});if(result.error)throw result.error;setIdentifier(email);setSent(true);setMessage("Email verification code sent. Check your inbox and spam folder.")}setResendIn(RESEND_SECONDS)}catch(e){setError(friendly(e,method))}finally{setLoading(false)}}
+ async function verify(event){event.preventDefault();setLoading(true);setError("");setMessage("");try{const token=otp.trim();if(!/^\d{6}$/.test(token))throw new Error("Enter the 6-digit verification code you received.");const result=method==="sms"?await supabase.auth.verifyOtp({phone:normalizePhone(identifier),token,type:"sms"}):await supabase.auth.verifyOtp({email:identifier.trim().toLowerCase(),token,type:"email"});if(result.error)throw result.error;if(!result.data.session)throw new Error("Verification succeeded, but no session was created.");try{await fetch("/api/referrals/verify",{method:"POST",headers:{"Content-Type":"application/json"}})}catch{}router.replace(next);router.refresh()}catch(e){setError(friendly(e,method))}finally{setLoading(false)}}
+ if(checking)return <main className="loading">Checking your session…</main>;
+ return <main className="page"><div className="shade"/><header className="brand"><span className="mark">S</span><span>SOOLENAI</span><i>/</i><strong>AI BUILD APP & WEB</strong></header><section className="card"><small>SECURE VERIFICATION</small><h1>Sign in with a verification code</h1><p>Use a one-time 6-digit Email Code. No password required.</p><div className="tabs"><button className={method==="email"?"active":""} onClick={()=>switchMethod("email")}>✉ Email Code</button><button className={method==="sms"?"active":""} disabled={!SMS_AUTH_ENABLED} onClick={()=>switchMethod("sms")}>◉ SMS {SMS_AUTH_ENABLED?"Code":"· Coming Soon"}</button></div>{!sent?<form onSubmit={sendCode}><label>{method==="email"?"Email address":"Mobile number"}</label><input value={identifier} onChange={e=>setIdentifier(e.target.value)} placeholder={method==="email"?"you@example.com":"+60123456789"} inputMode={method==="email"?"email":"tel"} autoComplete={method==="email"?"email":"tel"}/>{referral&&<div className="notice">Referral code: {referral}</div>}<button className="primary" disabled={loading}>{loading?"Sending…":`Send ${method==="email"?"Email":"SMS"} Code`}</button></form>:<form onSubmit={verify}><div className="sent">Code sent to <b>{identifier}</b></div><label>6-digit verification code</label><input value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,"").slice(0,6))} placeholder="123456" inputMode="numeric" autoComplete="one-time-code"/><button className="primary" disabled={loading||otp.length!==6}>{loading?"Verifying…":"Verify & Continue"}</button><button type="button" className="secondary" disabled={loading||resendIn>0} onClick={sendCode}>{resendIn>0?`Resend available in ${resendIn}s`:"Resend Code"}</button><button type="button" className="secondary" disabled={loading} onClick={()=>{setSent(false);setOtp("");setMessage("");setError("");setResendIn(0)}}>Use another {method==="email"?"email":"number"}</button></form>}{message&&<div className="message">{message}</div>}{error&&<div className="error">{error}</div>}<footer>One-time code · Rate-limit aware · Short-lived verification</footer></section><style jsx>{`.page{min-height:100vh;display:grid;place-items:center;padding:92px 20px 28px;position:relative;overflow:hidden;background:radial-gradient(circle at 70% 20%,rgba(228,186,73,.18),transparent 28%),linear-gradient(145deg,#04120f,#0a241b);color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif}.page:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,9,12,.75),rgba(0,9,12,.2) 60%,rgba(0,9,12,.48))}.shade{position:absolute;inset:0;backdrop-filter:saturate(.92)}.brand{position:absolute;z-index:2;top:24px;left:28px;display:flex;align-items:center;gap:9px;font-size:13px;letter-spacing:.05em}.mark{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:#e7ae3a;color:#07110f;font-size:22px;font-weight:950}.brand strong{color:#efb53d}.brand i{opacity:.45;font-style:normal}.card{position:relative;z-index:2;width:min(100%,540px);padding:32px;border:1px solid rgba(238,183,66,.38);border-radius:28px;background:rgba(3,15,17,.88);backdrop-filter:blur(22px);box-shadow:0 30px 90px #0008}.card>small{color:#efb53d;letter-spacing:.18em;font-weight:900}.card h1{font-size:34px;line-height:1.05;margin:10px 0}.card>p{color:#b7c3c0;line-height:1.55}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:5px;background:#0005;border-radius:15px;margin:22px 0}.tabs button{border:0;background:transparent;color:#a9b6b2;padding:12px;border-radius:11px;font-weight:850}.tabs .active{background:#e7ae3a;color:#111}.tabs button:disabled{opacity:.5}label{display:block;font-size:12px;color:#c8d2cf;margin:12px 0 8px}input{box-sizing:border-box;width:100%;border:1px solid rgba(238,183,66,.28);background:#0008;color:#fff;border-radius:14px;padding:14px;font-size:16px}.primary,.secondary{width:100%;border-radius:14px;padding:14px;font-weight:900;margin-top:13px}.primary{border:0;background:linear-gradient(135deg,#f3bd48,#d99520);color:#111}.secondary{border:1px solid #eeb7424d;background:transparent;color:#efb53d}.primary:disabled,.secondary:disabled{opacity:.55}.sent{color:#a9b6b2;font-size:13px}.sent b{color:#fff}.notice,.message,.error{margin-top:13px;padding:11px;border-radius:12px;font-size:13px}.notice{color:#efb53d}.message{color:#9ae4c0}.error{background:#911f1f40;color:#ffb1b1}.card footer{margin-top:19px;padding-top:16px;border-top:1px solid #ffffff16;color:#8fa19b;font-size:11px}.loading{min-height:100vh;display:grid;place-items:center;background:#06110f;color:#fff}@media(max-width:600px){.brand{left:18px;top:18px;font-size:10px}.brand strong{max-width:160px}.card{padding:24px 19px;border-radius:24px}.card h1{font-size:29px}}`}</style></main>
 }
-
-function authErrorMessage(error, method) {
-  const code = String(error?.code || "").toLowerCase();
-  const raw = String(error?.message || "");
-  if (code === "phone_provider_disabled" || /unsupported phone provider/i.test(raw)) return "SMS verification is not enabled on the authentication service yet. Use Email Code for now.";
-  if (code === "over_sms_send_rate_limit") return "Too many SMS codes were requested. Please wait before requesting another code.";
-  if (code.includes("rate") || /rate limit|security purposes/i.test(raw)) return `Please wait about ${RESEND_SECONDS} seconds before requesting another code.`;
-  if (/expired/i.test(raw)) return "This verification code has expired. Request a new code.";
-  if (/invalid.*token|token.*invalid|otp.*invalid/i.test(raw)) return "The verification code is incorrect. Check the code and try again.";
-  return raw || `Unable to ${method === "sms" ? "send SMS" : "send email"} verification code.`;
-}
-
-function AuthForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const supabase = useMemo(() => createClient(), []);
-  const [method, setMethod] = useState("email");
-  const [identifier, setIdentifier] = useState("");
-  const [otp, setOtp] = useState("");
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [resendIn, setResendIn] = useState(0);
-  const [smsUnavailable, setSmsUnavailable] = useState(false);
-  const referralCode = (searchParams.get("ref") || "").trim().toUpperCase();
-  const next = searchParams.get("next") || "/";
-
-  useEffect(() => {
-    let active = true;
-    async function restoreSession() {
-      const { data } = await supabase.auth.getSession();
-      if (!active) return;
-      if (data.session) { router.replace(next); router.refresh(); return; }
-      setCheckingSession(false);
-    }
-    restoreSession();
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!active || !session) return;
-      router.replace(next); router.refresh();
-    });
-    return () => { active = false; listener.subscription.unsubscribe(); };
-  }, [supabase, router, next]);
-
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const timer = setInterval(() => setResendIn((value) => Math.max(0, value - 1)), 1000);
-    return () => clearInterval(timer);
-  }, [resendIn]);
-
-  function switchMethod(value) {
-    if (value === "sms" && !SMS_AUTH_ENABLED) return;
-    setMethod(value); setSent(false); setMessage(""); setError(""); setOtp(""); setIdentifier(""); setResendIn(0);
-  }
-
-  async function sendCode(event) {
-    event?.preventDefault?.();
-    if (loading || (sent && resendIn > 0)) return;
-    if (method === "sms" && !SMS_AUTH_ENABLED) { setError("SMS verification is coming soon. Please use Email Code."); return; }
-    setLoading(true); setError(""); setMessage("");
-    try {
-      const options = { shouldCreateUser: true, data: referralCode ? { referral_code: referralCode } : undefined };
-      if (method === "sms") {
-        const phone = normalizePhone(identifier);
-        const result = await supabase.auth.signInWithOtp({ phone, options });
-        if (result.error) throw result.error;
-        setIdentifier(phone); setSmsUnavailable(false); setSent(true); setResendIn(RESEND_SECONDS); setMessage("SMS verification code sent.");
-      } else {
-        const email = identifier.trim().toLowerCase();
-        if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error("Enter a valid email address.");
-        const result = await supabase.auth.signInWithOtp({ email, options });
-        if (result.error) throw result.error;
-        setIdentifier(email); setSent(true); setResendIn(RESEND_SECONDS); setMessage("Email verification code sent. Check your inbox and spam folder.");
-      }
-    } catch (err) {
-      if (method === "sms" && (String(err?.code || "").toLowerCase() === "phone_provider_disabled" || /unsupported phone provider/i.test(String(err?.message || "")))) setSmsUnavailable(true);
-      setError(authErrorMessage(err, method));
-    } finally { setLoading(false); }
-  }
-
-  async function verifyCode(event) {
-    event.preventDefault(); setLoading(true); setError(""); setMessage("");
-    try {
-      const token = otp.trim();
-      if (!/^\d{6}$/.test(token)) throw new Error("Enter the 6-digit verification code you received.");
-      const result = method === "sms"
-        ? await supabase.auth.verifyOtp({ phone: normalizePhone(identifier), token, type: "sms" })
-        : await supabase.auth.verifyOtp({ email: identifier.trim().toLowerCase(), token, type: "email" });
-      if (result.error) throw result.error;
-      if (!result.data.session) throw new Error("Verification succeeded, but no session was created.");
-      try { await fetch("/api/referrals/verify", { method: "POST", headers: { "Content-Type": "application/json" } }); } catch {}
-      router.replace(next); router.refresh();
-    } catch (err) { setError(authErrorMessage(err, method)); }
-    finally { setLoading(false); }
-  }
-
-  if (checkingSession) return <main className="authLoading">Checking your session…</main>;
-
-  return <main className="authPage"><div className="shade" />
-    <header className="brand"><span className="brandMark">S</span><span>SOOLENAI</span><span className="slash">/</span><strong>AI BUILD APP & WEB</strong></header>
-    <div className="authCard">
-      <div className="authEyebrow">SECURE VERIFICATION</div><h1>Sign in with a verification code</h1><p className="authIntro">Use a one-time 6-digit Email Code. No password required.</p>
-      <div className="authTabs"><button type="button" className="active" onClick={() => switchMethod("email")}>✉ Email Code</button><button type="button" className="comingSoon" disabled={!SMS_AUTH_ENABLED} onClick={() => switchMethod("sms")}>◉ SMS {SMS_AUTH_ENABLED ? "Code" : "· Coming Soon"}</button></div>
-
-      {!sent ? <form onSubmit={sendCode}>
-        <label>{method === "email" ? "Email address" : "Mobile number"}</label>
-        <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder={method === "email" ? "you@example.com" : "+60123456789"} inputMode={method === "email" ? "email" : "tel"} autoComplete={method === "email" ? "email" : "tel"}/>
-        {method === "sms" && <div className="providerNote">Use international phone format. SMS codes are delivered only when the managed phone provider is enabled.</div>}
-        {method === "email" && <div className="providerNote">Email codes use the secure OTP email template and expire according to the authentication service settings.</div>}
-        {referralCode && <div className="referralNotice">Referral code: {referralCode}</div>}
-        <button className="authPrimary" disabled={loading}>{loading ? "Sending…" : `Send ${method === "email" ? "Email" : "SMS"} Code`}</button>
-      </form> : <form onSubmit={verifyCode}>
-        <div className="sentTo">Code sent to <b>{identifier}</b></div><label>6-digit verification code</label><input value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="123456" inputMode="numeric" autoComplete="one-time-code"/>
-        <button className="authPrimary" disabled={loading || otp.length !== 6}>{loading ? "Verifying…" : "Verify & Continue"}</button>
-        <button type="button" className="authSecondary" disabled={loading || resendIn > 0} onClick={sendCode}>{resendIn > 0 ? `Resend available in ${resendIn}s` : "Resend Code"}</button>
-        <button type="button" className="authSecondary" disabled={loading} onClick={() => { setSent(false); setOtp(""); setMessage(""); setError(""); setResendIn(0); }}>Use another {method === "email" ? "email" : "number"}</button>
-        {SMS_AUTH_ENABLED && <button type="button" className="switchFallback" disabled={loading} onClick={() => switchMethod(method === "email" ? "sms" : "email")}>Use {method === "email" ? "SMS" : "Email"} instead</button>}
-      </form>}
-      {smsUnavailable && method === "sms" && <button type="button" className="emailFallback" onClick={() => switchMethod("email")}>SMS setup is pending — continue with Email Code →</button>}
-      {message && <div className="authMessage">{message}</div>}{error && <div className="authError">{error}</div>}
-      <div className="authSecurity">● One-time code · Rate-limit aware · Short-lived verification</div>
-    </div>
-    <style jsx>{`
-      *{box-sizing:border-box}.authPage{min-height:100vh;display:grid;place-items:center;padding:88px 22px 28px;position:relative;overflow:hidden;background:radial-gradient(circle at 70% 20%,rgba(228,186,73,.18),transparent 28%),linear-gradient(145deg,#04120f,#0a241b);color:#fff}.authPage:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,9,12,.74),rgba(0,9,12,.18) 60%,rgba(0,9,12,.46));pointer-events:none}.shade{position:absolute;inset:0;backdrop-filter:saturate(.92)}.brand{position:absolute;z-index:2;top:24px;left:28px;display:flex;align-items:center;gap:10px;font-size:15px;letter-spacing:.06em}.brandMark{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:#e7ae3a;color:#07110f;font-size:22px;font-weight:950}.brand strong{color:#efb53d}.slash{opacity:.4}.authCard{position:relative;z-index:2;width:min(100%,540px);padding:34px;border:1px solid rgba(238,183,66,.38);border-radius:28px;background:rgba(3,15,17,.88);backdrop-filter:blur(22px);box-shadow:0 30px 90px rgba(0,0,0,.52)}.authEyebrow{color:#efb53d;font-size:11px;letter-spacing:.2em;font-weight:900}h1{font-size:34px;line-height:1.05;margin:10px 0 9px}.authIntro{color:#b7c3c0;line-height:1.55}.authTabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:5px;background:rgba(0,0,0,.3);border-radius:15px;margin:22px 0}.authTabs button{border:0;background:transparent;color:#a9b6b2;padding:12px;border-radius:11px;font-weight:850}.authTabs button.active{background:#e7ae3a;color:#111}.authTabs button.comingSoon:disabled{opacity:.55;cursor:not-allowed}label{display:block;font-size:12px;color:#c8d2cf;margin:12px 0 8px}input{width:100%;border:1px solid rgba(238,183,66,.28);background:rgba(0,9,10,.72);color:#fff;border-radius:14px;padding:14px;font-size:16px}.providerNote{margin-top:12px;padding:11px 12px;border:1px solid rgba(111,220,166,.17);border-radius:12px;background:rgba(40,143,94,.08);color:#abd8c1;font-size:12px;line-height:1.5}.authPrimary,.authSecondary,.emailFallback{width:100%;border-radius:14px;padding:14px;font-weight:900;margin-top:13px}.authPrimary{border:0;background:linear-gradient(135deg,#f3bd48,#d99520);color:#111}.authPrimary:disabled,.authSecondary:disabled{opacity:.55}.authSecondary{border:1px solid rgba(238,183,66,.3);background:transparent;color:#efb53d}.emailFallback{border:1px solid #69c99a55;background:#143b2d;color:#a9eccb}.switchFallback{display:block;margin:14px auto 0;border:0;background:transparent;color:#9fe2c1;font-weight:800}.sentTo{color:#a9b6b2;font-size:13px}.sentTo b{color:#fff}.referralNotice,.authMessage,.authError{margin-top:14px;padding:11px;border-radius:12px;font-size:13px}.referralNotice{color:#efb53d}.authMessage{color:#9ae4c0}.authError{background:rgba(145,31,31,.25);color:#ffb1b1}.authSecurity{margin-top:20px;padding-top:17px;border-top:1px solid rgba(255,255,255,.09);color:#8fa19b;font-size:11px}.authLoading{min-height:100vh;display:grid;place-items:center;background:#06110f;color:#fff}@media(max-width:600px){.brand{left:20px;top:20px;font-size:12px}.authCard{padding:25px 20px;border-radius:24px}h1{font-size:29px}}
-    `}</style>
-  </main>;
-}
-
-export default function AuthPage() { return <Suspense fallback={<main className="authLoading">Loading…</main>}><AuthForm /></Suspense>; }
+export default function AuthPage(){return <Suspense fallback={<main className="loading">Loading…</main>}><AuthForm/></Suspense>}
