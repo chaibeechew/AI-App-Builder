@@ -27,6 +27,11 @@ jobs:
         run: npm run test:security
       - name: Runtime reliability contract tests
         run: npm run test:runtime
+      - name: Non-production 100-point product tests
+        run: npm run test:nonprod
       - name: 100-point structural readiness gate
         run: npm run quality:100
       - run: npm run build
+
+# Production deployment is intentionally not part of this workflow.
+# Production promotion remains on hold until explicitly approved after Preview validation.
