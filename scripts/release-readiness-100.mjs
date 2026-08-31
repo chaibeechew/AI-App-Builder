@@ -11,6 +11,9 @@ const quality = read('app/api/apps/[id]/quality/route.js');
 const storePublish=read('app/api/publish/request/route.js');
 const policy = read('config/product-policy.js');
 const editor = read('app/editor/[id]/page.js');
+const dashboard = read('app/app-dashboard/[id]/page.js');
+const proPage = read('app/pro/[id]/page.js');
+const proAssistant = read('app/pro/[id]/ProAssistant.js');
 const releasePage = read('app/release/[id]/page.js');
 const auth = read('app/auth/page.js');
 const modify = read('app/api/modify/route.js');
@@ -24,12 +27,14 @@ const databaseApi=read('app/api/apps/[id]/database/route.js');
 const databaseRollback=read('app/api/apps/[id]/database/rollback/route.js');
 const videoCompile=read('app/api/video/projects/[id]/compile/route.js');
 const readiness = read('lib/release-readiness.js');
+const nonProductionReadiness = read('lib/non-production-readiness.js');
 const buildStandards = read('lib/buildStandards.js');
 const runtimeGuard = read('lib/generator/runtime-guard.js');
 const videoApiIndex = read('app/api/video/projects/route.js') + read('app/api/video/storyboard/route.js') + videoCompile;
 const releaseTests = read('scripts/release-policy-tests.mjs');
 const securityTests = read('scripts/security-contract-tests.mjs');
 const runtimeTests=read('scripts/runtime-contract-tests.mjs');
+const nonProductionTests=read('scripts/non-production-100-tests.mjs');
 
 const checks = [
   ['Core build route persists generated projects', contains('app/api/generate/route.js',['app_versions','specification'])],
@@ -40,8 +45,13 @@ const checks = [
   ['AI modify fails closed if repair still regresses quality', modify.includes('would reduce the project') && modify.includes('status:409')],
   ['No-code editor uses natural-language AI modify', editor.includes('/api/modify') && editor.includes('textarea')],
   ['No-code editor preserves version history access', editor.includes('Version History') && editor.includes('Rollback')],
-  ['Project dashboard keeps simple preview/change/publish actions', contains('app/app-dashboard/[id]/page.js',['Open App Demo','Preview Website','Publishing'])],
+  ['Project dashboard keeps simple preview/change/publish actions', ['Open App Demo','Preview Website','Publishing'].every(term=>dashboard.includes(term))],
+  ['Professional Mode is visible from the project dashboard', dashboard.includes(`/pro/${'${id}'}`) && exists('app/pro/[id]/page.js')],
+  ['Professional Mode keeps AI-first natural-language editing', proAssistant.includes('/api/modify') && (proPage.includes('Professional Workspace') || proPage.includes('Advanced control with AI assistance'))],
   ['Central release policy exists at 100', contains('lib/release-readiness.js',['RELEASE_SCORE_REQUIRED = 100','evaluateReleaseReadiness','evaluateProductionEvidence','PRODUCTION_EVIDENCE_REQUIREMENTS'])],
+  ['Non-production readiness has its own strict 100-point model', nonProductionReadiness.includes('NON_PRODUCTION_SCORE_REQUIRED = 100') && nonProductionReadiness.includes('productionHeld: true')],
+  ['Non-production model covers all important product areas', ['generation','editing','data','automation','publishing','security','reliability','visual','versioning','pro'].every((k)=>nonProductionReadiness.includes(`key: "${k}"`))],
+  ['Platform Production promotion is explicitly held', policy.includes('productionPromotionHold: true') && policy.includes('explicitApprovalRequiredBeforeProduction: true') && workflow.includes('Production promotion remains on hold')],
   ['Quality API uses shared release evaluator', quality.includes('evaluateReleaseReadiness')],
   ['Quality API exposes real-world evidence requirements', quality.includes('productionEvidence') && quality.includes('PRODUCTION_EVIDENCE_LABELS')],
   ['Publish Center explains real-world evidence separately from score', releasePage.includes('REAL-WORLD RELEASE EVIDENCE') && releasePage.includes('100/100 does not replace live testing')],
@@ -78,11 +88,14 @@ const checks = [
   ['Release policy regression tests cover 100-point fail-closed behavior', releaseTests.includes('Any quality dimension below 100 must fail') && releaseTests.includes('Missing dimensions must fail closed')],
   ['Security contract tests cover ownership and client secrets', securityTests.includes('Client bundles must never reference server secrets') && securityTests.includes('Publish must enforce project ownership server-side')],
   ['Runtime contract tests cover workflow, payment, store, database and video', ['Workflow execution is idempotent','Payment checkout uses authoritative','Store publish requests require exact-version','No-code database models','Video compile does not pretend'].every(term=>runtimeTests.includes(term))],
+  ['Non-production regression test covers product readiness while Production stays held', nonProductionTests.includes('Non-production 100-point contract') && nonProductionTests.includes('Production')],
   ['CI runs release tests before security tests', workflow.indexOf('npm run test:release') >= 0 && workflow.indexOf('npm run test:release') < workflow.indexOf('npm run test:security')],
   ['CI runs security tests before runtime tests', workflow.indexOf('npm run test:security') >= 0 && workflow.indexOf('npm run test:security') < workflow.indexOf('npm run test:runtime')],
-  ['CI runs runtime tests before 100 readiness gate', workflow.indexOf('npm run test:runtime') >= 0 && workflow.indexOf('npm run test:runtime') < workflow.indexOf('npm run quality:100')],
+  ['CI runs runtime tests before non-production tests', workflow.indexOf('npm run test:runtime') >= 0 && workflow.indexOf('npm run test:runtime') < workflow.indexOf('npm run test:nonprod')],
+  ['CI runs non-production tests before 100 readiness gate', workflow.indexOf('npm run test:nonprod') >= 0 && workflow.indexOf('npm run test:nonprod') < workflow.indexOf('npm run quality:100')],
   ['CI runs 100 readiness gate before build', workflow.indexOf('npm run quality:100') >= 0 && workflow.indexOf('npm run quality:100') < workflow.indexOf('npm run build')],
   ['CI builds exact branch', workflow.includes('integration/primary-consolidation')],
+  ['CI contains no automatic Production deployment step', !/vercel\s+--prod|vercel\s+deploy\s+--prod|production-deploy|promote-to-production/i.test(workflow)],
   ['No fake security or zero-bug marketing claims in quality policy', !/guaranteed security|100% secure|zero bugs guaranteed/i.test(buildStandards)],
 ];
 
@@ -93,4 +106,4 @@ console.log(`Platform repository readiness: ${score}/100 (${passed}/${checks.len
 for (const [name,ok] of checks) console.log(`${ok?'✓':'✗'} ${name}`);
 
 if (failed.length) {console.error(`\nRelease blocked: ${failed.length} repository readiness check(s) failed.`);process.exit(1);}
-console.log('\nRepository 100 gate passed. Production promotion still requires live environment, provider, payment and real-device evidence where applicable.');
+console.log('\nRepository 100 gate passed for product/code readiness. Platform Production promotion remains intentionally held and still requires explicit approval plus live evidence.');
