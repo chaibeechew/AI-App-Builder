@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
+import { buildStoreReadiness } from "../../../../../lib/publishing/store-readiness-policy.js";
 
 function present(value) { return String(value ?? "").trim().length > 0; }
 
@@ -29,13 +30,22 @@ export async function GET(_request, { params }) {
     if (!app) return NextResponse.json({ error: "Project not found." }, { status: 404 });
     if (!app.current_version_id) return NextResponse.json({ error: "A saved project version is required first." }, { status: 409 });
 
-    const [{ data: version }, { data: listing }, { data: assets }] = await Promise.all([
+    const [{ data: version }, { data: listing }, { data: projectAssets }] = await Promise.all([
       supabase.from("app_versions").select("id,version_no,specification").eq("id", app.current_version_id).eq("app_id", id).single(),
       supabase.from("store_listings").select("id,version_id,language,apple,google_play,checklist,customer_approved_at,updated_at").eq("app_id", id).eq("version_id", app.current_version_id).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("project_assets").select("id,asset_id,placement").eq("app_id", id).eq("owner_id", user.id),
+      supabase.from("project_assets").select("id,asset_id,placement,suggested_role").eq("app_id", id).eq("owner_id", user.id),
     ]);
 
     if (!version) return NextResponse.json({ error: "Current project version not found." }, { status: 404 });
+
+    const assetIds=(projectAssets||[]).map(item=>item.asset_id).filter(Boolean);
+    let assetLibrary=[];
+    if(assetIds.length){
+      const { data }=await supabase.from("asset_library").select("id,file_name,mime_type,category").eq("user_id",user.id).in("id",assetIds);
+      assetLibrary=data||[];
+    }
+    const libraryById=new Map(assetLibrary.map(item=>[item.id,item]));
+    const assets=(projectAssets||[]).map(item=>({...item,...(libraryById.get(item.asset_id)||{})}));
 
     const apple = listing?.apple || {};
     const google = listing?.google_play || {};
@@ -54,7 +64,11 @@ export async function GET(_request, { params }) {
     if (!present(inferredAnswers.privacyPolicyUrl)) needsCustomer.push({ key: "privacyPolicyUrl", label: "Privacy Policy URL", reason: "A real privacy policy location must be confirmed by the customer." });
     if (!present(inferredAnswers.supportUrl)) needsCustomer.push({ key: "supportUrl", label: "Support URL", reason: "The support destination must be a real reachable page." });
     if (inferredAnswers.loginRequired) needsCustomer.push({ key: "reviewAccess", label: "Store review login access", reason: "If login is required, the customer must provide valid reviewer/demo access in the official store console." });
-    needsCustomer.push({ key: "ageRating", label: "Age / content rating declarations", reason: "These legal/content declarations must be answered truthfully in Apple/Google consoles." });
+
+    const readiness=buildStoreReadiness({specification:version.specification||{},listing,assets,inferredAnswers});
+    for(const item of readiness.customerRequired){
+      if(!needsCustomer.some(existing=>existing.key===item.key))needsCustomer.push({key:item.key,label:item.label,reason:item.reason});
+    }
 
     const autoFilled = [
       ["App name", apple.name || google.title],
@@ -65,17 +79,18 @@ export async function GET(_request, { params }) {
       ["Website", apple.marketingUrl || google.developerWebsite],
     ].filter(([, value]) => present(value)).map(([label]) => label);
 
-    const assetCount = Array.isArray(assets) ? assets.length : 0;
     const checklist = Array.isArray(listing?.checklist) ? listing.checklist : [];
     const unresolvedChecklist = checklist.filter((item) => item?.required && (!present(item?.value) || String(item.value).startsWith("requires_") || String(item.value).startsWith("customer_")));
 
     const externalActions = [
       { platform: "apple", label: "Apple Developer Program account", payer: "customer_direct_to_apple" },
+      { platform: "apple", label: "Bundle ID, signing and App Store Connect release", payer: "customer_action" },
       { platform: "google_play", label: "Google Play developer account", payer: "customer_direct_to_google" },
+      { platform: "google_play", label: "Package name, signing and Play Console release", payer: "customer_action" },
       { platform: "stores", label: "Final store declarations and review", payer: "customer_action" },
     ];
 
-    const readyForReview = Boolean(listing) && !needsCustomer.some((item) => ["supportEmail", "targetAudience", "privacyPolicyUrl", "supportUrl"].includes(item.key));
+    const readyForReview = Boolean(listing) && readiness.readyForCustomerReview;
 
     return NextResponse.json({
       success: true,
@@ -88,11 +103,12 @@ export async function GET(_request, { params }) {
       needsCustomer,
       unresolvedChecklist,
       externalActions,
-      assetCount,
+      assetCount: assets.length,
+      storeReadiness: readiness,
       readyForReview,
       customerApproved: Boolean(listing?.customer_approved_at),
       readyForOfficialSubmission: false,
-      note: "SoolenAI can prepare and validate store information, but it must not guess customer declarations, store credentials or platform review answers. Official account actions remain with the customer and Apple/Google.",
+      note: "SoolenAI can prepare and validate store information, icon/screenshot requirements and permission-purpose gaps, but it must not guess customer declarations, store credentials, signing credentials or platform review answers. Official submission remains controlled by the customer and Apple/Google.",
     });
   } catch (error) {
     console.error("PUBLISHING_AGENT_ERROR", error);
