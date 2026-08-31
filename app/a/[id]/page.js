@@ -7,6 +7,8 @@ import AirCombatRuntimeClient from "./AirCombatRuntimeClient";
 import SpecialistRuntimeClient from "./SpecialistRuntimeClient";
 import AnalyticsTracker from "../../components/AnalyticsTracker.js";
 
+const SPECIALIST_RUNTIME_EVENTS=Object.freeze({rpg:"rpg_runtime_view",puzzle:"puzzle_runtime_view",action:"action_runtime_view"});
+
 export async function generateMetadata({ params }) {
   const { id } = await params;
   return { title: "Generated App", manifest: `/a/${id}/manifest.webmanifest`, appleWebApp: { capable: true, statusBarStyle: "default", title: "Generated App" } };
@@ -42,6 +44,6 @@ export default async function GeneratedAppPage({ params }) {
   const specialistType=isGame&&!isMoba&&!isAirCombat?(archetype==="rpg"||genre.includes("rpg")||genre.includes("role-playing")?"rpg":archetype==="puzzle"||genre.includes("puzzle")||genre.includes("brain")||genre.includes("益智")||genre.includes("智力")?"puzzle":archetype==="action"||genre.includes("action")?"action":""):"";
   const isSpecialist=Boolean(specialistType);
   const runtime=isMoba?<MobaRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isAirCombat?<AirCombatRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isSpecialist?<SpecialistRuntimeClient appId={id} app={app} specification={{...specification,game:{...(specification.game||{}),archetype:specialistType}}} customerMedia={media}/>:isGame?<GameRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:<GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
-  const eventName=isMoba?"moba_runtime_view":isAirCombat?"air_combat_runtime_view":isSpecialist?`${specialistType}_runtime_view`:isGame?"game_runtime_view":"app_view";
+  const eventName=isMoba?"moba_runtime_view":isAirCombat?"air_combat_runtime_view":isSpecialist?SPECIALIST_RUNTIME_EVENTS[specialistType]:isGame?"game_runtime_view":"app_view";
   return <><AnalyticsTracker appId={id} channel={isGame?"game":"app"} eventName={eventName}/>{runtime}</>;
 }
