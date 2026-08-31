@@ -25,14 +25,14 @@ export default async function ProWorkspace({ params }) {
     </div><style>{shellCss}</style></main>;
   }
 
-  const { data: versions } = await supabase.from("app_versions").select("id,version_no,specification").eq("app_id",id).order("version_no",{ascending:false});
-  const current = versions?.find(v=>v.id===app.current_version_id)||versions?.[0];
-  if(!current?.specification) redirect(`/app-dashboard/${id}`);
+  let { data: current } = await supabase.from("app_versions").select("id,version_no").eq("id",app.current_version_id).eq("app_id",id).maybeSingle();
+  if(!current){const {data:latest}=await supabase.from("app_versions").select("id,version_no").eq("app_id",id).order("version_no",{ascending:false}).limit(1).maybeSingle();current=latest||null;}
+  if(!current) redirect(`/app-dashboard/${id}`);
   const groups=getProToolGroups(id);
   return <main className="page"><div className="backdrop"/><div className="wrap">
     <header className="top"><Link href={`/app-dashboard/${id}`}>← Standard Workspace</Link><span>SOOLENAI · PROFESSIONAL MODE · {access.professional.daysRemaining} DAYS LEFT</span></header>
-    <section className="hero"><small>ADVANCED CONTROL WITH AI ASSISTANCE</small><h1>{app.name}<br/><em>Professional Workspace</em></h1><p>{PRO_MODE.principle}</p><div className="badges"><span>Same project</span><span>AI-first changes</span><span>Versioned edits</span><span>Manual tools when needed</span></div></section>
-    <ProAssistant appId={id} initialSpec={current.specification} quickActions={PRO_MODE.aiQuickActions}/>
+    <section className="hero"><small>ADVANCED CONTROL WITH AI ASSISTANCE</small><h1>{app.name}<br/><em>Professional Workspace</em></h1><p>{PRO_MODE.principle}</p><div className="badges"><span>Same project</span><span>AI-first changes</span><span>Versioned edits</span><span>Protected concurrent edits</span></div></section>
+    <ProAssistant appId={id} quickActions={PRO_MODE.aiQuickActions}/>
     <section className="toolSection"><div className="sectionHead"><div><small>PRO WORKSPACE</small><h2>Design · Logic · Release</h2></div><p>Use AI for normal changes. Open these tools only when you want exact control.</p></div><div className="groups">{groups.map(group=><article className="group" key={group.name}><h3>{group.name}</h3>{group.items.map(item=><Link href={item.href} key={item.name}><strong>{item.name}</strong><span>{item.note}</span><b>→</b></Link>)}</article>)}</div></section>
     <section className="rules"><h2>Professional Mode does not reduce Standard quality</h2><p>Standard remains US$10 one-time when applicable. Professional is US$68 for 365 days with no automatic renewal. Both share the same premium quality floor; Professional adds deeper control, not basic quality.</p></section>
   </div><style>{shellCss}</style></main>;
