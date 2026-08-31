@@ -18,7 +18,8 @@ assert.deepEqual(AAA_MOBILE_PRODUCTION_V1.targetPlatforms,["ios","android","web-
 const knowledge=inferAaaMobileProductionCapabilities("Create a AAA 3D action RPG with animation blend tree IK ragdoll NavMesh tactical AI skill editor VFX editor terrain biome settlement quest editor debugger and profiler");
 assert.equal(knowledge.matched,true);
 for(const key of ["animation","ik","ragdoll","navmesh","tacticalAi","skillEditor","vfxEditor","terrain","biome","settlement","visualNarrative","profiler"])assert.equal(knowledge.wants[key],true,`AAA inference missing ${key}`);
-assert.match(knowledge.truthRule,/real-device/i);
+assert.match(knowledge.truthRule,/native-device|real-device/i);
+assert.match(knowledge.truthRule,/measured production evidence/i);
 
 const tree=createBlendTree({clips:[{id:"idle",speed:0,direction:0},{id:"walk",speed:2,direction:0},{id:"run",speed:6,direction:0}]});
 const blend=evaluateBlendTree(tree,{speed:5.8,direction:0,grounded:true});assert.equal(blend.primary,"run");
