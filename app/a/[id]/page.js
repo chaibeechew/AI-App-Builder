@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server.js";
 import GeneratedAppClient from "./GeneratedAppClient";
 import GameRuntimeClient from "./GameRuntimeClient";
+import MobaRuntimeClient from "./MobaRuntimeClient";
 import AnalyticsTracker from "../../components/AnalyticsTracker.js";
 
 export async function generateMetadata({ params }) {
@@ -32,5 +33,7 @@ export default async function GeneratedAppPage({ params }) {
   const media=await loadProjectMedia(supabase,id);
   const specification=current.specification;
   const isGame=specification?.productType==="mobile_game"||specification?.game?.enabled===true;
-  return <><AnalyticsTracker appId={id} channel={isGame?"game":"app"} eventName={isGame?"game_runtime_view":"app_view"}/>{isGame?<GameRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:<GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>}</>;
+  const isMoba=isGame&&(specification?.game?.archetype==="moba"||String(specification?.game?.genre||"").toLowerCase().includes("moba"));
+  const runtime=isMoba?<MobaRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isGame?<GameRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:<GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
+  return <><AnalyticsTracker appId={id} channel={isGame?"game":"app"} eventName={isMoba?"moba_runtime_view":isGame?"game_runtime_view":"app_view"}/>{runtime}</>;
 }
