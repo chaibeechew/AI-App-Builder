@@ -1,28 +1,34 @@
 import assert from 'node:assert/strict';
-import { evaluateReleaseReadiness, RELEASE_SCORE_REQUIRED, RELEASE_DIMENSIONS_REQUIRED } from '../lib/release-readiness.js';
+import { evaluateReleaseReadiness, evaluateProductionEvidence, RELEASE_SCORE_REQUIRED, RELEASE_DIMENSIONS_REQUIRED, PRODUCTION_EVIDENCE_REQUIREMENTS } from '../lib/release-readiness.js';
 import { PRODUCT_POLICY } from '../config/product-policy.js';
 
-function report(score=99){
+function report(score=100){
   return {overall:score,dimensions:RELEASE_DIMENSIONS_REQUIRED.map(id=>({id,score}))};
 }
 
-assert.equal(RELEASE_SCORE_REQUIRED,99,'Release target must remain 99.');
+assert.equal(RELEASE_SCORE_REQUIRED,100,'Release target must remain 100.');
 assert.deepEqual(RELEASE_DIMENSIONS_REQUIRED,["stability","security","privacy","comfort","beauty","naturalness"]);
 
-assert.equal(evaluateReleaseReadiness(report(99)).releaseReady,true,'A complete 99 report should pass.');
-assert.equal(evaluateReleaseReadiness(report(98)).releaseReady,false,'Overall 98 must fail.');
+assert.equal(evaluateReleaseReadiness(report(100)).releaseReady,true,'A complete 100 report should pass the deterministic score gate.');
+assert.equal(evaluateReleaseReadiness(report(99)).releaseReady,false,'Overall 99 must fail the 100-point gate.');
 
-const oneWeak=report(99);
-oneWeak.dimensions=oneWeak.dimensions.map(x=>x.id==='security'?{...x,score:98}:x);
+const oneWeak=report(100);
+oneWeak.dimensions=oneWeak.dimensions.map(x=>x.id==='security'?{...x,score:99}:x);
 const weakResult=evaluateReleaseReadiness(oneWeak);
-assert.equal(weakResult.releaseReady,false,'Any quality dimension below 99 must fail.');
+assert.equal(weakResult.releaseReady,false,'Any quality dimension below 100 must fail.');
 assert.deepEqual(weakResult.belowTarget,['security']);
 
-const missing=report(99);
+const missing=report(100);
 missing.dimensions=missing.dimensions.filter(x=>x.id!=='privacy');
 const missingResult=evaluateReleaseReadiness(missing);
 assert.equal(missingResult.releaseReady,false,'Missing dimensions must fail closed.');
 assert.deepEqual(missingResult.missing,['privacy']);
+
+const noEvidence=evaluateProductionEvidence({});
+assert.equal(noEvidence.ready,false,'Production evidence must fail closed when missing.');
+assert.equal(noEvidence.missing.length,PRODUCTION_EVIDENCE_REQUIREMENTS.length);
+const fullEvidence=evaluateProductionEvidence(Object.fromEntries(PRODUCTION_EVIDENCE_REQUIREMENTS.map(key=>[key,true])));
+assert.equal(fullEvidence.ready,true,'Complete production evidence should pass the evidence contract.');
 
 assert.equal(PRODUCT_POLICY.promotion.freeFirstProject.enabled,true);
 assert.equal(PRODUCT_POLICY.promotion.freeFirstProject.projectsPerEligibleCustomer,1);
@@ -47,7 +53,8 @@ assert.equal(PRODUCT_POLICY.monetization.buyout.personal.priceUsd,49);
 assert.equal(PRODUCT_POLICY.monetization.buyout.business.priceUsd,199);
 assert.equal(PRODUCT_POLICY.monetization.buyout.enterprise.priceUsd,499);
 
-console.log('✓ Release evaluator fails closed below 99 or with missing dimensions');
+console.log('✓ Release evaluator fails closed below 100 or with missing dimensions');
+console.log('✓ Production evidence contract fails closed until evidence is complete');
 console.log('✓ Free-first-project promotion policy remains intact');
 console.log('✓ Standard / Pro / 3-year review pricing policy remains intact');
 console.log('✓ Apple / Google external fee separation remains intact');
