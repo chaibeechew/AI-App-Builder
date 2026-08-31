@@ -3,6 +3,8 @@ import { createClient } from "../../../../../lib/supabase/server.js";
 import { buildStoreReadiness } from "../../../../../lib/publishing/store-readiness-policy.js";
 
 function present(value) { return String(value ?? "").trim().length > 0; }
+function safeObject(value){return value&&typeof value==="object"&&!Array.isArray(value)?value:{};}
+function clean(value,max=500){return String(value??"").trim().replace(/\s+/g," ").slice(0,max);}
 
 function listingMetadata(listing) {
   if (!listing) return null;
@@ -14,6 +16,11 @@ function listingMetadata(listing) {
   };
 }
 
+async function ownedProject(supabase,userId,id){
+  const {data:app}=await supabase.from("apps").select("id,name,description,current_version_id,owner_id").eq("id",id).eq("owner_id",userId).single();
+  return app||null;
+}
+
 export async function GET(_request, { params }) {
   try {
     const { id } = await params;
@@ -21,19 +28,15 @@ export async function GET(_request, { params }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
 
-    const { data: app } = await supabase
-      .from("apps")
-      .select("id,name,description,current_version_id,owner_id")
-      .eq("id", id)
-      .eq("owner_id", user.id)
-      .single();
+    const app=await ownedProject(supabase,user.id,id);
     if (!app) return NextResponse.json({ error: "Project not found." }, { status: 404 });
     if (!app.current_version_id) return NextResponse.json({ error: "A saved project version is required first." }, { status: 409 });
 
-    const [{ data: version }, { data: listing }, { data: projectAssets }] = await Promise.all([
+    const [{ data: version }, { data: listing }, { data: projectAssets }, {data:memoryRow}] = await Promise.all([
       supabase.from("app_versions").select("id,version_no,specification").eq("id", app.current_version_id).eq("app_id", id).single(),
       supabase.from("store_listings").select("id,version_id,language,apple,google_play,checklist,customer_approved_at,updated_at").eq("app_id", id).eq("version_id", app.current_version_id).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("project_assets").select("id,asset_id,suggested_page,suggested_role,placement_reason").eq("app_id", id).eq("owner_id", user.id),
+      supabase.from("project_memory").select("memory_json").eq("app_id",id).eq("owner_id",user.id).maybeSingle(),
     ]);
 
     if (!version) return NextResponse.json({ error: "Current project version not found." }, { status: 404 });
@@ -57,6 +60,7 @@ export async function GET(_request, { params }) {
       targetAudience: google.audienceSummary || "",
       loginRequired: /authenticated areas|provide review\/demo access/i.test(String(apple.reviewNotes || "")),
     };
+    const customerDeclarations=safeObject(memoryRow?.memory_json?.storePublishingDeclarations);
 
     const needsCustomer = [];
     if (!present(inferredAnswers.supportEmail)) needsCustomer.push({ key: "supportEmail", label: "Support email", reason: "The stores need a real customer support contact and AI must not invent it." });
@@ -65,7 +69,7 @@ export async function GET(_request, { params }) {
     if (!present(inferredAnswers.supportUrl)) needsCustomer.push({ key: "supportUrl", label: "Support URL", reason: "The support destination must be a real reachable page." });
     if (inferredAnswers.loginRequired) needsCustomer.push({ key: "reviewAccess", label: "Store review login access", reason: "If login is required, the customer must provide valid reviewer/demo access in the official store console." });
 
-    const readiness=buildStoreReadiness({specification:version.specification||{},listing,assets,inferredAnswers});
+    const readiness=buildStoreReadiness({specification:version.specification||{},listing,assets,inferredAnswers,customerDeclarations});
     for(const item of readiness.customerRequired){
       if(!needsCustomer.some(existing=>existing.key===item.key))needsCustomer.push({key:item.key,label:item.label,reason:item.reason});
     }
@@ -90,8 +94,6 @@ export async function GET(_request, { params }) {
       { platform: "stores", label: "Final store declarations and review", payer: "customer_action" },
     ];
 
-    const readyForReview = Boolean(listing) && readiness.readyForCustomerReview;
-
     return NextResponse.json({
       success: true,
       app: { id: app.id, name: app.name },
@@ -99,13 +101,14 @@ export async function GET(_request, { params }) {
       listing: listing || null,
       metadata: listingMetadata(listing),
       inferredAnswers,
+      customerDeclarations,
       autoFilled,
       needsCustomer,
       unresolvedChecklist,
       externalActions,
       assetCount: assets.length,
       storeReadiness: readiness,
-      readyForReview,
+      readyForReview: Boolean(listing) && readiness.readyForCustomerReview,
       customerApproved: Boolean(listing?.customer_approved_at),
       readyForOfficialSubmission: false,
       note: "SoolenAI can prepare and validate store information, icon/screenshot requirements and permission-purpose gaps, but it must not guess customer declarations, store credentials, signing credentials or platform review answers. Official submission remains controlled by the customer and Apple/Google.",
@@ -114,4 +117,21 @@ export async function GET(_request, { params }) {
     console.error("PUBLISHING_AGENT_ERROR", error);
     return NextResponse.json({ error: "Unable to evaluate store publishing readiness." }, { status: 500 });
   }
+}
+
+export async function POST(request,{params}){
+  try{
+    const{id}=await params;const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();
+    if(!user)return NextResponse.json({error:"Authentication required."},{status:401});
+    const app=await ownedProject(supabase,user.id,id);if(!app)return NextResponse.json({error:"Project not found."},{status:404});
+    const body=await request.json();const incoming=safeObject(body?.declarations);const permissionInput=safeObject(incoming.permissionPurposes);const allowedPermissionKeys=["camera","microphone","location","photos","notifications"];const permissionPurposes={};
+    for(const key of allowedPermissionKeys){const value=clean(permissionInput[key],500);if(value)permissionPurposes[key]=value;}
+    const termsChoice=["platform_default","custom"].includes(incoming.termsChoice)?incoming.termsChoice:"";const termsUrl=clean(incoming.termsUrl,500);
+    if(termsChoice==="custom"&&!/^https:\/\//i.test(termsUrl))return NextResponse.json({error:"A custom Terms / EULA must use a real HTTPS URL."},{status:400});
+    const declarations={termsChoice,termsUrl:termsChoice==="custom"?termsUrl:"",ageRatingAcknowledged:incoming.ageRatingAcknowledged===true,permissionPurposes,updatedAt:new Date().toISOString()};
+    const{data:existing}=await supabase.from("project_memory").select("memory_json,learning_scope").eq("app_id",id).eq("owner_id",user.id).maybeSingle();const memory=safeObject(existing?.memory_json);
+    const{error}=await supabase.from("project_memory").upsert({app_id:id,owner_id:user.id,memory_json:{...memory,storePublishingDeclarations:declarations},learning_scope:existing?.learning_scope||"project_only",updated_at:new Date().toISOString()},{onConflict:"app_id"});
+    if(error)throw error;
+    return NextResponse.json({success:true,declarations,message:"Customer publishing declarations saved to this project. Official store-console declarations are still not submitted."});
+  }catch(error){console.error("PUBLISHING_DECLARATIONS_SAVE_ERROR",error);return NextResponse.json({error:"Unable to save publishing declarations."},{status:500});}
 }
