@@ -39,10 +39,14 @@ jobs:
         run: node scripts/mobile-game-capability-tests.mjs
       - name: Pro Game Runtime V1 contract tests
         run: node scripts/game-runtime-v1-tests.mjs
+      - name: Genre Runtime Intelligence contract tests
+        run: node scripts/genre-runtime-intelligence-tests.mjs
       - name: MOBA Runtime V1 contract tests
         run: node scripts/moba-runtime-v1-tests.mjs
       - name: Aviation knowledge contract tests
         run: node scripts/aviation-knowledge-tests.mjs
+      - name: Air Combat Runtime V1 and 3D foundation contract tests
+        run: node scripts/air-combat-runtime-v1-tests.mjs
       - name: Zero-cost Vercel function budget guard
         run: node scripts/vercel-function-budget-tests.mjs
       - name: 100-point structural readiness gate
