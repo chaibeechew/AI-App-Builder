@@ -10,6 +10,7 @@ const readiness=read('lib/non-production-readiness.js');
 const dashboard=read('app/app-dashboard/[id]/page.js');
 const pro=read('app/pro/[id]/page.js');
 const proAssistant=read('app/pro/[id]/ProAssistant.js');
+const proModePolicy=read('lib/pro-mode.js');
 const accessReader=read('lib/app-builder-access.js');
 const accessRuntime=read('supabase/migrations/20260831120000_preview_access_credit_runtime.sql');
 const generate=read('app/api/generate/route.js');
@@ -48,6 +49,10 @@ assert.match(pro,/getAppBuilderAccess/,'Professional workspace must read server-
 assert.match(pro,/!access\.professional\.active/,'Professional workspace must block advanced controls when Pro is inactive or expired.');
 assert.match(pro,/US\$68 · 365 days · no auto-renew/,'Professional workspace must show the agreed one-payment 365-day terms.');
 assert.match(pro,/project is never deleted|project.*never deleted/i,'Professional expiry must preserve customer projects.');
+assert.match(proModePolicy,/standard_usd_10_one_time_pro_usd_68_365_days_fair_price_fair_use/,'Professional Mode policy must match the current Fair Price · Fair Use terms.');
+assert.match(proModePolicy,/professionalAutoRenew: false/,'Professional Mode policy must never silently auto-renew.');
+assert.match(proModePolicy,/priceReviewIntervalYears: 3/,'Professional Mode policy must preserve the three-year price review interval.');
+assert.match(proModePolicy,/priceIncreaseOptional: true/,'A three-year price review must not force a price increase.');
 assert.match(accessRuntime,/standard_project_credits/,'Standard US$10 access must be modeled as a one-project creation entitlement instead of a monthly subscription.');
 assert.match(accessRuntime,/pro_valid_until/,'Professional access must have a real expiry field.');
 assert.match(accessRuntime,/grant_standard_project_credit/,'A trusted server path must be able to grant Standard project access after payment.');
@@ -87,11 +92,20 @@ assert.match(video,/renderStarted:false/,'Video Studio must not claim final rend
 
 const dashboardHasPro=/\/pro\/\$\{id\}|\/pro\//.test(dashboard);
 assert.equal(dashboardHasPro,true,'Project dashboard must expose Professional Mode without requiring a hidden URL.');
+assert.match(dashboard,/getAppBuilderAccess/,'Project dashboard must read Professional access from trusted server state.');
+assert.match(dashboard,/WORKSPACE MODE/,'Project dashboard must present Standard and Professional as a clear workspace choice.');
+assert.match(dashboard,/STANDARD MODE · CURRENT/,'Standard Mode must be visibly identified as the default simple workspace.');
+assert.match(dashboard,/AI handles everything for you/,'Standard Mode must explain its no-code AI-first experience.');
+assert.match(dashboard,/access\.professional\.active/,'Dashboard Professional status must be based on server-side access, not a client-only switch.');
+assert.match(dashboard,/access\.professional\.daysRemaining/,'Active Professional access must show remaining access time.');
+assert.match(dashboard,/same project and the same version history/i,'Mode switching must explain that it preserves one project and one history.');
+assert.match(dashboard,/US\$68 · 365 days · no auto-renew/,'Inactive Professional Mode must show the agreed terms before entry.');
 assert.match(pro,/Advanced control with AI assistance|Professional Workspace/,'Professional Mode must explain its AI-assisted control model.');
 
 console.log('✓ Non-production 100-point contract is explicit and Production remains held');
 console.log('✓ Free/Standard/Pro access is server-controlled, request-bound and expiry-aware');
 console.log('✓ Failed first-project generation restores the reserved promotion instead of silently consuming it');
+console.log('✓ Standard/Professional workspace switching is clear, server-aware and keeps one shared project history');
 console.log('✓ Professional AI can change the project and synchronize supported modules only with active Pro access');
 console.log('✓ Publishing Agent separates AI-filled data, customer truth and external store actions');
 console.log('✓ Changed store metadata invalidates stale customer approval');
