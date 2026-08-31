@@ -21,8 +21,10 @@ function suggestedSchema(spec){
 export async function POST(request,{params}){
   try{
     const {id}=await params,supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});
+    const body=await request.json().catch(()=>({}));
     const {data:app}=await supabase.from("apps").select("id,name,current_version_id,source_prompt").eq("id",id).eq("owner_id",user.id).single();if(!app?.current_version_id)return NextResponse.json({error:"Saved project required."},{status:404});
-    const {data:version}=await supabase.from("app_versions").select("specification").eq("id",app.current_version_id).eq("app_id",id).single();const body=await request.json().catch(()=>({}));
+    const expectedVersionId=String(body?.expectedVersionId||"").trim();if(expectedVersionId&&expectedVersionId!==String(app.current_version_id))return NextResponse.json({error:"Project changed before module synchronization. Refresh and run the latest version."},{status:409});
+    const {data:version}=await supabase.from("app_versions").select("specification").eq("id",app.current_version_id).eq("app_id",id).single();
     const plan=body?.plan&&typeof body.plan==="object"?body.plan:buildAutonomousPlan({idea:String(app.source_prompt||version?.specification?.description||app.name),assetCount:Number(body?.assetCount||0),createVideo:Boolean(body?.createVideo)});
     const results={database:null,workflows:[],video:null,media:[]};
 
@@ -33,11 +35,13 @@ export async function POST(request,{params}){
       for(const workflow of plan.workflows.slice(0,5)){if(names.has(workflow.name)){results.workflows.push({name:workflow.name,status:"existing"});continue;}const {data,error}=await supabase.from("app_workflows").insert({app_id:id,owner_id:user.id,name:workflow.name,trigger_type:workflow.triggerType,trigger_config:{},actions:workflow.actions,enabled:true}).select("id,name").single();results.workflows.push(error?{name:workflow.name,status:"failed",message:error.message}:{name:data.name,status:"ready",id:data.id});}
     }
 
-    const {data:placements}=await supabase.from("project_assets").select("asset_id").eq("app_id",id).eq("owner_id",user.id);
-    const assetIds=[...new Set((placements||[]).map(x=>x.asset_id).filter(Boolean))];
-    if(assetIds.length){
-      const {data:assets}=await supabase.from("asset_library").select("id,file_name,mime_type,category,intelligence").eq("user_id",user.id).in("id",assetIds);const pages=Array.isArray(version?.specification?.pages)?version.specification.pages:[];
-      for(const asset of assets||[]){const placement=chooseMediaPlacement(asset,pages);const {error}=await supabase.from("project_assets").update({suggested_page:placement.suggested_page,suggested_role:placement.suggested_role,placement_reason:placement.placement_reason}).eq("app_id",id).eq("asset_id",asset.id).eq("owner_id",user.id);results.media.push(error?{assetId:asset.id,status:"failed",message:error.message}:{assetId:asset.id,status:"ready",page:placement.suggested_page,role:placement.suggested_role,detectedRole:placement.detected_role});}
+    if(plan?.modules?.media){
+      const {data:placements}=await supabase.from("project_assets").select("asset_id").eq("app_id",id).eq("owner_id",user.id).limit(40);
+      const assetIds=[...new Set((placements||[]).map(x=>x.asset_id).filter(Boolean))];
+      if(assetIds.length){
+        const {data:assets}=await supabase.from("asset_library").select("id,file_name,mime_type,category,intelligence").eq("user_id",user.id).in("id",assetIds);const pages=Array.isArray(version?.specification?.pages)?version.specification.pages:[];
+        for(let i=0;i<(assets||[]).length;i+=8){const batch=(assets||[]).slice(i,i+8);const batchResults=await Promise.all(batch.map(async asset=>{const placement=chooseMediaPlacement(asset,pages);const {error}=await supabase.from("project_assets").update({suggested_page:placement.suggested_page,suggested_role:placement.suggested_role,placement_reason:placement.placement_reason}).eq("app_id",id).eq("asset_id",asset.id).eq("owner_id",user.id);return error?{assetId:asset.id,status:"failed",message:error.message}:{assetId:asset.id,status:"ready",page:placement.suggested_page,role:placement.suggested_role,detectedRole:placement.detected_role}}));results.media.push(...batchResults);}
+      }
     }
 
     if(plan?.modules?.video){
