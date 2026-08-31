@@ -10,6 +10,10 @@ const readiness=read('lib/non-production-readiness.js');
 const dashboard=read('app/app-dashboard/[id]/page.js');
 const pro=read('app/pro/[id]/page.js');
 const proAssistant=read('app/pro/[id]/ProAssistant.js');
+const accessReader=read('lib/app-builder-access.js');
+const accessRuntime=read('supabase/migrations/20260831120000_preview_access_credit_runtime.sql');
+const generate=read('app/api/generate/route.js');
+const modify=read('app/api/modify/route.js');
 const publish=read('app/publish/[id]/page.js');
 const metadata=read('app/api/store-metadata/route.js');
 const metadataSave=read('app/api/store-metadata/save/route.js');
@@ -37,6 +41,24 @@ assert.match(proAssistant,/\/api\/apps\/\$\{appId\}\/bootstrap/,'Professional Mo
 assert.match(proAssistant,/Customer confirmation \/ setup still needed/,'Professional Mode must separate safe AI actions from customer/external confirmation.');
 assert.match(editor,/Version History & Rollback/,'No-code editor must preserve undo/rollback access.');
 assert.match(editor,/TARGET: whole App \+ Website|TARGET PAGE/,'No-code editor must support scoped natural-language changes.');
+
+assert.match(accessReader,/app_builder_account_access/,'Access reader must use server-controlled App Builder access state.');
+assert.match(accessReader,/pro_valid_until/,'Professional access must expire from a server-side date.');
+assert.match(pro,/getAppBuilderAccess/,'Professional workspace must read server-side access state.');
+assert.match(pro,/!access\.professional\.active/,'Professional workspace must block advanced controls when Pro is inactive or expired.');
+assert.match(pro,/US\$68 · 365 days · no auto-renew/,'Professional workspace must show the agreed one-payment 365-day terms.');
+assert.match(pro,/project is never deleted|project.*never deleted/i,'Professional expiry must preserve customer projects.');
+assert.match(accessRuntime,/standard_project_credits/,'Standard US$10 access must be modeled as a one-project creation entitlement instead of a monthly subscription.');
+assert.match(accessRuntime,/pro_valid_until/,'Professional access must have a real expiry field.');
+assert.match(accessRuntime,/grant_standard_project_credit/,'A trusted server path must be able to grant Standard project access after payment.');
+assert.match(accessRuntime,/grant_pro_access/,'A trusted server path must be able to grant 365-day Professional access after payment.');
+assert.match(accessRuntime,/grant execute on function public\.grant_pro_access\(uuid,integer\) to service_role/,'Customers must not be able to grant themselves Professional access.');
+assert.match(generate,/p_request_id:chargeRequestId/,'Generate entitlement reservations must be request-bound.');
+assert.match(generate,/bind_app_builder_project_access/,'Successful generation must bind its paid or promotional access to the created project.');
+assert.match(generate,/restore_failed_app_builder_create/,'Failed generation must restore a consumed free/Standard creation reservation safely.');
+assert.match(modify,/p_request_id:chargeRequestId/,'Modify entitlement checks must be request-bound.');
+assert.match(accessRuntime,/Refund amount does not match original charge/,'AI credit refunds must never mint more credit than the original charge.');
+assert.match(accessRuntime,/credit_transactions_request_type_unique_idx/,'AI credit mutation must be idempotent by request and transaction type.');
 
 assert.match(metadata,/customerAnswers/,'Store metadata assistant must use customer truth inputs.');
 assert.match(metadata,/privacyPolicyUrl/,'Publishing assistant must support privacy policy metadata.');
@@ -68,8 +90,10 @@ assert.equal(dashboardHasPro,true,'Project dashboard must expose Professional Mo
 assert.match(pro,/Advanced control with AI assistance|Professional Workspace/,'Professional Mode must explain its AI-assisted control model.');
 
 console.log('✓ Non-production 100-point contract is explicit and Production remains held');
-console.log('✓ Professional AI can change the project and synchronize supported modules');
+console.log('✓ Free/Standard/Pro access is server-controlled, request-bound and expiry-aware');
+console.log('✓ Failed first-project generation restores the reserved promotion instead of silently consuming it');
+console.log('✓ Professional AI can change the project and synchronize supported modules only with active Pro access');
 console.log('✓ Publishing Agent separates AI-filled data, customer truth and external store actions');
 console.log('✓ Changed store metadata invalidates stale customer approval');
 console.log('✓ Workflow, database, payment and video reliability contracts are present');
-console.log('✓ Professional Mode is reachable from the project dashboard');
+console.log('✓ Professional Mode is reachable from the project dashboard while expired access remains safely locked');
