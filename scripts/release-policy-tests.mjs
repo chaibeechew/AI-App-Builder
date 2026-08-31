@@ -25,11 +25,25 @@ const missingResult=evaluateReleaseReadiness(missing);
 assert.equal(missingResult.releaseReady,false,'Missing dimensions must fail closed.');
 assert.deepEqual(missingResult.missing,['privacy']);
 
-const qualityWords='error loading empty retry backup offline validation status confirmation auth login permission role secure access admin token privacy consent personal delete export private data mobile simple clear search filter navigation responsive accessible visual design style brand image gallery theme layout hero background premium human natural friendly personalized context local language workflow';
+const qualityWords='error loading empty retry backup offline validation status confirmation auth login permission role secure access admin token privacy consent personal delete export private data mobile simple clear search filter navigation responsive accessible visual design style brand image gallery theme layout hero background premium palette color wallpaper card human natural friendly personalized context local language workflow';
 const richSpec={
   name:'Release Test App',
   description:qualityWords,
-  designSystem:{mood:'premium natural',visualDirection:'premium visual design',backgroundDirection:'layered background image',heroDirection:'memorable hero',layoutSignature:'original responsive layout',fontDirection:'readable editorial typography',iconStyle:'clear accessible icons'},
+  designSystem:{
+    mood:'premium natural',
+    visualDirection:'premium visual design',
+    backgroundDirection:'layered background image',
+    heroDirection:'memorable hero',
+    layoutSignature:'original responsive layout',
+    fontDirection:'readable editorial typography',
+    iconStyle:'clear accessible icons',
+    themeMode:'auto',
+    colorPreference:'industry-coordinated premium palette',
+    paletteRationale:'high contrast palette selected for audience readability and brand mood',
+    cardStyle:'layered glass and solid cards with clear hierarchy',
+    imageStyle:'cinematic original imagery with product-relevant composition',
+    wallpaperPreset:'moon-city'
+  },
   qualityPlan:Object.fromEntries(RELEASE_DIMENSIONS_REQUIRED.map(id=>[id,[`${id} implementation ${qualityWords}`,`${id} recovery and validation decision`,`${id} mobile privacy accessibility workflow decision`]])),
   pages:Array.from({length:6},(_,i)=>({name:`Page ${i+1}`,description:qualityWords,purpose:'clear human workflow',layout:'responsive accessible layout',visualTreatment:'premium visual style',backgroundTreatment:'premium background'})),
   features:Array.from({length:9},(_,i)=>({name:`Feature ${i+1}`,description:qualityWords,uiPattern:'clear responsive workflow'})),
@@ -43,6 +57,8 @@ assert.equal(perfectQuality.dimensions.every(x=>x.score===100),true,'Every dimen
 const keywordOnly=assessBuildQuality({...richSpec,qualityPlan:{}});
 assert.equal(keywordOnly.overall<100,true,'Keyword-rich specifications without explicit quality evidence must not reach 100.');
 assert.equal(keywordOnly.dimensions.every(x=>x.score<=99),true,'Missing qualityPlan evidence must cap every dimension below 100.');
+const incompleteVisual=assessBuildQuality({...richSpec,designSystem:{...richSpec.designSystem,wallpaperPreset:'',cardStyle:''}});
+assert.equal(incompleteVisual.dimensions.find(x=>x.id==='beauty')?.score<=99,true,'Beauty must stay below 100 when explicit wallpaper/card visual evidence is incomplete.');
 
 const noEvidence=evaluateProductionEvidence({});
 assert.equal(noEvidence.ready,false,'Production evidence must fail closed when missing.');
@@ -75,6 +91,7 @@ assert.equal(PRODUCT_POLICY.monetization.buyout.enterprise.priceUsd,499);
 
 console.log('✓ Release evaluator fails closed below 100 or with missing dimensions');
 console.log('✓ 100 score requires explicit per-dimension quality evidence');
+console.log('✓ Beauty 100 requires complete palette, card, image and wallpaper evidence');
 console.log('✓ Keyword-only quality claims are capped below 100');
 console.log('✓ Production evidence contract fails closed until evidence is complete');
 console.log('✓ Free-first-project promotion policy remains intact');
