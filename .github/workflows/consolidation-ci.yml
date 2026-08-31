@@ -63,6 +63,8 @@ jobs:
         run: node scripts/game-studio-intelligence-tests.mjs
       - name: Autonomous Game Director V2 contract tests
         run: node scripts/autonomous-game-director-v2-tests.mjs
+      - name: Autonomous Game Development Agent V3 contract tests
+        run: node scripts/autonomous-game-development-agent-v3-tests.mjs
       - name: MOBA Runtime V1 contract tests
         run: node scripts/moba-runtime-v1-tests.mjs
       - name: Aviation knowledge contract tests
