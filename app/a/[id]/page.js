@@ -6,10 +6,12 @@ import MobaRuntimeClient from "./MobaRuntimeClient";
 import AirCombatRuntimeClient from "./AirCombatRuntimeClient";
 import SpecialistRuntimeClient from "./SpecialistRuntimeClient";
 import AdvancedGenreRuntimeClient from "./AdvancedGenreRuntimeClient";
+import RemainingGenreRuntimeClient from "./RemainingGenreRuntimeClient";
 import AnalyticsTracker from "../../components/AnalyticsTracker.js";
 
 const SPECIALIST_RUNTIME_EVENTS=Object.freeze({rpg:"rpg_runtime_view",puzzle:"puzzle_runtime_view",action:"action_runtime_view"});
 const ADVANCED_RUNTIME_EVENTS=Object.freeze({strategy:"strategy_runtime_view",racing:"racing_runtime_view",simulation:"simulation_runtime_view",card:"card_runtime_view",sports:"sports_runtime_view",rhythm:"rhythm_runtime_view",survival:"survival_runtime_view"});
+const REMAINING_RUNTIME_EVENTS=Object.freeze({shooter:"shooter_runtime_view",platformer:"platformer_runtime_view",tower_defense:"tower_defense_runtime_view",idle:"idle_runtime_view",party:"party_runtime_view",educational:"educational_runtime_view"});
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -29,6 +31,12 @@ function inferAdvancedType(archetype,genre){
   const combined=`${archetype} ${genre}`;const rules=[
     ["strategy",/strategy|slg|tactics|策略|战略|戰略/],["racing",/racing|race|driving|赛车|賽車/],["simulation",/simulation|tycoon|\bsim\b|经营|經營/],
     ["card",/card|deck|卡牌/],["sports",/sports|football|basketball|soccer|体育|體育/],["rhythm",/rhythm|music game|节奏|節奏/],["survival",/survival|roguelike|roguelite|生存/]
+  ];return rules.find(([,pattern])=>pattern.test(combined))?.[0]||"";
+}
+function inferRemainingType(archetype,genre){
+  const combined=`${archetype} ${genre}`;const rules=[
+    ["shooter",/shooter|shooting|fps|tps|stg|射击|射擊/],["platformer",/platform|runner|跑酷|平台跳跃|平台跳躍/],["tower_defense",/tower defense|td game|塔防/],
+    ["idle",/idle|incremental|clicker|放置/],["party",/party|social|minigame|派对|派對/],["educational",/educational|learning|quiz|教育|学习|學習/]
   ];return rules.find(([,pattern])=>pattern.test(combined))?.[0]||"";
 }
 
@@ -54,7 +62,9 @@ export default async function GeneratedAppPage({ params }) {
   const isSpecialist=Boolean(specialistType);
   const advancedType=isGame&&!isMoba&&!isAirCombat&&!isSpecialist?inferAdvancedType(archetype,genre):"";
   const isAdvanced=Boolean(advancedType);
-  const runtime=isMoba?<MobaRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isAirCombat?<AirCombatRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isSpecialist?<SpecialistRuntimeClient appId={id} app={app} specification={{...specification,game:{...(specification.game||{}),archetype:specialistType}}} customerMedia={media}/>:isAdvanced?<AdvancedGenreRuntimeClient appId={id} app={app} specification={{...specification,game:{...(specification.game||{}),archetype:advancedType}}} customerMedia={media}/>:isGame?<GameRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:<GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
-  const eventName=isMoba?"moba_runtime_view":isAirCombat?"air_combat_runtime_view":isSpecialist?SPECIALIST_RUNTIME_EVENTS[specialistType]:isAdvanced?ADVANCED_RUNTIME_EVENTS[advancedType]:isGame?"game_runtime_view":"app_view";
+  const remainingType=isGame&&!isMoba&&!isAirCombat&&!isSpecialist&&!isAdvanced?inferRemainingType(archetype,genre):"";
+  const isRemaining=Boolean(remainingType);
+  const runtime=isMoba?<MobaRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isAirCombat?<AirCombatRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:isSpecialist?<SpecialistRuntimeClient appId={id} app={app} specification={{...specification,game:{...(specification.game||{}),archetype:specialistType}}} customerMedia={media}/>:isAdvanced?<AdvancedGenreRuntimeClient appId={id} app={app} specification={{...specification,game:{...(specification.game||{}),archetype:advancedType}}} customerMedia={media}/>:isRemaining?<RemainingGenreRuntimeClient appId={id} app={app} specification={{...specification,game:{...(specification.game||{}),archetype:remainingType}}} customerMedia={media}/>:isGame?<GameRuntimeClient appId={id} app={app} specification={specification} customerMedia={media}/>:<GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
+  const eventName=isMoba?"moba_runtime_view":isAirCombat?"air_combat_runtime_view":isSpecialist?SPECIALIST_RUNTIME_EVENTS[specialistType]:isAdvanced?ADVANCED_RUNTIME_EVENTS[advancedType]:isRemaining?REMAINING_RUNTIME_EVENTS[remainingType]:isGame?"game_runtime_view":"app_view";
   return <><AnalyticsTracker appId={id} channel={isGame?"game":"app"} eventName={eventName}/>{runtime}</>;
 }
