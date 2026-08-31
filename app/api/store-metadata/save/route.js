@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../lib/supabase/server.js";
+import { createAdminClient } from "../../../../lib/supabase/admin.js";
 
 function safeObject(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -26,7 +27,9 @@ export async function POST(request) {
       if (!version) return NextResponse.json({ error: "Version not found." }, { status: 404 });
       if (app.current_version_id && app.current_version_id !== versionId) return NextResponse.json({ error: "Store metadata can only be saved for the current project version." }, { status: 409 });
     }
-    const { data, error } = await supabase.from("store_listings").upsert({
+
+    const admin=createAdminClient();
+    const { data, error } = await admin.from("store_listings").upsert({
       app_id: appId,
       version_id: versionId,
       language,
