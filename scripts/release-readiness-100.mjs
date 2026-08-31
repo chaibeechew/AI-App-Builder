@@ -17,6 +17,8 @@ const generate = read('app/api/generate/route.js');
 const autonomous = read('engine/autonomous-engine.js');
 const workflow = read('.github/workflows/consolidation-ci.yml');
 const readiness = read('lib/release-readiness.js');
+const buildStandards = read('lib/buildStandards.js');
+const runtimeGuard = read('lib/generator/runtime-guard.js');
 const videoApiIndex = read('app/api/video/projects/route.js') + read('app/api/video/storyboard/route.js');
 const releaseTests = read('scripts/release-policy-tests.mjs');
 const securityTests = read('scripts/security-contract-tests.mjs');
@@ -25,6 +27,7 @@ const checks = [
   ['Core build route persists generated projects', contains('app/api/generate/route.js',['app_versions','specification'])],
   ['AI modify route versions changes', modify.includes('app_versions') && modify.includes('version_no')],
   ['AI modify applies same generation quality standard', modify.includes('GENERATION_QUALITY_RULES') && modify.includes('assessBuildQuality')],
+  ['AI modify preserves explicit quality evidence', modify.includes('qualityPlan') && modify.includes('at least 3 concrete implementation decisions')],
   ['AI modify repairs deterministic quality regressions', modify.includes('qualityRegressed') && modify.includes('SoolenAI Quality Repair')],
   ['AI modify fails closed if repair still regresses quality', modify.includes('would reduce the project') && modify.includes('status:409')],
   ['No-code editor uses natural-language AI modify', editor.includes('/api/modify') && editor.includes('textarea')],
@@ -40,6 +43,9 @@ const checks = [
   ['100 is described as internal target not zero-defect guarantee', readiness.includes('not a guarantee of zero bugs')],
   ['Production evidence fails closed by contract', releaseTests.includes('Production evidence must fail closed when missing') && releaseTests.includes('Complete production evidence should pass')],
   ['Generation receives explicit quality rules', autonomous.includes('GENERATION_QUALITY_RULES') && generate.includes('runAutonomousEngine')],
+  ['Generation emits explicit qualityPlan evidence', autonomous.includes('QUALITY PLAN REQUIREMENT') && autonomous.includes('"qualityPlan"')],
+  ['Perfect score cannot come from keywords alone', buildStandards.includes('evidenceComplete') && buildStandards.includes('Math.min(99,raw)') && buildStandards.includes('qualityPlan')],
+  ['Runtime guard preserves quality and visual metadata', ['qualityPlan','backgroundTreatment','dataModels','demoVideo'].every((term)=>runtimeGuard.includes(term))],
   ['Premium visual direction is generated', contains('engine/autonomous-engine.js',['designSystem','backgroundDirection','heroDirection','layoutSignature'])],
   ['Fair Price Fair Use customer policy exists', policy.includes('Fair Price · Fair Use')],
   ['Free first App + Website continues until first publish', policy.includes('freeFirstProject') && policy.includes('includesReasonableAiModificationUntilReady: true') && policy.includes('endsWhenProjectIsPublished: true')],
@@ -63,7 +69,7 @@ const checks = [
   ['CI runs security tests before 100 readiness gate', workflow.indexOf('npm run test:security') >= 0 && workflow.indexOf('npm run test:security') < workflow.indexOf('npm run quality:100')],
   ['CI runs 100 readiness gate before build', workflow.indexOf('npm run quality:100') >= 0 && workflow.indexOf('npm run quality:100') < workflow.indexOf('npm run build')],
   ['CI builds exact branch', workflow.includes('integration/primary-consolidation')],
-  ['No fake security or zero-bug marketing claims in quality policy', !/guaranteed security|100% secure|zero bugs guaranteed/i.test(read('lib/buildStandards.js'))],
+  ['No fake security or zero-bug marketing claims in quality policy', !/guaranteed security|100% secure|zero bugs guaranteed/i.test(buildStandards)],
 ];
 
 const failed = checks.filter(([,ok])=>!ok);
