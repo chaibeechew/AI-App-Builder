@@ -29,10 +29,10 @@ export default async function AppDashboard({ params }) {
     <section className="aiFirst"><div><span>NO CODE NEEDED</span><h2>Want to change something?</h2><p>Open the Visual Editor and tell AI in normal language: change the style, background, layout, wording, buttons, pages or mobile experience.</p></div><Link href={`/editor/${id}`}>✨ Tell AI What to Change →</Link></section>
 
     <section className="mainActions">
-      <Link href={`/a/${id}?demo=1`}><i>📱</i><strong>Preview App</strong><span>See the customer experience</span></Link>
+      <Link href={`/a/${id}?demo=1`}><i>📱</i><strong>Open App Demo</strong><span>See the customer experience</span></Link>
       <Link href={`/website/${id}`}><i>🌐</i><strong>Preview Website</strong><span>Check mobile + desktop</span></Link>
       <Link href={`/editor/${id}`}><i>✨</i><strong>Change Design</strong><span>No-code AI visual editing</span></Link>
-      <Link href={`/release/${id}`}><i>🚀</i><strong>Publish</strong><span>Website, App and stores</span></Link>
+      <Link href={`/release/${id}`}><i>🚀</i><strong>Publishing</strong><span>Prepare Website, App and store release</span></Link>
     </section>
 
     <section className="statusGrid"><div><small>Version</small><strong>{current?.version_no || 1}</strong></div><div><small>Pages</small><strong>{pages.length}</strong></div><div><small>Features</small><strong>{features.length}</strong></div><div><small>Data Groups</small><strong>{dataGroups}</strong></div><div><small>Media</small><strong>{media?.length || 0}</strong></div><div><small>Automations</small><strong>{workflowCount}</strong></div></section>
