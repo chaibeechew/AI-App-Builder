@@ -11,6 +11,7 @@ import StudioLauncher from "./components/StudioLauncher";
 import AdaptiveWallpaperEngine from "./components/AdaptiveWallpaperEngine";
 import PremiumJourneyTheme from "./components/PremiumJourneyTheme";
 import PreciseEditAssistant from "./components/PreciseEditAssistant";
+import GeneratedDataManager from "./components/GeneratedDataManager";
 import { PRODUCT_BRAND } from "../lib/ai/premium-visual-policy.js";
 
 export const metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
         <AccountNav />
         {children}
         <PreciseEditAssistant />
+        <GeneratedDataManager />
         <StudioLauncher />
         <ReferenceUploader />
         <SoolenVoiceAssistant />
