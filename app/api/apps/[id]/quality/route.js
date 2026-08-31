@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
 import { assessBuildQuality } from "../../../../../lib/buildStandards.js";
-import { evaluateReleaseReadiness, RELEASE_POLICY_NOTE } from "../../../../../lib/release-readiness.js";
+import { evaluateReleaseReadiness, RELEASE_POLICY_NOTE, PRODUCTION_EVIDENCE_REQUIREMENTS, PRODUCTION_EVIDENCE_LABELS } from "../../../../../lib/release-readiness.js";
 
 export async function GET(_request, { params }) {
   try {
@@ -30,6 +30,7 @@ export async function GET(_request, { params }) {
       criticalPassed: readiness.releaseReady,
       belowTarget: readiness.belowTarget,
       missingDimensions: readiness.missing,
+      productionEvidence: PRODUCTION_EVIDENCE_REQUIREMENTS.map((key) => ({ key, label: PRODUCTION_EVIDENCE_LABELS[key] })),
       note: `${RELEASE_POLICY_NOTE} Current project release requires ${readiness.requiredScore}/100 overall and in every quality dimension.`,
     });
   } catch (error) {
