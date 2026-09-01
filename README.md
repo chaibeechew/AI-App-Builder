@@ -4,7 +4,8 @@
 **3-in-1 AI Creation Platform**  
 **Create Anything. From One Idea.**
 
-Powered by **SoolenAI**.
+Powered by **SoolenAI**.  
+Repository: **chaibeechew/LANERIQ-AI**
 
 LANERIQ AI is an AI creation platform for planning, creating, modifying, testing and managing Apps, Websites and Pro Game projects from natural-language ideas.
 
