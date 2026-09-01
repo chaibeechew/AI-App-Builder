@@ -1,4 +1,4 @@
-/* AI BUILD APP & WEB global cinematic background rotation */
+/* LANERIQ AI global cinematic background rotation */
 
 :root {
   --soolen-bg-1: url('/02ACE732-9849-4674-8901-E264BCA5C02D.png');
@@ -12,7 +12,8 @@
 }
 
 .bg,
-.authPage {
+.authPage,
+.studio {
   background-position: center !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
@@ -29,6 +30,12 @@
 .authPage {
   background-image:
     linear-gradient(rgba(1,10,12,.28), rgba(1,8,10,.72)),
+    var(--soolen-bg-1) !important;
+}
+
+.studio {
+  background-image:
+    linear-gradient(180deg,rgba(1,9,8,.58),rgba(1,9,8,.82)),
     var(--soolen-bg-1) !important;
 }
 
@@ -96,6 +103,12 @@
 }
 
 @media (max-width: 620px) {
+  .bg,
+  .authPage,
+  .studio {
+    background-attachment: scroll !important;
+  }
+
   .authPage::before {
     opacity: .48;
     background-image:
@@ -109,11 +122,47 @@
     opacity: .4;
     background-size: 58px 58px, 94px 94px, 100% 100%, 100% 100%;
   }
+
+  /* Mobile typography must stay premium without dominating the viewport. */
+  .authPage .heroCopy h1 {
+    font-size: clamp(30px,9.6vw,38px) !important;
+    line-height: .99 !important;
+    letter-spacing: -.04em !important;
+  }
+
+  .authPage .authCard h2 {
+    font-size: 28px !important;
+    line-height: 1.04 !important;
+  }
+
+  .studio .hero {
+    padding: 34px 0 18px !important;
+  }
+
+  .studio .hero h1 {
+    font-size: clamp(30px,9vw,38px) !important;
+    line-height: 1.02 !important;
+    letter-spacing: -.035em !important;
+    margin: 10px 0 14px !important;
+  }
+
+  .studio .hero p {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .authPage .heroCopy h1,
+  .studio .hero h1 {
+    font-size: 32px !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bg,
-  .authPage {
+  .authPage,
+  .studio {
     animation: none !important;
   }
 }
