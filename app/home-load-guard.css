@@ -1,15 +1,17 @@
 /* LANERIQ AI mobile load guard.
-   Keep the selected style image visible immediately, but defer the rest until
-   HomeLoadGuard marks tiles near the viewport as asset-ready. */
+   Priority assets remain visible without waiting for hydration:
+   - first 3 style thumbnails
+   - first 2 template thumbnails
+   Everything else can wait until HomeLoadGuard marks it asset-ready. */
 
-.premiumHome .styleRail button:not(.chosen) i:not(.asset-ready),
-.premiumHome .templateRail i:not(.asset-ready){
+.premiumHome .styleRail button:nth-child(n+4):not(.chosen) i:not(.asset-ready),
+.premiumHome .templateRail button:nth-child(n+3) i:not(.asset-ready){
   background-image:none!important;
   background:linear-gradient(145deg,#0a241d,#061612)!important;
 }
 
-.premiumHome .styleRail i:not(.asset-ready)::before,
-.premiumHome .templateRail i:not(.asset-ready)::before{
+.premiumHome .styleRail button:nth-child(n+4):not(.chosen) i:not(.asset-ready)::before,
+.premiumHome .templateRail button:nth-child(n+3) i:not(.asset-ready)::before{
   content:"";
   display:block;
   width:100%;
@@ -19,8 +21,8 @@
 }
 
 @media (prefers-reduced-motion:no-preference){
-  .premiumHome .styleRail i:not(.asset-ready)::before,
-  .premiumHome .templateRail i:not(.asset-ready)::before{
+  .premiumHome .styleRail button:nth-child(n+4):not(.chosen) i:not(.asset-ready)::before,
+  .premiumHome .templateRail button:nth-child(n+3) i:not(.asset-ready)::before{
     animation:laneriqTilePulse 1.7s ease-in-out infinite;
   }
 }
