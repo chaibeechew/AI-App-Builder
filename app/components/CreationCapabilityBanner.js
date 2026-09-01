@@ -7,7 +7,7 @@ import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 const CREATIVE=[
   {href:"/image-studio?mode=create",title:"AI Art Generator"},
   {href:"/video-studio",title:"AI Video Generator"},
-  {href:"/image-studio?mode=create",title:"AI Photo & Video"},
+  {href:"/image-studio?mode=create",title:"AI Photo & Video Generator"},
   {href:"/avatar-studio",title:"AI Avatar Creator"}
 ];
 
