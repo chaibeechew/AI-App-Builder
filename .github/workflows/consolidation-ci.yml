@@ -29,8 +29,8 @@ jobs:
         run: npm run test:runtime
       - name: Non-production 100-point product tests
         run: npm run test:nonprod
-      - name: CREOVA AI customer-facing brand contract tests
-        run: node scripts/creova-brand-tests.mjs
+      - name: LANERIQ AI customer-facing brand contract tests
+        run: node scripts/laneriq-brand-tests.mjs
       - name: Project Readiness contract tests
         run: node scripts/project-readiness-tests.mjs
       - name: Publishing Readiness contract tests
