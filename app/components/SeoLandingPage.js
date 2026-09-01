@@ -22,15 +22,15 @@ export default function SeoLandingPage({ slug }) {
       <section className="seoHero">
         <div className="seoShell">
           <Link href="/" className="seoBrand" aria-label={`${PRODUCT_BRAND.name} home`}>
-            <span>LANERIQ AI</span>
-            <small>APPS • GAMES • WEB</small>
+            <span>{PRODUCT_BRAND.name}</span>
+            <small>{PRODUCT_BRAND.capabilities}</small>
           </Link>
           <div className="seoEyebrow">{page.eyebrow}</div>
           <h1>{page.heading}</h1>
           <p className="seoIntro">{page.intro}</p>
           <div className="seoActions">
             <Link href={page.ctaHref} className="seoPrimary">{page.ctaLabel} →</Link>
-            <Link href="/" className="seoSecondary">Explore LANERIQ AI</Link>
+            <Link href="/" className="seoSecondary">Explore {PRODUCT_BRAND.name}</Link>
           </div>
           <p className="seoTagline">{PRODUCT_BRAND.tagline}</p>
         </div>
@@ -38,7 +38,7 @@ export default function SeoLandingPage({ slug }) {
 
       <section className="seoSection">
         <div className="seoShell">
-          <div className="seoSectionHead"><small>WHY LANERIQ AI</small><h2>From idea to a testable product path</h2></div>
+          <div className="seoSectionHead"><small>WHY {PRODUCT_BRAND.name}</small><h2>From idea to a testable product path</h2></div>
           <div className="seoGrid">{page.benefits.map((item, index) => <article key={item}><b>{String(index + 1).padStart(2, "0")}</b><h3>{item}</h3></article>)}</div>
         </div>
       </section>
@@ -58,7 +58,7 @@ export default function SeoLandingPage({ slug }) {
       </section>
 
       <section className="seoTruth">
-        <div className="seoShell"><strong>Truth boundary</strong><p>LANERIQ AI only claims production capabilities when the required external evidence exists. Live providers, signed native builds, measured real-device performance and official store approval remain explicitly evidence-gated.</p></div>
+        <div className="seoShell"><strong>Truth boundary</strong><p>{PRODUCT_BRAND.name} only claims production capabilities when the required external evidence exists. Live providers, signed native builds, measured real-device performance and official store approval remain explicitly evidence-gated.</p></div>
       </section>
 
       <section className="seoRelated">

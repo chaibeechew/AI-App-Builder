@@ -22,10 +22,11 @@ const googleVerification = String(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATI
 const organizationSchema = buildOrganizationJsonLd();
 const softwareSchema = buildSoftwareJsonLd();
 const discoveryDescription = `${PRODUCT_BRAND.capabilities}. ${PRODUCT_BRAND.tagline} Create apps, games and websites with AI-powered planning, design, building, testing and preview workflows for web, iOS and Android targets.`;
+const discoveryTitle = `${PRODUCT_BRAND.name} — AI App, Game & Website Builder`;
 
 export const metadata = {
   ...(SEO_SITE_URL ? { metadataBase: new URL(SEO_SITE_URL) } : {}),
-  title: "LANERIQ AI — AI App, Game & Website Builder",
+  title: discoveryTitle,
   description: discoveryDescription,
   applicationName: PRODUCT_BRAND.name,
   category: "technology",
@@ -36,13 +37,13 @@ export const metadata = {
     type: "website",
     locale: "en_US",
     siteName: PRODUCT_BRAND.name,
-    title: "LANERIQ AI — AI App, Game & Website Builder",
+    title: discoveryTitle,
     description: discoveryDescription,
     ...(homeCanonical ? { url: homeCanonical } : {}),
   },
   twitter: {
     card: "summary_large_image",
-    title: "LANERIQ AI — AI App, Game & Website Builder",
+    title: discoveryTitle,
     description: `${PRODUCT_BRAND.tagline} ${PRODUCT_BRAND.capabilities}.`,
   },
   ...(googleVerification ? { verification: { google: googleVerification } } : {}),

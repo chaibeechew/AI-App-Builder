@@ -2,11 +2,10 @@
 import {useLayoutEffect} from "react";
 import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
-// Legacy migration aliases are retained for old data/tests only: AI BUILD APP & WEB → LANERIQ AI. Customer-facing copy resolves to LANERIQ AI.
+// Legacy customer-facing brand aliases migrate to the canonical PRODUCT_BRAND name.
 const REPLACEMENTS=[
+  [/LANERIQ AI/gi,PRODUCT_BRAND.name],
   [/CREOVA AI/gi,PRODUCT_BRAND.name],
-  [/AI BUILD APP\s*&\s*WEB/gi,PRODUCT_BRAND.name],
-  [/AI BUILD APP&WEB/gi,PRODUCT_BRAND.name],
   [/AI APP\s*&\s*WEB CREATOR/gi,PRODUCT_BRAND.name],
   [/AI App\s*&\s*Web Creator/gi,PRODUCT_BRAND.name],
   [/AI APP BUILDER/gi,PRODUCT_BRAND.name],
@@ -22,14 +21,14 @@ export default function ProductCopyFix(){
       for(const node of nodes){const tag=node.parentElement?.tagName;if(["SCRIPT","STYLE","TEXTAREA","INPUT"].includes(tag))continue;const next=rewrite(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;}
 
       const hero=document.querySelector(".heroCopy h1");
-      if(hero&&hero.dataset.laneriqBrand!=="1"){
+      if(hero&&hero.dataset.productBrand!=="1"){
         hero.innerHTML=`<span>${PRODUCT_BRAND.name}</span><strong>${PRODUCT_BRAND.capabilities}</strong>`;
-        hero.dataset.laneriqBrand="1";
+        hero.dataset.productBrand="1";
       }
       const heroCopy=document.querySelector(".heroCopy > p");
-      if(heroCopy&&heroCopy.dataset.laneriqBrand!=="1"){
+      if(heroCopy&&heroCopy.dataset.productBrand!=="1"){
         heroCopy.innerHTML=`${PRODUCT_BRAND.descriptor}<br/>${PRODUCT_BRAND.tagline}`;
-        heroCopy.dataset.laneriqBrand="1";
+        heroCopy.dataset.productBrand="1";
       }
       const promptLabel=document.querySelector(".promptHead label");
       if(promptLabel&&/App\s*&\s*Website/i.test(promptLabel.textContent||""))promptLabel.textContent="Describe the App, Game or Website you want to create";
@@ -43,7 +42,7 @@ export default function ProductCopyFix(){
       });
       const title=rewrite(document.title);
       if(document.title!==title)document.title=title;
-      document.documentElement.dataset.laneriqCopyReady="1";
+      document.documentElement.dataset.productBrandReady="1";
     };
     fix();const o=new MutationObserver(fix);o.observe(document.body,{childList:true,subtree:true,characterData:true});return()=>o.disconnect();
   },[]);return null;

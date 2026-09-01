@@ -21,13 +21,16 @@ const slugs = [
   "no-code-ai-builder",
 ];
 
-assert.match(layout, /LANERIQ AI — AI App, Game & Website Builder/);
+assert.match(layout, /discoveryTitle = `\$\{PRODUCT_BRAND\.name\} — AI App, Game & Website Builder`/);
+assert.doesNotMatch(layout, /LANERIQ AI/);
 assert.match(layout, /SEO_CORE_KEYWORDS/);
 assert.match(layout, /NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION/);
 assert.match(layout, /buildSoftwareJsonLd/);
 assert.match(layout, /application\/ld\+json/);
 assert.match(seo, /SoftwareApplication/);
-console.log("✓ Root metadata targets AI app, game and website builder discovery with structured data");
+assert.match(seo, /const brand = PRODUCT_BRAND\.name/);
+assert.doesNotMatch(seo, /LANERIQ AI/);
+console.log("✓ Root metadata targets AI app, game and website discovery using the canonical brand contract");
 
 for (const keyword of ["AI app builder", "AI game builder", "AI website builder", "create app with AI", "create game with AI", "no code AI app builder", "AI mobile app builder", "AI app game website builder"]) {
   assert.ok(seo.includes(`\"${keyword}\"`), `Missing SEO keyword: ${keyword}`);
@@ -42,6 +45,8 @@ for (const slug of slugs) {
 assert.match(component, /<h1>\{page\.heading\}<\/h1>/);
 assert.match(component, /Common questions/);
 assert.match(component, /Truth boundary/);
+assert.match(component, /PRODUCT_BRAND\.name/);
+assert.doesNotMatch(component, /LANERIQ AI/);
 console.log("✓ Eight differentiated, server-rendered SEO landing pages cover high-intent discovery queries");
 
 assert.match(robots, /SEO_INDEXING_ENABLED/);
@@ -59,4 +64,4 @@ assert.match(seo, /SoftwareApplication/);
 assert.doesNotMatch(seo, /aggregateRating|reviewCount|priceCurrency/);
 console.log("✓ Schema markup describes real platform capabilities without invented ratings, reviews or pricing");
 
-console.log("LANERIQ AI SEO foundation gate passed");
+console.log("AI BUILD APP & WEB SEO foundation gate passed");
