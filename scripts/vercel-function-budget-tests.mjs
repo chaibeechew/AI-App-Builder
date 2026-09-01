@@ -15,4 +15,13 @@ assert.match(rootLayout,/PublishingReadinessMount/);
 assert.match(mount,/usePathname/);
 assert.match(mount,/PublishingReadinessPanel/);
 
+const vercelConfig=read("vercel.json");
+const ignoreScript=read("scripts/vercel-ignore-build.mjs");
+assert.match(vercelConfig,/"ignoreCommand": "node scripts\/vercel-ignore-build\.mjs"/);
+assert.match(ignoreScript,/VERCEL_GIT_COMMIT_MESSAGE/);
+assert.match(ignoreScript,/\[vercel-deploy\]/i);
+assert.match(ignoreScript,/process\.exit\(0\)/);
+assert.match(ignoreScript,/process\.exit\(1\)/);
+
 console.log("✓ Zero-cost Vercel function budget guard keeps legacy root functions removed and Store Readiness client-mounted");
+console.log("✓ Vercel Git builds are skipped by default and only run for an explicit [vercel-deploy] consolidated release commit");
