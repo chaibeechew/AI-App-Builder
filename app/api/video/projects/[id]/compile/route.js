@@ -1,117 +1,76 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../../lib/supabase/server.js";
+import { createAdminClient } from "../../../../../../lib/supabase/admin.js";
 import { getVideoComputePolicy } from "../../../../../../lib/video/compute-policy.js";
-import { checkVideoRenderStatus, getVideoRendererConfig, startVideoRender, VideoRenderGatewayError } from "../../../../../../lib/video/render-gateway.js";
+import { checkVideoRenderStatus, getVideoRendererConfig, normalizeVideoOutputPath, startVideoRender, VideoRenderGatewayError } from "../../../../../../lib/video/render-gateway.js";
+import { consumeAiCredits,refundAiCredits } from "../../../../../../lib/app-builder-finance.js";
 
+const MAX_REQUEST_BYTES=256*1024;
+const REQUEST_ID=/^[A-Za-z0-9._:-]{1,160}$/;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const VIDEO_RENDER_CREDIT_COST=Math.max(1,Number(process.env.VIDEO_RENDER_CREDIT_COST||5));
+function noStore(payload,status=200){return NextResponse.json(payload,{status,headers:{"Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","X-Content-Type-Options":"nosniff"}});}
+function safeSourceUrl(value){const raw=String(value||"").trim();if(!raw)return null;if(raw.length>2000)return null;let url;try{url=new URL(raw)}catch{return null}if(url.protocol!=="https:"||url.username||url.password)return null;const allow=new Set(String(process.env.VIDEO_SOURCE_HOST_ALLOWLIST||"").split(",").map(v=>v.trim().toLowerCase()).filter(Boolean));try{const supabase=new URL(String(process.env.NEXT_PUBLIC_SUPABASE_URL||""));allow.add(supabase.hostname.toLowerCase())}catch{}return allow.has(url.hostname.toLowerCase())?url.toString():null;}
 function sanitizeClip(value,index){
+  const rawSource=typeof value?.sourceUrl==="string"?value.sourceUrl.trim():"";
   return {
-    id:String(value?.id||`clip-${index+1}`).slice(0,120),
-    assetId:value?.assetId||null,
-    sourceUrl:typeof value?.sourceUrl==="string"?value.sourceUrl.slice(0,2000):null,
+    id:String(value?.id||`clip-${index+1}`).replace(/[^A-Za-z0-9._:-]/g,"-").slice(0,120),
+    assetId:typeof value?.assetId==="string"&&UUID.test(value.assetId)?value.assetId:null,
+    sourceUrl:rawSource?safeSourceUrl(rawSource):null,
+    unsafeSource:Boolean(rawSource&&!safeSourceUrl(rawSource)),
     durationSeconds:Math.max(0.1,Math.min(20,Number(value?.durationSeconds)||1)),
     trimStartSeconds:Math.max(0,Number(value?.trimStartSeconds)||0),
     trimEndSeconds:value?.trimEndSeconds==null?null:Math.max(0,Number(value.trimEndSeconds)||0),
     transition:["cut","fade","crossfade","slide"].includes(value?.transition)?value.transition:"cut",
     style:["realistic","cartoon","mixed"].includes(value?.style)?value.style:"mixed",
-    caption:String(value?.caption||"").slice(0,1000),
+    caption:String(value?.caption||"").replace(/[\u0000-\u001f\u007f]/g," ").slice(0,1000),
   };
 }
-
-function publicVersion(row){
-  const render=row?.edit_json?.render||{};
-  return {
-    id:row?.id,
-    version_no:row?.version_no,
-    duration_seconds:row?.duration_seconds,
-    render_status:row?.render_status,
-    output_path:row?.output_path||null,
-    provider:render.provider||null,
-    jobId:render.jobId||null,
-    created_at:row?.created_at,
-  };
-}
+function publicVersion(row){const render=row?.edit_json?.render||{};return{id:row?.id,version_no:row?.version_no,duration_seconds:row?.duration_seconds,render_status:row?.render_status,output_path:normalizeVideoOutputPath(row?.output_path)||null,jobAccepted:Boolean(render.jobId||render.outputPath),created_at:row?.created_at,replayed:Boolean(row?.replayed)};}
+async function ownedAssetSet(supabase,userId,ids){const unique=[...new Set(ids.filter(id=>typeof id==="string"&&UUID.test(id)))];if(!unique.length)return new Set();const{data,error}=await supabase.from("asset_library").select("id").eq("user_id",userId).in("id",unique);if(error)throw new Error("VIDEO_ASSET_LOOKUP_FAILED");return new Set((data||[]).map(row=>row.id));}
+function assetId(value){return typeof value==="string"&&UUID.test(value)?value:null;}
 
 export async function GET(request,{params}){
+  let userId=null,refundRequestId=null,refundAmount=0;
   try{
-    const {id}=await params;
-    const versionId=String(new URL(request.url).searchParams.get("versionId")||"").trim();
-    if(!versionId)return NextResponse.json({error:"Video version id is required."},{status:400});
-    const supabase=await createClient();
-    const {data:{user}}=await supabase.auth.getUser();
-    if(!user)return NextResponse.json({error:"Authentication required."},{status:401});
-    const {data:project}=await supabase.from("video_projects").select("id,status").eq("id",id).eq("owner_id",user.id).maybeSingle();
-    if(!project)return NextResponse.json({error:"Video project not found."},{status:404});
-    const {data:version,error}=await supabase.from("video_versions").select("id,project_id,owner_id,version_no,duration_seconds,render_status,output_path,edit_json,created_at").eq("id",versionId).eq("project_id",id).eq("owner_id",user.id).maybeSingle();
-    if(error)throw error;
-    if(!version)return NextResponse.json({error:"Video version not found."},{status:404});
-
-    if(["completed","failed","draft"].includes(version.render_status))return NextResponse.json({success:true,checked:false,version:publicVersion(version)});
-    const render=version.edit_json?.render||{};
-    const renderer=getVideoRendererConfig();
-    if(!renderer.configured||!renderer.statusEndpoint||!render.jobId)return NextResponse.json({success:true,checked:false,version:publicVersion(version),note:"This renderer has not provided a status-check connection yet."});
-
-    const checked=await checkVideoRenderStatus({jobId:render.jobId});
-    if(!checked.checked)return NextResponse.json({success:true,checked:false,version:publicVersion(version)});
-    const nextStatus=checked.status||version.render_status;
-    const nextOutput=checked.outputPath||version.output_path||null;
-    const nextJson={...version.edit_json,render:{...render,status:nextStatus,outputPath:nextOutput,lastCheckedAt:new Date().toISOString(),completedAt:nextStatus==="completed"?new Date().toISOString():render.completedAt||null}};
-    const {data:updated,error:updateError}=await supabase.from("video_versions").update({render_status:nextStatus,output_path:nextOutput,edit_json:nextJson}).eq("id",version.id).eq("project_id",id).eq("owner_id",user.id).select("id,version_no,duration_seconds,render_status,output_path,edit_json,created_at").single();
-    if(updateError)throw updateError;
-    const projectStatus=nextStatus==="completed"?"completed":nextStatus==="failed"?"failed":"rendering";
-    await supabase.from("video_projects").update({status:projectStatus,edit_json:nextJson,updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);
-    return NextResponse.json({success:true,checked:true,version:publicVersion(updated)});
-  }catch(error){
-    console.error("VIDEO_RENDER_STATUS_ERROR",error?.code||error?.name||"unknown");
-    if(error instanceof VideoRenderGatewayError)return NextResponse.json({error:error.message,code:error.code},{status:error.status});
-    return NextResponse.json({error:"Unable to check this video render."},{status:500});
-  }
+    const {id}=await params;const versionId=String(new URL(request.url).searchParams.get("versionId")||"").trim();if(!UUID.test(versionId))return noStore({error:"A valid video version id is required."},400);
+    const supabase=await createClient();const {data:{user},error:userError}=await supabase.auth.getUser();if(userError||!user)return noStore({error:"Authentication required."},401);userId=user.id;
+    const {data:project}=await supabase.from("video_projects").select("id,status").eq("id",id).eq("owner_id",user.id).maybeSingle();if(!project)return noStore({error:"Video project not found."},404);
+    const {data:version,error}=await supabase.from("video_versions").select("id,project_id,owner_id,version_no,duration_seconds,render_status,output_path,edit_json,created_at").eq("id",versionId).eq("project_id",id).eq("owner_id",user.id).maybeSingle();if(error)throw error;if(!version)return noStore({error:"Video version not found."},404);
+    const render=version.edit_json?.render||{};refundRequestId=String(render.creditRequestId||"");refundAmount=Math.max(0,Number(render.creditAmount)||0);
+    if(["completed","failed","draft"].includes(version.render_status)){if(version.render_status==="failed"&&refundRequestId&&refundAmount){try{await refundAiCredits(user.id,{requestId:refundRequestId,amount:refundAmount,description:"AI video render failed - automatic refund",metadata:{operation:"video_render",projectId:id,versionId:version.id}})}catch{}}return noStore({success:true,checked:false,version:publicVersion(version)});}
+    const renderer=getVideoRendererConfig();if(!renderer.configured||!renderer.statusEndpoint||!render.jobId)return noStore({success:true,checked:false,version:publicVersion(version),note:"This render job has no connected status-check endpoint yet."});
+    const checked=await checkVideoRenderStatus({jobId:render.jobId});if(!checked.checked)return noStore({success:true,checked:false,version:publicVersion(version)});
+    const nextStatus=checked.status||version.render_status,nextOutput=checked.outputPath||version.output_path||null;if(nextStatus==="failed"&&refundRequestId&&refundAmount){try{await refundAiCredits(user.id,{requestId:refundRequestId,amount:refundAmount,description:"AI video render failed - automatic refund",metadata:{operation:"video_render",projectId:id,versionId:version.id}})}catch{}}
+    const nextJson={...version.edit_json,render:{...render,status:nextStatus,outputPath:nextOutput,lastCheckedAt:new Date().toISOString(),completedAt:nextStatus==="completed"?new Date().toISOString():render.completedAt||null,failedAt:nextStatus==="failed"?new Date().toISOString():render.failedAt||null}};
+    const {data:updated,error:updateError}=await supabase.from("video_versions").update({render_status:nextStatus,output_path:nextOutput,edit_json:nextJson}).eq("id",version.id).eq("project_id",id).eq("owner_id",user.id).select("id,version_no,duration_seconds,render_status,output_path,edit_json,created_at").single();if(updateError)throw updateError;
+    const projectStatus=nextStatus==="completed"?"completed":nextStatus==="failed"?"failed":"rendering";const{error:projectError}=await supabase.from("video_projects").update({status:projectStatus,edit_json:nextJson,updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);if(projectError)throw projectError;
+    return noStore({success:true,checked:true,version:publicVersion(updated)});
+  }catch(error){console.error("VIDEO_RENDER_STATUS_ERROR",error?.code||error?.name||"unknown");if(error instanceof VideoRenderGatewayError)return noStore({error:"Unable to check the connected video render right now.",code:error.code},error.status);return noStore({error:"Unable to check this video render."},500);}
 }
 
 export async function POST(request,{params}){
+  let userId=null,creditRequestId=null,charged=false;
   try{
-    const {id}=await params;
-    const supabase=await createClient();
-    const {data:{user}}=await supabase.auth.getUser();
-    if(!user)return NextResponse.json({error:"Authentication required."},{status:401});
-    const {data:project}=await supabase.from("video_projects").select("id,owner_id,name,device_class,max_duration_seconds,style").eq("id",id).eq("owner_id",user.id).single();
-    if(!project)return NextResponse.json({error:"Video project not found."},{status:404});
-
-    const body=await request.json().catch(()=>({}));
-    const clips=Array.isArray(body?.clips)?body.clips.slice(0,40).map(sanitizeClip):[];
-    if(!clips.length)return NextResponse.json({error:"At least one video clip is required."},{status:400});
-    for(const clip of clips){const end=clip.trimEndSeconds??clip.durationSeconds;if(clip.trimStartSeconds>=end)return NextResponse.json({error:`Clip ${clip.id} has an invalid trim range.`},{status:400});}
-    const total=clips.reduce((sum,clip)=>sum+Math.max(0.1,(clip.trimEndSeconds??clip.durationSeconds)-clip.trimStartSeconds),0);
-    if(total>project.max_duration_seconds+0.01)return NextResponse.json({error:`This project is limited to ${project.max_duration_seconds} seconds on the current experience mode.`},{status:400});
-
-    const policy=getVideoComputePolicy(project.device_class);
-    const renderer=getVideoRendererConfig();
-    const rendererConfigured=renderer.configured;
-    const {data:last}=await supabase.from("video_versions").select("version_no").eq("project_id",id).eq("owner_id",user.id).order("version_no",{ascending:false}).limit(1).maybeSingle();
-    const versionNo=(last?.version_no||0)+1;
-    let editJson={version:1,autoConnected:Boolean(body?.autoConnect!==false),aspectRatio:["9:16","16:9","1:1"].includes(body?.aspectRatio)?body.aspectRatio:"9:16",clips:clips.map((clip,index)=>({...clip,order:index})),audio:{musicAssetId:body?.musicAssetId||null,voiceOverAssetId:body?.voiceOverAssetId||null,normalize:true},branding:{logoAssetId:body?.logoAssetId||null},render:{location:"server",quality:body?.quality==="best"?"best":"balanced",devicePreviewOnly:true,rendererConfigured,provider:rendererConfigured?renderer.provider:null,jobId:null,status:rendererConfigured?"queued":"draft",outputPath:null}};
-    const initialRenderStatus=rendererConfigured?"queued":"draft";
-    const {data:version,error}=await supabase.from("video_versions").insert({project_id:id,owner_id:user.id,version_no:versionNo,edit_json:editJson,duration_seconds:total,render_status:initialRenderStatus}).select("id,version_no,duration_seconds,render_status,created_at").single();
-    if(error)throw error;
-
-    if(!rendererConfigured){
-      await supabase.from("video_projects").update({edit_json:editJson,status:"draft",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);
-      return NextResponse.json({success:true,version,renderPlan:{serverRender:true,rendererConfigured:false,renderStarted:false,provider:null,jobId:null,outputPath:null,status:"draft",autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:"Edit version is saved safely as a draft. No final video renderer is connected yet, so AI BUILD APP & WEB will not claim that an MP4 is rendering or complete."}});
-    }
-
+    const contentLength=Number(request.headers.get("content-length")||0);if(contentLength>MAX_REQUEST_BYTES)return noStore({error:"Video edit request is too large."},413);
+    const {id}=await params;const supabase=await createClient();const {data:{user},error:userError}=await supabase.auth.getUser();if(userError||!user)return noStore({error:"Authentication required."},401);userId=user.id;if(!user.confirmed_at&&!user.email_confirmed_at&&!user.phone_confirmed_at)return noStore({error:"Account verification is required."},403);
+    const {data:project}=await supabase.from("video_projects").select("id,owner_id,name,device_class,max_duration_seconds,style").eq("id",id).eq("owner_id",user.id).maybeSingle();if(!project)return noStore({error:"Video project not found."},404);
+    const body=await request.json().catch(()=>null);if(!body)return noStore({error:"Invalid video edit request."},400);if(Buffer.byteLength(JSON.stringify(body),"utf8")>MAX_REQUEST_BYTES)return noStore({error:"Video edit request is too large."},413);
+    const requestId=String(body?.requestId||"").trim();if(!REQUEST_ID.test(requestId))return noStore({error:"A stable video compile request ID is required."},400);creditRequestId=requestId;
+    const clips=Array.isArray(body?.clips)?body.clips.slice(0,40).map(sanitizeClip):[];if(!clips.length)return noStore({error:"At least one video clip is required."},400);if(clips.some(clip=>clip.unsafeSource))return noStore({error:"A clip source URL is not from an approved private media host."},400);
+    for(const clip of clips){const end=clip.trimEndSeconds??clip.durationSeconds;if(clip.trimStartSeconds>=end)return noStore({error:`Clip ${clip.id} has an invalid trim range.`},400);}
+    const total=clips.reduce((sum,clip)=>sum+Math.max(0.1,(clip.trimEndSeconds??clip.durationSeconds)-clip.trimStartSeconds),0);if(total>project.max_duration_seconds+0.01)return noStore({error:`This project is limited to ${project.max_duration_seconds} seconds on the current experience mode.`},400);
+    const mediaIds=[...clips.map(clip=>clip.assetId),assetId(body?.musicAssetId),assetId(body?.voiceOverAssetId),assetId(body?.logoAssetId)].filter(Boolean);const owned=await ownedAssetSet(supabase,user.id,mediaIds);if(mediaIds.some(id=>!owned.has(id)))return noStore({error:"One or more video assets are unavailable or not owned by this account."},404);
+    const policy=getVideoComputePolicy(project.device_class),renderer=getVideoRendererConfig(),rendererConfigured=renderer.configured;const aspectRatio=["9:16","16:9","1:1"].includes(body?.aspectRatio)?body.aspectRatio:"9:16";
+    let editJson={version:1,autoConnected:Boolean(body?.autoConnect!==false),aspectRatio,clips:clips.map(({unsafeSource,...clip},index)=>({...clip,order:index})),audio:{musicAssetId:assetId(body?.musicAssetId),voiceOverAssetId:assetId(body?.voiceOverAssetId),normalize:true},branding:{logoAssetId:assetId(body?.logoAssetId)},render:{location:"server",quality:body?.quality==="best"?"best":"balanced",devicePreviewOnly:true,rendererConfigured,jobId:null,status:rendererConfigured?"queued":"draft",outputPath:null,creditRequestId:rendererConfigured?creditRequestId:null,creditAmount:rendererConfigured?VIDEO_RENDER_CREDIT_COST:0}};
+    const initialRenderStatus=rendererConfigured?"queued":"draft";const admin=createAdminClient();const{data:version,error:versionError}=await admin.rpc("server_create_video_version",{p_user_id:user.id,p_project_id:id,p_request_id:requestId,p_edit_json:editJson,p_duration_seconds:Number(total.toFixed(2)),p_render_status:initialRenderStatus});if(versionError)throw versionError;if(!version?.id)throw new Error("VIDEO_VERSION_SAVE_FAILED");
+    const persistedRender=version?.edit_json?.render||{};if(version.replayed&&(version.render_status!=="queued"||persistedRender.jobId||persistedRender.outputPath||!rendererConfigured))return noStore({success:true,replayed:true,version:publicVersion(version),renderPlan:{serverRender:true,rendererConfigured:Boolean(persistedRender.rendererConfigured),renderStarted:Boolean(persistedRender.jobId||persistedRender.outputPath),jobAccepted:Boolean(persistedRender.jobId||persistedRender.outputPath),outputPath:normalizeVideoOutputPath(version.output_path)||null,status:version.render_status,autoConnect:Boolean(version.edit_json?.autoConnected),clipCount:Array.isArray(version.edit_json?.clips)?version.edit_json.clips.length:clips.length,durationSeconds:Number(version.duration_seconds||total),aspectRatio:version.edit_json?.aspectRatio||aspectRatio,experience:policy.label,note:"This compile request was already saved; the exact persisted version was returned without creating a duplicate."}});
+    if(!rendererConfigured){const{error:projectError}=await supabase.from("video_projects").update({edit_json:editJson,status:"draft",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);if(projectError)throw projectError;return noStore({success:true,replayed:Boolean(version.replayed),version:publicVersion(version),renderPlan:{serverRender:true,rendererConfigured:false,renderStarted:false,jobAccepted:false,outputPath:null,status:"draft",autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:"Edit version is saved safely as a draft. No final video renderer is connected, so LANERIQ AI does not claim that an MP4 is rendering or complete."}});}
     try{
-      const render=await startVideoRender({project,version,editJson});
-      editJson={...editJson,render:{...editJson.render,provider:render.provider,jobId:render.jobId,status:render.status,outputPath:render.outputPath,startedAt:new Date().toISOString()}};
-      const projectStatus=render.status==="completed"?"completed":render.status==="failed"?"failed":"rendering";
-      const {error:versionUpdateError}=await supabase.from("video_versions").update({edit_json:editJson,render_status:render.status,output_path:render.outputPath}).eq("id",version.id).eq("project_id",id).eq("owner_id",user.id);
-      if(versionUpdateError)throw versionUpdateError;
-      await supabase.from("video_projects").update({edit_json:editJson,status:projectStatus,updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);
-      return NextResponse.json({success:true,version:{...version,render_status:render.status,output_path:render.outputPath},renderPlan:{serverRender:true,rendererConfigured:true,renderStarted:true,provider:render.provider,jobId:render.jobId,outputPath:render.outputPath,status:render.status,autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:render.status==="completed"?"Final MP4 output is ready.":"The configured server renderer accepted this version and returned a real render job. Status can now be checked until the MP4 is complete."}});
-    }catch(renderError){
-      const failedJson={...editJson,render:{...editJson.render,status:"failed",failedAt:new Date().toISOString(),errorCode:renderError?.code||"VIDEO_RENDER_FAILED"}};
-      await supabase.from("video_versions").update({edit_json:failedJson,render_status:"failed"}).eq("id",version.id).eq("project_id",id).eq("owner_id",user.id);
-      await supabase.from("video_projects").update({edit_json:failedJson,status:"failed",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);
-      const status=renderError instanceof VideoRenderGatewayError?renderError.status:502;
-      return NextResponse.json({success:false,error:renderError?.message||"The video edit was saved, but the configured renderer could not start.",code:renderError?.code||"VIDEO_RENDER_FAILED",version:{...version,render_status:"failed"},renderPlan:{serverRender:true,rendererConfigured:true,renderStarted:false,provider:renderer.provider,status:"failed",autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:"The edit version is preserved, but final rendering failed to start. No MP4 is reported as ready."}},{status});
-    }
-  }catch(error){console.error("VIDEO_COMPILE_ERROR",error);return NextResponse.json({error:error?.message||"Unable to compile video version."},{status:500});}
+      const charge=await consumeAiCredits(user.id,{amount:VIDEO_RENDER_CREDIT_COST,requestId:creditRequestId,description:"AI video rendering",metadata:{operation:"video_render",projectId:id,versionId:version.id}});charged=Boolean(charge?.charged);
+      const render=await startVideoRender({project,version,editJson});editJson={...editJson,render:{...editJson.render,jobId:render.jobId,status:render.status,outputPath:render.outputPath,startedAt:new Date().toISOString()}};const projectStatus=render.status==="completed"?"completed":render.status==="failed"?"failed":"rendering";
+      const {error:versionUpdateError}=await supabase.from("video_versions").update({edit_json:editJson,render_status:render.status,output_path:render.outputPath}).eq("id",version.id).eq("project_id",id).eq("owner_id",user.id);if(versionUpdateError)throw versionUpdateError;const{error:projectError}=await supabase.from("video_projects").update({edit_json:editJson,status:projectStatus,updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);if(projectError)throw projectError;
+      return noStore({success:true,replayed:Boolean(version.replayed),version:publicVersion({...version,edit_json:editJson,render_status:render.status,output_path:render.outputPath}),renderPlan:{serverRender:true,rendererConfigured:true,renderStarted:true,jobAccepted:true,outputPath:render.outputPath,status:render.status,autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,credits:{charged:charged?VIDEO_RENDER_CREDIT_COST:0,requestId:creditRequestId,balance:charge?.balance??null},note:render.status==="completed"?"Final MP4 output is ready from the authorized renderer.":"The authorized server renderer accepted a real render job. LANERIQ AI will only report completion after an approved output is returned."}});
+    }catch(renderError){if(charged){try{await refundAiCredits(user.id,{requestId:creditRequestId,amount:VIDEO_RENDER_CREDIT_COST,description:"AI video render failed - automatic refund",metadata:{operation:"video_render",projectId:id,versionId:version.id}})}catch{}charged=false;}const failedJson={...editJson,render:{...editJson.render,status:"failed",failedAt:new Date().toISOString(),errorCode:renderError?.code||"VIDEO_RENDER_FAILED"}};await supabase.from("video_versions").update({edit_json:failedJson,render_status:"failed"}).eq("id",version.id).eq("project_id",id).eq("owner_id",user.id);await supabase.from("video_projects").update({edit_json:failedJson,status:"failed",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);const status=renderError instanceof VideoRenderGatewayError?renderError.status:502;return noStore({success:false,error:"The video edit is saved, but the authorized renderer could not start this job.",code:renderError?.code||"VIDEO_RENDER_FAILED",version:publicVersion({...version,edit_json:failedJson,render_status:"failed"}),renderPlan:{serverRender:true,rendererConfigured:true,renderStarted:false,jobAccepted:false,status:"failed",autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:"The edit version is preserved and any render credit charge is refunded. No MP4 is reported as ready."}},status);}
+  }catch(error){console.error("VIDEO_COMPILE_ERROR",error?.code||error?.name||"unknown");if(charged&&creditRequestId&&userId){try{await refundAiCredits(userId,{requestId:creditRequestId,amount:VIDEO_RENDER_CREDIT_COST,description:"AI video render failed - automatic refund",metadata:{operation:"video_render"}})}catch{}}const message=String(error?.message||"");if(/insufficient credits/i.test(message))return noStore({error:"Insufficient credits.",requiredCredits:VIDEO_RENDER_CREDIT_COST},402);return noStore({error:"Unable to save or start this video version right now."},500);}
 }
