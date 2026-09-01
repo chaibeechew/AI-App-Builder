@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PRODUCT_BRAND } from "../../lib/product-brand.js";
 
 const LANGUAGES = [
   ["auto", "Auto · Follow iPhone"],
@@ -24,11 +25,11 @@ const LANGUAGES = [
 ];
 
 const ACK = {
-  "zh-CN": "我听到了。你可以继续修改，或者开始制作应用。",
-  "zh-HK": "我聽到了。你可以繼續修改，或者開始製作應用。",
-  "ms-MY": "Saya sudah dengar. Anda boleh terus mengubah atau mula membina aplikasi.",
-  "id-ID": "Saya sudah mendengar. Anda dapat mengubahnya atau mulai membuat aplikasi.",
-  "en-US": "I heard you. You can keep editing or start building your app.",
+  "zh-CN": "我听到了。你可以继续修改，或者开始制作你的 APP、游戏或网站。",
+  "zh-HK": "我聽到了。你可以繼續修改，或者開始製作你的 APP、遊戲或網站。",
+  "ms-MY": "Saya sudah dengar. Anda boleh terus mengubah atau mula mencipta app, game atau website anda.",
+  "id-ID": "Saya sudah mendengar. Anda dapat mengubahnya atau mulai membuat app, game, atau website.",
+  "en-US": "I heard you. You can keep editing or start creating your app, game or website.",
 };
 
 function normalizeLanguage(value) {
@@ -134,7 +135,7 @@ export default function SoolenVoiceAssistant() {
         setRecording(false);
         speech.current = null;
         if (finalText.current.trim()) {
-          setStatus("Speech captured. Review it or build your app.");
+          setStatus("Speech captured. Review it or start creating.");
           if (voiceReply) speak(ACK[recognitionLanguage()] || ACK["en-US"]);
         }
       };
@@ -162,7 +163,7 @@ export default function SoolenVoiceAssistant() {
   function sendToBuilder() {
     const value = text.trim();
     if (!value) {
-      setStatus("Tell us the app you want first.");
+      setStatus("Tell us what you want to create first.");
       return;
     }
     try { sessionStorage.setItem("soolenAppIdea", value); } catch {}
@@ -181,7 +182,7 @@ export default function SoolenVoiceAssistant() {
 
             <div className="sv-topline">
               <div className="sv-globe">◎</div>
-              <div className="sv-brand">AI App Builder<div className="sv-brandline" /></div>
+              <div className="sv-brand">{PRODUCT_BRAND.name}<div className="sv-brandline" /></div>
               <div className="sv-langtag">EN⌄</div>
             </div>
 
@@ -211,11 +212,11 @@ export default function SoolenVoiceAssistant() {
               </button>
             </div>
 
-            <label className="sv-label">YOUR APP IDEA</label>
-            <textarea value={text} onChange={(e) => { setText(e.target.value); finalText.current = e.target.value; }} placeholder="Speak or type the app you want to build." />
+            <label className="sv-label">YOUR IDEA</label>
+            <textarea value={text} onChange={(e) => { setText(e.target.value); finalText.current = e.target.value; }} placeholder="Speak or type the app, game or website you want to create." />
 
             <label className="sv-toggle"><input type="checkbox" checked={voiceReply} onChange={(e) => setVoiceReply(e.target.checked)} /> AI voice confirmation</label>
-            <button className="sv-build" onClick={sendToBuilder}>🚀 BUILD MY APP →</button>
+            <button className="sv-build" onClick={sendToBuilder}>🚀 CREATE APP • GAME • WEB →</button>
             {status && <div className="sv-status">{status}</div>}
           </div>
         </div>
