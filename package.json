@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "quality:100": "node scripts/release-readiness-100.mjs",
+    "test:brand": "node scripts/product-brand-tests.mjs",
     "test:release": "node scripts/release-policy-tests.mjs",
     "test:security": "node scripts/security-contract-tests.mjs",
     "test:runtime": "node scripts/runtime-contract-tests.mjs",
