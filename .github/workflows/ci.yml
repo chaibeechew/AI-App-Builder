@@ -79,6 +79,8 @@ jobs:
         run: npm run test:self-heal
       - name: AI Modify contract tests
         run: npm run test:modify
+      - name: AI Idea Planning contract tests
+        run: npm run test:idea
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
