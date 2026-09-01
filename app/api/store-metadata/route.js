@@ -20,13 +20,34 @@ function buildMetadata({ appName, description, category, keywords, language = "e
   const collectsPersonalData = yesNo(customerAnswers.collectsPersonalData);
   const containsAds = yesNo(customerAnswers.containsAds);
   const paidFeatures = yesNo(customerAnswers.paidFeatures);
+  const sharesPersonalData = yesNo(customerAnswers.sharesPersonalData);
+  const dataEncryptedInTransit = yesNo(customerAnswers.dataEncryptedInTransit);
+  const accountDeletionAvailable = yesNo(customerAnswers.accountDeletionAvailable);
+  const childDirected = yesNo(customerAnswers.childDirected);
+
+  const dataSafety = {
+    status: "customer_review_required",
+    autoSubmitted: false,
+    collectsData: collectsPersonalData,
+    sharesData: sharesPersonalData,
+    securityPractices: {
+      encryptedInTransit: dataEncryptedInTransit,
+      accountDeletionAvailable: loginRequired ? accountDeletionAvailable : false,
+    },
+    audience: {
+      childDirected,
+      targetAudience,
+    },
+    source: "customer_answers_draft",
+    reviewNote: "Draft only. The customer must review the final app behavior and complete Google Play Data Safety in the customer-owned Play Console before submission.",
+  };
 
   return {
     language,
     autoFill: {
       sellerType, targetAudience, supportEmail, loginRequired, collectsPersonalData, containsAds, paidFeatures,
       customerAnsweredFields: Object.keys(customerAnswers || {}).filter((key) => String(customerAnswers[key] ?? "").trim() !== ""),
-      generatedFields: ["name", "subtitle", "keywords", "promotionalText", "descriptions", "category", "store checklist"],
+      generatedFields: ["name", "subtitle", "keywords", "promotionalText", "descriptions", "category", "store checklist", "Google Play Data Safety draft"],
     },
     apple: {
       name,
@@ -49,8 +70,9 @@ function buildMetadata({ appName, description, category, keywords, language = "e
       developerWebsite: websiteUrl,
       contactEmail: supportEmail,
       audienceSummary: targetAudience,
+      dataSafety,
     },
-    declarations: { loginRequired, collectsPersonalData, containsAds, paidFeatures },
+    declarations: { loginRequired, collectsPersonalData, sharesPersonalData, containsAds, paidFeatures, dataEncryptedInTransit, accountDeletionAvailable, childDirected },
     checklist: [
       { field: "Privacy Policy URL", required: true, value: privacyUrl },
       { field: "Support URL", required: true, value: supportUrl },
@@ -59,6 +81,7 @@ function buildMetadata({ appName, description, category, keywords, language = "e
       { field: "App icon", required: true, value: "generated_or_customer_asset" },
       { field: "Screenshots", required: true, value: "generate_from_final_build" },
       { field: "Age/content rating", required: true, value: "requires_customer_confirmation_in_store_console" },
+      { field: "Google Play Data Safety", required: true, value: "customer_review_required_in_play_console" },
       { field: "Login review access", required: loginRequired, value: loginRequired ? "customer_must_provide_demo_access" : "not_required" },
       { field: "Store developer account", required: true, value: "customer_owned_account" }
     ],
