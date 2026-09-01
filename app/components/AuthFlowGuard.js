@@ -14,9 +14,8 @@ export default function AuthFlowGuard() {
     const next = safeInternalNext(rawNext);
     const originalFetch = window.fetch.bind(window);
     let redirected = false;
+    let disposed = false;
 
-    // Keep the visible URL canonical too. The server proxy performs the same check,
-    // and this client-side normalization is defense in depth for SPA/history mutations.
     if (rawNext && rawNext !== next) {
       params.set("next", next);
       const search = params.toString();
@@ -28,8 +27,6 @@ export default function AuthFlowGuard() {
       window.history.replaceState(window.history.state, "", `/auth${search ? `?${search}` : ""}`);
     }
 
-    // Referral verification is only meaningful when the user actually arrived with a valid referral code.
-    // Returning a local success here avoids an unrelated 400 from blocking the successful OTP flow.
     if (!referral) {
       window.fetch = (input, init) => {
         try {
@@ -62,16 +59,19 @@ export default function AuthFlowGuard() {
     observer.observe(document.documentElement, { childList: true, subtree: true });
 
     const supabase = createClient();
-    const goNext = (session) => {
-      if (!session || redirected) return;
+    const goNext = async (session) => {
+      if (!session || redirected || disposed || window.__LANERIQ_AUTH_FLOW_BUSY__ === true) return;
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data?.user || redirected || disposed || window.__LANERIQ_AUTH_FLOW_BUSY__ === true) return;
       redirected = true;
       window.location.replace(next);
     };
 
-    supabase.auth.getSession().then(({ data }) => goNext(data?.session)).catch(() => {});
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => goNext(session));
+    supabase.auth.getSession().then(({ data }) => { void goNext(data?.session); }).catch(() => {});
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => { void goNext(session); });
 
     return () => {
+      disposed = true;
       observer.disconnect();
       authListener?.subscription?.unsubscribe?.();
       if (!referral) window.fetch = originalFetch;
