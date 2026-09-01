@@ -162,7 +162,7 @@ function AuthForm() {
     }
   }
 
-  if (checking) return <main className="loadingScreen">Checking your secure session…</main>;
+  if (checking) return <main className="loadingScreen">Checking your session…</main>;
 
   const identifierLabel = method === "email" ? "Email address" : "Mobile number";
   const methodLabel = method === "email" ? "Email" : "SMS";
