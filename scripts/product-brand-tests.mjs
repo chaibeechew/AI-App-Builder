@@ -49,10 +49,12 @@ assert(seoPage.includes('{PRODUCT_BRAND.name}'),"SEO page chrome must render the
 pass("SEO titles, landing pages and structured data resolve to the canonical brand");
 
 const migrationOnly=new Set(["lib/product-brand.js","app/components/ProductCopyFix.js"]);
+const leaks=[];
 for(const file of [...walk("app"),...walk("lib")]){
   if(migrationOnly.has(file))continue;
-  assert(!read(file).includes("LANERIQ AI"),`Retired LANERIQ AI customer brand leaked into ${file}`);
+  if(read(file).includes("LANERIQ AI"))leaks.push(file);
 }
+assert(leaks.length===0,`Retired LANERIQ AI customer brand leaked into: ${leaks.join(", ")}`);
 pass("Customer-facing app/lib source has no retired LANERIQ AI brand leaks");
 
 assert(account.includes('PRODUCT_BRAND.name')&&account.includes('PRODUCT_BRAND.capabilities'),"Account navigation must use the shared brand contract.");
