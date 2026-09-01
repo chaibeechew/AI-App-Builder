@@ -2,6 +2,7 @@
 import {useEffect} from "react";
 import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
+// Legacy migration alias retained for old data/tests only: AI BUILD APP & WEB → CREOVA AI.
 const REPLACEMENTS=[
   [/AI BUILD APP\s*&\s*WEB/gi,PRODUCT_BRAND.name],
   [/AI BUILD APP&WEB/gi,PRODUCT_BRAND.name],
