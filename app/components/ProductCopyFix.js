@@ -3,8 +3,11 @@ import {useLayoutEffect} from "react";
 import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
 // Canonical customer brand: LANERIQ AI. Rendering remains sourced from PRODUCT_BRAND.
-// Legacy customer-facing brand aliases migrate to the canonical PRODUCT_BRAND name.
+// Legacy customer-facing aliases migrate to LANERIQ AI. Historical alias marker: AI BUILD APP & WEB.
 const REPLACEMENTS=[
+  [/Powered by\s+SoolenAI/gi,`Powered by ${PRODUCT_BRAND.name}`],
+  [/SoolenAI/gi,PRODUCT_BRAND.name],
+  [/Soolen AI/gi,PRODUCT_BRAND.name],
   [/AI BUILD APP\s*&\s*WEB/gi,PRODUCT_BRAND.name],
   [/AI制作APP&WEB/gi,PRODUCT_BRAND.name],
   [/CREOVA AI/gi,PRODUCT_BRAND.name],
