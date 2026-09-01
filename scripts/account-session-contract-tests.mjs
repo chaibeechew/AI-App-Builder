@@ -64,6 +64,7 @@ for(const discoveryPath of PUBLIC_DISCOVERY_PATHS)assert.equal(isPublicAccountPa
 assert.equal(isPublicAccountPath('/my-apps'),false);
 assert.equal(isPublicAccountPath('/studio'),false);
 assert.equal(isPublicAccountPath('/app-dashboard/abc'),false);
+assert.equal(isPublicAccountPath('/api/apps'),false);
 assert.equal(isPublicAccountPath('/api/apps/abc'),false);
 assert.equal(isPublicAccountPath('/authentication-secret'),false,'Auth prefix must not accidentally make unrelated routes public.');
 assert.equal(isPublicAccountPath('/ai-app-builder/private'),false,'Public SEO routes must be exact paths, not broad prefixes.');
@@ -75,6 +76,14 @@ assert.ok(authCanonicalIndex>=0&&publicIndex>authCanonicalIndex,'Auth next canon
 assert.match(supabaseProxy,/safeInternalNext\(rawNext\)/);
 assert.match(supabaseProxy,/protectedReturnPath\(request\.nextUrl\.pathname, request\.nextUrl\.search\)/);
 assert.match(supabaseProxy,/url\.search = ""/);
+assert.match(supabaseProxy,/const isApiRequest = pathname === "\/api" \|\| pathname\.startsWith\("\/api\/"\)/);
+assert.match(supabaseProxy,/function apiAuthFailure/);
+assert.match(supabaseProxy,/AUTHENTICATION_REQUIRED/);
+assert.match(supabaseProxy,/AUTH_NOT_CONFIGURED/);
+assert.match(supabaseProxy,/configured \? 401 : 503/);
+assert.match(supabaseProxy,/isApiRequest[\s\S]*apiAuthFailure\(\{ configured: false \}\)[\s\S]*authRedirect\(request, \{ error: "auth_not_configured" \}\)/);
+assert.match(supabaseProxy,/isApiRequest \? apiAuthFailure\(\) : authRedirect\(request\)/);
+assert.match(supabaseProxy,/X-Content-Type-Options", "nosniff/);
 assert.match(supabaseProxy,/supabase\.auth\.getUser\(\)/);
 assert.doesNotMatch(supabaseProxy,/supabase\.auth\.getSession\(\)/);
 assert.match(supabaseProxy,/if \(userError \|\| !user\)/);
@@ -120,6 +129,7 @@ assert.match(account,/isPublicAccountPath\(window\.location\.pathname\)/);
 
 console.log('✓ Return-path sanitizer blocks external, protocol-relative, backslash, auth-loop, control-character and oversized redirects');
 console.log('✓ Server proxy canonicalizes /auth next before rendering and protects private routes with fresh Supabase getUser validation');
+console.log('✓ Protected API requests fail with no-store JSON 401/503 instead of redirecting fetch clients to /auth HTML');
 console.log('✓ robots, sitemap, capability discovery and the eight canonical SEO landing pages remain explicit public routes');
 console.log('✓ Protected responses are no-store and signed-out BFCache/tab restores are revalidated client-side');
 console.log('✓ Logout is current-session scoped, fail-closed on error, uses history replace and clears private session drafts');
