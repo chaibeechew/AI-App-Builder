@@ -1,5 +1,5 @@
 "use client";
-import {useEffect} from "react";
+import {useLayoutEffect} from "react";
 import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
 // Legacy migration aliases are retained for old data/tests only: AI BUILD APP & WEB → LANERIQ AI. Customer-facing copy resolves to LANERIQ AI.
@@ -16,7 +16,7 @@ const REPLACEMENTS=[
 function rewrite(value){let next=String(value||"");for(const [pattern,replacement] of REPLACEMENTS)next=next.replace(pattern,replacement);return next;}
 
 export default function ProductCopyFix(){
-  useEffect(()=>{
+  useLayoutEffect(()=>{
     const fix=()=>{
       const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
       for(const node of nodes){const tag=node.parentElement?.tagName;if(["SCRIPT","STYLE","TEXTAREA","INPUT"].includes(tag))continue;const next=rewrite(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;}
@@ -43,6 +43,7 @@ export default function ProductCopyFix(){
       });
       const title=rewrite(document.title);
       if(document.title!==title)document.title=title;
+      document.documentElement.dataset.laneriqCopyReady="1";
     };
     fix();const o=new MutationObserver(fix);o.observe(document.body,{childList:true,subtree:true,characterData:true});return()=>o.disconnect();
   },[]);return null;
