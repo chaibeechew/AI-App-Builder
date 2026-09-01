@@ -33,6 +33,8 @@ jobs:
         run: npm run test:visual
       - name: Publishing Agent readiness tests
         run: npm run test:publishing
+      - name: Extended platform functionality 100-point tests
+        run: npm run test:platform
       - name: LANERIQ AI customer-facing brand contract tests
         run: node scripts/product-brand-tests.mjs
       - name: LANERIQ AI SEO foundation contract tests

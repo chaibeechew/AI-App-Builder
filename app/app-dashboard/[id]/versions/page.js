@@ -48,7 +48,7 @@ export default async function VersionHistoryPage({ params }) {
                 <p>{spec.description || app.description || "Saved App + Website project state."}</p>
                 <div className="facts"><span>{pageCount} pages</span><span>{featureCount} features</span><span>{new Date(version.created_at).toLocaleString()}</span></div>
               </div>
-              <VersionRollbackButton appId={id} versionId={version.id} versionNo={version.version_no} isCurrent={isCurrent} />
+              <VersionRollbackButton appId={id} versionId={version.id} versionNo={version.version_no} currentVersionId={app.current_version_id} isCurrent={isCurrent} />
             </article>;
           }) : <div className="empty">No saved versions yet.</div>}
         </section>

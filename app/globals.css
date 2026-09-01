@@ -4,10 +4,14 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: #03100d;
   color: #f5fff9;
   font-family:
@@ -26,6 +30,70 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid #f3d777;
+  outline-offset: 3px;
+}
+
+.skipLink {
+  position: fixed;
+  z-index: 10000;
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  transform: translateY(-160%);
+  border-radius: 10px;
+  background: #f3d777;
+  color: #07130e;
+  padding: 11px 14px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.skipLink:focus {
+  transform: translateY(0);
+}
+
+.stateActions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stateActions a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(216, 191, 98, 0.35);
+  border-radius: 12px;
+  color: #e6ca70;
+  padding: 11px 15px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.premiumRouteState code {
+  display: block;
+  margin-top: 16px;
+  color: #7f9990;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .app-shell {

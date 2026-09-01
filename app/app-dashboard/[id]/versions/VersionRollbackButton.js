@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-export default function VersionRollbackButton({ appId, versionId, versionNo, isCurrent }) {
+export default function VersionRollbackButton({ appId, versionId, versionNo, currentVersionId, isCurrent }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const requestIdRef = useRef("");
 
   async function rollback() {
     if (isCurrent || loading) return;
@@ -13,14 +14,15 @@ export default function VersionRollbackButton({ appId, versionId, versionNo, isC
     setLoading(true);
     setMessage("");
     try {
+      if (!requestIdRef.current) requestIdRef.current = globalThis.crypto?.randomUUID?.() || `rollback-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       const response = await fetch(`/api/apps/${appId}/rollback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ versionId }),
+        body: JSON.stringify({ versionId, expectedCurrentVersionId: currentVersionId, requestId: requestIdRef.current }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.error || "Rollback failed.");
-      setMessage(`Restored as version ${data?.version?.version_no || "new"}.`);
+      setMessage(`${data?.replayed ? "Recovery already completed" : "Restored"} as version ${data?.version?.version_no || "new"} after the 100-point safety gate.`);
       window.location.reload();
     } catch (error) {
       setMessage(error?.message || "Rollback failed.");

@@ -12,7 +12,8 @@
     "test:runtime": "node scripts/runtime-contract-tests.mjs",
     "test:nonprod": "node scripts/non-production-100-tests.mjs",
     "test:visual": "node scripts/premium-experience-tests.mjs",
-    "test:publishing": "node scripts/publishing-agent-tests.mjs"
+    "test:publishing": "node scripts/publishing-agent-tests.mjs",
+    "test:platform": "node scripts/platform-functionality-100-tests.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
