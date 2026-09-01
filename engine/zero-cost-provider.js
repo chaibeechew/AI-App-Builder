@@ -1,6 +1,7 @@
+import { buildIdeaPlan } from "../lib/ai/idea-planning-contract.js";
+
 // Deterministic zero-cost provider for Soolen AI.
 // It keeps the builder functional without calling any metered third-party model.
-
 function clean(value, max = 4000) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
 }
@@ -167,17 +168,15 @@ function modifySpec(prompt) {
 
 function conversationResult(prompt) {
   const message = clean(prompt.split("LATEST USER MESSAGE:").pop()?.split("Use the actual message")[0], 3000);
-  const language = detectLanguage(message);
   const profile = industryProfile(message);
-  const ready = message.length >= 18;
-  const reply = language === "zh-CN"
-    ? (ready ? `我已经整理好方向：${profile.name}。你可以继续补充版面、颜色或功能，然后开始生成 App + Website。` : "我明白了。这个 App 最主要给谁使用？")
-    : (ready ? `I have organized this as a ${profile.name} project. Add any layout, color or feature details, then generate the App + Website.` : "I understand. Who is the main user of this app?");
-  return {
-    reply, language, intent:"build an app and customer website", audience:"user-defined", appType:profile.name,
-    features:profile.features, entities:[profile.entity], constraints:["zero-cost execution"], questions:ready?[]:[reply],
-    normalizedIdea:message, confidence:ready?.72:.45, readyToBuild:ready, corrections:[],
-  };
+  const plan=buildIdeaPlan(message,{modelPlan:{appType:profile.name,entities:[profile.entity],constraints:["zero-cost execution"]}});
+  const firstQuestion=plan.questions?.[0]||"";
+  const reply = plan.language === "zh-CN"
+    ? (plan.readyToBuild ? `我已经把需求整理成可以开始制作的方向：${plan.appType}。核心功能：${plan.features.join("、")||"按你的明确需求生成"}。` : `我已经理解目前的方向，但还差一个关键资料：${firstQuestion}`)
+    : plan.language === "ms"
+      ? (plan.readyToBuild ? `Keperluan sudah cukup jelas untuk mula membina ${plan.appType}.` : `Saya faham arah projek ini, tetapi perlukan satu maklumat lagi: ${firstQuestion}`)
+      : (plan.readyToBuild ? `The requirements are specific enough to start building ${plan.appType}.` : `I understand the direction, but one key detail is still missing: ${firstQuestion}`);
+  return {...plan,reply};
 }
 
 function localChat(prompt) {
