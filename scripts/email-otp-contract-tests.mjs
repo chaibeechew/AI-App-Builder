@@ -30,7 +30,9 @@ assert.match(authPage, /credentials:\s*"same-origin"/);
 assert.match(authPage, /cache:\s*"no-store"/);
 assert.match(authPage, /autoComplete="one-time-code"/);
 assert.match(authPage, /router\.replace\(next\)/);
-assert.ok(authPage.indexOf('await fetch("/api/referrals/verify"') < authPage.indexOf('router.replace(next)'), 'Referral attempt must finish before OTP redirect');
+const referralIndex = authPage.indexOf('await fetch("/api/referrals/verify"');
+const postVerifyRedirectIndex = authPage.lastIndexOf('router.replace(next)');
+assert.ok(referralIndex >= 0 && postVerifyRedirectIndex > referralIndex, 'Referral attempt must finish before OTP post-verify redirect');
 assert.doesNotMatch(authPage, /return raw \|\|/);
 
 assert.match(authGuard, /window\.__LANERIQ_AUTH_FLOW_BUSY__ === true/);
