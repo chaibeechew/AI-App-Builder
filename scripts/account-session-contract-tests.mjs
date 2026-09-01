@@ -14,6 +14,7 @@ const rootProxy=read('proxy.js');
 
 const {
   PRIVATE_SESSION_STORAGE_KEYS,
+  PUBLIC_DISCOVERY_PATHS,
   safeInternalNext,
   normalizeReferralCode,
   clearPrivateSessionStorage,
@@ -55,11 +56,16 @@ assert.equal(isPublicAccountPath('/templates'),true);
 assert.equal(isPublicAccountPath('/templates/tpl-0001-x'),true);
 assert.equal(isPublicAccountPath('/auth'),true);
 assert.equal(isPublicAccountPath('/auth/help'),true);
+assert.equal(isPublicAccountPath('/robots.txt'),true,'robots.txt must never redirect to authentication.');
+assert.equal(isPublicAccountPath('/sitemap.xml'),true,'sitemap.xml must never redirect to authentication.');
+assert.equal(PUBLIC_DISCOVERY_PATHS.length,8,'The eight canonical SEO landing pages must stay explicit and bounded.');
+for(const discoveryPath of PUBLIC_DISCOVERY_PATHS)assert.equal(isPublicAccountPath(discoveryPath),true,`${discoveryPath} must remain publicly crawlable.`);
 assert.equal(isPublicAccountPath('/my-apps'),false);
 assert.equal(isPublicAccountPath('/studio'),false);
 assert.equal(isPublicAccountPath('/app-dashboard/abc'),false);
 assert.equal(isPublicAccountPath('/api/apps/abc'),false);
 assert.equal(isPublicAccountPath('/authentication-secret'),false,'Auth prefix must not accidentally make unrelated routes public.');
+assert.equal(isPublicAccountPath('/ai-app-builder/private'),false,'Public SEO routes must be exact paths, not broad prefixes.');
 
 assert.match(supabaseProxy,/session-safety\.js/);
 const authCanonicalIndex=supabaseProxy.indexOf('if (pathname === "/auth")');
@@ -113,6 +119,7 @@ assert.match(account,/isPublicAccountPath\(window\.location\.pathname\)/);
 
 console.log('✓ Return-path sanitizer blocks external, protocol-relative, backslash, auth-loop, control-character and oversized redirects');
 console.log('✓ Server proxy canonicalizes /auth next before rendering and protects private routes with fresh Supabase getUser validation');
+console.log('✓ robots, sitemap and the eight canonical SEO landing pages remain explicit public discovery routes');
 console.log('✓ Protected responses are no-store and signed-out BFCache/tab restores are revalidated client-side');
 console.log('✓ Logout is current-session scoped, fail-closed on error, uses history replace and clears private session drafts');
 console.log('✓ Auth/account listeners unsubscribe cleanly and OTP flow now coordinates safe redirect ownership');
