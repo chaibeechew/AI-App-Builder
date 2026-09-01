@@ -63,6 +63,8 @@ jobs:
         run: npm run test:credits
       - name: Pro Mode contract tests
         run: npm run test:pro
+      - name: Zero-cost provider safety and readiness contract tests
+        run: npm run test:zero-cost
       - name: Game commercial policy contract tests
         run: npm run test:game-commercial
       - name: Game Creator runtime contract tests
@@ -159,5 +161,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI core gates plus two 1000-point hardening packs passed. Final 1000-cycle Production stability test remains manual and evidence-gated."
+        run: echo "LANERIQ AI core gates plus zero-cost safety and two 1000-point hardening packs passed. Final 1000-cycle Production stability test remains manual and evidence-gated."
       # This workflow validates code only. It never triggers the final 1000-cycle Production test.
