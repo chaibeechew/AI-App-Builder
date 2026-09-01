@@ -76,12 +76,15 @@ assert.match(banner,/AI Video Generator/);
 assert.match(banner,/AI Photo & Video/);
 assert.match(banner,/AI Avatar Creator/);
 assert.match(banner,/Pro Game Creator/);
-assert.match(avatar,/\/api\/images\/generate/);
+assert.match(avatar,/\/api\/avatar\/generate/);
+assert.match(avatar,/\/api\/images\/save/);
+assert.match(avatar,/consentConfirmed/);
 assert.match(avatar,/Zero-cost first/);
 assert.match(layout,/CreationCapabilityBanner/);
 
 console.log("✓ LANERIQ AI recognizes Mobile Games as a first-class Pro product path and plans playable touch-first iOS + Android game foundations with web preview");
 console.log("✓ Game knowledge covers genre, game loop, state, progression, save/load, audio, assets, performance, multiplayer, monetization, privacy and truthful store-readiness boundaries");
 console.log("✓ Canonical LANERIQ AI homepage capability banner exposes APP / WEB / GAME · PRO plus iOS, Android and Web Preview targets without implying official native release");
+console.log("✓ Dedicated Avatar generation/save endpoints enforce consent and private persistence instead of falling back to the legacy generic image route");
 console.log("✓ AI Art, AI Video, AI Photo & Video and AI Avatar foundations are present and exposed without inventing paid-provider availability");
 console.log("✓ App Privacy, Google Data Safety, tracking/data-category review and accessibility declarations are release-gated instead of being auto-claimed by AI");
