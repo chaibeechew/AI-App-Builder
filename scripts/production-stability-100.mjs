@@ -8,6 +8,7 @@ const targets=[
   {path:"/auth",expect:[200],body:/LANERIQ AI/i},
   {path:"/api/templates?mode=meta",expect:[200],body:/total|industries|styles/i},
   {path:"/api/soolenai/capabilities",expect:[200],body:/"success"\s*:\s*true[\s\S]*"providers"/i},
+  {path:"/api/apps",expect:[401],body:/"code"\s*:\s*"AUTHENTICATION_REQUIRED"/i},
   {path:"/robots.txt",expect:[200],body:/user-agent/i},
   {path:"/sitemap.xml",expect:[200],body:/<urlset/i},
   {path:"/ai-app-game-website-builder",expect:[200],body:/LANERIQ AI/i},
