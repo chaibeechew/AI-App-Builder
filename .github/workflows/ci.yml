@@ -87,6 +87,8 @@ jobs:
         run: npm run test:i18n
       - name: Account and Session Safety contract tests
         run: npm run test:account
+      - name: Email OTP contract tests
+        run: npm run test:email-otp
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
