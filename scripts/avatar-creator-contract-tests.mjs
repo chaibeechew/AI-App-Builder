@@ -64,7 +64,12 @@ assert.match(gateway,/redirect: "error"/);
 // Local fallback is a real, bounded original SVG concept and never embeds customer free text.
 assert.match(api,/function localAvatarSvg/);
 assert.match(api,/ORIGINAL \$\{style\.toUpperCase\(\)\} CONCEPT/);
-assert.doesNotMatch(api,/\$\{idea\}/);
+const localStart=api.indexOf('function localAvatarSvg');
+const localEnd=api.indexOf('\n\nexport async function POST',localStart);
+assert.ok(localStart>=0&&localEnd>localStart);
+const localSvgSource=api.slice(localStart,localEnd);
+assert.doesNotMatch(localSvgSource,/\$\{idea\}/);
+assert.doesNotMatch(localSvgSource,/Customer description/);
 
 // Saving inherits private owner storage, signature/SVG sanitization and cross-customer reuse blocks.
 assert.match(save,/auth\.getUser\(\)/);
