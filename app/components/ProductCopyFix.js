@@ -2,6 +2,7 @@
 import {useLayoutEffect} from "react";
 import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
+// Historical migration alias only: AI BUILD APP & WEB
 const REPLACEMENTS=[
   [/Powered by\s+SoolenAI/gi,`Powered by ${PRODUCT_BRAND.name}`],
   [/SoolenAI/gi,PRODUCT_BRAND.name],
