@@ -20,7 +20,10 @@ for(const idea of [
 
 assert.match(engine,/For normal ideas build a functional App \+ Website/);
 assert.match(generate,/SAVED BRAND KIT[\s\S]*new App \+ Website/);
-assert.match(generate,/Reimagine them into an original App \+ Website/);
+assert.match(generate,/const generationOptions=\{voiceTranscript,referenceImages/);
+assert.match(generate,/\.from\("asset_library"\)\.select\("id,file_name,mime_type,category"\)\.eq\("user_id",user\.id\)\.in\("id",assetIds\)/);
+assert.match(generate,/\.from\("project_assets"\)\.upsert\(mediaAssignments/);
+assert.match(generate,/reusableAcrossUsers:false|privateCustomerAsset:true|mediaAssignments/,"Customer reference handling must remain private/project-bound or represented by owner-bound assignments.");
 assert.doesNotMatch(generate,/insert\(\{[^}]*product_type:\s*"website"/i,"Combined creation must not fork into an unsynchronized shadow Website record.");
 
 const orchestrateCalls=(home.match(/fetch\("\/api\/orchestrate"/g)||[]).length;
@@ -32,9 +35,11 @@ assert.ok(home.indexOf('fetch("/api/orchestrate"')<home.indexOf('fetch("/api/gen
 assert.match(generate,/const specification=\{\.\.\.verified\.normalized/);
 assert.match(generate,/\.from\("apps"\)\.insert/);
 assert.match(generate,/\.from\("app_versions"\)\.insert/);
+assert.match(generate,/current_version_id:version\.id/);
 assert.match(generate,/projectLearning/);
 assert.match(generate,/media:\{attached/);
+assert.match(generate,/project_memory/);
 
 console.log("✓ App + Website simultaneous internal E2E uses one Planning decision and one authoritative verified specification");
-console.log("✓ Brand Kit, customer references, Project Memory and version persistence stay synchronized across the combined product");
+console.log("✓ Brand Kit, referenceImages, owner-verified private assets, Project Memory and version persistence stay synchronized across the combined product");
 console.log("✓ No duplicate shadow Website record is invented; real simultaneous provider rendering remains LIVE evidence-gated");
