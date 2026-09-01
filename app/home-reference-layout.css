@@ -1,0 +1,169 @@
+/* LANERIQ AI approved mobile home layout — moon valley + premium creator console. */
+
+.premiumHome{
+  background:#020b09!important;
+  padding:10px 0 104px!important;
+}
+.premiumHome .bg{
+  background:
+    linear-gradient(180deg,rgba(0,8,7,.02) 0%,rgba(0,8,7,.15) 28%,rgba(0,8,7,.76) 63%,rgba(0,8,7,.97) 100%),
+    url('/02ACE732-9849-4674-8901-E264BCA5C02D.png') center top/cover no-repeat!important;
+  filter:saturate(1.08) contrast(1.02);
+}
+.premiumHome .veil{
+  background:
+    radial-gradient(circle at 77% 11%,rgba(248,190,63,.18),transparent 28%),
+    linear-gradient(90deg,rgba(0,11,9,.5),rgba(0,11,9,.08) 54%,rgba(0,11,9,.34))!important;
+}
+.premiumHome .frame{width:min(920px,calc(100% - 24px))!important}
+
+.premiumHome .topbar{padding:3px 0 12px!important;min-height:54px}
+.premiumHome .spark{
+  width:46px!important;height:46px!important;border-radius:14px!important;
+  background:rgba(2,17,14,.76)!important;border-color:#e6b84f!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.28)!important
+}
+.premiumHome .topActions{gap:7px!important;flex-wrap:nowrap!important}
+.premiumHome .credits{
+  font-size:0!important;min-height:40px!important;padding:0 13px!important;
+  display:inline-flex!important;align-items:center!important;gap:6px!important;
+  white-space:nowrap!important
+}
+.premiumHome .credits::before{content:'✦ 120 Credits';font-size:12px;font-weight:850;color:#f7f7f2}
+.premiumHome .credits b{font-size:15px!important;margin-left:2px!important}
+.premiumHome .profile{width:40px!important;height:40px!important;flex:0 0 40px!important}
+.premiumHome .laneriqLangButton.inline{
+  position:relative!important;inset:auto!important;transform:none!important;
+  min-width:42px!important;height:40px!important;padding:0 8px!important;
+  flex:0 0 auto!important;z-index:3!important
+}
+
+.premiumHome .heroCopy{padding:14px 2px 14px!important;max-width:690px!important}
+.premiumHome .heroCopy::before{
+  content:'LANERIQ AI ✦';display:block;margin-bottom:10px;
+  color:#efc45d;font-size:13px;font-weight:950;letter-spacing:.08em
+}
+.premiumHome .heroCopy h1{line-height:.9!important;letter-spacing:-.045em!important}
+.premiumHome .heroCopy h1 span,.premiumHome .heroCopy h1 strong{
+  font-size:clamp(54px,10vw,94px)!important
+}
+.premiumHome .heroCopy h1 span{
+  background:linear-gradient(180deg,#fff0a9,#d89120)!important;
+  -webkit-background-clip:text!important;background-clip:text!important;color:transparent!important
+}
+.premiumHome .heroCopy h1 strong{margin-top:8px!important}
+.premiumHome .heroCopy p{
+  margin:14px 0 10px!important;font-size:clamp(15px,2.4vw,22px)!important;
+  line-height:1.4!important;color:#edf2ef!important
+}
+.premiumHome .powered{
+  padding:8px 12px!important;border-radius:999px!important;
+  background:rgba(2,19,15,.7)!important;border-color:rgba(224,177,66,.58)!important;
+  font-size:12px!important;backdrop-filter:blur(18px)!important
+}
+
+.premiumHome .featureCards{gap:9px!important;margin:9px 0 11px!important}
+.premiumHome .feature{
+  min-height:88px!important;padding:12px 13px!important;border-radius:18px!important;
+  grid-template-columns:48px 1fr!important;gap:10px!important;
+  background:linear-gradient(135deg,rgba(7,28,22,.9),rgba(2,13,11,.88))!important;
+  backdrop-filter:blur(18px)!important
+}
+.premiumHome .feature.primary{
+  border-color:#f0bf4f!important;
+  box-shadow:inset 0 0 28px rgba(217,156,27,.18),0 14px 34px rgba(0,0,0,.33)!important
+}
+.premiumHome .feature>i{width:42px!important;height:42px!important;font-size:20px!important}
+.premiumHome .feature b{font-size:14px!important}
+.premiumHome .feature span{font-size:10px!important;line-height:1.35!important}
+.premiumHome .feature em{display:none!important}
+
+.premiumHome .promptCard,.premiumHome .choiceCard{
+  background:linear-gradient(150deg,rgba(4,29,23,.88),rgba(2,15,12,.91))!important;
+  border-color:rgba(214,174,74,.48)!important;border-radius:19px!important;
+  box-shadow:0 18px 42px rgba(0,0,0,.32)!important
+}
+.premiumHome .promptCard{padding:13px!important;margin-bottom:10px!important}
+.premiumHome .promptHead label{font-size:12px!important;max-width:68%!important}
+.premiumHome .promptHead button{font-size:10px!important;font-weight:850!important}
+.premiumHome .promptCard textarea{
+  min-height:92px!important;margin-top:9px!important;border-radius:14px!important;
+  padding:13px!important;font-size:13px!important;background:rgba(2,17,14,.82)!important
+}
+.premiumHome .count{margin:-25px 10px 12px 0!important;font-size:9px!important}
+.premiumHome .inputTools{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+.premiumHome .inputTools button{
+  min-width:0!important;padding:9px 5px!important;border-radius:11px!important;
+  font-size:9px!important;white-space:nowrap!important
+}
+
+.premiumHome .choiceCard{padding:11px 12px!important;margin-bottom:10px!important}
+.premiumHome .choiceHead b{font-size:14px!important}
+.premiumHome .choiceHead span,.premiumHome .choiceHead a{font-size:9px!important;font-weight:800!important}
+.premiumHome .styleRail{
+  display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:6px!important;overflow:visible!important;margin-top:8px!important
+}
+.premiumHome .styleRail button{min-width:0!important}
+.premiumHome .styleRail i{border-radius:11px!important}
+.premiumHome .styleRail span{font-size:8px!important;margin-top:4px!important;white-space:nowrap!important}
+.premiumHome .styleRail i em{width:19px!important;height:19px!important;font-size:10px!important}
+
+.premiumHome .templateRail{
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:6px!important;overflow:visible!important;margin-top:8px!important
+}
+.premiumHome .templateRail button{min-width:0!important;border-radius:11px!important;padding-bottom:6px!important}
+.premiumHome .templateRail i{height:76px!important}
+.premiumHome .templateRail b{font-size:8px!important;margin-top:5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.premiumHome .templateRail span{font-size:7px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+
+.premiumHome .buildCta{
+  margin-top:2px!important;border-radius:16px!important;padding:15px 16px!important;
+  font-size:18px!important;box-shadow:0 0 28px rgba(224,170,58,.35),0 14px 35px rgba(0,0,0,.35)!important
+}
+.premiumHome .promiseRow{display:none!important}
+
+.premiumHome .bottomNav{
+  width:min(880px,calc(100% - 22px))!important;padding:7px!important;border-radius:19px!important;
+  background:rgba(1,15,12,.94)!important;border-color:rgba(214,174,74,.3)!important
+}
+.premiumHome .bottomNav a,.premiumHome .bottomNav button{padding:6px 4px!important}
+.premiumHome .bottomNav i{font-size:18px!important}
+.premiumHome .bottomNav span{font-size:8px!important}
+.premiumHome .bottomNav .active span{font-size:0!important}
+.premiumHome .bottomNav .active span::after{content:'Create';font-size:8px!important}
+
+@media(max-width:520px){
+  .premiumHome{padding-top:6px!important}
+  .premiumHome .frame{width:calc(100% - 16px)!important}
+  .premiumHome .topbar{padding-bottom:8px!important}
+  .premiumHome .heroCopy{padding-top:8px!important}
+  .premiumHome .heroCopy::before{font-size:11px!important;margin-bottom:7px!important}
+  .premiumHome .heroCopy h1 span,.premiumHome .heroCopy h1 strong{font-size:clamp(43px,13.3vw,58px)!important}
+  .premiumHome .heroCopy h1 strong{margin-top:5px!important}
+  .premiumHome .heroCopy p{font-size:13px!important;margin:10px 0 8px!important}
+  .premiumHome .powered{font-size:10px!important;padding:7px 10px!important}
+  .premiumHome .featureCards{gap:6px!important}
+  .premiumHome .feature{min-height:78px!important;padding:9px!important;grid-template-columns:38px 1fr!important;gap:7px!important}
+  .premiumHome .feature>i{width:36px!important;height:36px!important;font-size:17px!important}
+  .premiumHome .feature b{font-size:12px!important}.premiumHome .feature span{font-size:9px!important}
+  .premiumHome .promptCard{padding:11px!important}
+  .premiumHome .inputTools button{font-size:8px!important;padding:8px 3px!important}
+  .premiumHome .choiceCard{padding:10px!important}
+  .premiumHome .choiceHead b{font-size:13px!important}
+  .premiumHome .styleRail{gap:5px!important}.premiumHome .styleRail span{font-size:7px!important}
+  .premiumHome .templateRail{gap:5px!important}.premiumHome .templateRail i{height:64px!important}
+  .premiumHome .buildCta{font-size:16px!important;padding:14px 12px!important}
+  .premiumHome .credits::before{font-size:10px}.premiumHome .credits{padding:0 10px!important}
+  .premiumHome .laneriqLangButton.inline{min-width:38px!important;padding:0 7px!important}
+  .premiumHome .profile{display:grid!important;width:36px!important;height:36px!important;flex-basis:36px!important}
+}
+
+@media(max-width:380px){
+  .premiumHome .profile{display:none!important}
+  .premiumHome .topActions{gap:5px!important}
+  .premiumHome .heroCopy h1 span,.premiumHome .heroCopy h1 strong{font-size:44px!important}
+  .premiumHome .feature span{display:none!important}
+  .premiumHome .styleRail span{font-size:6.5px!important}
+}
