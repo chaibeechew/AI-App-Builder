@@ -14,6 +14,8 @@ import PreciseEditAssistant from "./components/PreciseEditAssistant";
 import GeneratedDataManager from "./components/GeneratedDataManager";
 import PublishingReadinessMount from "./components/PublishingReadinessMount";
 import CreationCapabilityBanner from "./components/CreationCapabilityBanner";
+import GameProGate from "./components/GameProGate";
+import GameCommercialTermsNotice from "./components/GameCommercialTermsNotice";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
 import { SEO_CORE_KEYWORDS, SEO_INDEXING_ENABLED, SEO_SITE_URL, absoluteSeoUrl, buildOrganizationJsonLd, buildSoftwareJsonLd } from "../lib/seo-foundation.js";
 
@@ -59,6 +61,8 @@ export default function RootLayout({ children }) {
         <ProductCopyFix />
         <AdaptiveWallpaperEngine />
         <AccountNav />
+        <GameProGate />
+        <GameCommercialTermsNotice />
         {children}
         <CreationCapabilityBanner />
         <PreciseEditAssistant />
