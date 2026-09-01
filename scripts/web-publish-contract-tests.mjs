@@ -10,7 +10,7 @@ for(const pattern of [/auth\.getUser\(\)/,/Account verification is required/,/MA
 assert.ok(route.indexOf("evaluateReleaseReadiness")<route.indexOf("server_publish_web_project"),"Quality gate must pass before the atomic publish RPC.");
 assert.doesNotMatch(route,/\.from\("apps"\)\.update\(/,"Web Publish API must not directly mutate apps after the quality check.");
 
-for(const pattern of [/stableWebPublishRequestId/,/window\.sessionStorage/,/requestId/,/expectedVersionId:app\.current_version_id/,/action:\"publish\"/,/cache:\"no-store\"/])assert.match(page,pattern);
+for(const pattern of [/stableWebPublishRequestId/,/window\.sessionStorage/,/current_version_id/,/const expectedVersionId=/,/body:JSON\.stringify\(\{requestId,expectedVersionId,action:\"publish\"\}\)/,/cache:\"no-store\"/])assert.match(page,pattern);
 
 assert.match(baseMigration,/create table if not exists public\.web_publish_requests/i);
 assert.match(baseMigration,/unique\(user_id,request_id\)/i);
