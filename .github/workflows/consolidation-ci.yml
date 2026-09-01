@@ -31,6 +31,8 @@ jobs:
         run: npm run test:nonprod
       - name: LANERIQ AI customer-facing brand contract tests
         run: node scripts/laneriq-brand-tests.mjs
+      - name: LANERIQ AI SEO foundation contract tests
+        run: node scripts/seo-foundation-tests.mjs
       - name: Project Readiness contract tests
         run: node scripts/project-readiness-tests.mjs
       - name: Publishing Readiness contract tests

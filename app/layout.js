@@ -15,16 +15,44 @@ import GeneratedDataManager from "./components/GeneratedDataManager";
 import PublishingReadinessMount from "./components/PublishingReadinessMount";
 import CreationCapabilityBanner from "./components/CreationCapabilityBanner";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
+import { SEO_CORE_KEYWORDS, SEO_INDEXING_ENABLED, SEO_SITE_URL, absoluteSeoUrl, buildOrganizationJsonLd, buildSoftwareJsonLd } from "../lib/seo-foundation.js";
+
+const homeCanonical = absoluteSeoUrl("/");
+const googleVerification = String(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "").trim();
+const organizationSchema = buildOrganizationJsonLd();
+const softwareSchema = buildSoftwareJsonLd();
 
 export const metadata = {
-  title: `${PRODUCT_BRAND.name} — ${PRODUCT_BRAND.capabilities}`,
-  description: `${PRODUCT_BRAND.descriptor}. ${PRODUCT_BRAND.tagline} Create apps, games and websites with SoolenAI for iOS, Android and web preview workflows.`,
+  ...(SEO_SITE_URL ? { metadataBase: new URL(SEO_SITE_URL) } : {}),
+  title: "LANERIQ AI — AI App, Game & Website Builder",
+  description: "Create apps, games and websites from one idea with LANERIQ AI. AI-powered planning, design, building, testing and preview workflows for web, iOS and Android targets.",
+  applicationName: PRODUCT_BRAND.name,
+  category: "technology",
+  keywords: SEO_CORE_KEYWORDS,
+  robots: { index: SEO_INDEXING_ENABLED, follow: SEO_INDEXING_ENABLED },
+  ...(homeCanonical ? { alternates: { canonical: homeCanonical } } : {}),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: PRODUCT_BRAND.name,
+    title: "LANERIQ AI — AI App, Game & Website Builder",
+    description: "Create apps, games and websites from one idea with AI-powered planning, building, testing and preview workflows.",
+    ...(homeCanonical ? { url: homeCanonical } : {}),
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LANERIQ AI — AI App, Game & Website Builder",
+    description: "Create apps, games and websites from one idea.",
+  },
+  ...(googleVerification ? { verification: { google: googleVerification } } : {}),
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
         <PremiumJourneyTheme />
         <ProductCopyFix />
         <AdaptiveWallpaperEngine />
