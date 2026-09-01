@@ -67,6 +67,8 @@ jobs:
         run: npm run test:game-commercial
       - name: Version History and Undo contract tests
         run: npm run test:versions
+      - name: Database and Supabase contract tests
+        run: npm run test:database
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
