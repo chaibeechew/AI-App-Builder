@@ -14,6 +14,11 @@ const home=read("app/page.js");
 const readme=read("README.md");
 const pkg=JSON.parse(read("package.json"));
 const ci=read(".github/workflows/ci.yml");
+const soolenCenter=read("app/soolen-ai/page.js");
+const createAppRoute=read("app/api/create-app/route.js");
+const communityChatRoute=read("app/api/community-chat/route.js");
+const generatedManifest=read("app/a/[id]/manifest.webmanifest/route.js");
+const brandKit=read("app/brand-kit/page.js");
 
 function assert(condition,message){if(!condition)throw new Error(message);}
 function pass(message){console.log(`✓ ${message}`);}
@@ -46,6 +51,22 @@ assert(account.includes('PRODUCT_BRAND.name')&&account.includes('PRODUCT_BRAND.c
 assert(capability.includes('PRODUCT_BRAND.productLine'),"Homepage capability area must use the shared product line.");
 assert(capability.includes('Pro Game Creator')&&capability.includes('Become Pro'),"Game creation must remain clearly Pro-gated.");
 pass("Primary customer-facing navigation and capability surfaces use LANERIQ AI");
+
+const legacyCustomerBrand=/AI APP BUILDER|AI App Builder/;
+for(const [file,source] of [
+  ["app/soolen-ai/page.js",soolenCenter],
+  ["app/api/create-app/route.js",createAppRoute],
+  ["app/api/community-chat/route.js",communityChatRoute],
+  ["app/a/[id]/manifest.webmanifest/route.js",generatedManifest],
+  ["app/brand-kit/page.js",brandKit],
+]) {
+  assert(!legacyCustomerBrand.test(source),`${file} must not expose the legacy AI App Builder customer brand.`);
+  assert(source.includes("LANERIQ AI"),`${file} must expose LANERIQ AI where product identity is shown.`);
+}
+assert(copy.includes('/AI APP BUILDER/gi')&&copy.includes('/AI App Builder/gi'),"Runtime legacy copy aliases must stay available for old generated content during migration.");
+assert(brand.includes('"AI APP BUILDER"')&&brand.includes('"AI App Builder"'),"Legacy names must remain migration aliases in the canonical brand map.");
+assert(seo.includes('"AI app builder"'),"Legacy generic SEO discovery term must remain searchable without becoming customer branding.");
+pass("Customer-visible legacy brand copy is blocked while migration aliases, SEO terms and compatibility identifiers remain intact");
 
 assert(readme.startsWith('# LANERIQ AI'),"README title must be LANERIQ AI.");
 assert(readme.includes('Powered by **SoolenAI**'),"README must preserve Powered by SoolenAI.");
