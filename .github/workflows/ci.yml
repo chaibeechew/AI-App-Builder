@@ -89,6 +89,8 @@ jobs:
         run: npm run test:account
       - name: Email OTP contract tests
         run: npm run test:email-otp
+      - name: Upload Ref contract tests
+        run: npm run test:upload-ref
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
