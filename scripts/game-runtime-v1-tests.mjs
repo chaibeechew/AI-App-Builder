@@ -3,6 +3,7 @@ import fs from "node:fs";
 import {compileGameRuntimeV1,GAME_RUNTIME_V1} from "../lib/game/runtime-v1.js";
 import {evaluateGameQuality100,GAME_QUALITY_DIMENSIONS,GAME_QUALITY_TARGET} from "../lib/game/quality-100.js";
 import {GAME_CREATOR_POLICY} from "../lib/game/pro-policy.js";
+import {resolveGeneratedRuntime} from "../lib/game/game-runtime-router-v1.js";
 
 const runtime=compileGameRuntimeV1({name:"Demo Racer",productType:"mobile_game",designSystem:{primaryColor:"#117755",accentColor:"#e2bd5c"},game:{enabled:true,genre:"Racing",maxHealth:120,enemyCount:4,maxLevel:5,coreLoop:["drive","collect","avoid","finish"]}});
 assert.equal(GAME_RUNTIME_V1.playable,true);
@@ -45,7 +46,7 @@ assert.match(player,/evaluateGameQuality100/);assert.match(player,/seededRandom/
 assert.match(builder,/\/api\/game\/generate/);assert.match(builder,/PRO · FAIR PRICE · FAIR USE/);assert.match(builder,/GAME CREATOR READINESS V2/);assert.match(builder,/Internal creation core/);assert.match(builder,/Production evidence is scored separately/);assert.match(builder,/INTERNAL CORE 100/);assert.match(builder,/Live Transport Contract V1/);assert.match(builder,/provider\/network\/device evidence/i);assert.match(builder,/load\/failover tests/i);assert.doesNotMatch(builder,/RM\s?\d/i);
 assert.match(knowledge,/GAME QUALITY 100 RULE/);assert.match(knowledge,/deterministic seeds/);assert.match(knowledge,/60fps/);assert.match(knowledge,/win\/lose/);assert.match(knowledge,/autosave/);assert.match(knowledge,/Lifecycle & Reliability/);
 
-assert.match(generatedPage,/GameRuntimeClient/);assert.match(generatedPage,/productType==="mobile_game"/);
+assert.match(generatedPage,/resolveGeneratedRuntime/);assert.match(generatedPage,/game-runtime-v1/);const genericRoute=resolveGeneratedRuntime({productType:"mobile_game",game:{enabled:true,archetype:"custom",genre:"Custom"}});assert.equal(genericRoute.isGame,true);assert.equal(genericRoute.runtimeId,"game-runtime-v1");
 for(const name of ["AI Art Generator","AI Video Generator","AI Photo & Video Generator","AI Avatar Creator"]){assert.match(banner,new RegExp(name.replace(/[&]/g,"\\&")));assert.match(studio,new RegExp(name.replace(/[&]/g,"\\&")));}
 assert.match(banner,/\/game-builder/);assert.match(studio,/Pro Game Creator/);assert.match(proMode,/gameCreator/);assert.match(proMode,/normalGenuineUseIncluded: true/);assert.match(proMode,/noSurprisePerClickCharges: true/);assert.match(proMode,/name: "Pro Game Creator"/);assert.match(proMode,/href: "\/game-builder"/);assert.doesNotMatch(banner,/RM\s?\d/i);
 
