@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 const BASE_URL=(process.env.LANERIQ_PRODUCTION_URL||"https://laneriq-ai.vercel.app").replace(/\/+$/g,"");
-const RUNS=Math.max(1,Math.min(1000,Number(process.env.LANERIQ_STABILITY_RUNS||100)));
+const RUNS=Math.max(1,Math.min(1000,Number(process.env.LANERIQ_STABILITY_RUNS||1000)));
 const TIMEOUT_MS=Math.max(1000,Math.min(30000,Number(process.env.LANERIQ_STABILITY_TIMEOUT_MS||8000)));
 const targets=[
   {path:"/",expect:[200],body:/LANERIQ AI/i},
@@ -21,7 +21,7 @@ async function request(target,run){
       method:"GET",
       redirect:"manual",
       cache:"no-store",
-      headers:{"User-Agent":"LANERIQ-AI-Production-Stability-100/1.1","Cache-Control":"no-cache"},
+      headers:{"User-Agent":"LANERIQ-AI-Production-Stability-1000/1.0","Cache-Control":"no-cache"},
       signal:controller.signal,
     });
     const elapsed=Date.now()-started;
@@ -35,7 +35,6 @@ async function request(target,run){
   }finally{clearTimeout(timeout);}
 }
 
-// Preflight tolerates deployment propagation but never tolerates a final unhealthy state.
 let preflight=null;
 for(let attempt=1;attempt<=30;attempt+=1){
   try{preflight=await request(targets[0],`preflight-${attempt}`);break;}catch(error){
@@ -54,7 +53,7 @@ for(let run=1;run<=RUNS;run+=1){
     latencies.push(result.elapsed);
     statusCounts.set(result.status,(statusCounts.get(result.status)||0)+1);
   }
-  if(run%10===0)console.log(`✓ production stability ${run}/${RUNS} cycles passed (${totalRequests} requests)`);
+  if(run%25===0)console.log(`✓ production stability ${run}/${RUNS} cycles passed (${totalRequests} requests)`);
 }
 
 latencies.sort((a,b)=>a-b);
