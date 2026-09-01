@@ -2,6 +2,7 @@
 import {useLayoutEffect} from "react";
 import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
+// Canonical customer brand: AI BUILD APP & WEB. Rendering remains sourced from PRODUCT_BRAND.
 // Legacy customer-facing brand aliases migrate to the canonical PRODUCT_BRAND name.
 const REPLACEMENTS=[
   [/LANERIQ AI/gi,PRODUCT_BRAND.name],

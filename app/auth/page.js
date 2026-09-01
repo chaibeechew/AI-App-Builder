@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const RESEND_SECONDS = 60;
 const OTP_LENGTH = 8;
 const SMS_AUTH_ENABLED = process.env.NEXT_PUBLIC_SMS_AUTH_ENABLED === "true";
-// Canonical customer branding is always sourced from PRODUCT_BRAND.
+// Canonical customer brand: AI BUILD APP & WEB. All rendering remains sourced from PRODUCT_BRAND.
 
 function normalizePhone(value) {
   const cleaned = String(value || "").replace(/[\s()-]/g, "");
