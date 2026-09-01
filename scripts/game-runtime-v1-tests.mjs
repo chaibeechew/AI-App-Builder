@@ -27,6 +27,11 @@ assert.equal(GAME_CREATOR_POLICY.pricingDisplayInFeatureCards,false);
 assert.equal(GAME_CREATOR_POLICY.normalUseIncluded,true);
 assert.equal(GAME_CREATOR_POLICY.noSurprisePerClickCharges,true);
 assert.ok(GAME_CREATOR_POLICY.fairUse.maxNewGameStartsPerHour>0);
+assert.equal(GAME_CREATOR_POLICY.commercialTerms.buyoutLicenseAvailable,false);
+assert.equal(GAME_CREATOR_POLICY.commercialTerms.platformProfitSharePercent,5);
+assert.equal(GAME_CREATOR_POLICY.commercialTerms.profitShareBasis,"game_profit");
+assert.equal(GAME_CREATOR_POLICY.commercialTerms.cannotBeRemovedByBuyout,true);
+assert.equal(GAME_CREATOR_POLICY.commercialTerms.continuesAfterProfessionalAccessEnds,true);
 
 const route=fs.readFileSync("app/api/game/generate/route.js","utf8");
 const mainGenerate=fs.readFileSync("app/api/generate/route.js","utf8");
@@ -37,13 +42,18 @@ const banner=fs.readFileSync("app/components/CreationCapabilityBanner.js","utf8"
 const studio=fs.readFileSync("app/studio/page.js","utf8");
 const proMode=fs.readFileSync("lib/pro-mode.js","utf8");
 const knowledge=fs.readFileSync("lib/ai/mobile-game-knowledge.js","utf8");
+const gate=fs.readFileSync("app/components/GameProGate.js","utf8");
+const pricing=fs.readFileSync("app/pricing/page.js","utf8");
 
 assert.match(route,/getAppBuilderAccess/);assert.match(route,/professional\.active/);assert.match(route,/PRO_GAME_CREATOR_REQUIRED/);assert.match(route,/GAME_FAIR_USE_TEMPORARY_LIMIT/);assert.match(route,/maxNewGameStartsPerHour/);assert.match(route,/x-soolen-game-gateway/);assert.match(route,/POST as generateApp/);
+assert.match(route,/gameCommercialTerms/);assert.match(route,/X-LANERIQ-Game-Buyout/);assert.match(route,/X-LANERIQ-Game-Profit-Share/);
 assert.match(mainGenerate,/isMobileGameIdea/);assert.match(mainGenerate,/x-soolen-game-gateway/);assert.match(mainGenerate,/professional\.active/);assert.match(mainGenerate,/PRO_GAME_CREATOR_REQUIRED/);assert.ok(mainGenerate.indexOf("if(isMobileGameIdea(combinedInput))")<mainGenerate.indexOf("const entitlement=await consumeAppBuilderEntitlement"),"Pro game gate must run before ordinary entitlement/credit charging");
 
 assert.match(player,/evaluateGameQuality100/);assert.match(player,/seededRandom/);assert.match(player,/hashSeed/);assert.match(player,/requestAnimationFrame/);assert.match(player,/maxDeltaSeconds/);assert.match(player,/maxEnemies/);assert.match(player,/setPointerCapture/);assert.match(player,/pointerCancel/);assert.match(player,/damageCooldown/);assert.match(player,/pagehide/);assert.match(player,/addEventListener\("blur"/);assert.match(player,/navigator\.vibrate/);assert.match(player,/prefers-reduced-motion/);assert.match(player,/High Contrast/);assert.match(player,/Reduced Motion/);assert.match(player,/YOU WIN/);assert.match(player,/GAME OVER/);assert.match(player,/writeSave\(next,\{silent:true\}\)/);assert.match(player,/unsupported game version/);assert.match(player,/role="status"/);assert.match(player,/aria-live="polite"/);assert.match(player,/min-height:48px/);assert.match(player,/60fps budget/);
 
 assert.match(builder,/\/api\/game\/generate/);assert.match(builder,/PRO · FAIR PRICE · FAIR USE/);assert.match(builder,/GAME CREATOR READINESS V2/);assert.match(builder,/Internal creation core/);assert.match(builder,/Production evidence is scored separately/);assert.match(builder,/INTERNAL CORE 100/);assert.match(builder,/Live Transport Contract V1/);assert.match(builder,/provider\/network\/device evidence/i);assert.match(builder,/load\/failover tests/i);assert.doesNotMatch(builder,/RM\s?\d/i);
+assert.match(gate,/Game creation requires Pro/);assert.match(gate,/BECOME PRO/);assert.match(gate,/No buyout license/);assert.match(gate,/5% of game profit/);
+assert.match(pricing,/Games are Pro-only\. No buyout license/);assert.match(pricing,/5% LANERIQ AI share of game profit/);
 assert.match(knowledge,/GAME QUALITY 100 RULE/);assert.match(knowledge,/deterministic seeds/);assert.match(knowledge,/60fps/);assert.match(knowledge,/win\/lose/);assert.match(knowledge,/autosave/);assert.match(knowledge,/Lifecycle & Reliability/);
 
 assert.match(generatedPage,/resolveGeneratedRuntime/);assert.match(generatedPage,/game-runtime-v1/);const genericRoute=resolveGeneratedRuntime({productType:"mobile_game",game:{enabled:true,archetype:"custom",genre:"Custom"}});assert.equal(genericRoute.isGame,true);assert.equal(genericRoute.runtimeId,"game-runtime-v1");
@@ -52,5 +62,6 @@ assert.match(banner,/\/game-builder/);assert.match(studio,/Pro Game Creator/);as
 
 console.log("✓ Game Quality Gate scores 100 only when all 10 base-runtime evidence dimensions pass; Game Creator Readiness V2 separately gates production evidence");
 console.log("✓ Game Runtime V1 now covers complete run win/lose, deterministic spawns, input recovery, bounded performance, validated autosave, audio/haptics, accessibility and mobile lifecycle recovery");
-console.log("✓ Mobile Game Creator remains Professional-only with Fair Price · Fair Use and the main generator cannot bypass the Pro gate before ordinary credit charging");
+console.log("✓ Game creation is Professional-only; ordinary App/Website generation cannot bypass into Game mode");
+console.log("✓ Game commercial policy is locked: no buyout license and continuing 5% LANERIQ AI share of game profit when commercialized");
 console.log("✓ AI Art, AI Video, AI Photo & Video and AI Avatar remain unified across homepage, Studio, Professional workspace and game creation without copied RM price cards");
