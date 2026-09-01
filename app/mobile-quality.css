@@ -22,6 +22,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   input,select,textarea{font-size:16px!important}
   main,section,article,header,footer,nav,aside{max-width:100vw}
   [data-mobile-scroll]{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .referenceDock{right:max(10px,env(safe-area-inset-right))!important;bottom:max(72px,calc(62px + env(safe-area-inset-bottom)))!important}
+  .referenceDock .panel{max-height:min(72svh,calc(100svh - 110px))!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 }
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto!important}
