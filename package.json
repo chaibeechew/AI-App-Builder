@@ -20,6 +20,7 @@
     "test:workflows": "node scripts/workflow-contract-tests.mjs",
     "test:self-heal": "node scripts/self-heal-contract-tests.mjs",
     "test:modify": "node scripts/ai-modify-contract-tests.mjs",
+    "test:idea": "node scripts/ai-idea-planning-contract-tests.mjs",
     "test:runtime": "node scripts/runtime-contract-tests.mjs",
     "test:nonprod": "node scripts/non-production-100-tests.mjs"
   },
