@@ -49,7 +49,7 @@ export default async function BrandKitPage({ searchParams }) {
 
   return <main className="brandPage"><div className="wrap">
     <div className="topbar"><Link href="/studio">← Studio</Link><span>BRAND KIT · REUSABLE IDENTITY</span></div>
-    <header><small>ONE BRAND, EVERY BUILD</small><h1>Brand Kit</h1><p>Save your identity once. AI App Builder can use the same logo, colors, typography direction and brand voice across future App + Website projects.</p></header>
+    <header><small>ONE BRAND, EVERY BUILD</small><h1>Brand Kit</h1><p>Save your identity once. LANERIQ AI can use the same logo, colors, typography direction and brand voice across future App + Website projects.</p></header>
     {saved ? <div className="success">✓ Brand Kit saved.</div> : null}
     {error ? <div className="error">{error}</div> : null}
     <form action={saveBrandKit} className="panel">

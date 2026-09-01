@@ -1,6 +1,6 @@
 # SoolenAI Open Voice Engine
 
-Self-hosted voice service for AI App Builder using Chatterbox Multilingual. It is the default SoolenAI voice provider; paid providers remain optional.
+Self-hosted voice service for LANERIQ AI using Chatterbox Multilingual. It is the default SoolenAI voice provider; paid providers remain optional.
 
 ## Server environment
 

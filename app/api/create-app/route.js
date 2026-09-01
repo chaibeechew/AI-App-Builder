@@ -36,6 +36,6 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("CREATE_APP_ERROR:", error);
-    return NextResponse.json({ success: false, error: "AI App Builder failed." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "LANERIQ AI build failed." }, { status: 500 });
   }
 }
