@@ -71,6 +71,8 @@ jobs:
         run: npm run test:database
       - name: Project Memory contract tests
         run: npm run test:memory
+      - name: Brand Kit contract tests
+        run: npm run test:brand-kit
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
