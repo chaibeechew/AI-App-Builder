@@ -23,11 +23,13 @@ export default async function BrandKitPage({ searchParams }) {
       const v = String(value || "").trim();
       return /^#[0-9a-fA-F]{6}$/.test(v) ? v : fallback;
     };
+    const logoUrl = String(formData.get("logo_url") || "").trim().slice(0, 1000);
+    if (logoUrl && !/^https:\/\/[^\s]+$/i.test(logoUrl)) redirect(`/brand-kit?error=${encodeURIComponent("Logo URL must be a valid HTTPS address")}`);
 
     const payload = {
       user_id: currentUser.id,
       company_name: String(formData.get("company_name") || "").trim().slice(0, 120),
-      logo_url: String(formData.get("logo_url") || "").trim().slice(0, 1000),
+      logo_url: logoUrl,
       primary_color: cleanHex(formData.get("primary_color"), "#0b5d46"),
       secondary_color: cleanHex(formData.get("secondary_color"), "#f4f0e6"),
       accent_color: cleanHex(formData.get("accent_color"), "#d8bf62"),
@@ -52,7 +54,7 @@ export default async function BrandKitPage({ searchParams }) {
     {error ? <div className="error">{error}</div> : null}
     <form action={saveBrandKit} className="panel">
       <section><label>Company / Brand Name</label><input name="company_name" defaultValue={kit?.company_name || ""} placeholder="Your company or product name" maxLength={120}/></section>
-      <section><label>Logo URL</label><input name="logo_url" defaultValue={kit?.logo_url || ""} placeholder="https://..."/><small>Image upload will be connected to Asset Library next. For now, a secure hosted logo URL can be reused.</small></section>
+      <section><label>Logo URL</label><input name="logo_url" type="url" inputMode="url" defaultValue={kit?.logo_url || ""} placeholder="https://..."/><small>Use an HTTPS image URL you control. Brand Kit keeps the reference private to your account and reuses it only for your builds.</small></section>
       <div className="colors">
         <section><label>Primary</label><div className="colorRow"><input type="color" name="primary_color" defaultValue={kit?.primary_color || "#0b5d46"}/><code>{kit?.primary_color || "#0b5d46"}</code></div></section>
         <section><label>Secondary</label><div className="colorRow"><input type="color" name="secondary_color" defaultValue={kit?.secondary_color || "#f4f0e6"}/><code>{kit?.secondary_color || "#f4f0e6"}</code></div></section>
