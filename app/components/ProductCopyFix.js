@@ -2,7 +2,7 @@
 import {useEffect} from "react";
 import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
-// Legacy migration aliases are retained for old data/tests only; customer-facing copy resolves to LANERIQ AI.
+// Legacy migration aliases are retained for old data/tests only: AI BUILD APP & WEB → LANERIQ AI. Customer-facing copy resolves to LANERIQ AI.
 const REPLACEMENTS=[
   [/CREOVA AI/gi,PRODUCT_BRAND.name],
   [/AI BUILD APP\s*&\s*WEB/gi,PRODUCT_BRAND.name],
