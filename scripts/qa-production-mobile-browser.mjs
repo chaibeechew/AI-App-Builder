@@ -8,10 +8,12 @@ const context = await browser.newContext({ ...iphone, locale: "en-US" });
 
 const results = [];
 
-async function navigateAndSettle(page, url) {
-  const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await page.locator("body").waitFor({ state: "visible", timeout: 10_000 });
-  await page.waitForTimeout(1_500);
+async function navigateAndSettle(page, url, label) {
+  console.log(`→ browser QA ${label}: navigate`);
+  const response = await page.goto(url, { waitUntil: "commit", timeout: 20_000 });
+  await page.locator("body").waitFor({ state: "visible", timeout: 15_000 });
+  await page.waitForTimeout(2_000);
+  console.log(`✓ browser QA ${label}: body rendered`);
   return response;
 }
 
@@ -26,7 +28,7 @@ async function inspectPage(route, { expectAuthRedirect = false, expectPublic = f
   page.on("pageerror", (error) => pageErrors.push(String(error)));
 
   const startedAt = Date.now();
-  const response = await navigateAndSettle(page, `${baseUrl}${route}`);
+  const response = await navigateAndSettle(page, `${baseUrl}${route}`, route);
   const elapsedMs = Date.now() - startedAt;
   const finalUrl = new URL(page.url());
   const status = response?.status() ?? null;
@@ -61,6 +63,7 @@ async function inspectPage(route, { expectAuthRedirect = false, expectPublic = f
   }
 
   results.push({ route, finalUrl: finalUrl.href, status, elapsedMs, layout, title });
+  console.log(`✓ browser QA ${route}: assertions passed in ${elapsedMs}ms`);
   await page.close();
 }
 
@@ -73,7 +76,7 @@ for (const route of ["/generate", "/projects", "/publishing-center"]) {
 }
 
 const authPage = await context.newPage();
-const authResponse = await navigateAndSettle(authPage, `${baseUrl}/auth?next=https://evil.example/path`);
+const authResponse = await navigateAndSettle(authPage, `${baseUrl}/auth?next=https://evil.example/path`, "auth-safe-next");
 assert.ok(authResponse, "Auth canonicalization must return a response");
 const safeAuthUrl = new URL(authPage.url());
 assert.equal(safeAuthUrl.origin, new URL(baseUrl).origin, "External next must never leave the LANERIQ AI origin");
@@ -105,11 +108,11 @@ await browser.close();
 console.log(JSON.stringify({
   ok: true,
   baseUrl,
-  emulatedDevice: "iPhone 13 / WebKit-like mobile viewport via Chromium",
+  emulatedDevice: "iPhone 13 mobile viewport via Chromium",
   browserEngine: "Chromium",
   pagesChecked: results.length + 1,
   results,
   authInput: emailMetrics,
 }, null, 2));
 console.log("✓ LANERIQ AI Production mobile-browser QA passed: rendering, mobile layout, auth safety, touch sizing and signed-out redirects are healthy");
-console.log("ℹ This is browser emulation evidence only; it does not replace physical iPhone microphone/Photos/performance testing");
+console.log("ℹ This is Chromium mobile-emulation evidence only; it does not replace physical iPhone Safari/microphone/Photos/performance testing");
