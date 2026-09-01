@@ -43,7 +43,7 @@ export default function AvatarStudio(){
   const source=result?.source||result?.images?.[0]?.source||"";
   return <main className="avatarPage">
     <div className="glow"/>
-    <header><div><small>SOOLENAI CREATIVE STUDIO</small><h1>AI Avatar Creator</h1><p>Create original avatars, game characters, NPC concepts, presenters and mascots. External model generation is used only when a configured provider is allowed by the current cost policy.</p></div><Link href="/">← AI BUILD APP&WEB</Link></header>
+    <header><div><small>SOOLENAI CREATIVE STUDIO</small><h1>AI Avatar Creator</h1><p>Create original avatars, game characters, NPC concepts, presenters and mascots. External model generation is used only when a configured provider is allowed by the current cost policy.</p></div><Link href="/">← LANERIQ AI</Link></header>
     <section className="studio">
       <div className="controls">
         <label>Avatar type<div className="chips">{TYPES.map(([id,label])=><button key={id} className={type===id?"active":""} onClick={()=>setType(id)}>{label}</button>)}</div></label>

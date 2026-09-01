@@ -6,6 +6,7 @@ import { inferMobileGamePlan } from "../lib/ai/mobile-game-knowledge.js";
 import { GENERATION_QUALITY_RULES } from "../lib/buildStandards.js";
 import { PRODUCT_BRAND, PREMIUM_VISUAL_AI_INSTRUCTION, buildCustomerThemeInstruction } from "../lib/ai/premium-visual-policy.js";
 import { WALLPAPER_PRESETS,resolveWallpaperId,pickWallpaperForStage } from "../lib/design/wallpaper-presets.js";
+import { redesignAndAuditPremiumExperience } from "../lib/ai/premium-experience-system.js";
 
 function extractJson(text) {
   if (!text) throw new Error("AI provider returned an empty response");
@@ -72,6 +73,9 @@ export async function runAutonomousEngine(userIdea,options={}) {
   const {provider,result}=await generateWithFallback(buildPrompt(combinedIdea,patterns,promptOptions));
   let specification=extractJson(result);const proposed=String(specification?.designSystem?.wallpaperPreset||"");const fallback=wallpaperMode==="selected"?resolveWallpaperId(wallpaperPreset,"moon-city"):pickWallpaperForStage("generated",combinedIdea);const finalWallpaper=resolveWallpaperId(wallpaperMode==="selected"?wallpaperPreset:proposed,fallback);specification.designSystem={...(specification.designSystem||{}),wallpaperMode,wallpaperPreset:finalWallpaper};
   if(gamePlan.matched){specification.productType="mobile_game";specification.platforms=[...new Set([...(Array.isArray(specification.platforms)?specification.platforms:[]),"ios","android","web"])];specification.game={...(specification.game||{}),enabled:true,genre:specification?.game?.genre||gamePlan.genre,archetype:gamePlan.archetype||specification?.game?.archetype,dimensions:specification?.game?.dimensions||gamePlan.dimensions};specification=mergeMobaSpecification(specification,gamePlan);specification=mergeAviationSpecification(specification,gamePlan);}
+  const visualQuality=redesignAndAuditPremiumExperience(specification,{idea:combinedIdea,themeMode,primaryColor,accentColor,backgroundColor,wallpaperMode});
+  if(!visualQuality.passed)throw new Error(`Premium visual audit failed: ${visualQuality.after.errors.join("; ")}`);
+  specification=visualQuality.specification;
   const model=process.env[`${provider.toUpperCase()}_MODEL`]||undefined;
   return {status:"preview_ready",idea:combinedIdea,specification,aiProvider:provider,...(model?{aiModel:model}:{}),intelligence:{engine:"Soolen AI",product:PRODUCT_BRAND.name,industryPatternsMatched:patterns.length,patternLibrary:"industry_patterns",voiceInput:Boolean(voiceTranscript),referenceImages:referenceImages.length,language:buildSoolenGenerationContext({language,industry,terminology}).language.name,terminologyCount:buildSoolenGenerationContext({language,industry,terminology}).terminology.length,themeMode,themePreset,wallpaperMode,wallpaperPreset:finalWallpaper,media:"provider-neutral-zero-cost-first",demoVideo:createDemoVideo,mobileGame:gamePlan.matched?{genre:gamePlan.genre,archetype:gamePlan.archetype,platforms:gamePlan.platforms,multiplayer:gamePlan.multiplayer,moba:Boolean(gamePlan?.moba?.matched),aviation:Boolean(gamePlan?.aviation?.matched),aircraftCatalogSeedCount:gamePlan?.aviation?.catalogSeed?.length||0,mediaCapabilities:gamePlan.mediaCapabilities}:null},nextStep:"preview",test:{status:"pending"},security:{status:"pending"},publish:{allowed:false,requiresHumanApproval:true}};
 }

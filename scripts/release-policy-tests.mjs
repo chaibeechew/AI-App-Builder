@@ -42,7 +42,9 @@ const richSpec={
     paletteRationale:'high contrast palette selected for audience readability and brand mood',
     cardStyle:'layered glass and solid cards with clear hierarchy',
     imageStyle:'cinematic original imagery with product-relevant composition',
-    wallpaperPreset:'moon-city'
+    wallpaperPreset:'moon-city',
+    industryProfile:'adaptive',
+    experienceVersion:'premium-experience-v1-2026-08-31'
   },
   qualityPlan:Object.fromEntries(RELEASE_DIMENSIONS_REQUIRED.map(id=>[id,[`${id} implementation ${qualityWords}`,`${id} recovery and validation decision`,`${id} mobile privacy accessibility workflow decision`]])),
   pages:Array.from({length:6},(_,i)=>({name:`Page ${i+1}`,description:qualityWords,purpose:'clear human workflow',layout:'responsive accessible layout',visualTreatment:'premium visual style',backgroundTreatment:'premium background'})),

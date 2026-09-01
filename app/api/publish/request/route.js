@@ -3,6 +3,7 @@ import { createClient } from "../../../../lib/supabase/server.js";
 import { createAdminClient } from "../../../../lib/supabase/admin.js";
 import { assessBuildQuality } from "../../../../lib/buildStandards.js";
 import { evaluateReleaseReadiness, RELEASE_POLICY_NOTE } from "../../../../lib/release-readiness.js";
+import { assessPublishingProject } from "../../../../lib/publishing/server-readiness.js";
 
 export async function POST(request) {
   try {
@@ -26,10 +27,12 @@ export async function POST(request) {
     const readiness = evaluateReleaseReadiness(quality);
     if (!readiness.releaseReady) return NextResponse.json({ error: `Store publishing is locked until the current version reaches ${readiness.requiredScore}/100 overall and in every quality dimension.`, releaseReady: false, quality, belowTarget: readiness.belowTarget, missingDimensions: readiness.missing, note: RELEASE_POLICY_NOTE }, { status: 409 });
 
-    const { data: listing } = await supabase.from("store_listings").select("id,app_id,version_id,customer_approved_at").eq("id", listingId).eq("app_id", appId).single();
+    const { data: listing } = await supabase.from("store_listings").select("id,app_id,version_id,language,apple,google_play,checklist,customer_approved_at").eq("id", listingId).eq("app_id", appId).single();
     if (!listing) return NextResponse.json({ error: "Store listing not found." }, { status: 404 });
     if (!listing.customer_approved_at) return NextResponse.json({ error: "Customer approval is required before publishing." }, { status: 409 });
     if (!listing.version_id || listing.version_id !== versionId) return NextResponse.json({ error: "The approved store listing must match the exact current project version." }, { status: 409 });
+    const publishingReadiness=await assessPublishingProject({supabase,appId,ownerId:user.id,version,listing});
+    if(!publishingReadiness.readyForCustomerReview)return NextResponse.json({error:"Store preparation is locked until the exact version passes quality, per-page visual and customer declaration checks.",readyForSubmissionPreparation:false,customerRequired:publishingReadiness.storeReadiness.customerRequired},{status:409});
 
     const { data: existing } = await supabase.from("publish_requests").select("id,status").eq("app_id", appId).eq("version_id", versionId).eq("platform", platform).eq("requested_by", user.id).in("status", ["customer_approved","building","testing","ready","submitted","published"]).limit(1).maybeSingle();
     if (existing) return NextResponse.json({ success: true, request: existing, duplicate: true, releaseReady: true });
@@ -37,7 +40,7 @@ export async function POST(request) {
     const admin=createAdminClient();
     const { data, error } = await admin.from("publish_requests").insert({ app_id: appId, version_id: versionId, store_listing_id: listingId, platform, status: "customer_approved", requested_by: user.id, customer_approved_at: listing.customer_approved_at }).select("id,app_id,version_id,platform,status,created_at").single();
     if (error) return NextResponse.json({ error: "Unable to create publish request." }, { status: 500 });
-    return NextResponse.json({ success: true, request: data, releaseReady: true, note: "Store preparation can continue. Store approval and external platform requirements remain outside SoolenAI's control." });
+    return NextResponse.json({ success: true, request: data, releaseReady: true, readyForOfficialSubmission:false,officialSubmissionState:"not_submitted",productionHold:true,note: "Store preparation can continue. Official submission, signing, store review and external platform requirements remain with the customer and Apple/Google." });
   } catch (error) {
     console.error("PUBLISH_REQUEST_API_ERROR:", error);
     return NextResponse.json({ error: "Unable to create publish request." }, { status: 500 });

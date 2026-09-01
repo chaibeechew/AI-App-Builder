@@ -2,10 +2,10 @@
 import {useLayoutEffect} from "react";
 import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
-// Canonical customer brand: AI BUILD APP & WEB. Rendering remains sourced from PRODUCT_BRAND.
+// Canonical customer brand: LANERIQ AI. Rendering remains sourced from PRODUCT_BRAND.
 // Legacy customer-facing brand aliases migrate to the canonical PRODUCT_BRAND name.
 const REPLACEMENTS=[
-  [/LANERIQ AI/gi,PRODUCT_BRAND.name],
+  [/AI BUILD APP\s*&\s*WEB/gi,PRODUCT_BRAND.name],
   [/CREOVA AI/gi,PRODUCT_BRAND.name],
   [/AI APP\s*&\s*WEB CREATOR/gi,PRODUCT_BRAND.name],
   [/AI App\s*&\s*Web Creator/gi,PRODUCT_BRAND.name],

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
 import { assessBuildQuality } from "../../../../../lib/buildStandards.js";
 import { evaluateReleaseReadiness, RELEASE_POLICY_NOTE } from "../../../../../lib/release-readiness.js";
+import { auditPremiumExperience } from "../../../../../lib/ai/premium-experience-system.js";
 
 export async function POST(_request, { params }) {
   try {
@@ -18,9 +19,11 @@ export async function POST(_request, { params }) {
 
     const quality = assessBuildQuality(version.specification || {});
     const readiness = evaluateReleaseReadiness(quality);
-    if (!readiness.releaseReady) return NextResponse.json({
-      error: `Publishing is locked until the project reaches ${readiness.requiredScore}/100 overall and in every quality dimension.`,
+    const visualQuality = auditPremiumExperience(version.specification || {});
+    if (!readiness.releaseReady || !visualQuality.passed) return NextResponse.json({
+      error: `Publishing is locked until the project reaches ${readiness.requiredScore}/100 overall, every quality dimension and the per-page visual audit.`,
       quality,
+      visualQuality,
       target: readiness.requiredScore,
       releaseReady: false,
       belowTarget: readiness.belowTarget,
@@ -35,7 +38,7 @@ export async function POST(_request, { params }) {
       return NextResponse.json({ error: "Unable to publish the App and Website." }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, app: updated, quality, target: readiness.requiredScore, releaseReady: true, note: RELEASE_POLICY_NOTE, path: `/a/${id}`, appPath: `/a/${id}`, websitePath: `/website/${id}` });
+    return NextResponse.json({ success: true, app: updated, quality, visualQuality, target: readiness.requiredScore, releaseReady: true, note: RELEASE_POLICY_NOTE, path: `/a/${id}`, appPath: `/a/${id}`, websitePath: `/website/${id}` });
   } catch (error) {
     console.error("PROJECT_PUBLISH_API_ERROR:", error);
     return NextResponse.json({ error: "Unable to publish the App and Website." }, { status: 500 });

@@ -3,7 +3,7 @@ export async function GET(_request, { params }) {
   return Response.json({
     name: "AI Generated App",
     short_name: "My App",
-    description: "Created with AI App Builder",
+    description: "Created with LANERIQ AI",
     start_url: `/a/${id}`,
     scope: `/a/${id}`,
     display: "standalone",

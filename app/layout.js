@@ -49,6 +49,15 @@ export const metadata = {
   ...(googleVerification ? { verification: { google: googleVerification } } : {}),
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#020d0b",
+  colorScheme: "dark",
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">

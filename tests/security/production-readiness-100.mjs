@@ -9,7 +9,7 @@ import {
 } from "../../config/create-app-flow.js";
 
 const cases = [
-  ["product name", () => assert.equal(PRODUCT_POLICY.product, "AI App Builder")],
+  ["product name", () => assert.equal(PRODUCT_POLICY.product, "LANERIQ AI")],
   ["customer owns data", () => assert.equal(PRODUCT_POLICY.data.customerDataOwnership, "customer")],
   ["uploaded data not training", () => assert.equal(PRODUCT_POLICY.data.useUploadedDataForModelTraining, false)],
   ["uploaded data purpose", () => assert.equal(PRODUCT_POLICY.data.uploadedDataPurpose, "app_creation_reference_only")],

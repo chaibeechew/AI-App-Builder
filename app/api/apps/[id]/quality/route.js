@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
 import { assessBuildQuality } from "../../../../../lib/buildStandards.js";
 import { evaluateReleaseReadiness, RELEASE_POLICY_NOTE, PRODUCTION_EVIDENCE_REQUIREMENTS, PRODUCTION_EVIDENCE_LABELS } from "../../../../../lib/release-readiness.js";
+import { auditPremiumExperience } from "../../../../../lib/ai/premium-experience-system.js";
 
 export async function GET(_request, { params }) {
   try {
@@ -19,6 +20,8 @@ export async function GET(_request, { params }) {
 
     const report = assessBuildQuality(version.specification || {});
     const readiness = evaluateReleaseReadiness(report);
+    const visualQuality = auditPremiumExperience(version.specification || {});
+    const releaseReady = readiness.releaseReady && visualQuality.passed;
 
     return NextResponse.json({
       success: true,
@@ -26,12 +29,13 @@ export async function GET(_request, { params }) {
       version: { id: version.id, versionNo: version.version_no },
       target: readiness.requiredScore,
       report,
-      releaseReady: readiness.releaseReady,
-      criticalPassed: readiness.releaseReady,
+      visualQuality,
+      releaseReady,
+      criticalPassed: releaseReady,
       belowTarget: readiness.belowTarget,
       missingDimensions: readiness.missing,
       productionEvidence: PRODUCTION_EVIDENCE_REQUIREMENTS.map((key) => ({ key, label: PRODUCTION_EVIDENCE_LABELS[key] })),
-      note: `${RELEASE_POLICY_NOTE} Current project release requires ${readiness.requiredScore}/100 overall and in every quality dimension.`,
+      note: `${RELEASE_POLICY_NOTE} Current project release requires ${readiness.requiredScore}/100 overall, every quality dimension and the per-page visual audit.`,
     });
   } catch (error) {
     console.error("QUALITY_GATE_API_ERROR:", error);

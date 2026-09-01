@@ -82,7 +82,7 @@ export default function SoolenAICenter() {
   return <main className="soolenCenter">
     <div className="aurora"/>
     <header>
-      <Link href="/" className="back">← AI App Builder</Link>
+      <Link href="/" className="back">← LANERIQ AI</Link>
       <div className="tier">{tier.toUpperCase()} · {freeRotation ? "FREE ROTATION" : `${costMode.toUpperCase()} COST`} · {readyCount} READY</div>
     </header>
 

@@ -1,5 +1,5 @@
 export const PRODUCT_POLICY = Object.freeze({
-  product: "AI BUILD APP & WEB",
+  product: "LANERIQ AI",
   platformRelease: {
     productionPromotionHold: true,
     previewValidationFirst: true,
@@ -52,7 +52,7 @@ export const PRODUCT_POLICY = Object.freeze({
       fairUseApplies: true,
       externalStoreFeesExcluded: true,
       licenseSelectionPolicyUnchanged: true,
-      note: "Eligible customers can create one App + Website project, refine it with AI until it fits their needs, and complete the SoolenAI publishing workflow without an AI BUILD APP & WEB creation charge. Apple/Google developer fees and other third-party charges remain payable directly to those providers. Existing license rules remain unchanged."
+      note: "Eligible customers can create one App + Website project, refine it with AI until it fits their needs, and complete the SoolenAI publishing workflow without an LANERIQ AI creation charge. Apple/Google developer fees and other third-party charges remain payable directly to those providers. Existing license rules remain unchanged."
     }
   },
   pricing: {
@@ -133,7 +133,7 @@ export const PRODUCT_POLICY = Object.freeze({
         cadence: "one_time",
         officialRegistrationUrl: "https://play.google.com/console/signup",
       },
-      note: "Store fees are external platform fees and may vary by region or change over time. AI BUILD APP & WEB must not mark them up or collect them on behalf of Apple or Google.",
+      note: "Store fees are external platform fees and may vary by region or change over time. LANERIQ AI must not mark them up or collect them on behalf of Apple or Google.",
     },
   },
   monetization: {

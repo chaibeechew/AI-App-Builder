@@ -1,4 +1,4 @@
--- Preview-safe access and AI credit runtime for the consolidated AI App Builder schema.
+-- Preview-safe access and AI credit runtime for the consolidated LANERIQ AI schema.
 -- Production promotion remains held. This migration restores the server-side contracts
 -- already used by Generate/Modify while keeping customer financial state non-writable.
 

@@ -32,7 +32,7 @@ assert.match(seo, /const brand = PRODUCT_BRAND\.name/);
 assert.doesNotMatch(seo, /LANERIQ AI/);
 console.log("✓ Root metadata targets AI app, game and website discovery using the canonical brand contract");
 
-for (const keyword of ["AI app builder", "AI game builder", "AI website builder", "create app with AI", "create game with AI", "no code AI app builder", "AI mobile app builder", "AI app game website builder"]) {
+for (const keyword of ["app builder with AI", "AI game builder", "AI website builder", "create app with AI", "create game with AI", "no code app creation with AI", "AI mobile app builder", "AI app game website builder"]) {
   assert.ok(seo.includes(`\"${keyword}\"`), `Missing SEO keyword: ${keyword}`);
 }
 for (const slug of slugs) {
@@ -64,4 +64,4 @@ assert.match(seo, /SoftwareApplication/);
 assert.doesNotMatch(seo, /aggregateRating|reviewCount|priceCurrency/);
 console.log("✓ Schema markup describes real platform capabilities without invented ratings, reviews or pricing");
 
-console.log("AI BUILD APP & WEB SEO foundation gate passed");
+console.log("LANERIQ AI SEO foundation gate passed");

@@ -1,6 +1,6 @@
-# AI-App-Builder
+# LANERIQ AI
 
-AI App Builder — Create, Modify, Test, Publish & Rollback.
+LANERIQ AI — Create, Modify, Test, Publish & Rollback.
 
 ## Foundation added
 

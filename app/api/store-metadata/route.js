@@ -5,6 +5,8 @@ const clean = (value, max) => String(value ?? "").trim().replace(/\s+/g, " ").sl
 
 function yesNo(value) { return value === true || String(value).toLowerCase() === "yes"; }
 
+const PERMISSION_IDS = ["camera", "microphone", "location", "photos", "notifications"];
+
 function buildMetadata({ appName, description, category, keywords, language = "en", customerAnswers = {} }) {
   const name = clean(appName, 30) || "My App";
   const longDescription = clean(description, 4000);
@@ -15,16 +17,21 @@ function buildMetadata({ appName, description, category, keywords, language = "e
   const websiteUrl = clean(customerAnswers.websiteUrl, 500);
   const supportEmail = clean(customerAnswers.supportEmail, 200);
   const targetAudience = clean(customerAnswers.targetAudience, 300);
+  const termsUrl = clean(customerAnswers.termsUrl, 500);
+  const ageRating = clean(customerAnswers.ageRating, 300);
   const sellerType = clean(customerAnswers.sellerType, 40) || "individual_or_organization";
   const loginRequired = yesNo(customerAnswers.loginRequired);
+  const reviewAccessReady = yesNo(customerAnswers.reviewAccessReady);
   const collectsPersonalData = yesNo(customerAnswers.collectsPersonalData);
   const containsAds = yesNo(customerAnswers.containsAds);
   const paidFeatures = yesNo(customerAnswers.paidFeatures);
+  const detectedCapabilities = Array.isArray(customerAnswers.detectedCapabilities) ? customerAnswers.detectedCapabilities.map((item) => clean(typeof item === "string" ? item : item?.id, 40)).filter((item) => PERMISSION_IDS.includes(item)) : [];
+  const permissionDisclosures = Object.fromEntries(PERMISSION_IDS.map((id) => [id, clean(customerAnswers[`${id}Purpose`], 500)]).filter(([, purpose]) => purpose));
 
   return {
     language,
     autoFill: {
-      sellerType, targetAudience, supportEmail, loginRequired, collectsPersonalData, containsAds, paidFeatures,
+      sellerType, targetAudience, supportEmail, loginRequired, reviewAccessReady, collectsPersonalData, containsAds, paidFeatures, detectedCapabilities,
       customerAnsweredFields: Object.keys(customerAnswers || {}).filter((key) => String(customerAnswers[key] ?? "").trim() !== ""),
       generatedFields: ["name", "subtitle", "keywords", "promotionalText", "descriptions", "category", "store checklist"],
     },
@@ -37,7 +44,12 @@ function buildMetadata({ appName, description, category, keywords, language = "e
       category: clean(category, 60),
       privacyUrl,
       supportUrl,
+      termsUrl,
       marketingUrl: websiteUrl,
+      ageRating,
+      loginRequired,
+      reviewAccessReady,
+      permissionDisclosures,
       reviewNotes: loginRequired ? "App includes authenticated areas. Customer must provide review/demo access details before submission." : "No login required according to customer answers.",
     },
     googlePlay: {
@@ -46,20 +58,27 @@ function buildMetadata({ appName, description, category, keywords, language = "e
       fullDescription: longDescription,
       category: clean(category, 60),
       privacyPolicyUrl: privacyUrl,
+      termsUrl,
       developerWebsite: websiteUrl,
       contactEmail: supportEmail,
       audienceSummary: targetAudience,
+      ageRating,
+      loginRequired,
+      reviewAccessReady,
+      permissionDisclosures,
     },
-    declarations: { loginRequired, collectsPersonalData, containsAds, paidFeatures },
+    declarations: { loginRequired, reviewAccessReady, collectsPersonalData, containsAds, paidFeatures, detectedCapabilities, permissionDisclosures },
     checklist: [
       { field: "Privacy Policy URL", required: true, value: privacyUrl },
+      { field: "Terms URL", required: true, value: termsUrl },
       { field: "Support URL", required: true, value: supportUrl },
       { field: "Support email", required: true, value: supportEmail },
       { field: "Target audience", required: true, value: targetAudience },
-      { field: "App icon", required: true, value: "generated_or_customer_asset" },
-      { field: "Screenshots", required: true, value: "generate_from_final_build" },
-      { field: "Age/content rating", required: true, value: "requires_customer_confirmation_in_store_console" },
-      { field: "Login review access", required: loginRequired, value: loginRequired ? "customer_must_provide_demo_access" : "not_required" },
+      { field: "App icon", required: true, value: "requires_dedicated_app_icon_asset" },
+      { field: "Screenshots", required: true, value: "requires_final_store_screenshots" },
+      { field: "Age/content rating", required: true, value: ageRating || "requires_customer_confirmation_in_store_console" },
+      { field: "Login review access", required: loginRequired, value: loginRequired ? (reviewAccessReady ? "customer_confirmed_ready_for_store_console" : "customer_must_confirm_demo_access") : "not_required" },
+      ...detectedCapabilities.map((id) => ({ field: `${id[0].toUpperCase()}${id.slice(1)} purpose disclosure`, required: true, value: permissionDisclosures[id] || "customer_must_confirm_permission_purpose" })),
       { field: "Store developer account", required: true, value: "customer_owned_account" }
     ],
     generatedAt: new Date().toISOString()

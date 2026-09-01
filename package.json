@@ -1,5 +1,5 @@
 {
-  "name": "ai-app-builder",
+  "name": "laneriq-ai",
   "version": "0.2.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,9 @@
     "test:release": "node scripts/release-policy-tests.mjs",
     "test:security": "node scripts/security-contract-tests.mjs",
     "test:runtime": "node scripts/runtime-contract-tests.mjs",
-    "test:nonprod": "node scripts/non-production-100-tests.mjs"
+    "test:nonprod": "node scripts/non-production-100-tests.mjs",
+    "test:visual": "node scripts/premium-experience-tests.mjs",
+    "test:publishing": "node scripts/publishing-agent-tests.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "latest",

@@ -1,4 +1,4 @@
-// Enterprise pricing policy for AI App Builder.
+// Enterprise pricing policy for LANERIQ AI.
 // Personal, Family, and ordinary Team usage are not charged by this policy.
 // Pricing is intentionally benchmarked below many enterprise app-builder platforms
 // while preserving room for security, support, governance, and publishing costs.

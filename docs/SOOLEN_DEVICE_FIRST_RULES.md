@@ -2,7 +2,7 @@
 
 Status: Core architecture rule
 
-These rules define the long-term compute architecture for AI App Builder and Soolen AI. Product features should follow them unless a future migration explicitly replaces this architecture.
+These rules define the long-term compute architecture for LANERIQ AI and Soolen AI. Product features should follow them unless a future migration explicitly replaces this architecture.
 
 ## 1. Device-first by default
 

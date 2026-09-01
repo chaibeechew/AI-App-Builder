@@ -1,4 +1,4 @@
-// Soolen isolated Sandbox Runtime. Deploy separately from AI App Builder.
+// Soolen isolated Sandbox Runtime. Deploy separately from LANERIQ AI.
 import http from "node:http";import crypto from "node:crypto";import {createExecutor,dependencySecurity,productionGate} from "./executor.js";import {createHttpExecutorBackend} from "./backend-http.js";import {verifyWorkspacePrivacy} from "./privacy-verifier.js";
 const PORT=Number(process.env.PORT||8787),TOKEN=String(process.env.SOOLEN_SANDBOX_RUNTIME_TOKEN||"");const workspaces=new Map();const executor=createExecutor(createHttpExecutorBackend());
 function send(res,status,data){const raw=JSON.stringify(data);res.writeHead(status,{"content-type":"application/json","cache-control":"no-store","x-content-type-options":"nosniff","content-security-policy":"default-src 'none'"});res.end(raw.length>2_000_000?JSON.stringify({error:"RESPONSE_TOO_LARGE"}):raw);}

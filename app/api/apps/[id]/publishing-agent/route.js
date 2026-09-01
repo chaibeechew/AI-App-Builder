@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
 import { buildStoreReadiness } from "../../../../../lib/publishing/store-readiness-policy.js";
+import { assessBuildQuality } from "../../../../../lib/buildStandards.js";
+import { evaluateReleaseReadiness } from "../../../../../lib/release-readiness.js";
+import { auditPremiumExperience } from "../../../../../lib/ai/premium-experience-system.js";
 
 function present(value) { return String(value ?? "").trim().length > 0; }
 function safeObject(value){return value&&typeof value==="object"&&!Array.isArray(value)?value:{};}
@@ -93,6 +96,20 @@ export async function GET(_request, { params }) {
       { platform: "google_play", label: "Package name, signing and Play Console release", payer: "customer_action" },
       { platform: "stores", label: "Final store declarations and review", payer: "customer_action" },
     ];
+    const buildQuality=assessBuildQuality(version.specification||{});
+    const releaseQuality=evaluateReleaseReadiness(buildQuality);
+    const visualQuality=auditPremiumExperience(version.specification||{});
+    const asStatusItem=(item)=>({id:item.key,label:item.label,detail:item.reason,blocking:item.status==="customer_required"});
+    const readinessGroups={
+      prepared:readiness.checks.filter(item=>item.status==="ready").map(asStatusItem),
+      aiCanPrepare:readiness.preparable.map(asStatusItem),
+      customerMustConfirm:readiness.customerRequired.map(asStatusItem),
+      externalActions:readiness.externalRequired.map(item=>({...asStatusItem(item),platform:item.owner})),
+    };
+    const readinessCounts={prepared:readinessGroups.prepared.length,aiCanPrepare:readinessGroups.aiCanPrepare.length,customerMustConfirm:readinessGroups.customerMustConfirm.length,externalActions:readinessGroups.externalActions.length};
+    const detectedCapabilities=readiness.permissionRequirements.map(item=>({id:item.key,label:item.label,purposeField:`${item.key}Purpose`}));
+    const readyForReview=Boolean(listing)&&releaseQuality.releaseReady&&visualQuality.passed&&readiness.customerRequired.length===0;
+    const readyForSubmissionPreparation=readyForReview&&Boolean(listing?.customer_approved_at);
 
     return NextResponse.json({
       success: true,
@@ -108,10 +125,17 @@ export async function GET(_request, { params }) {
       externalActions,
       assetCount: assets.length,
       storeReadiness: readiness,
-      readyForReview: Boolean(listing) && readiness.readyForCustomerReview,
+      detectedCapabilities,
+      readinessGroups,
+      readinessCounts,
+      readyForReview,
+      readyForSubmissionPreparation,
       customerApproved: Boolean(listing?.customer_approved_at),
       readyForOfficialSubmission: false,
-      note: "SoolenAI can prepare and validate store information, icon/screenshot requirements and permission-purpose gaps, but it must not guess customer declarations, store credentials, signing credentials or platform review answers. Official submission remains controlled by the customer and Apple/Google.",
+      officialSubmissionState: "not_submitted",
+      productionHold: true,
+      quality:{overall:buildQuality.overall,releaseReady:releaseQuality.releaseReady,visualScore:visualQuality.score,visualPassed:visualQuality.passed},
+      note: "LANERIQ AI can prepare and validate store information, icon/screenshot requirements and permission-purpose gaps, but it must not guess customer declarations, store credentials, signing credentials or platform review answers. Official submission remains controlled by the customer and Apple/Google.",
     });
   } catch (error) {
     console.error("PUBLISHING_AGENT_ERROR", error);

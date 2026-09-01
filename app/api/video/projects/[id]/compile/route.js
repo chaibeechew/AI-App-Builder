@@ -95,7 +95,7 @@ export async function POST(request,{params}){
 
     if(!rendererConfigured){
       await supabase.from("video_projects").update({edit_json:editJson,status:"draft",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",user.id);
-      return NextResponse.json({success:true,version,renderPlan:{serverRender:true,rendererConfigured:false,renderStarted:false,provider:null,jobId:null,outputPath:null,status:"draft",autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:"Edit version is saved safely as a draft. No final video renderer is connected yet, so AI BUILD APP & WEB will not claim that an MP4 is rendering or complete."}});
+      return NextResponse.json({success:true,version,renderPlan:{serverRender:true,rendererConfigured:false,renderStarted:false,provider:null,jobId:null,outputPath:null,status:"draft",autoConnect:editJson.autoConnected,clipCount:clips.length,durationSeconds:Number(total.toFixed(2)),aspectRatio:editJson.aspectRatio,experience:policy.label,note:"Edit version is saved safely as a draft. No final video renderer is connected yet, so LANERIQ AI will not claim that an MP4 is rendering or complete."}});
     }
 
     try{

@@ -29,9 +29,13 @@ jobs:
         run: npm run test:runtime
       - name: Non-production 100-point product tests
         run: npm run test:nonprod
-      - name: AI BUILD APP & WEB customer-facing brand contract tests
+      - name: Premium per-page visual and iPhone tests
+        run: npm run test:visual
+      - name: Publishing Agent readiness tests
+        run: npm run test:publishing
+      - name: LANERIQ AI customer-facing brand contract tests
         run: node scripts/product-brand-tests.mjs
-      - name: AI BUILD APP & WEB SEO foundation contract tests
+      - name: LANERIQ AI SEO foundation contract tests
         run: node scripts/seo-foundation-tests.mjs
       - name: Project Readiness contract tests
         run: node scripts/project-readiness-tests.mjs
