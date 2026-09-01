@@ -1,14 +1,6 @@
-/* LANERIQ AI multilingual UI */
-
-.premiumHome .heroCopy h1::after{
-  content:var(--laneriq-i18n-hero,"Build App Web & Game")!important;
-}
-.premiumHome .heroCopy>p::before{
-  content:var(--laneriq-i18n-platform,"3-in-1 AI Creation Platform") "\A" var(--laneriq-i18n-idea,"Create Anything. From One Idea.")!important;
-}
-.premiumHome .powered::before{
-  content:"⌘ " var(--laneriq-i18n-powered,"Powered by") " "!important;
-}
+/* LANERIQ AI multilingual UI.
+   The approved homepage hero renders directly from page.js / home-reference-layout.css;
+   language controls must not replace that composition with pseudo-element copy. */
 
 .laneriqLangButton{
   border:1px solid rgba(222,181,79,.42);
@@ -33,8 +25,7 @@
 .laneriqLangButton.floating{position:fixed;z-index:120;top:max(14px,env(safe-area-inset-top));right:14px}
 
 /* If the homepage has not hydrated far enough to portal the language button
-   into .topActions yet, keep the temporary floating control below Credits
-   instead of covering it. */
+   into .topActions yet, keep the temporary floating control below Credits. */
 body:has(.premiumHome) .laneriqLangButton.floating{
   top:max(82px,calc(env(safe-area-inset-top) + 70px));
   right:14px;
