@@ -1,0 +1,28 @@
+name: LANERIQ AI QA Production Stability Fast 1000
+
+on:
+  push:
+    branches:
+      - qa-production-fast-1000-20260902
+
+permissions:
+  contents: read
+
+jobs:
+  production-stability-fast-1000:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LANERIQ_PRODUCTION_URL: https://laneriq-ai.vercel.app
+      LANERIQ_STABILITY_RUNS: '1000'
+      LANERIQ_STABILITY_TIMEOUT_MS: '8000'
+      LANERIQ_STABILITY_CONCURRENCY: '30'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run 1000 bounded-concurrency production stability cycles
+        run: node scripts/qa-production-stability-batched.mjs
