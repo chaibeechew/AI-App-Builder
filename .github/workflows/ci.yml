@@ -67,6 +67,8 @@ jobs:
         run: npm run test:game-commercial
       - name: Game Creator runtime contract tests
         run: npm run test:game-runtime
+      - name: Multiplayer and 5v5 contract tests
+        run: npm run test:multiplayer
       - name: Version History and Undo contract tests
         run: npm run test:versions
       - name: Database and Supabase contract tests
@@ -99,6 +101,10 @@ jobs:
         run: npm run test:video
       - name: AI Avatar Creator contract tests
         run: npm run test:avatar
+      - name: Web Publish contract tests
+        run: npm run test:web-publish
+      - name: Apple App Store contract tests
+        run: npm run test:apple-store
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
