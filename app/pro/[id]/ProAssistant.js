@@ -20,9 +20,11 @@ async function fetchWithTimeout(url,options={},timeoutMs=20000){
   finally{clearTimeout(timer)}
 }
 
-export default function ProAssistant({ appId, quickActions=[] }) {
+export default function ProAssistant({ appId, currentVersionId="", quickActions=[] }) {
   const router = useRouter();
   const inFlightRef = useRef(false);
+  const pendingOperationRef = useRef(null);
+  const expectedVersionRef = useRef(currentVersionId||"");
   const [instruction, setInstruction] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -39,19 +41,23 @@ export default function ProAssistant({ appId, quickActions=[] }) {
     setInstruction(command);
     setLoading(true); setError(""); setSyncedModules([]); setNextTools([]);
     setMessage("AI is reviewing the current project and applying the requested change…");
-    const operationId=requestId();
+    const signature=`${appId}:${expectedVersionRef.current}:${command}`;
+    if(!pendingOperationRef.current||pendingOperationRef.current.signature!==signature)pendingOperationRef.current={signature,id:requestId()};
+    const operationId=pendingOperationRef.current.id;
 
     try {
       const plan = buildAutonomousPlan({ idea: command, createVideo: /video|promo|宣传视频|影片|视频/i.test(command) });
       const response = await fetchWithTimeout("/api/modify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appId, instruction: command, requestId: operationId })
+        body: JSON.stringify({ appId, instruction: command, requestId: operationId, expectedVersionId:expectedVersionRef.current||undefined })
       },95000);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.error || "Unable to apply the change.");
 
       setLastVersion(data?.version || null);
+      if(data?.version?.id)expectedVersionRef.current=data.version.id;
+      pendingOperationRef.current=null;
       const autoSyncNeeded = Boolean(plan?.modules?.database || plan?.modules?.workflows || plan?.modules?.video);
       let autoSyncNote = "";
 
@@ -83,13 +89,15 @@ export default function ProAssistant({ appId, quickActions=[] }) {
       if (/publish|apple|google play|app store|发布|上架/i.test(command)) followUps.push({ label:"Publishing", href:`/publish/${appId}` });
       setNextTools(followUps.filter((item, index, all) => all.findIndex((x) => x.href === item.href) === index));
 
-      setMessage(data?.version?.version_no
-        ? `Done. Version ${data.version.version_no} was created and passed the modification self-test.${autoSyncNote}`
-        : `Done. The AI change was applied and checked.${autoSyncNote}`);
+      setMessage(data?.replayed
+        ? `Recovered the already-saved Version ${data?.version?.version_no||""} from the same request without applying the edit twice.${autoSyncNote}`
+        : data?.version?.version_no
+          ? `Done. Version ${data.version.version_no} was created and passed the modification self-test.${autoSyncNote}`
+          : `Done. The AI change was applied and checked.${autoSyncNote}`);
       router.refresh();
     } catch (err) {
       setError(err?.code==="CLIENT_TIMEOUT"
-        ? "AI reached the browser safety time limit. Refresh this workspace once before retrying so the latest saved version is loaded."
+        ? "AI reached the browser safety time limit. Retry the same instruction once: the same request ID will safely recover an already-saved result instead of applying it twice."
         : err?.message || "Unable to apply the change.");
       setMessage("");
     } finally { inFlightRef.current=false; setLoading(false); }
