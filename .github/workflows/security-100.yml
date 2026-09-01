@@ -22,11 +22,11 @@ jobs:
       GEMINI_API_KEY: test
     steps:
       - name: Checkout requested Preview branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.test_ref }}
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Install dependencies
