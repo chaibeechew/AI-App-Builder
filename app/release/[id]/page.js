@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 const LABELS={stability:"Stability",security:"Security",privacy:"Privacy",comfort:"Ease of use",beauty:"Visual quality",naturalness:"Natural experience"};
+const REQUEST_ID=/^[A-Za-z0-9._:-]{1,160}$/;
+function newRequestId(prefix="publish"){try{return `${prefix}:${crypto.randomUUID()}`;}catch{return `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2,12)}`;}}
+function stableWebPublishRequestId(appId,versionId){const key=`laneriq:web-publish:${appId}:${versionId}`;try{const existing=window.sessionStorage.getItem(key);if(REQUEST_ID.test(existing||""))return existing;const created=newRequestId("web-publish");window.sessionStorage.setItem(key,created);return created;}catch{return newRequestId("web-publish");}}
 
 export default function ReleaseOptionsPage({ params }) {
   const [appId, setAppId] = useState(null);
@@ -39,8 +42,11 @@ export default function ReleaseOptionsPage({ params }) {
 
   async function publishProject() {
     if (quality && !quality.releaseReady) throw new Error("Quality Gate needs attention before publishing. Use Fix with AI, then run the gate again.");
-    const response = await fetch(`/api/apps/${appId}/publish`, { method: "POST" });
-    const data = await response.json();
+    const expectedVersionId=String(app?.current_version_id||"").trim();
+    if(!expectedVersionId)throw new Error("The reviewed project version is unavailable. Reload Publish Center and check again.");
+    const requestId=stableWebPublishRequestId(appId,expectedVersionId);
+    const response = await fetch(`/api/apps/${appId}/publish`, { method: "POST", headers:{"Content-Type":"application/json"}, cache:"no-store", body:JSON.stringify({requestId,expectedVersionId,action:"publish"}) });
+    const data = await response.json().catch(()=>null);
     if (!response.ok) throw new Error(data?.error || "Unable to publish project.");
     return { appUrl: `${window.location.origin}${data.appPath || data.path}`, websiteUrl: `${window.location.origin}${data.websitePath || `/website/${appId}`}` };
   }
