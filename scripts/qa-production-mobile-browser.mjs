@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { chromium, devices } from "@playwright/test";
+import { devices, webkit } from "@playwright/test";
 
 const baseUrl = String(process.env.LANERIQ_PRODUCTION_URL || "https://laneriq-ai.vercel.app").replace(/\/$/, "");
 const iphone = devices["iPhone 13"];
-const browser = await chromium.launch({ headless: true });
+const browser = await webkit.launch({ headless: true });
 const context = await browser.newContext({ ...iphone, locale: "en-US" });
 
 const results = [];
@@ -50,7 +50,7 @@ async function inspectPage(route, { expectAuthRedirect = false, expectPublic = f
   assert.deepEqual(pageErrors, [], `${route} must not raise page errors`);
   assert.deepEqual(consoleErrors, [], `${route} must not log console errors`);
   assert.ok(layout.viewport.includes("width=device-width"), `${route} must declare a mobile viewport`);
-  assert.ok(layout.scrollWidth <= layout.innerWidth + 1, `${route} must not horizontally overflow a 390px iPhone viewport`);
+  assert.ok(layout.scrollWidth <= layout.innerWidth + 1, `${route} must not horizontally overflow an iPhone 13 viewport`);
 
   if (expectPublic) {
     assert.equal(finalUrl.pathname, route.split("?")[0], `${route} must stay publicly reachable`);
@@ -108,11 +108,11 @@ await browser.close();
 console.log(JSON.stringify({
   ok: true,
   baseUrl,
-  emulatedDevice: "iPhone 13 mobile viewport via Chromium",
-  browserEngine: "Chromium",
+  emulatedDevice: "iPhone 13 mobile viewport via Playwright WebKit",
+  browserEngine: "WebKit",
   pagesChecked: results.length + 1,
   results,
   authInput: emailMetrics,
 }, null, 2));
 console.log("✓ LANERIQ AI Production mobile-browser QA passed: rendering, mobile layout, auth safety, touch sizing and signed-out redirects are healthy");
-console.log("ℹ This is Chromium mobile-emulation evidence only; it does not replace physical iPhone Safari/microphone/Photos/performance testing");
+console.log("ℹ This is WebKit iPhone emulation evidence only; it does not replace physical iPhone Safari/microphone/Photos/performance testing");
