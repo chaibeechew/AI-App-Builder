@@ -16,12 +16,12 @@ This tracker separates repository-verifiable quality from evidence that requires
 | Area | Baseline | Current | Status | Evidence / next gate |
 |---|---:|---:|---|---|
 | Brand identity & consistency | 88 | 100 | ✅ 100 CODE | Canonical LANERIQ AI contract, Powered by SoolenAI, renamed repo/package/CI, automated brand regression test |
-| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Game Commercial → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
+| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Game Commercial → Versions → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
 | Security / Ownership | 91 | 100 | ✅ 100 CODE | Critical create/modify/data/workflow/checkout/store/publish paths owner-bound; service-role finance; RLS + client secret scan |
 | Credits System | 86 | 100 | ✅ 100 CODE | Service-role mutation only, row locks, idempotent charge/refund, exact matching refund, create reservation recovery, exact-project access |
 | Pro Mode | 88 | 100 | ✅ 100 CODE | Expiry-bound entitlement, service-only grant, owned Pro workspace, game double-gate before credit/entitlement consumption |
 | Game commercial policy | 93 | 100 | ✅ 100 CODE | Pro-only, no buyout, continuing 5% game-profit share survives Pro expiry; policy/API/UI/README locked by CI contract |
-| Version History / Undo | 90 | 90 | 🟡 IN PROGRESS | Verify atomic versions, rollback ownership, stale-version protection |
+| Version History / Undo | 90 | 100 | ✅ 100 CODE | Atomic service-only rollback RPC, owner row lock, append-only history, expected-current stale protection, replay-safe request IDs, legacy pointer rollback disabled |
 | Database / Supabase | 89 | 89 | 🟡 IN PROGRESS | Verify RLS, bounded fields, durable records, no-code safety |
 | Project Memory | 87 | 87 | 🟡 IN PROGRESS | Verify owner scope, bounded memory, brand/visual/reference persistence |
 | Brand Kit | 84 | 84 | 🟡 IN PROGRESS | Verify persistence and generation/modify consumption |
@@ -77,10 +77,11 @@ The main CI requires all of the following to pass in order:
 5. Credits and entitlement contract tests
 6. Pro Mode contract tests
 7. Game commercial policy contract tests
-8. Runtime reliability contract tests
-9. Non-production 100 product contract tests
-10. 100-point structural readiness gate
-11. Next.js production build
+8. Version History and Undo contract tests
+9. Runtime reliability contract tests
+10. Non-production 100 product contract tests
+11. 100-point structural readiness gate
+12. Next.js production build
 
 Production promotion remains a separate, explicitly approved action.
 
@@ -152,6 +153,23 @@ The dedicated Game commercial gate now requires all defined repository-verifiabl
 - README and automated contract tests carry the same terms, and CI fails if they drift or if the 5% rule is mislabeled as revenue share.
 
 This is a **100/100 repository commercial-policy score**. Final jurisdiction-specific legal drafting and real commercial accounting remain separate production/legal work.
+
+### 7. Version History / Undo — 100 CODE
+
+Version history and rollback are now protected as an append-only, concurrency-safe project history flow:
+
+- `(app_id, version_no)` remains unique, while saved AI modifications and rollbacks serialize on the owned app row.
+- Rollback runs through the service-only `server_rollback_app_version` database RPC using one PostgreSQL transaction.
+- The RPC locks the exact owned app row before reading/writing rollback state, so concurrent project changes cannot silently overwrite one another.
+- Every rollback copies the selected historical specification into a **new** version and only then advances `current_version_id`; historical versions are not deleted or rewritten.
+- The client supplies the `expectedCurrentVersionId`; if the project changed after Version History was loaded, the rollback fails closed with a stale-version conflict.
+- A stable request ID is persisted through retry and stored as `source_request_id`, making repeated rollback requests replay-safe instead of creating duplicate versions.
+- The old direct-pointer POST rollback path is disabled, preventing callers from bypassing the append-only rollback contract.
+- The Version History UI clearly states that restoration creates a new version and that stale rollback attempts are blocked.
+- The migration was applied to the live LANERIQ AI Supabase project, and a transaction-scoped live verification proved: one rollback creates exactly one new version, replay creates no duplicate, and stale expected-current requests are rejected; the verification transaction was rolled back so no test project remained.
+- The dedicated Version History contract gate, Runtime gate, Non-production gate, structural 100-point gate and Next.js production build all pass together in CI.
+
+This is a **100/100 repository + database-contract score**. It does not claim that every future live customer interaction is immune to network/device failure; retry handling is designed to make those failures safe.
 
 ## Working rule
 
