@@ -13,6 +13,7 @@
     "test:credits": "node scripts/credits-contract-tests.mjs",
     "test:pro": "node scripts/pro-mode-contract-tests.mjs",
     "test:game-commercial": "node scripts/game-commercial-contract-tests.mjs",
+    "test:game-runtime": "node scripts/game-runtime-v1-tests.mjs && node scripts/game-runtime-contract-tests.mjs",
     "test:versions": "node scripts/version-history-contract-tests.mjs",
     "test:database": "node scripts/database-contract-tests.mjs",
     "test:memory": "node scripts/project-memory-contract-tests.mjs",
