@@ -47,7 +47,7 @@ export default function GameProGate() {
         <div className="gameProEyebrow">LANERIQ AI · PRO MODE</div>
         <h2 id="game-pro-title">Game creation requires Pro</h2>
         <p>Games can only be created and run in Pro Mode. Upgrade to Pro to unlock the Professional Game Creator, game runtimes and advanced game tools.</p>
-        <div className="commercialTerms"><b>GAME COMMERCIAL TERMS</b><span>No buyout license</span><span>LANERIQ AI receives 5% of game profit when a generated game is commercialized</span></div>
+        <div className="commercialTerms"><b>GAME COMMERCIAL TERMS</b><span>No buyout license</span><span>LANERIQ AI receives a continuing 5% share of game profit when a generated game is commercialized</span><span>The 5% game-profit-share obligation continues after Pro access ends</span></div>
         <Link className="gameProCta" href="/pricing">BECOME PRO →</Link>
         <button className="gameProSecondary" type="button" onClick={() => setOpen(false)}>Continue with App / Website</button>
       </section>
