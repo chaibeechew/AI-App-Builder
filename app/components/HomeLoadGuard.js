@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const PREFETCH_PATHS = new Set(["/credits", "/my-apps", "/templates", "/studio"]);
+const PREFETCH_PATHS = new Set(["/credits", "/my-apps", "/templates", "/studio", "/image-studio"]);
 
 function requestHeaders(input, init) {
   try {
@@ -34,7 +34,18 @@ export default function HomeLoadGuard() {
       return originalFetch(input, init);
     };
 
-    const tiles = Array.from(document.querySelectorAll(".premiumHome .styleRail i, .premiumHome .templateRail i"));
+    const styleTiles = Array.from(document.querySelectorAll(".premiumHome .styleRail i"));
+    const templateTiles = Array.from(document.querySelectorAll(".premiumHome .templateRail i"));
+
+    /* The first visible choices should never wait for IntersectionObserver.
+       This prevents blank cards on iPhone/4G while still keeping later images deferred. */
+    styleTiles.slice(0, 3).forEach((tile) => tile.classList.add("asset-ready"));
+    templateTiles.slice(0, 2).forEach((tile) => tile.classList.add("asset-ready"));
+    document.querySelector(".premiumHome .styleRail button.chosen i")?.classList.add("asset-ready");
+
+    const deferredTiles = [...styleTiles.slice(3), ...templateTiles.slice(2)].filter(
+      (tile) => !tile.classList.contains("asset-ready")
+    );
     let observer = null;
 
     if ("IntersectionObserver" in window) {
@@ -46,11 +57,11 @@ export default function HomeLoadGuard() {
             observer?.unobserve(entry.target);
           }
         },
-        { rootMargin: "120px 80px", threshold: 0.01 }
+        { rootMargin: "420px 120px", threshold: 0.01 }
       );
-      for (const tile of tiles) observer.observe(tile);
+      for (const tile of deferredTiles) observer.observe(tile);
     } else {
-      for (const tile of tiles) tile.classList.add("asset-ready");
+      for (const tile of deferredTiles) tile.classList.add("asset-ready");
     }
 
     return () => {
