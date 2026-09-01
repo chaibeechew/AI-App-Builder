@@ -18,6 +18,7 @@
     "test:memory": "node scripts/project-memory-contract-tests.mjs",
     "test:brand-kit": "node scripts/brand-kit-contract-tests.mjs",
     "test:workflows": "node scripts/workflow-contract-tests.mjs",
+    "test:self-heal": "node scripts/self-heal-contract-tests.mjs",
     "test:runtime": "node scripts/runtime-contract-tests.mjs",
     "test:nonprod": "node scripts/non-production-100-tests.mjs"
   },
