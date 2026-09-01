@@ -14,6 +14,7 @@
     "test:pro": "node scripts/pro-mode-contract-tests.mjs",
     "test:game-commercial": "node scripts/game-commercial-contract-tests.mjs",
     "test:game-runtime": "node scripts/game-runtime-v1-tests.mjs && node scripts/game-runtime-contract-tests.mjs",
+    "test:multiplayer": "node scripts/multiplayer-5v5-contract-tests.mjs",
     "test:versions": "node scripts/version-history-contract-tests.mjs",
     "test:database": "node scripts/database-contract-tests.mjs",
     "test:memory": "node scripts/project-memory-contract-tests.mjs",
@@ -30,6 +31,8 @@
     "test:image-studio": "node scripts/image-studio-contract-tests.mjs",
     "test:video": "node scripts/video-generator-contract-tests.mjs",
     "test:avatar": "node scripts/avatar-creator-contract-tests.mjs",
+    "test:web-publish": "node scripts/web-publish-contract-tests.mjs",
+    "test:apple-store": "node scripts/apple-store-contract-tests.mjs",
     "test:runtime": "node scripts/runtime-contract-tests.mjs",
     "test:nonprod": "node scripts/non-production-100-tests.mjs"
   },
