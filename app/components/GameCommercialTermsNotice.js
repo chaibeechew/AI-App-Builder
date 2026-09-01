@@ -11,7 +11,8 @@ export default function GameCommercialTermsNotice() {
       <b>GAME COMMERCIAL TERMS</b>
       <span>Pro Mode only</span>
       <span>No buyout license</span>
-      <span>5% LANERIQ AI share of game profit when commercialized</span>
+      <span>Continuing 5% LANERIQ AI share of game profit when commercialized</span>
+      <span>The 5% game-profit-share obligation continues after Pro access ends</span>
       <style jsx>{`
         .gameTerms{position:fixed;z-index:9000;right:14px;bottom:14px;width:min(390px,calc(100% - 28px));display:grid;grid-template-columns:auto 1fr;gap:6px 12px;padding:14px 16px;border:1px solid rgba(229,199,103,.42);border-radius:17px;background:rgba(3,19,15,.93);backdrop-filter:blur(18px);box-shadow:0 18px 55px rgba(0,0,0,.4);color:#e7eee9}
         b{grid-column:1/-1;color:#e5c767;font-size:10px;letter-spacing:.14em}
