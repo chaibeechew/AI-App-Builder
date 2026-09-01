@@ -17,6 +17,7 @@ const workflowRun=read('app/api/apps/[id]/workflows/[workflowId]/run/route.js');
 const checkout=read('app/api/apps/[id]/monetization/[offerId]/checkout/route.js');
 const publishRequest=read('app/api/publish/request/route.js');
 const storeApprove=read('app/api/store-metadata/approve/route.js');
+const storePublishRpc=read('supabase/migrations/20260901135653_harden_store_publish_request_contract.sql');
 const buyout=read('supabase/migrations/20260831031500_harden_has_active_buyout_rpc.sql');
 const admin=read('lib/supabase/admin.js');
 const finance=read('lib/app-builder-finance.js');
@@ -77,7 +78,7 @@ assert.match(checkout,/url\.protocol!=="https:"/);
 assert.match(checkout,/idempotencyKey=`checkout:\$\{user\.id\}:\$\{id\}:\$\{offer\.id\}:/);
 assert.match(checkout,/owner_id:user\.id/);
 
-// Store approval and publish request: exact current version + owned app chain before any admin write.
+// Store approval and publish request: exact current version + owned app chain before any privileged write.
 assert.match(storeApprove,/\.eq\("id", listing\.app_id\)\.eq\("owner_id", user\.id\)/);
 assert.match(storeApprove,/app\.current_version_id !== listing\.version_id/);
 assert.ok(storeApprove.indexOf('.eq("owner_id", user.id)') < storeApprove.indexOf('createAdminClient()'),'Store approval must verify ownership before using admin client.');
@@ -87,10 +88,24 @@ assert.match(publishRequest,/\.eq\("id", appId\)\.eq\("owner_id", user\.id\)/);
 assert.match(publishRequest,/app\.current_version_id !== versionId/);
 assert.match(publishRequest,/\.eq\("id", versionId\)\.eq\("app_id", appId\)/);
 assert.match(publishRequest,/\.eq\("id", listingId\)\.eq\("app_id", appId\)/);
-assert.match(publishRequest,/\.eq\("requested_by", user\.id\)/);
+assert.match(publishRequest,/server_create_store_publish_request/);
+assert.match(publishRequest,/p_user_id:user\.id/);
+assert.match(publishRequest,/p_request_id:requestId/);
 assert.ok(publishRequest.indexOf('.eq("owner_id", user.id)') < publishRequest.indexOf('createAdminClient()'),'Publish request must verify ownership before using admin client.');
-assert.match(publishRequest,/requested_by:\s*user\.id/);
 assert.match(publishRequest,/evaluateReleaseReadiness/);
+assert.match(publishRequest,/officialSubmissionConfirmed:false/);
+
+assert.match(storePublishRpc,/security definer set search_path=''/);
+assert.match(storePublishRpc,/where requested_by=uid and source_request_id=request_key for update/);
+assert.match(storePublishRpc,/from public\.apps where id=p_app_id and owner_id=uid for update/);
+assert.match(storePublishRpc,/current_version_id is distinct from p_version_id/);
+assert.match(storePublishRpc,/from public\.store_listings where id=p_listing_id and app_id=p_app_id for update/);
+assert.match(storePublishRpc,/listing_row\.version_id is distinct from p_version_id/);
+assert.match(storePublishRpc,/listing_row\.customer_approved_at is null/);
+assert.match(storePublishRpc,/source_request_id,metadata/);
+assert.match(storePublishRpc,/officialSubmissionConfirmed',false/);
+assert.match(storePublishRpc,/revoke all on function public\.server_create_store_publish_request\(uuid,uuid,uuid,uuid,text,text\) from public,anon,authenticated/);
+assert.match(storePublishRpc,/grant execute on function public\.server_create_store_publish_request\(uuid,uuid,uuid,uuid,text,text\) to service_role/);
 
 // Buyout RPC hardening.
 assert.match(buyout,/to_regprocedure\('public\.has_active_buyout\(uuid,uuid\)'\)/);
@@ -136,7 +151,7 @@ console.log('✓ Critical create/modify/release routes authenticate and enforce 
 console.log('✓ Records, database and bootstrap are owner-scoped, bounded and conflict-safe');
 console.log('✓ Workflow execution binds app/workflow/run ownership and is replay-safe');
 console.log('✓ Checkout uses owner-scoped authoritative offers, HTTPS redirects and owner-scoped tracking');
-console.log('✓ Store approval and publish requests verify owned exact-version chains before admin writes');
+console.log('✓ Store approval and publish requests verify owned exact-version chains before service-only atomic writes');
 console.log('✓ Buyout migration is idempotent and SECURITY INVOKER');
 console.log('✓ Entitlement, credit charge/refund and project binding use service-role-only RPCs');
 console.log('✓ Professional AI modify persistence is service-only, expected-version bound and replay safe');
