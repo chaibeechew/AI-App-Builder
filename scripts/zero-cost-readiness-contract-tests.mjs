@@ -56,7 +56,12 @@ assert.deepEqual(zeroPolicy.allowedProviders, ["ollama", "soolen-local"]);
 
 const freeCapabilities = resolveSoolenCapabilities({ tier: "free", env: hostileZeroEnv });
 assert.equal(freeCapabilities.providers.costMode, "zero");
-assert.deepEqual(freeCapabilities.providers.text, ["ollama", "soolen-local"]);
+assert.equal(freeCapabilities.providers.count, 3, "Configured metered providers may exist but must remain outside the zero-cost route.");
+assert.deepEqual(
+  freeCapabilities.providers.text,
+  ["soolen-local"],
+  "Only configured and zero-cost-approved providers may be selected; an allowed but unconfigured Ollama endpoint must not be advertised as ready.",
+);
 assert.equal(freeCapabilities.providers.premiumRouting, false);
 assert.equal(freeCapabilities.policy.failClosed, true);
 assert.equal(freeCapabilities.policy.externalSpendCap, 0);
@@ -100,5 +105,6 @@ for (const id of ["premium-image-studio", "premium-video-studio", "live-web-rese
 }
 
 console.log("✓ Zero-cost mode now uses an explicit provider allowlist and rejects unknown/metered providers");
+console.log("✓ Only configured zero-cost providers are selected; allowed but unconfigured local providers are not falsely advertised as ready");
 console.log("✓ Free LANERIQ AI App/Website, local image, browser voice, storyboard and memory paths remain ready at zero external spend");
 console.log("✓ Paid cloud image/video/web capabilities remain fail-closed and cannot be promoted to ready by stray provider URLs in zero-cost mode");
