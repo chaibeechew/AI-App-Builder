@@ -2,24 +2,33 @@
 
 import { useEffect } from "react";
 import { createClient } from "../../lib/supabase/client";
-
-function safeNext(value) {
-  const next = String(value || "/").trim();
-  if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/auth")) return "/";
-  return next;
-}
+import { normalizeReferralCode, safeInternalNext } from "../../lib/auth/session-safety.js";
 
 export default function AuthFlowGuard() {
   useEffect(() => {
     if (typeof window === "undefined" || window.location.pathname !== "/auth") return;
 
     const params = new URLSearchParams(window.location.search);
-    const referral = String(params.get("ref") || "").trim();
-    const next = safeNext(params.get("next"));
+    const referral = normalizeReferralCode(params.get("ref"));
+    const rawNext = params.get("next");
+    const next = safeInternalNext(rawNext);
     const originalFetch = window.fetch.bind(window);
     let redirected = false;
 
-    // Referral verification is only meaningful when the user actually arrived with a referral code.
+    // Keep the visible URL canonical too. The server proxy performs the same check,
+    // and this client-side normalization is defense in depth for SPA/history mutations.
+    if (rawNext && rawNext !== next) {
+      params.set("next", next);
+      const search = params.toString();
+      window.history.replaceState(window.history.state, "", `/auth${search ? `?${search}` : ""}`);
+    }
+    if (params.has("ref") && !referral) {
+      params.delete("ref");
+      const search = params.toString();
+      window.history.replaceState(window.history.state, "", `/auth${search ? `?${search}` : ""}`);
+    }
+
+    // Referral verification is only meaningful when the user actually arrived with a valid referral code.
     // Returning a local success here avoids an unrelated 400 from blocking the successful OTP flow.
     if (!referral) {
       window.fetch = (input, init) => {
@@ -30,7 +39,7 @@ export default function AuthFlowGuard() {
             return Promise.resolve(
               new Response(JSON.stringify({ success: true, referral: null }), {
                 status: 200,
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
               })
             );
           }
@@ -53,14 +62,14 @@ export default function AuthFlowGuard() {
     observer.observe(document.documentElement, { childList: true, subtree: true });
 
     const supabase = createClient();
-    const goHome = (session) => {
+    const goNext = (session) => {
       if (!session || redirected) return;
       redirected = true;
       window.location.replace(next);
     };
 
-    supabase.auth.getSession().then(({ data }) => goHome(data?.session)).catch(() => {});
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => goHome(session));
+    supabase.auth.getSession().then(({ data }) => goNext(data?.session)).catch(() => {});
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => goNext(session));
 
     return () => {
       observer.disconnect();
