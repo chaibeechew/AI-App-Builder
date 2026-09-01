@@ -4,29 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 const GAME_PATTERNS = [
-  /\bgame\b/i,
-  /\bgaming\b/i,
-  /\bmario\b/i,
-  /\bmoba\b/i,
-  /\brpg\b/i,
-  /\bfps\b/i,
-  /platformer/i,
-  /shooter/i,
-  /racing/i,
-  /tower defense/i,
-  /battle royale/i,
-  /rogueli(?:ke|te)/i,
-  /游戏/,
-  /遊戲/,
-  /手游/,
-  /电玩/,
-  /電玩/,
-  /塔防/,
-  /赛车/,
-  /賽車/,
-  /角色扮演/,
-  /射击/,
-  /射擊/,
+  /\bgame\b/i,/\bgaming\b/i,/\bmario\b/i,/\bmoba\b/i,/\brpg\b/i,/\bfps\b/i,
+  /platformer/i,/shooter/i,/racing/i,/tower defense/i,/battle royale/i,/rogueli(?:ke|te)/i,
+  /游戏/,/遊戲/,/手游/,/电玩/,/電玩/,/塔防/,/赛车/,/賽車/,/角色扮演/,/射击/,/射擊/,
 ];
 
 function isGameRequest(value = "") {
@@ -45,7 +25,6 @@ export default function GameProGate() {
       const label = String(button.textContent || "").trim();
       const isBuildAction = button.classList.contains("buildCta") || /(?:build|create).*app.*(?:web|website)/i.test(label);
       if (!isBuildAction) return;
-
       const prompt = document.querySelector("textarea")?.value || "";
       if (!isGameRequest(prompt)) return;
 
@@ -68,6 +47,7 @@ export default function GameProGate() {
         <div className="gameProEyebrow">LANERIQ AI · PRO MODE</div>
         <h2 id="game-pro-title">Game creation requires Pro</h2>
         <p>Games can only be created and run in Pro Mode. Upgrade to Pro to unlock the Professional Game Creator, game runtimes and advanced game tools.</p>
+        <div className="commercialTerms"><b>GAME COMMERCIAL TERMS</b><span>No buyout license</span><span>LANERIQ AI receives 5% of game profit when a generated game is commercialized</span></div>
         <Link className="gameProCta" href="/pricing">BECOME PRO →</Link>
         <button className="gameProSecondary" type="button" onClick={() => setOpen(false)}>Continue with App / Website</button>
       </section>
@@ -77,7 +57,9 @@ export default function GameProGate() {
         .gameProClose{position:absolute;top:14px;right:16px;width:40px;height:40px;border:1px solid rgba(255,255,255,.12);border-radius:50%;background:rgba(255,255,255,.05);color:#fff;font-size:27px;line-height:1}
         .gameProEyebrow{color:#efc75f;font-size:12px;font-weight:900;letter-spacing:.16em;margin-bottom:13px}
         h2{font-size:clamp(34px,8vw,52px);line-height:.98;letter-spacing:-.045em;margin:0 38px 16px 0}
-        p{color:#b9c7c1;line-height:1.65;font-size:16px;margin:0 0 22px}
+        p{color:#b9c7c1;line-height:1.65;font-size:16px;margin:0 0 16px}
+        .commercialTerms{display:grid;gap:7px;margin:0 0 20px;padding:14px;border:1px solid rgba(239,199,95,.28);border-radius:15px;background:rgba(239,199,95,.07)}
+        .commercialTerms b{font-size:11px;letter-spacing:.12em;color:#efc75f}.commercialTerms span{font-size:13px;color:#d6dfdb;line-height:1.45}.commercialTerms span:before{content:"✓ ";color:#efc75f;font-weight:900}
         .gameProCta{display:block;text-align:center;text-decoration:none;border:1px solid #ffd36e;border-radius:17px;padding:17px 20px;background:linear-gradient(110deg,#b77918,#f1c65f 48%,#a86a12);color:#17170f;font-weight:1000;font-size:18px;box-shadow:0 14px 38px rgba(0,0,0,.35)}
         .gameProSecondary{width:100%;margin-top:10px;border:1px solid rgba(255,255,255,.1);border-radius:15px;padding:14px;background:rgba(255,255,255,.04);color:#d6dfdb;font-weight:800}
         @media(max-width:520px){.gameProDialog{padding:26px 20px 22px;border-radius:24px}p{font-size:15px}.gameProCta{font-size:17px}}
