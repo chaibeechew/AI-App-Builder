@@ -5,6 +5,7 @@ import { MOBILE_QUALITY_POLICY, evaluateMobileCodeEvidence } from "../lib/mobile
 const css = fs.readFileSync("app/mobile-quality.css", "utf8");
 const layout = fs.readFileSync("app/layout.js", "utf8");
 const auth = fs.readFileSync("app/auth/page.js", "utf8");
+const authCss = fs.readFileSync("app/auth/auth.css", "utf8");
 
 assert.equal(MOBILE_QUALITY_POLICY.minimumTouchTargetPx, 44);
 assert.equal(MOBILE_QUALITY_POLICY.minimumInputFontPx, 16);
@@ -28,12 +29,15 @@ for (const pattern of [
 ]) assert.match(css, pattern);
 
 assert.match(layout, /import "\.\/mobile-quality\.css"/);
-assert.match(auth, /100svh/);
-assert.match(auth, /safe-area-inset-top/);
-assert.match(auth, /safe-area-inset-bottom/);
-assert.match(auth, /@media\(max-width:480px\)/);
-assert.match(auth, /touch-action:manipulation/);
-assert.match(auth, /@media\(prefers-reduced-motion:reduce\)/);
+assert.match(auth, /import "\.\/auth\.css"/);
+for (const pattern of [
+  /100svh/,
+  /safe-area-inset-top/,
+  /safe-area-inset-bottom/,
+  /@media\(max-width:480px\)/,
+  /touch-action:manipulation/,
+  /@media\(prefers-reduced-motion:reduce\)/,
+]) assert.match(authCss, pattern);
 
 const result = evaluateMobileCodeEvidence({
   safeArea: true,
@@ -50,5 +54,6 @@ assert.equal(result.passed, true);
 assert.equal(result.realDeviceVerified, false);
 
 console.log("✓ Mobile UI code contract enforces iPhone safe areas, 44px touch targets and 16px form inputs");
-console.log("✓ Horizontal overflow, responsive media, focus-visible and reduced-motion safeguards are globally mounted");
+console.log("✓ Auth mobile styles are extracted and separately audited for safe-area, touch and reduced-motion behavior");
+console.log("✓ Horizontal overflow, responsive media and focus-visible safeguards remain globally mounted");
 console.log("✓ Code can score 100 while real-device visual/touch evidence remains separately required");
