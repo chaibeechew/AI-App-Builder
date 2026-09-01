@@ -1,23 +1,18 @@
-name: LANERIQ AI Production Stability 100
+name: LANERIQ AI Production Stability 1000
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/production-stability-100.mjs'
-      - '.github/workflows/production-stability-100.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  production-stability-100:
+  production-stability-1000:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     env:
       LANERIQ_PRODUCTION_URL: https://laneriq-ai.vercel.app
-      LANERIQ_STABILITY_RUNS: '100'
+      LANERIQ_STABILITY_RUNS: '1000'
       LANERIQ_STABILITY_TIMEOUT_MS: '8000'
     steps:
       - name: Checkout
@@ -26,5 +21,5 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run 100 production stability cycles
+      - name: Run final 1000 production stability cycles
         run: node scripts/production-stability-100.mjs
