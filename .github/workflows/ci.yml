@@ -1,4 +1,4 @@
-name: AI App Builder 100 CI
+name: LANERIQ AI 100 CI
 
 on:
   push:
@@ -66,5 +66,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "100-point code/product validation passed. Production promotion remains a separate explicitly approved action."
+        run: echo "LANERIQ AI 100-point code/product validation passed. Production promotion remains a separate explicitly approved action."
       # This workflow validates code only. It never deploys or promotes Production.
