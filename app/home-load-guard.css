@@ -1,8 +1,13 @@
-/* LANERIQ AI homepage assets.
-   Do not hide style/template artwork while waiting for hydration. The homepage
-   should stay visually complete on iPhone and slower mobile connections. */
+/* LANERIQ AI homepage asset guard.
+   Large scenic PNGs are intentionally deferred so iPhone does not download
+   every style and template image during the first screen load. */
 
 .premiumHome .styleRail i,
 .premiumHome .templateRail i{
   opacity:1!important;
+}
+
+.premiumHome .styleRail i:not(.asset-ready),
+.premiumHome .templateRail i:not(.asset-ready){
+  background-image:none!important;
 }
