@@ -8,6 +8,8 @@ const targets=[
   {path:"/auth",expect:[200],body:/LANERIQ AI/i},
   {path:"/api/templates?mode=meta",expect:[200],body:/total|industries|styles/i},
   {path:"/robots.txt",expect:[200],body:/user-agent/i},
+  {path:"/sitemap.xml",expect:[200],body:/<urlset/i},
+  {path:"/ai-app-game-website-builder",expect:[200],body:/LANERIQ AI/i},
 ];
 
 async function request(target,run){
@@ -19,7 +21,7 @@ async function request(target,run){
       method:"GET",
       redirect:"manual",
       cache:"no-store",
-      headers:{"User-Agent":"LANERIQ-AI-Production-Stability-100/1.0","Cache-Control":"no-cache"},
+      headers:{"User-Agent":"LANERIQ-AI-Production-Stability-100/1.1","Cache-Control":"no-cache"},
       signal:controller.signal,
     });
     const elapsed=Date.now()-started;
@@ -63,6 +65,7 @@ console.log(JSON.stringify({
   ok:true,
   baseUrl:BASE_URL,
   cycles:RUNS,
+  surfaces:targets.map(target=>target.path),
   requests:totalRequests,
   crashCount:0,
   networkErrorCount:0,
@@ -71,4 +74,4 @@ console.log(JSON.stringify({
   latencyMs:{average,p50:percentile(.5),p95:percentile(.95),p99:percentile(.99),max},
   preflight,
 },null,2));
-console.log(`✓ LANERIQ AI Production passed ${RUNS} stability cycles with 0 detected crash/network/5xx failures`);
+console.log(`✓ LANERIQ AI Production passed ${RUNS} stability cycles across ${targets.length} surfaces with 0 detected crash/network/5xx failures`);
