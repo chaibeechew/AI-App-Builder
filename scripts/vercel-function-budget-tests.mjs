@@ -16,8 +16,10 @@ assert.match(mount,/usePathname/);
 assert.match(mount,/PublishingReadinessPanel/);
 
 const vercelConfig=read("vercel.json");
-assert.match(vercelConfig,/"deploymentEnabled": false/);
-assert.doesNotMatch(vercelConfig,/"deploymentEnabled": true/);
+assert.match(vercelConfig,/"framework"\s*:\s*"nextjs"/,"Vercel must explicitly build the repository as Next.js.");
+assert.match(vercelConfig,/"buildCommand"\s*:\s*"npm run build"/);
+assert.match(vercelConfig,/"installCommand"\s*:\s*"npm install"/);
+assert.doesNotMatch(vercelConfig,/"deploymentEnabled"\s*:\s*false/,"Production Git deployments must not be disabled now that the primary Vercel project is live.");
 
-console.log("✓ Zero-cost Vercel function budget guard keeps legacy root functions removed and Store Readiness client-mounted");
-console.log("✓ Automatic Git deployments are disabled; Vercel is reserved for deliberate one-time manual consolidated deployments");
+console.log("✓ Vercel function budget guard keeps legacy root functions removed and Store Readiness client-mounted");
+console.log("✓ Production Git deployment remains enabled while LANERIQ AI stays on the consolidated Next.js App Router deployment model");
