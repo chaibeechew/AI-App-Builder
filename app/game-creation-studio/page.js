@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   UNIVERSAL_GAME_CREATION_CORE,UNIVERSAL_GAME_CREATION_DOMAINS,validateInputProfile,validateAccessibilityProfile,
