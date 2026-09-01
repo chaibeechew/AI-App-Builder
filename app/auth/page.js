@@ -4,17 +4,20 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import { PRODUCT_BRAND } from "../../lib/product-brand.js";
-import { EMAIL_OTP_POLICY, authErrorMessage, normalizeEmailAddress, normalizeEmailOtp } from "../../lib/auth/otp-policy.js";
+import {
+  EMAIL_OTP_POLICY,
+  SMS_OTP_POLICY,
+  authErrorMessage,
+  normalizeEmailAddress,
+  normalizeEmailOtp,
+  normalizePhoneNumber,
+  normalizeSmsOtp,
+  otpPolicyForMethod,
+} from "../../lib/auth/otp-policy.js";
 import { normalizeReferralCode, safeInternalNext } from "../../lib/auth/session-safety.js";
 
 export const dynamic = "force-dynamic";
 const SMS_AUTH_ENABLED = process.env.NEXT_PUBLIC_SMS_AUTH_ENABLED === "true";
-
-function normalizePhone(value) {
-  const cleaned = String(value || "").replace(/[\s()-]/g, "");
-  if (!/^\+[1-9]\d{7,14}$/.test(cleaned)) throw new Error("Use international format, for example +60123456789.");
-  return cleaned;
-}
 
 function safeFlowError(error, method) {
   const message = String(error?.message || "");
@@ -39,6 +42,7 @@ function AuthForm() {
   const [verifyAttempts, setVerifyAttempts] = useState(0);
   const referral = normalizeReferralCode(searchParams.get("ref"));
   const next = safeInternalNext(searchParams.get("next"));
+  const policy = otpPolicyForMethod(method);
 
   useEffect(() => {
     let active = true;
@@ -56,13 +60,11 @@ function AuthForm() {
 
   useEffect(() => {
     if (resendIn <= 0) return;
-    const timer = setInterval(() => setResendIn((v) => Math.max(0, v - 1)), 1000);
-    return () => clearInterval(timer);
+    const timer = window.setInterval(() => setResendIn((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
   }, [resendIn]);
 
-  function switchMethod(value) {
-    if (value === "sms" && !SMS_AUTH_ENABLED) return;
-    setMethod(value);
+  function resetFlow() {
     setIdentifier("");
     setOtp("");
     setSent(false);
@@ -72,11 +74,17 @@ function AuthForm() {
     setVerifyAttempts(0);
   }
 
+  function switchMethod(value) {
+    if (value === "sms" && !SMS_AUTH_ENABLED) return;
+    setMethod(value);
+    resetFlow();
+  }
+
   async function sendCode(event) {
     event?.preventDefault?.();
     if (loading || (sent && resendIn > 0)) return;
     if (method === "sms" && !SMS_AUTH_ENABLED) {
-      setError("SMS verification is coming soon. Please use Email Code.");
+      setError("SMS verification is not enabled yet. Use Email Code for now.");
       return;
     }
     setLoading(true);
@@ -85,25 +93,24 @@ function AuthForm() {
     try {
       const options = { shouldCreateUser: true, data: referral ? { referral_code: referral } : undefined };
       if (method === "sms") {
-        const phone = normalizePhone(identifier);
+        const phone = normalizePhoneNumber(identifier);
         const result = await supabase.auth.signInWithOtp({ phone, options });
         if (result.error) throw result.error;
         setIdentifier(phone);
-        setSent(true);
-        setMessage("SMS verification code sent.");
+        setMessage(`SMS verification code sent to ${phone}.`);
       } else {
         const email = normalizeEmailAddress(identifier);
         const result = await supabase.auth.signInWithOtp({ email, options });
         if (result.error) throw result.error;
         setIdentifier(email);
-        setSent(true);
         setMessage(`${PRODUCT_BRAND.name} verification code sent to ${email}. Check your inbox and spam folder.`);
       }
       setOtp("");
       setVerifyAttempts(0);
-      setResendIn(EMAIL_OTP_POLICY.resendSeconds);
-    } catch (e) {
-      setError(safeFlowError(e, method));
+      setSent(true);
+      setResendIn(policy.resendSeconds);
+    } catch (flowError) {
+      setError(safeFlowError(flowError, method));
     } finally {
       setLoading(false);
     }
@@ -111,7 +118,8 @@ function AuthForm() {
 
   async function verify(event) {
     event.preventDefault();
-    if (verifyAttempts >= EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode) {
+    const maxAttempts = method === "sms" ? SMS_OTP_POLICY.maxVerifyAttemptsPerCode : EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode;
+    if (verifyAttempts >= maxAttempts) {
       setError("Too many incorrect attempts. Request a new verification code.");
       return;
     }
@@ -121,10 +129,10 @@ function AuthForm() {
     let attemptedRemoteVerify = false;
     if (typeof window !== "undefined") window.__LANERIQ_AUTH_FLOW_BUSY__ = true;
     try {
-      const token = normalizeEmailOtp(otp);
+      const token = method === "sms" ? normalizeSmsOtp(otp) : normalizeEmailOtp(otp);
       attemptedRemoteVerify = true;
       const result = method === "sms"
-        ? await supabase.auth.verifyOtp({ phone: normalizePhone(identifier), token, type: "sms" })
+        ? await supabase.auth.verifyOtp({ phone: normalizePhoneNumber(identifier), token, type: "sms" })
         : await supabase.auth.verifyOtp({ email: normalizeEmailAddress(identifier), token, type: "email" });
       if (result.error) throw result.error;
       if (!result.data?.session) throw new Error("SESSION_NOT_CREATED");
@@ -145,29 +153,28 @@ function AuthForm() {
       if (typeof window !== "undefined") window.__LANERIQ_AUTH_FLOW_BUSY__ = false;
       router.replace(next);
       router.refresh();
-    } catch (e) {
-      if (attemptedRemoteVerify) setVerifyAttempts((value) => Math.min(EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode, value + 1));
-      setError(safeFlowError(e, method));
+    } catch (flowError) {
+      if (attemptedRemoteVerify) setVerifyAttempts((value) => Math.min(maxAttempts, value + 1));
+      setError(safeFlowError(flowError, method));
     } finally {
       if (typeof window !== "undefined") window.__LANERIQ_AUTH_FLOW_BUSY__ = false;
       setLoading(false);
     }
   }
 
-  if (checking) return <main className="loading">Checking your session…</main>;
+  if (checking) return <main className="loadingScreen">Checking your secure session…</main>;
+
+  const identifierLabel = method === "email" ? "Email address" : "Mobile number";
+  const methodLabel = method === "email" ? "Email" : "SMS";
+  const codePlaceholder = method === "email" ? "12345678" : "123456";
 
   return (
     <main className="authPage">
-      <div className="veil" />
-      <div className="aurora auroraOne" />
-      <div className="aurora auroraTwo" />
-
-      <header className="brandBar" aria-label={`${PRODUCT_BRAND.name} ${PRODUCT_BRAND.capabilities}`}>
+      <div className="aurora a1" />
+      <div className="aurora a2" />
+      <header className="brandBar" aria-label={`${PRODUCT_BRAND.name} secure sign in`}>
         <div className="brandMark">AI</div>
-        <div className="brandWords">
-          <b>{PRODUCT_BRAND.name}</b>
-          <span>{PRODUCT_BRAND.capabilities}</span>
-        </div>
+        <div className="brandWords"><b>{PRODUCT_BRAND.name}</b><span>{PRODUCT_BRAND.capabilities}</span></div>
         <div className="securePill"><i /> Secure sign in</div>
       </header>
 
@@ -176,67 +183,39 @@ function AuthForm() {
           <small>CREATE WITHOUT LIMITS</small>
           <h1>One code.<br /><em>Your whole studio.</em></h1>
           <p>Sign in once, then continue creating apps, websites and mobile games in the same premium workspace.</p>
-          <div className="capabilityRow">
-            <span>APPS</span><span>GAMES</span><span>WEB</span><span>iOS + Android</span>
-          </div>
+          <div className="capabilityRow"><span>APPS</span><span>WEB</span><span>GAMES</span><span>iOS + Android</span></div>
           <div className="trustLine"><i /> Private project access · passwordless verification</div>
         </section>
 
-        <section className="authCard">
-          <div className="cardTop">
-            <small>SECURE VERIFICATION</small>
-            <span className="stepBadge">01</span>
-          </div>
+        <section className="authCard" aria-live="polite">
+          <div className="cardTop"><small>SECURE VERIFICATION</small><span>{sent ? "02" : "01"}</span></div>
           <h2>{sent ? "Enter your code" : "Welcome back"}</h2>
-          <p>{sent ? `We sent an ${EMAIL_OTP_POLICY.codeLength}-digit verification code to your ${method === "email" ? "email" : "mobile"}.` : `Use a one-time ${EMAIL_OTP_POLICY.codeLength}-digit code. No password required.`}</p>
+          <p>{sent ? `We sent a ${policy.codeLength}-digit ${methodLabel} verification code.` : "Choose Email or SMS. Each method uses its own secure one-time-code policy."}</p>
 
           <div className="tabs" role="tablist" aria-label="Verification method">
-            <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}>
-              <span className="tabIcon">✉</span><span>Email Code</span><b>READY</b>
-            </button>
-            <button type="button" role="tab" aria-selected={method === "sms"} className={method === "sms" ? "active" : ""} disabled={!SMS_AUTH_ENABLED} onClick={() => switchMethod("sms")}>
-              <span className="tabIcon">◉</span><span>SMS Code</span><b>{SMS_AUTH_ENABLED ? "READY" : "SOON"}</b>
-            </button>
+            <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}><span>✉</span><strong>Email Code</strong><b>READY</b></button>
+            <button type="button" role="tab" aria-selected={method === "sms"} className={method === "sms" ? "active" : ""} disabled={!SMS_AUTH_ENABLED} onClick={() => switchMethod("sms")}><span>◉</span><strong>SMS Code</strong><b>{SMS_AUTH_ENABLED ? "READY" : "SOON"}</b></button>
           </div>
 
           {!sent ? (
             <form onSubmit={sendCode}>
-              <label>{method === "email" ? "Email address" : "Mobile number"}</label>
+              <label htmlFor="auth-identifier">{identifierLabel}</label>
               <div className="inputWrap">
                 <span>{method === "email" ? "@" : "+"}</span>
-                <input
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={method === "email" ? "you@example.com" : "+60123456789"}
-                  inputMode={method === "email" ? "email" : "tel"}
-                  autoComplete={method === "email" ? "email" : "tel"}
-                  autoCapitalize="none"
-                  maxLength={method === "email" ? EMAIL_OTP_POLICY.maxEmailLength : 24}
-                />
+                <input id="auth-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={method === "email" ? "you@example.com" : "+60123456789"} inputMode={method === "email" ? "email" : "tel"} autoComplete={method === "email" ? "email" : "tel"} autoCapitalize="none" maxLength={method === "email" ? EMAIL_OTP_POLICY.maxEmailLength : SMS_OTP_POLICY.maxPhoneLength + 8} required />
               </div>
               {referral && <div className="notice">Referral code · {referral}</div>}
-              <button className="primary" disabled={loading}>
-                <span>{loading ? "Sending…" : `Send ${method === "email" ? "Email" : "SMS"} Code`}</span><i>→</i>
-              </button>
+              <button className="primary" disabled={loading}><span>{loading ? "Sending…" : `Send ${methodLabel} Code`}</span><i>→</i></button>
             </form>
           ) : (
             <form onSubmit={verify}>
               <div className="sentTo">Code sent to <b>{identifier}</b></div>
-              <label>{EMAIL_OTP_POLICY.codeLength}-digit verification code</label>
+              <label htmlFor="auth-otp">{policy.codeLength}-digit verification code</label>
               <div className="inputWrap otpWrap">
                 <span>#</span>
-                <input
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, EMAIL_OTP_POLICY.codeLength))}
-                  placeholder="12345678"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  aria-label={`${EMAIL_OTP_POLICY.codeLength}-digit verification code`}
-                />
+                <input id="auth-otp" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, policy.codeLength))} placeholder={codePlaceholder} inputMode="numeric" autoComplete="one-time-code" aria-label={`${policy.codeLength}-digit verification code`} pattern="[0-9]*" required />
               </div>
-              <button className="primary" disabled={loading || otp.length !== EMAIL_OTP_POLICY.codeLength || verifyAttempts >= EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode}>
-                <span>{loading ? "Verifying…" : "Verify & Continue"}</span><i>→</i>
-              </button>
+              <button className="primary" disabled={loading || otp.length !== policy.codeLength || verifyAttempts >= policy.maxVerifyAttemptsPerCode}><span>{loading ? "Verifying…" : "Verify & Continue"}</span><i>→</i></button>
               <div className="secondaryRow">
                 <button type="button" className="secondary" disabled={loading || resendIn > 0} onClick={sendCode}>{resendIn > 0 ? `Resend in ${resendIn}s` : "Resend Code"}</button>
                 <button type="button" className="secondary" disabled={loading} onClick={() => { setSent(false); setOtp(""); setMessage(""); setError(""); setResendIn(0); setVerifyAttempts(0); }}>Change {method === "email" ? "email" : "number"}</button>
@@ -245,7 +224,7 @@ function AuthForm() {
           )}
 
           {message && <div className="message">✓ {message}</div>}
-          {error && <div className="error">{error}</div>}
+          {error && <div className="error" role="alert">{error}</div>}
           <footer><span>Encrypted session</span><i>•</i><span>One-time code</span><i>•</i><span>Rate-limit aware</span></footer>
         </section>
       </div>
@@ -253,34 +232,19 @@ function AuthForm() {
       <div className="bottomBrand">{PRODUCT_BRAND.name} <span>·</span> {PRODUCT_BRAND.capabilities}</div>
 
       <style jsx>{`
-        .authPage{min-height:100svh;position:relative;overflow:hidden;color:#f7fbf8;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background-color:#03100d;isolation:isolate}
-        .veil{position:absolute;inset:0;z-index:0;background:linear-gradient(90deg,rgba(1,9,8,.82) 0%,rgba(1,9,8,.56) 42%,rgba(1,9,8,.64) 100%),linear-gradient(180deg,rgba(1,8,7,.08),rgba(1,8,7,.74));backdrop-filter:saturate(.92)}
-        .aurora{position:absolute;z-index:0;border-radius:999px;filter:blur(70px);opacity:.34;pointer-events:none}.auroraOne{width:340px;height:340px;right:6%;top:8%;background:#d8b34f}.auroraTwo{width:300px;height:300px;left:-80px;bottom:-80px;background:#0f8c6a}
-        .brandBar{position:absolute;z-index:4;top:max(22px,env(safe-area-inset-top));left:clamp(22px,4vw,66px);right:clamp(22px,4vw,66px);height:54px;display:flex;align-items:center;gap:12px}
-        .brandMark{width:42px;height:42px;display:grid;place-items:center;border:1px solid rgba(243,213,119,.6);border-radius:14px;background:linear-gradient(145deg,rgba(246,214,113,.96),rgba(176,125,34,.95));color:#06130f;font-size:13px;font-weight:1000;box-shadow:0 8px 30px rgba(216,179,79,.2)}
-        .brandWords{display:grid;gap:2px}.brandWords b{font-size:13px;letter-spacing:.045em}.brandWords span{font-size:9px;letter-spacing:.16em;color:#d7c26f;font-weight:900}
-        .securePill{margin-left:auto;display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(3,18,14,.42);backdrop-filter:blur(16px);padding:8px 11px;color:#b8c9c2;font-size:10px;font-weight:800}.securePill i,.trustLine i{width:7px;height:7px;border-radius:50%;background:#62d8a5;box-shadow:0 0 0 5px rgba(98,216,165,.08)}
-        .authShell{position:relative;z-index:3;min-height:100svh;width:min(1220px,100%);margin:auto;padding:118px clamp(22px,5vw,72px) 68px;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(380px,.72fr);gap:clamp(44px,8vw,116px);align-items:center}
-        .heroCopy{max-width:610px;padding-bottom:4vh}.heroCopy>small,.authCard .cardTop>small{color:#e2c15f;font-size:10px;font-weight:950;letter-spacing:.22em}.heroCopy h1{margin:16px 0 20px;font-size:clamp(54px,6.1vw,92px);line-height:.93;letter-spacing:-.055em;font-weight:760}.heroCopy h1 em{font-style:normal;color:#e6c666;text-shadow:0 10px 42px rgba(226,193,95,.18)}.heroCopy p{max-width:570px;margin:0;color:#b7c5c0;font-size:clamp(14px,1.5vw,18px);line-height:1.65}.capabilityRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:30px}.capabilityRow span{border:1px solid rgba(226,193,95,.26);border-radius:999px;background:rgba(8,29,23,.48);backdrop-filter:blur(12px);padding:9px 12px;color:#e8d584;font-size:9px;font-weight:950;letter-spacing:.08em}.trustLine{display:flex;align-items:center;gap:10px;margin-top:26px;color:#8fa49c;font-size:10px;font-weight:750}
-        .authCard{position:relative;border:1px solid rgba(229,200,108,.28);border-radius:30px;background:linear-gradient(155deg,rgba(5,25,20,.84),rgba(2,13,11,.77));backdrop-filter:blur(30px) saturate(1.08);-webkit-backdrop-filter:blur(30px) saturate(1.08);box-shadow:0 42px 120px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);padding:clamp(26px,3vw,38px);overflow:hidden}.authCard:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 86% 0%,rgba(230,197,92,.12),transparent 30%);pointer-events:none}.cardTop{position:relative;display:flex;align-items:center;justify-content:space-between}.stepBadge{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid rgba(226,193,95,.25);color:#d8bd66;font-size:10px;font-weight:900}.authCard h2{position:relative;margin:17px 0 9px;font-size:clamp(34px,4vw,48px);line-height:1;letter-spacing:-.04em}.authCard>p{position:relative;margin:0;color:#92a69e;font-size:13px;line-height:1.55}
-        .tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:26px 0 23px;padding:5px;border:1px solid rgba(255,255,255,.07);border-radius:18px;background:rgba(0,0,0,.24)}.tabs button{min-width:0;border:0;border-radius:14px;background:transparent;color:#81968e;padding:12px 10px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;text-align:left;font:850 11px/1.2 Inter,system-ui,sans-serif;cursor:pointer}.tabs button b{font-size:7px;letter-spacing:.1em;color:#6e837b}.tabs button.active{background:linear-gradient(135deg,#efd06f,#b8892d);color:#07130f;box-shadow:0 8px 22px rgba(205,164,54,.18)}.tabs button.active b{color:#304b40}.tabs button:disabled{cursor:not-allowed;opacity:.48}.tabIcon{font-size:14px}
-        form{position:relative}label{display:block;margin:0 0 8px;color:#b7c7c1;font-size:10px;font-weight:850;letter-spacing:.04em}.inputWrap{display:flex;align-items:center;border:1px solid rgba(226,193,95,.22);border-radius:16px;background:rgba(1,10,8,.58);transition:border-color .2s,box-shadow .2s}.inputWrap:focus-within{border-color:rgba(235,205,111,.7);box-shadow:0 0 0 4px rgba(226,193,95,.07)}.inputWrap>span{width:44px;text-align:center;color:#d9be68;font-weight:900}.inputWrap input{min-width:0;flex:1;box-sizing:border-box;border:0;outline:0;background:transparent;color:#fff;padding:15px 15px 15px 0;font-size:16px}.inputWrap input::placeholder{color:#60746d}.otpWrap input{font-variant-numeric:tabular-nums;letter-spacing:.16em;font-weight:900}.primary{width:100%;margin-top:14px;border:1px solid rgba(248,220,129,.48);border-radius:16px;background:linear-gradient(135deg,#f0d06f 0%,#c99831 100%);color:#06120e;min-height:54px;padding:0 17px;display:flex;align-items:center;justify-content:space-between;font:950 13px/1 Inter,system-ui,sans-serif;box-shadow:0 14px 36px rgba(192,145,38,.2);cursor:pointer}.primary i{font-style:normal;font-size:20px}.primary:disabled{opacity:.52;cursor:not-allowed}.notice,.message,.error,.sentTo{position:relative;margin-top:12px;padding:11px 12px;border-radius:12px;font-size:10px;line-height:1.45}.notice{border:1px solid rgba(226,193,95,.18);background:rgba(226,193,95,.06);color:#dfc56e}.message{border:1px solid rgba(82,211,155,.18);background:rgba(56,160,117,.10);color:#9de1c3}.error{border:1px solid rgba(255,127,117,.16);background:rgba(126,40,36,.22);color:#ffb1a9}.sentTo{margin:0 0 15px;background:rgba(255,255,255,.035);color:#82978f}.sentTo b{color:#e8f1ed}.secondaryRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.secondary{border:1px solid rgba(226,193,95,.18);border-radius:13px;background:rgba(7,27,21,.48);color:#d8c16f;padding:11px 9px;font:850 9px/1.2 Inter,system-ui,sans-serif;cursor:pointer}.secondary:disabled{opacity:.45;cursor:not-allowed}.authCard footer{position:relative;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;color:#6f847c;font-size:8px;font-weight:800;letter-spacing:.03em}.authCard footer i{font-style:normal;color:#b8943a}.bottomBrand{position:absolute;z-index:3;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));text-align:center;color:#789087;font-size:8px;font-weight:900;letter-spacing:.14em}.bottomBrand span{color:#c6a94f;margin:0 5px}
-        .loading{min-height:100svh;display:grid;place-items:center;background:#04110e;color:#d9c16d;font:800 12px/1 Inter,system-ui,sans-serif}
-        @media(max-width:900px){.authShell{grid-template-columns:1fr;gap:24px;padding-top:104px;align-content:center}.heroCopy{max-width:560px;padding:0}.heroCopy h1{font-size:clamp(48px,11vw,72px)}.heroCopy p{max-width:520px}.authCard{width:min(560px,100%);box-sizing:border-box}.bottomBrand{display:none}}
-        @media(max-width:620px){.authPage{overflow:auto}.brandBar{top:max(14px,env(safe-area-inset-top));left:16px;right:16px;height:46px}.brandMark{width:36px;height:36px;border-radius:12px;font-size:11px}.brandWords b{font-size:10px}.brandWords span{font-size:7px}.securePill{padding:7px 9px;font-size:8px}.authShell{min-height:100svh;padding:84px 14px max(24px,env(safe-area-inset-bottom));display:block}.heroCopy{padding:10px 8px 20px}.heroCopy>small{font-size:8px}.heroCopy h1{margin:9px 0 10px;font-size:clamp(38px,12.2vw,54px);line-height:.94}.heroCopy p{font-size:11px;line-height:1.52;max-width:420px}.capabilityRow{margin-top:14px;gap:5px}.capabilityRow span{padding:6px 8px;font-size:7px}.trustLine{display:none}.authCard{border-radius:25px;padding:23px 18px;margin-bottom:12px}.authCard h2{font-size:34px;margin-top:13px}.authCard>p{font-size:11px}.tabs{margin:19px 0 18px}.tabs button{padding:11px 8px;grid-template-columns:auto 1fr}.tabs button b{display:none}.inputWrap input{font-size:16px}.primary{min-height:52px}.secondaryRow{grid-template-columns:1fr}.authCard footer{font-size:7px;gap:5px}.auroraOne{width:220px;height:220px;right:-70px}.auroraTwo{width:190px;height:190px}}
-        @media(max-width:390px){.brandWords span{display:none}.securePill{font-size:0;padding:8px}.securePill:after{content:"Secure";font-size:8px}.heroCopy h1{font-size:40px}.authCard{padding:21px 16px}.authCard h2{font-size:31px}}
-      `}</style>
-      <style jsx global>{`
-        body:has(.authPage) .wallpaperControl,
-        body:has(.authPage) .studioLauncher,
-        body:has(.authPage) .referenceDock,
-        body:has(.authPage) .sv-fab{display:none!important}
-        body:has(.authPage){background:#03100d}
+        .authPage{min-height:100svh;position:relative;overflow:hidden;color:#f7fbf8;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 78% 12%,rgba(218,188,91,.16),transparent 28%),radial-gradient(circle at 12% 85%,rgba(24,145,105,.18),transparent 30%),linear-gradient(145deg,#020a08,#061711 48%,#020806);isolation:isolate;padding-bottom:max(20px,env(safe-area-inset-bottom))}
+        .aurora{position:absolute;border-radius:999px;filter:blur(80px);opacity:.28;pointer-events:none}.a1{width:360px;height:360px;right:-80px;top:4%;background:#d8b34f}.a2{width:330px;height:330px;left:-140px;bottom:0;background:#0f8c6a}
+        .brandBar{position:absolute;z-index:4;top:max(18px,env(safe-area-inset-top));left:clamp(18px,4vw,64px);right:clamp(18px,4vw,64px);min-height:54px;display:flex;align-items:center;gap:12px}.brandMark{width:44px;height:44px;display:grid;place-items:center;border:1px solid rgba(243,213,119,.56);border-radius:14px;background:linear-gradient(145deg,#efd36e,#a87920);color:#06130f;font-size:13px;font-weight:1000;box-shadow:0 8px 30px rgba(216,179,79,.18)}.brandWords{display:grid;gap:2px}.brandWords b{font-size:13px;letter-spacing:.045em}.brandWords span{font-size:9px;letter-spacing:.14em;color:#d7c26f;font-weight:900}.securePill{margin-left:auto;display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(3,18,14,.48);backdrop-filter:blur(14px);padding:9px 12px;color:#b8c9c2;font-size:10px;font-weight:800}.securePill i,.trustLine i{width:7px;height:7px;border-radius:50%;background:#62d8a5;box-shadow:0 0 0 5px rgba(98,216,165,.08)}
+        .authShell{position:relative;z-index:3;min-height:100svh;width:min(1220px,100%);margin:auto;padding:112px clamp(20px,5vw,72px) 70px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(360px,.72fr);gap:clamp(42px,8vw,112px);align-items:center}.heroCopy{max-width:610px}.heroCopy>small,.cardTop>small{color:#e2c15f;font-size:10px;font-weight:950;letter-spacing:.22em}.heroCopy h1{margin:16px 0 20px;font-size:clamp(52px,6.1vw,92px);line-height:.93;letter-spacing:-.055em;font-weight:760}.heroCopy h1 em{font-style:normal;color:#e6c666}.heroCopy p{max-width:560px;margin:0;color:#aebfb8;font-size:clamp(16px,1.55vw,20px);line-height:1.65}.capabilityRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}.capabilityRow span{border:1px solid rgba(226,193,95,.24);border-radius:999px;background:rgba(226,193,95,.07);color:#d9c270;padding:8px 10px;font-size:9px;font-weight:950;letter-spacing:.08em}.trustLine{display:flex;align-items:center;gap:10px;color:#82968d;font-size:11px;margin-top:18px}
+        .authCard{width:100%;border:1px solid rgba(255,255,255,.12);border-radius:30px;padding:clamp(22px,3vw,34px);background:linear-gradient(160deg,rgba(8,31,24,.94),rgba(4,17,13,.96));box-shadow:0 35px 90px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.03);backdrop-filter:blur(18px)}.cardTop{display:flex;justify-content:space-between;align-items:center}.cardTop>span{display:grid;place-items:center;width:34px;height:34px;border-radius:12px;border:1px solid rgba(226,193,95,.26);color:#e0c366;font-size:10px;font-weight:950}.authCard h2{font-size:clamp(30px,4vw,43px);letter-spacing:-.035em;margin:16px 0 8px}.authCard>p{color:#8fa49a;font-size:13px;line-height:1.55;margin:0 0 18px}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}.tabs button{min-height:54px;border:1px solid rgba(255,255,255,.1);border-radius:15px;background:#081b15;color:#b8c9c2;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:10px 12px;text-align:left;touch-action:manipulation}.tabs button strong{font-size:11px}.tabs button b{font-size:8px;color:#73877d}.tabs button.active{border-color:rgba(226,193,95,.42);background:rgba(226,193,95,.08);color:#fff}.tabs button.active b{color:#e1c566}.tabs button:disabled{opacity:.45;cursor:not-allowed}.authCard form{display:grid;gap:10px}.authCard label{font-size:10px;color:#c8d5cf;font-weight:900;letter-spacing:.06em}.inputWrap{height:56px;border:1px solid rgba(255,255,255,.12);border-radius:15px;background:#04110d;display:grid;grid-template-columns:42px 1fr;align-items:center;overflow:hidden}.inputWrap>span{display:grid;place-items:center;color:#d9c166;font-weight:950}.inputWrap input{width:100%;height:100%;border:0;outline:0;background:transparent;color:#fff;font:inherit;font-size:16px;padding:0 14px 0 0;min-width:0}.inputWrap:focus-within{border-color:rgba(226,193,95,.6);box-shadow:0 0 0 3px rgba(226,193,95,.06)}.otpWrap input{letter-spacing:.22em;font-weight:900}.notice,.sentTo{font-size:10px;color:#8fa49a;padding:8px 2px}.primary{min-height:54px;margin-top:5px;border:0;border-radius:15px;padding:0 16px;background:linear-gradient(135deg,#ead46f,#c69c3c);color:#07110d;font-weight:950;display:flex;align-items:center;justify-content:space-between;touch-action:manipulation}.primary:disabled,.secondary:disabled{opacity:.5;cursor:not-allowed}.secondaryRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}.secondary{min-height:46px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:#071914;color:#9fb1a9;font-weight:850;font-size:10px;touch-action:manipulation}.message,.error{margin-top:14px;border-radius:12px;padding:11px 12px;font-size:11px;line-height:1.45}.message{background:rgba(38,139,96,.14);color:#9de0bf}.error{background:rgba(168,61,51,.16);color:#ffaaa0}.authCard footer{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07);color:#6f8279;font-size:9px}.bottomBrand{position:absolute;z-index:3;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));text-align:center;color:#60766b;font-size:9px;letter-spacing:.09em}.bottomBrand span{color:#bda84f}.loadingScreen{min-height:100svh;display:grid;place-items:center;background:#03100d;color:#d8c46a;font-family:Inter,system-ui,sans-serif}
+        @media(max-width:860px){.authPage{overflow:auto}.authShell{grid-template-columns:1fr;gap:26px;padding-top:104px;padding-bottom:62px}.heroCopy{display:none}.authCard{max-width:560px;margin:auto}.brandWords span{display:none}.bottomBrand{position:relative;bottom:auto;padding:0 0 max(10px,env(safe-area-inset-bottom))}}
+        @media(max-width:480px){.brandBar{left:14px;right:14px;top:max(10px,env(safe-area-inset-top))}.securePill{padding:8px 10px}.authShell{padding:82px 12px 44px}.authCard{border-radius:22px;padding:19px 16px}.authCard h2{font-size:32px}.tabs{gap:6px}.tabs button{padding:9px;min-height:52px}.secondaryRow{grid-template-columns:1fr}.secondary{min-height:48px}.inputWrap{height:56px}}
+        @media(prefers-reduced-motion:reduce){.authPage *, .authPage *::before, .authPage *::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
       `}</style>
     </main>
   );
 }
 
 export default function AuthPage() {
-  return <Suspense fallback={<main className="loading">Loading…</main>}><AuthForm /></Suspense>;
+  return <Suspense fallback={<main className="loadingScreen">Loading secure sign in…</main>}><AuthForm /></Suspense>;
 }
