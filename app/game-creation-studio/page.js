@@ -14,7 +14,7 @@ const LABS=[
   ["Studio Intelligence Lab","/game-studio-lab","Character, equipment, skill graphs, city/ocean, NPC director, economy, seasons and balance."],
   ["Autonomous Director V2","/game-autonomy-lab","Routes, boss strategies, soft-lock, fuzzing, simulations and difficulty analysis."],
   ["Development Agent V3","/game-development-lab","Minimal repro, root cause, regression, release blockers, device/save evidence."],
-  ["Development Agent V4","/game-development-v4-lab","Bisect, mutation testing, coverage gaps, memory, desync, replay and performance."],
+  ["Development Agent V4","/game-autonomy-v4-lab","Bisect, mutation testing, coverage gaps, memory, desync, replay and performance."],
 ];
 
 const internalEvidence=Object.fromEntries(UNIVERSAL_GAME_CREATION_DOMAINS.map(d=>[d.id,true]));
