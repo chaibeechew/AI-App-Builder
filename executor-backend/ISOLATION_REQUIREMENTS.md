@@ -1,6 +1,6 @@
 # Soolen Executor Backend Isolation Requirements
 
-Generated customer code is untrusted. Never run it in the AI App Builder web process or directly on an unrestricted host.
+Generated customer code is untrusted. Never run it in the LANERIQ AI web process or directly on an unrestricted host.
 
 A production platform isolation driver MUST enforce:
 
