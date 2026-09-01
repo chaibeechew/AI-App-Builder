@@ -14,11 +14,11 @@ import PreciseEditAssistant from "./components/PreciseEditAssistant";
 import GeneratedDataManager from "./components/GeneratedDataManager";
 import PublishingReadinessMount from "./components/PublishingReadinessMount";
 import CreationCapabilityBanner from "./components/CreationCapabilityBanner";
-import { PRODUCT_BRAND } from "../lib/ai/premium-visual-policy.js";
+import { PRODUCT_BRAND } from "../lib/product-brand.js";
 
 export const metadata = {
-  title: PRODUCT_BRAND.name,
-  description: "Describe, upload or sketch what you want. SoolenAI designs, builds, tests and prepares your App, Website or Mobile Game for iOS, Android and web preview workflows.",
+  title: `${PRODUCT_BRAND.name} — ${PRODUCT_BRAND.capabilities}`,
+  description: `${PRODUCT_BRAND.descriptor}. ${PRODUCT_BRAND.tagline} Create apps, games and websites with SoolenAI for iOS, Android and web preview workflows.`,
 };
 
 export default function RootLayout({ children }) {
