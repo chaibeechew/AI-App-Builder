@@ -17,7 +17,7 @@ This tracker separates repository-verifiable quality from evidence that requires
 |---|---:|---:|---|---|
 | Brand identity & consistency | 88 | 100 | ✅ 100 CODE | Canonical LANERIQ AI contract, Powered by SoolenAI, renamed repo/package/CI, automated brand regression test |
 | CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
-| Security / Ownership | 91 | 91 | 🟡 IN PROGRESS | Strengthen/verify contract coverage before raising to 100 |
+| Security / Ownership | 91 | 100 | ✅ 100 CODE | Critical create/modify/data/workflow/checkout/store/publish paths owner-bound; service-role finance; RLS + client secret scan |
 | Credits System | 86 | 86 | 🟡 IN PROGRESS | Verify consume/refund/idempotency/ownership/fail-closed coverage |
 | Pro Mode | 88 | 88 | 🟡 IN PROGRESS | Verify entitlement enforcement across create/modify/release paths |
 | Game commercial policy | 93 | 93 | 🟡 IN PROGRESS | Verify Pro-only + no buyout + continuing 5% game-profit-share across UI/API/policy/tests |
@@ -80,6 +80,25 @@ The main CI requires all of the following to pass in order:
 8. Next.js production build
 
 Production promotion remains a separate, explicitly approved action.
+
+### 3. Security / Ownership — 100 CODE
+
+The security contract now fails closed unless all defined repository-verifiable controls remain present:
+
+- Generate, Modify, Publish and Quality routes authenticate server-side and bind app ownership.
+- Records CRUD validates owned project context, owner-scopes rows, bounds records/fields/value length and protects conflicting edits.
+- No-code Database checks project ownership before model access, rejects credential-like fields and writes owner-bound models.
+- Bootstrap checks owned app + current version and owner-binds generated modules, workflows, assets and video projects.
+- Workflow execution verifies owned app + workflow + run history, bounds actions, uses timeouts and supports replay-safe idempotency.
+- Monetization Checkout reads authoritative owner-scoped offers, requires secure redirect origin and owner-scopes checkout logs.
+- Store approval and publish requests verify the owned exact-version chain before any admin-client mutation.
+- Entitlement, credit consume/refund and project binding RPCs remain service-role only.
+- Professional modification persistence remains service-only, expected-version bound and replay safe.
+- Legacy authenticated financial mutation RPCs are explicitly revoked.
+- Client components are scanned for server secrets and non-public environment variables.
+- App data records are protected by RLS ownership policies.
+
+This is a **100/100 code-contract score**, not a claim of zero possible security vulnerabilities in real-world operation.
 
 ## Working rule
 
