@@ -15,6 +15,7 @@
     "test:game-commercial": "node scripts/game-commercial-contract-tests.mjs",
     "test:versions": "node scripts/version-history-contract-tests.mjs",
     "test:database": "node scripts/database-contract-tests.mjs",
+    "test:memory": "node scripts/project-memory-contract-tests.mjs",
     "test:runtime": "node scripts/runtime-contract-tests.mjs",
     "test:nonprod": "node scripts/non-production-100-tests.mjs"
   },
