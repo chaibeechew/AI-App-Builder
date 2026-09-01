@@ -53,7 +53,7 @@ assert.match(player,/evaluateGameQuality100/);assert.match(player,/seededRandom/
 
 assert.match(builder,/\/api\/game\/generate/);assert.match(builder,/PRO · FAIR PRICE · FAIR USE/);assert.match(builder,/GAME CREATOR READINESS V2/);assert.match(builder,/Internal creation core/);assert.match(builder,/Production evidence is scored separately/);assert.match(builder,/INTERNAL CORE 100/);assert.match(builder,/Live Transport Contract V1/);assert.match(builder,/provider\/network\/device evidence/i);assert.match(builder,/load\/failover tests/i);assert.doesNotMatch(builder,/RM\s?\d/i);
 assert.match(gate,/Game creation requires Pro/);assert.match(gate,/BECOME PRO/);assert.match(gate,/No buyout license/);assert.match(gate,/continuing 5% share of game profit/);assert.match(gate,/continues after Pro access ends/);
-assert.match(pricing,/Games are Pro-only\. No buyout license/);assert.match(pricing,/5% LANERIQ AI share of game profit/);
+assert.match(pricing,/Games are Pro-only\. No buyout license/);assert.match(pricing,/gameTerms\.platformProfitSharePercent/);assert.match(pricing,/LANERIQ AI share of game profit/);assert.match(pricing,/5% game profit share/);
 assert.match(knowledge,/GAME QUALITY 100 RULE/);assert.match(knowledge,/deterministic seeds/);assert.match(knowledge,/60fps/);assert.match(knowledge,/win\/lose/);assert.match(knowledge,/autosave/);assert.match(knowledge,/Lifecycle & Reliability/);
 
 assert.match(generatedPage,/resolveGeneratedRuntime/);assert.match(generatedPage,/game-runtime-v1/);const genericRoute=resolveGeneratedRuntime({productType:"mobile_game",game:{enabled:true,archetype:"custom",genre:"Custom"}});assert.equal(genericRoute.isGame,true);assert.equal(genericRoute.runtimeId,"game-runtime-v1");
