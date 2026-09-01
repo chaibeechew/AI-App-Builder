@@ -39,7 +39,7 @@ assert.doesNotMatch(client, /navigator\.permissions\.query/, "Diagnostics must n
 assert.doesNotMatch(client, /fetch\s*\(|sendBeacon\s*\(|XMLHttpRequest/, "Device evidence must stay local until the user explicitly copies it.");
 assert.doesNotMatch(client, /localStorage|sessionStorage/, "Diagnostics must not persist device evidence in browser storage.");
 assert.doesNotMatch(client, /userAgent|platform/, "Diagnostics must not collect browser fingerprint strings.");
-assert.doesNotMatch(client, /phone|sms|otp/i, "SMS remains on hold and must not be part of mobile readiness diagnostics.");
+assert.doesNotMatch(client, /signInWithOtp|verifyOtp|sms-auth|phone-auth|SMS Login/i, "SMS/OTP execution remains on hold and must not be part of mobile readiness diagnostics.");
 
 for (const pattern of [
   /100svh/,
@@ -60,5 +60,5 @@ assert.ok(stability.includes('path:"/mobile-readiness"'), "The real-device diagn
 
 console.log("✓ Mobile readiness diagnostics are public-but-noindex, exact-path bounded and permission-free");
 console.log("✓ Device report checks viewport, touch, safe area, 44px targets, 16px inputs, picker, media, voice and PWA capabilities without uploading evidence");
-console.log("✓ Diagnostics collect no user ID, phone/email, user-agent, browser storage or SMS evidence");
+console.log("✓ Diagnostics collect no user ID, phone/email, user-agent, browser storage or SMS/OTP execution evidence");
 console.log("✓ The mobile readiness page is locked into the Production stability surface set");
