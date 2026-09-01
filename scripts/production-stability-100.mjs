@@ -56,6 +56,7 @@ const targets=[
   {path:"/api/templates?mode=meta",expect:[200],body:/total|industries|styles/i},
   {path:"/api/soolenai/capabilities",expect:[200],body:/"success"\s*:\s*true[\s\S]*"providers"/i,validate:validateCapabilityPayload},
   {path:"/api/apps",expect:[401],body:/"code"\s*:\s*"AUTHENTICATION_REQUIRED"/i},
+  {path:"/mobile-readiness",expect:[200],body:/Mobile Readiness|REAL DEVICE EVIDENCE|LANERIQ AI/i},
   {path:"/robots.txt",expect:[200],body:/user-agent/i},
   {path:"/sitemap.xml",expect:[200],body:/<urlset/i},
   {path:"/ai-app-game-website-builder",expect:[200],body:/LANERIQ AI/i},
