@@ -62,10 +62,10 @@
     "test:hardening-2000": "npm run test:hardening-1000 && npm run test:next-hardening-1000"
   },
   "dependencies": {
-    "@supabase/ssr": "latest",
-    "@supabase/supabase-js": "latest",
+    "@supabase/ssr": "0.12.5",
+    "@supabase/supabase-js": "2.112.4",
     "next": "16.3.3",
-    "react": "latest",
-    "react-dom": "latest"
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   }
 }
