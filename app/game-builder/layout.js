@@ -4,6 +4,7 @@ const base={textDecoration:"none",border:"1px solid #fff3",borderRadius:999,padd
 
 export default function GameBuilderLayout({children}){
   return <>{children}<div style={{position:"fixed",right:18,bottom:"calc(18px + env(safe-area-inset-bottom))",zIndex:80,display:"grid",gap:8,justifyItems:"end",maxHeight:"calc(100vh - 36px)",overflowY:"auto",paddingLeft:8}}>
+    <Link href="/game-autonomy-v4-lab" aria-label="Open Autonomous Game Development Agent V4 Lab" style={{...base,background:"#5a4a1f",color:"#fff8c7"}}>Development Agent V4 →</Link>
     <Link href="/game-development-lab" aria-label="Open Autonomous Game Development Agent V3 Lab" style={{...base,background:"#493f20",color:"#fff5b8"}}>Development Agent V3 →</Link>
     <Link href="/game-autonomy-lab" aria-label="Open Autonomous Game Director V2 Lab" style={{...base,background:"#3a3a24",color:"#fff0a8"}}>Autonomous Director V2 →</Link>
     <Link href="/game-studio-lab" aria-label="Open Game Studio Intelligence Lab" style={{...base,background:"#2b3828",color:"#ffe49a"}}>Studio Intelligence Lab →</Link>
