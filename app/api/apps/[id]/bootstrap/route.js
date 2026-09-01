@@ -3,6 +3,8 @@ import { createClient } from "../../../../../lib/supabase/server.js";
 import { buildAutonomousPlan } from "../../../../../lib/build/orchestrator.js";
 import { chooseMediaPlacement } from "../../../../../lib/media/intelligence.js";
 
+const DATABASE_POLICIES=["Private by default","Signed-in users can access only rows they own unless a feature explicitly requires sharing","Sensitive writes require server-side validation","No API keys, passwords or payment credentials in generated business tables","Deletion/export paths should exist for personal data where relevant"];
+
 function featureText(spec){const pages=Array.isArray(spec?.pages)?spec.pages:[];const features=Array.isArray(spec?.features)?spec.features:[];return [spec?.name,spec?.description,...pages.flatMap(p=>[p?.name,p?.purpose,p?.description]),...features.flatMap(f=>[typeof f==="string"?f:f?.name,typeof f==="string"?"":f?.description])].filter(Boolean).join(" ").toLowerCase();}
 function entity(name,fields,note){return {name,fields,note,access:"owner-scoped by default"};}
 function suggestedSchema(spec){
@@ -15,7 +17,7 @@ function suggestedSchema(spec){
   add(["order","checkout","purchase"],entity("orders",["id: uuid","owner_id: uuid","customer_id: uuid?","total: numeric","status: text","created_at: timestamptz"],"Order records; payment credentials remain with payment providers."));
   add(["document","file","asset","photo","video","upload"],entity("assets",["id: uuid","owner_id: uuid","storage_path: text","mime_type: text","size_bytes: bigint","created_at: timestamptz"],"Metadata only; file bytes stay in private object storage."));
   if(entities.length===1)entities.push(entity("records",["id: uuid","owner_id: uuid","title: text","status: text","metadata: jsonb","created_at: timestamptz"],"Flexible starter record for the app's main business object."));
-  return {version:1,providerHidden:true,entities,relationships:[],policies:["Private by default","Users access only rows they own unless explicitly shared","Sensitive writes require server-side validation","No API keys, passwords or payment credentials in generated tables"]};
+  return {version:1,providerHidden:true,entities,relationships:[],policies:DATABASE_POLICIES};
 }
 
 export async function POST(request,{params}){
