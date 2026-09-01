@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../../../../lib/supabase/server.js";
 import { sendManagedEmail, sendManagedSms, sendManagedWhatsApp, createManagedCalendarEvent } from "../../../../../../../lib/integrations/server.js";
 
-function cleanPayload(value){if(!value||typeof value!=="object"||Array.isArray(value))return {};const out={};for(const [key,val] of Object.entries(value).slice(0,80)){if(typeof val==="string")out[String(key).slice(0,80)]=val.slice(0,4000);else if(typeof val==="number"||typeof val==="boolean"||val===null)out[String(key).slice(0,80)]=val;}return out;}
+const SECRET_PAYLOAD_KEY=/(token|secret|password|passwd|api.?key|credential|authorization|auth)/i;
+function cleanPayload(value){if(!value||typeof value!=="object"||Array.isArray(value))return {};const out={};for(const [key,val] of Object.entries(value).slice(0,80)){const safeKey=String(key).slice(0,80);if(!safeKey||SECRET_PAYLOAD_KEY.test(safeKey))continue;if(typeof val==="string")out[safeKey]=val.slice(0,4000);else if(typeof val==="number"||typeof val==="boolean"||val===null)out[safeKey]=val;}return out;}
 function defaultStart(payload){const candidate=payload.starts_at||payload.start||payload.appointment_time;const date=candidate?new Date(candidate):new Date(Date.now()+60*60*1000);return Number.isNaN(date.getTime())?new Date(Date.now()+60*60*1000):date;}
 function cleanIdempotencyKey(value){const text=String(value||"").trim();return text?text.replace(/[^a-zA-Z0-9._:-]/g,"-").slice(0,160):null;}
 function safeFailureMessage(error){const text=String(error?.message||"Action failed.").replace(/bearer\s+\S+/gi,"Bearer [redacted]").replace(/basic\s+\S+/gi,"Basic [redacted]");return text.slice(0,500);}
