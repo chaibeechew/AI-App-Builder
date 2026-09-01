@@ -1,0 +1,47 @@
+name: LANERIQ AI Vercel Production Unpause
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vercel-production-unpause.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unpause-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require Vercel token
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "VERCEL_TOKEN GitHub secret is not configured."
+            exit 2
+          fi
+      - name: Unpause primary Vercel project
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url 'https://api.vercel.com/v1/projects/prj_Q6mR7lmYGGKCW0ARu2Fgm9Pyzfcl/unpause?teamId=team_r2xREQWKQzVw1bdswbpW5j8Y' \
+            --header "Authorization: Bearer ${VERCEL_TOKEN}"
+          echo "Vercel project unpause request succeeded."
+      - name: Verify production hostname responds
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            code="$(curl --silent --output /dev/null --write-out '%{http_code}' https://ai-app-builder-lovat.vercel.app/ || true)"
+            echo "Production HTTP status: ${code}"
+            if [ "${code}" != "000" ] && [ "${code}" != "404" ]; then exit 0; fi
+            sleep 5
+          done
+          echo "Production hostname still returned 404 after unpause."
+          exit 3
