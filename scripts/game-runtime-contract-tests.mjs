@@ -32,9 +32,9 @@ assert.match(reservationMigration,/pg_advisory_xact_lock\(hashtextextended\(uid:
 assert.match(reservationMigration,/status in \('reserved','completed'\)/);
 assert.match(reservationMigration,/existing\.status='completed'/);assert.match(reservationMigration,/'replayed',true/);assert.match(reservationMigration,/'reason','in_progress'/);
 assert.match(reservationMigration,/a\.id=p_app_id and a\.owner_id=uid/);
-for(const fn of ['server_reserve_game_creation\(uuid,text,integer\)','server_finalize_game_creation\(uuid,text,uuid\)','server_release_game_creation\(uuid,text\)']){
-  assert.match(reservationMigration,new RegExp(`revoke all on function public\\.${fn} from public, anon, authenticated`));
-  assert.match(reservationMigration,new RegExp(`grant execute on function public\\.${fn} to service_role`));
+for(const signature of ['server_reserve_game_creation(uuid,text,integer)','server_finalize_game_creation(uuid,text,uuid)','server_release_game_creation(uuid,text)']){
+  assert.ok(reservationMigration.includes(`revoke all on function public.${signature} from public, anon, authenticated;`),`${signature} must be revoked from public/anon/authenticated`);
+  assert.ok(reservationMigration.includes(`grant execute on function public.${signature} to service_role;`),`${signature} must be service-role only`);
 }
 assert.doesNotMatch(reservationMigration,/from public\.apps\s+where[^;]*created_at>=now\(\)-interval '1 hour'/is);
 
