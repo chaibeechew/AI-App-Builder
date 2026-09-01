@@ -16,9 +16,9 @@ This tracker separates repository-verifiable quality from evidence that requires
 | Area | Baseline | Current | Status | Evidence / next gate |
 |---|---:|---:|---|---|
 | Brand identity & consistency | 88 | 100 | ✅ 100 CODE | Canonical LANERIQ AI contract, Powered by SoolenAI, renamed repo/package/CI, automated brand regression test |
-| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
+| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
 | Security / Ownership | 91 | 100 | ✅ 100 CODE | Critical create/modify/data/workflow/checkout/store/publish paths owner-bound; service-role finance; RLS + client secret scan |
-| Credits System | 86 | 86 | 🟡 IN PROGRESS | Verify consume/refund/idempotency/ownership/fail-closed coverage |
+| Credits System | 86 | 100 | ✅ 100 CODE | Service-role mutation only, row locks, idempotent charge/refund, exact matching refund, create reservation recovery, exact-project access |
 | Pro Mode | 88 | 88 | 🟡 IN PROGRESS | Verify entitlement enforcement across create/modify/release paths |
 | Game commercial policy | 93 | 93 | 🟡 IN PROGRESS | Verify Pro-only + no buyout + continuing 5% game-profit-share across UI/API/policy/tests |
 | Version History / Undo | 90 | 90 | 🟡 IN PROGRESS | Verify atomic versions, rollback ownership, stale-version protection |
@@ -74,10 +74,11 @@ The main CI requires all of the following to pass in order:
 2. LANERIQ AI brand regression tests
 3. Release policy regression tests
 4. Security and ownership contract tests
-5. Runtime reliability contract tests
-6. Non-production 100 product contract tests
-7. 100-point structural readiness gate
-8. Next.js production build
+5. Credits and entitlement contract tests
+6. Runtime reliability contract tests
+7. Non-production 100 product contract tests
+8. 100-point structural readiness gate
+9. Next.js production build
 
 Production promotion remains a separate, explicitly approved action.
 
@@ -99,6 +100,24 @@ The security contract now fails closed unless all defined repository-verifiable 
 - App data records are protected by RLS ownership policies.
 
 This is a **100/100 code-contract score**, not a claim of zero possible security vulnerabilities in real-world operation.
+
+### 4. Credits System — 100 CODE
+
+The dedicated credits/entitlement gate requires all defined financial safety contracts to remain present:
+
+- Privileged financial mutation RPCs are called only through the server admin client and are granted to `service_role` only.
+- Customers may read their own credit/account state, but authenticated clients cannot insert/update/delete/truncate credit ledgers directly.
+- Credit transaction idempotency is enforced by `(user_id, request_id, type)` uniqueness.
+- AI credit charges require a positive bounded amount and request id, row-lock the balance, detect replay, and fail closed on insufficient balance.
+- Refunds require the original matching AI charge, must exactly match its amount, and are replay safe.
+- Create entitlement reservations row-lock per-user usage state and block concurrent different creation requests.
+- Project access binding requires the exact matching creation reservation and exact owned project.
+- Failed creates restore standard project credits or the free-first-project claim only when safe and unbound.
+- Modify entitlement is exact-project owner-bound across promotion, standard and professional tiers.
+- Legacy authenticated financial mutation RPCs are explicitly revoked.
+- Generate and Modify use the server finance layer; Generate includes project binding/create recovery and Modify includes failed-AI-credit refund handling.
+
+This is a **100/100 code-contract score**; it does not substitute for live payment/provider reconciliation evidence.
 
 ## Working rule
 
