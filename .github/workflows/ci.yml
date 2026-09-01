@@ -77,6 +77,8 @@ jobs:
         run: npm run test:workflows
       - name: AI Self-Test and Self-Heal contract tests
         run: npm run test:self-heal
+      - name: AI Modify contract tests
+        run: npm run test:modify
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
