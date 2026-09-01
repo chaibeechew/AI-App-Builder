@@ -1,0 +1,115 @@
+/* LANERIQ AI homepage v3 — canonical post-rebrand visual authority.
+   Loaded after the approved moon-valley v2 layer so the current customer brand
+   is unmistakable without changing the proven builder workflow underneath. */
+
+.premiumHome.laneriqHomeV3{
+  background:#020a08!important;
+}
+
+.premiumHome.laneriqHomeV3 .bg{
+  background:
+    radial-gradient(circle at 77% 13%,rgba(241,190,72,.12),transparent 25%),
+    linear-gradient(180deg,rgba(0,5,4,.01) 0%,rgba(0,7,6,.08) 29%,rgba(0,10,8,.68) 63%,rgba(0,8,7,.98) 100%),
+    url('/02ACE732-9849-4674-8901-E264BCA5C02D.png') center top/cover no-repeat!important;
+  filter:saturate(1.14) contrast(1.05)!important;
+}
+
+.premiumHome.laneriqHomeV3 .veil{
+  background:
+    linear-gradient(90deg,rgba(0,9,7,.66),rgba(0,9,7,.06) 56%,rgba(0,9,7,.28)),
+    radial-gradient(circle at 74% 8%,rgba(255,206,89,.12),transparent 28%)!important;
+}
+
+.premiumHome.laneriqHomeV3 .heroCopy{
+  max-width:820px!important;
+  padding:14px 2px 20px!important;
+}
+
+.premiumHome.laneriqHomeV3 .heroCopy::before{
+  content:'3-IN-1 AI CREATION PLATFORM  •  APPS  •  GAMES  •  WEB'!important;
+  color:#efc75f!important;
+  letter-spacing:.12em!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  margin-bottom:11px!important;
+}
+
+.premiumHome.laneriqHomeV3 .heroCopy h1{
+  letter-spacing:-.055em!important;
+  line-height:.92!important;
+}
+
+.premiumHome.laneriqHomeV3 .heroCopy h1>span{
+  display:block!important;
+  font-size:clamp(62px,11vw,108px)!important;
+  line-height:.86!important;
+  font-weight:1000!important;
+  background:linear-gradient(180deg,#fff4b6 0%,#f0c45b 40%,#c98117 100%)!important;
+  -webkit-background-clip:text!important;
+  background-clip:text!important;
+  color:transparent!important;
+  text-shadow:none!important;
+}
+
+.premiumHome.laneriqHomeV3 .heroCopy h1>strong{
+  display:block!important;
+  margin-top:12px!important;
+  color:#f7faf8!important;
+  font-size:clamp(24px,4.8vw,44px)!important;
+  line-height:1.02!important;
+  letter-spacing:-.035em!important;
+  font-weight:900!important;
+}
+
+.premiumHome.laneriqHomeV3 .heroCopy>p{
+  max-width:620px!important;
+  color:#e8efeb!important;
+  font-size:clamp(14px,2.5vw,19px)!important;
+  line-height:1.45!important;
+  margin:15px 0 11px!important;
+}
+
+.premiumHome.laneriqHomeV3 .powered{
+  background:linear-gradient(135deg,rgba(4,28,22,.88),rgba(2,15,12,.82))!important;
+  border:1px solid rgba(239,199,95,.55)!important;
+  box-shadow:0 10px 30px rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.05)!important;
+}
+
+.premiumHome.laneriqHomeV3 .featureCards{
+  margin-top:3px!important;
+}
+
+.premiumHome.laneriqHomeV3 .feature,
+.premiumHome.laneriqHomeV3 .promptCard,
+.premiumHome.laneriqHomeV3 .choiceCard{
+  backdrop-filter:blur(22px) saturate(1.08)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.08)!important;
+  background:linear-gradient(145deg,rgba(5,31,24,.88),rgba(2,14,11,.9))!important;
+  border-color:rgba(226,184,75,.45)!important;
+}
+
+.premiumHome.laneriqHomeV3 .buildCta{
+  background:linear-gradient(135deg,#f7dd8c 0%,#e4b84f 47%,#b97718 100%)!important;
+  color:#122018!important;
+  border:1px solid rgba(255,255,255,.42)!important;
+  box-shadow:0 0 34px rgba(226,175,64,.34),0 18px 42px rgba(0,0,0,.38)!important;
+}
+
+.premiumHome.laneriqHomeV3 .spark{
+  color:#f0c45c!important;
+  box-shadow:0 12px 34px rgba(0,0,0,.38),inset 0 0 20px rgba(239,199,95,.08)!important;
+}
+
+@media(max-width:520px){
+  .premiumHome.laneriqHomeV3 .heroCopy{padding-top:9px!important;padding-bottom:14px!important}
+  .premiumHome.laneriqHomeV3 .heroCopy::before{font-size:8.5px!important;letter-spacing:.08em!important;white-space:nowrap!important}
+  .premiumHome.laneriqHomeV3 .heroCopy h1>span{font-size:clamp(47px,14.2vw,64px)!important}
+  .premiumHome.laneriqHomeV3 .heroCopy h1>strong{font-size:clamp(21px,6.2vw,28px)!important;margin-top:8px!important}
+  .premiumHome.laneriqHomeV3 .heroCopy>p{font-size:12.5px!important;margin:11px 0 9px!important}
+}
+
+@media(max-width:380px){
+  .premiumHome.laneriqHomeV3 .heroCopy::before{font-size:7.5px!important;letter-spacing:.055em!important}
+  .premiumHome.laneriqHomeV3 .heroCopy h1>span{font-size:45px!important}
+  .premiumHome.laneriqHomeV3 .heroCopy h1>strong{font-size:20px!important}
+}
