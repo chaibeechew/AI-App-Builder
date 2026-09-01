@@ -16,10 +16,10 @@ This tracker separates repository-verifiable quality from evidence that requires
 | Area | Baseline | Current | Status | Evidence / next gate |
 |---|---:|---:|---|---|
 | Brand identity & consistency | 88 | 100 | ✅ 100 CODE | Canonical LANERIQ AI contract, Powered by SoolenAI, renamed repo/package/CI, automated brand regression test |
-| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
+| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
 | Security / Ownership | 91 | 100 | ✅ 100 CODE | Critical create/modify/data/workflow/checkout/store/publish paths owner-bound; service-role finance; RLS + client secret scan |
 | Credits System | 86 | 100 | ✅ 100 CODE | Service-role mutation only, row locks, idempotent charge/refund, exact matching refund, create reservation recovery, exact-project access |
-| Pro Mode | 88 | 88 | 🟡 IN PROGRESS | Verify entitlement enforcement across create/modify/release paths |
+| Pro Mode | 88 | 100 | ✅ 100 CODE | Expiry-bound entitlement, service-only grant, owned Pro workspace, game double-gate before credit/entitlement consumption |
 | Game commercial policy | 93 | 93 | 🟡 IN PROGRESS | Verify Pro-only + no buyout + continuing 5% game-profit-share across UI/API/policy/tests |
 | Version History / Undo | 90 | 90 | 🟡 IN PROGRESS | Verify atomic versions, rollback ownership, stale-version protection |
 | Database / Supabase | 89 | 89 | 🟡 IN PROGRESS | Verify RLS, bounded fields, durable records, no-code safety |
@@ -75,10 +75,11 @@ The main CI requires all of the following to pass in order:
 3. Release policy regression tests
 4. Security and ownership contract tests
 5. Credits and entitlement contract tests
-6. Runtime reliability contract tests
-7. Non-production 100 product contract tests
-8. 100-point structural readiness gate
-9. Next.js production build
+6. Pro Mode contract tests
+7. Runtime reliability contract tests
+8. Non-production 100 product contract tests
+9. 100-point structural readiness gate
+10. Next.js production build
 
 Production promotion remains a separate, explicitly approved action.
 
@@ -118,6 +119,22 @@ The dedicated credits/entitlement gate requires all defined financial safety con
 - Generate and Modify use the server finance layer; Generate includes project binding/create recovery and Modify includes failed-AI-credit refund handling.
 
 This is a **100/100 code-contract score**; it does not substitute for live payment/provider reconciliation evidence.
+
+### 5. Pro Mode — 100 CODE
+
+The Pro Mode contract now requires all defined repository-verifiable access controls to remain present:
+
+- Professional price is US$68 for 365 days with no automatic renewal in the product contract.
+- Pro is considered active only while the server-stored `pro_valid_until` timestamp is in the future; expired accounts downgrade safely.
+- Pro grants are bounded and callable only by `service_role`; customers cannot grant themselves Professional access.
+- Renewals extend from the later of the current expiry or now, so valid remaining access is not shortened.
+- Professional project access stores/uses an expiry and refuses binding when account Pro has already expired.
+- Pro Workspace authenticates the user, verifies project ownership and shows a locked state when Professional access is inactive.
+- Game creation is double-gated: the dedicated Game API requires active Pro and the main Generate route also requires active Pro plus the trusted internal Game gateway.
+- The Game Pro gate executes before App Builder entitlement or AI-credit consumption, so rejected Standard game attempts are not charged by the normal generation path.
+- Normal-mode Game requests clearly expose the Become Pro route rather than pretending Game creation is available in Standard.
+
+This is a **100/100 Pro entitlement/code score**. Activation through a real payment provider remains separate LIVE evidence.
 
 ## Working rule
 
