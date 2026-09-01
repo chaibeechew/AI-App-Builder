@@ -18,8 +18,10 @@ assert.match(mount,/PublishingReadinessPanel/);
 const vercelConfig=read("vercel.json");
 assert.match(vercelConfig,/"framework"\s*:\s*"nextjs"/,"Vercel must explicitly build the repository as Next.js.");
 assert.match(vercelConfig,/"buildCommand"\s*:\s*"npm run build"/);
-assert.match(vercelConfig,/"installCommand"\s*:\s*"npm install"/);
+assert.match(vercelConfig,/"installCommand"\s*:\s*"npm ci"/);
+assert.equal(exists("package-lock.json"),true,"Deterministic Production installs require package-lock.json.");
 assert.doesNotMatch(vercelConfig,/"deploymentEnabled"\s*:\s*false/,"Production Git deployments must not be disabled now that the primary Vercel project is live.");
 
 console.log("✓ Vercel function budget guard keeps legacy root functions removed and Store Readiness client-mounted");
+console.log("✓ Vercel Production installs are reproducible through package-lock.json + npm ci");
 console.log("✓ Production Git deployment remains enabled while LANERIQ AI stays on the consolidated Next.js App Router deployment model");
