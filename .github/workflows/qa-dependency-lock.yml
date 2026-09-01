@@ -1,0 +1,32 @@
+name: LANERIQ AI QA Dependency Lock
+
+on:
+  push:
+    branches: [qa-dependency-lock-20260902]
+
+jobs:
+  dependency-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Generate package lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify clean install from lock
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Report resolved direct dependencies
+        run: npm ls --depth=0
+      - name: Upload deterministic lockfile
+        uses: actions/upload-artifact@v7
+        with:
+          name: laneriq-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 1
