@@ -65,6 +65,8 @@ jobs:
         run: npm run test:pro
       - name: Game commercial policy contract tests
         run: npm run test:game-commercial
+      - name: Game Creator runtime contract tests
+        run: npm run test:game-runtime
       - name: Version History and Undo contract tests
         run: npm run test:versions
       - name: Database and Supabase contract tests
