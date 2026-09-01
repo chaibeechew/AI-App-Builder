@@ -61,7 +61,6 @@ assert.equal(isPublicAccountPath('/app-dashboard/abc'),false);
 assert.equal(isPublicAccountPath('/api/apps/abc'),false);
 assert.equal(isPublicAccountPath('/authentication-secret'),false,'Auth prefix must not accidentally make unrelated routes public.');
 
-// Server boundary must sanitize externally supplied return paths before /auth is treated as public.
 assert.match(supabaseProxy,/session-safety\.js/);
 const authCanonicalIndex=supabaseProxy.indexOf('if (pathname === "/auth")');
 const publicIndex=supabaseProxy.indexOf('if (isPublicAccountPath(pathname))');
@@ -77,22 +76,26 @@ assert.match(supabaseProxy,/Pragma", "no-cache/);
 assert.match(rootProxy,/updateSession\(request\)/);
 assert.match(rootProxy,/matcher/);
 
-// Client auth guard is defense in depth for SPA/history mutations and cleans listeners.
 assert.match(authGuard,/normalizeReferralCode, safeInternalNext/);
 assert.match(authGuard,/window\.history\.replaceState/);
 assert.match(authGuard,/rawNext && rawNext !== next/);
 assert.match(authGuard,/auth\.onAuthStateChange/);
 assert.match(authGuard,/subscription\?\.unsubscribe/);
 assert.match(authGuard,/window\.location\.replace\(next\)/);
+assert.match(authGuard,/supabase\.auth\.getUser\(\)/);
+assert.match(authGuard,/window\.__LANERIQ_AUTH_FLOW_BUSY__ === true/);
 assert.doesNotMatch(authGuard,/window\.location\.assign\(next\)/);
 
-// The current Auth page uses the route-sanitized next value only for post-auth navigation, never for authorization.
-assert.match(authPage,/const next = searchParams\.get\("next"\) \|\| "\/"/);
+// Auth page independently sanitizes navigation inputs, trusts the authenticated user with getUser,
+// and coordinates with the global guard so referral completion cannot lose the race.
+assert.match(authPage,/safeInternalNext\(searchParams\.get\("next"\)\)/);
+assert.match(authPage,/normalizeReferralCode\(searchParams\.get\("ref"\)\)/);
 assert.match(authPage,/router\.replace\(next\)/);
-assert.match(authPage,/supabase\.auth\.getSession\(\)/);
+assert.match(authPage,/supabase\.auth\.getUser\(\)/);
 assert.match(authPage,/supabase\.auth\.verifyOtp/);
+assert.match(authPage,/window\.__LANERIQ_AUTH_FLOW_BUSY__ = true/);
+assert.doesNotMatch(authPage,/const next = searchParams\.get\("next"\) \|\| "\/"/);
 
-// Logout must complete successfully before hard navigation and affect only the current session.
 assert.match(account,/supabase\.auth\.signOut\(\{ scope: "local" \}\)/);
 assert.match(account,/if \(error\) throw error/);
 assert.match(account,/clearPrivateSessionStorage\(window\.sessionStorage\)/);
@@ -112,4 +115,4 @@ console.log('✓ Return-path sanitizer blocks external, protocol-relative, backs
 console.log('✓ Server proxy canonicalizes /auth next before rendering and protects private routes with fresh Supabase getUser validation');
 console.log('✓ Protected responses are no-store and signed-out BFCache/tab restores are revalidated client-side');
 console.log('✓ Logout is current-session scoped, fail-closed on error, uses history replace and clears private session drafts');
-console.log('✓ Auth/account listeners unsubscribe cleanly and referral metadata is bounded to generated-code format');
+console.log('✓ Auth/account listeners unsubscribe cleanly and OTP flow now coordinates safe redirect ownership');
