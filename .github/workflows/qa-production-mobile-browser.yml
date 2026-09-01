@@ -7,7 +7,7 @@ on:
 jobs:
   production-mobile-browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
       contents: read
     env:
@@ -25,4 +25,4 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run Production mobile browser QA
-        run: node scripts/qa-production-mobile-browser.mjs
+        run: timeout --signal=TERM --kill-after=10s 90s node scripts/qa-production-mobile-browser.mjs
