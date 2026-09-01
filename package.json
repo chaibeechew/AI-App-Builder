@@ -27,6 +27,7 @@
     "test:email-otp": "node scripts/email-otp-contract-tests.mjs",
     "test:upload-ref": "node scripts/upload-ref-contract-tests.mjs",
     "test:image-studio": "node scripts/image-studio-contract-tests.mjs",
+    "test:video": "node scripts/video-generator-contract-tests.mjs",
     "test:runtime": "node scripts/runtime-contract-tests.mjs",
     "test:nonprod": "node scripts/non-production-100-tests.mjs"
   },
