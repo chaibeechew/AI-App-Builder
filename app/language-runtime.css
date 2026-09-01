@@ -32,6 +32,15 @@
 .laneriqLangButton.inline{position:relative;z-index:3}
 .laneriqLangButton.floating{position:fixed;z-index:120;top:max(14px,env(safe-area-inset-top));right:14px}
 
+/* If the homepage has not hydrated far enough to portal the language button
+   into .topActions yet, keep the temporary floating control below Credits
+   instead of covering it. */
+body:has(.premiumHome) .laneriqLangButton.floating{
+  top:max(82px,calc(env(safe-area-inset-top) + 70px));
+  right:14px;
+  min-width:64px;
+}
+
 .laneriqLangBackdrop{
   position:fixed;
   inset:0;
@@ -85,4 +94,5 @@
   .laneriqLangGrid{grid-template-columns:1fr}
   .laneriqLangSheet header h2{font-size:24px}
   .laneriqLangButton.inline{min-width:44px;height:38px;padding:0 9px}
+  body:has(.premiumHome) .laneriqLangButton.floating{right:10px;min-width:60px;height:38px}
 }
