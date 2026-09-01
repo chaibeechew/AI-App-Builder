@@ -7,6 +7,7 @@ import "./home-resilient.css";
 import "./home-load-guard.css";
 import "./language-runtime.css";
 import "./home-reference-layout.css";
+import "./home-approved-v2.css";
 import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 import ProductCopyFix from "./components/ProductCopyFix";
