@@ -1,33 +1,8 @@
-/* LANERIQ AI mobile load guard.
-   Priority assets remain visible without waiting for hydration:
-   - first 3 style thumbnails
-   - first 2 template thumbnails
-   Everything else can wait until HomeLoadGuard marks it asset-ready. */
+/* LANERIQ AI homepage assets.
+   Do not hide style/template artwork while waiting for hydration. The homepage
+   should stay visually complete on iPhone and slower mobile connections. */
 
-.premiumHome .styleRail button:nth-child(n+4):not(.chosen) i:not(.asset-ready),
-.premiumHome .templateRail button:nth-child(n+3) i:not(.asset-ready){
-  background-image:none!important;
-  background:linear-gradient(145deg,#0a241d,#061612)!important;
-}
-
-.premiumHome .styleRail button:nth-child(n+4):not(.chosen) i:not(.asset-ready)::before,
-.premiumHome .templateRail button:nth-child(n+3) i:not(.asset-ready)::before{
-  content:"";
-  display:block;
-  width:100%;
-  height:100%;
-  border-radius:inherit;
-  background:linear-gradient(110deg,transparent 18%,rgba(255,255,255,.05) 42%,transparent 68%);
-}
-
-@media (prefers-reduced-motion:no-preference){
-  .premiumHome .styleRail button:nth-child(n+4):not(.chosen) i:not(.asset-ready)::before,
-  .premiumHome .templateRail button:nth-child(n+3) i:not(.asset-ready)::before{
-    animation:laneriqTilePulse 1.7s ease-in-out infinite;
-  }
-}
-
-@keyframes laneriqTilePulse{
-  0%,100%{opacity:.28}
-  50%{opacity:.7}
+.premiumHome .styleRail i,
+.premiumHome .templateRail i{
+  opacity:1!important;
 }
