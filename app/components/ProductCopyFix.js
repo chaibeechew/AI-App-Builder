@@ -1,11 +1,15 @@
 "use client";
 import {useEffect} from "react";
+import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
 const REPLACEMENTS=[
-  [/AI APP & WEB CREATOR/gi,"AI BUILD APP & WEB"],
-  [/AI App & Web Creator/gi,"AI BUILD APP & WEB"],
-  [/AI APP BUILDER/gi,"AI BUILD APP & WEB"],
-  [/AI App Builder/gi,"AI BUILD APP & WEB"],
+  [/AI BUILD APP\s*&\s*WEB/gi,PRODUCT_BRAND.name],
+  [/AI BUILD APP&WEB/gi,PRODUCT_BRAND.name],
+  [/AI APP\s*&\s*WEB CREATOR/gi,PRODUCT_BRAND.name],
+  [/AI App\s*&\s*Web Creator/gi,PRODUCT_BRAND.name],
+  [/AI APP BUILDER/gi,PRODUCT_BRAND.name],
+  [/AI App Builder/gi,PRODUCT_BRAND.name],
+  [/Build stunning Apps\s*&\s*Websites\. No code\. Just ideas\./gi,PRODUCT_BRAND.tagline],
 ];
 function rewrite(value){let next=String(value||"");for(const [pattern,replacement] of REPLACEMENTS)next=next.replace(pattern,replacement);return next;}
 
@@ -14,8 +18,29 @@ export default function ProductCopyFix(){
     const fix=()=>{
       const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
       for(const node of nodes){const tag=node.parentElement?.tagName;if(["SCRIPT","STYLE","TEXTAREA","INPUT"].includes(tag))continue;const next=rewrite(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;}
-      document.querySelectorAll("button,a").forEach(el=>{const t=(el.textContent||"").trim();if(/Generate My App|BUILD MY APP/i.test(t)||/^✨?\s*Build App\s*→?$/i.test(t))el.textContent="🚀 BUILD APP + WEBSITE →";});
-      if(document.title!==rewrite(document.title))document.title=rewrite(document.title);
+
+      const hero=document.querySelector(".heroCopy h1");
+      if(hero&&hero.dataset.creovaBrand!=="1"){
+        hero.innerHTML=`<span>${PRODUCT_BRAND.name}</span><strong>${PRODUCT_BRAND.capabilities}</strong>`;
+        hero.dataset.creovaBrand="1";
+      }
+      const heroCopy=document.querySelector(".heroCopy > p");
+      if(heroCopy&&heroCopy.dataset.creovaBrand!=="1"){
+        heroCopy.innerHTML=`${PRODUCT_BRAND.descriptor}<br/>${PRODUCT_BRAND.tagline}`;
+        heroCopy.dataset.creovaBrand="1";
+      }
+      const promptLabel=document.querySelector(".promptHead label");
+      if(promptLabel&&/App\s*&\s*Website/i.test(promptLabel.textContent||""))promptLabel.textContent="Describe the App, Game or Website you want to create";
+      const ideaBox=document.querySelector(".promptCard textarea");
+      if(ideaBox&&/App and a customer Website|App.*Website/i.test(ideaBox.getAttribute("placeholder")||""))ideaBox.setAttribute("placeholder","Example: Create a property CRM app, a customer website, or a mobile game from one idea…");
+
+      document.querySelectorAll("button,a").forEach(el=>{
+        const t=(el.textContent||"").trim();
+        if(/Generate My App|BUILD MY APP|BUILD APP \+ WEBSITE/i.test(t)||/^✨?\s*Build App\s*→?$/i.test(t))el.textContent="🚀 CREATE APP • GAME • WEB →";
+        if(/^Ṫ?\s*Text to App$/i.test(t))el.textContent="Ṫ Text to Product";
+      });
+      const title=rewrite(document.title);
+      if(document.title!==title)document.title=title;
     };
     fix();const o=new MutationObserver(fix);o.observe(document.body,{childList:true,subtree:true,characterData:true});return()=>o.disconnect();
   },[]);return null;
