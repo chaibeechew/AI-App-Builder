@@ -83,6 +83,8 @@ jobs:
         run: npm run test:idea
       - name: Templates contract tests
         run: npm run test:templates
+      - name: Multilingual contract tests
+        run: npm run test:i18n
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
