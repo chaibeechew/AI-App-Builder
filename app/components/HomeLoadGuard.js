@@ -4,31 +4,38 @@ import { useEffect } from "react";
 
 const PREFETCH_PATHS = new Set(["/credits", "/my-apps", "/templates", "/studio", "/image-studio"]);
 
-function requestHeaders(input, init) {
-  try {
-    if (init?.headers) return new Headers(init.headers);
-    if (typeof Request !== "undefined" && input instanceof Request) return new Headers(input.headers);
-  } catch {}
-  return new Headers();
-}
-
 export default function HomeLoadGuard() {
   useEffect(() => {
     if (typeof window === "undefined" || window.location.pathname !== "/") return;
+
+    let allowPath = "";
+    let allowUntil = 0;
+    const onClick = (event) => {
+      try {
+        const anchor = event.target?.closest?.("a[href]");
+        if (!anchor) return;
+        const url = new URL(anchor.href, window.location.href);
+        if (url.origin === window.location.origin && PREFETCH_PATHS.has(url.pathname)) {
+          allowPath = url.pathname;
+          allowUntil = Date.now() + 8000;
+        }
+      } catch {}
+    };
+    window.addEventListener("click", onClick, true);
 
     const originalFetch = window.fetch.bind(window);
     window.fetch = (input, init) => {
       try {
         const rawUrl = typeof input === "string" ? input : input?.url;
         const url = new URL(rawUrl || "", window.location.href);
-        const headers = requestHeaders(input, init);
-        const isRouterPrefetch =
-          headers.get("next-router-prefetch") === "1" ||
-          headers.get("purpose") === "prefetch" ||
-          String(headers.get("sec-purpose") || "").includes("prefetch");
-
-        if (url.origin === window.location.origin && PREFETCH_PATHS.has(url.pathname) && isRouterPrefetch) {
-          return Promise.resolve(new Response(null, { status: 204 }));
+        if (url.origin === window.location.origin && PREFETCH_PATHS.has(url.pathname)) {
+          const userNavigation = url.pathname === allowPath && Date.now() < allowUntil;
+          if (!userNavigation) {
+            return Promise.resolve(new Response(null, {
+              status: 204,
+              headers: { "Cache-Control": "no-store" },
+            }));
+          }
         }
       } catch {}
       return originalFetch(input, init);
@@ -37,13 +44,11 @@ export default function HomeLoadGuard() {
     const styleTiles = Array.from(document.querySelectorAll(".premiumHome .styleRail i"));
     const templateTiles = Array.from(document.querySelectorAll(".premiumHome .templateRail i"));
 
-    /* The first visible choices should never wait for IntersectionObserver.
-       This prevents blank cards on iPhone/4G while still keeping later images deferred. */
-    styleTiles.slice(0, 3).forEach((tile) => tile.classList.add("asset-ready"));
-    templateTiles.slice(0, 2).forEach((tile) => tile.classList.add("asset-ready"));
+    /* Load only the currently selected style immediately. Everything else waits
+       until it approaches the viewport, preventing a 20MB+ first-load burst. */
     document.querySelector(".premiumHome .styleRail button.chosen i")?.classList.add("asset-ready");
 
-    const deferredTiles = [...styleTiles.slice(3), ...templateTiles.slice(2)].filter(
+    const deferredTiles = [...styleTiles, ...templateTiles].filter(
       (tile) => !tile.classList.contains("asset-ready")
     );
     let observer = null;
@@ -57,7 +62,7 @@ export default function HomeLoadGuard() {
             observer?.unobserve(entry.target);
           }
         },
-        { rootMargin: "420px 120px", threshold: 0.01 }
+        { rootMargin: "220px 80px", threshold: 0.01 }
       );
       for (const tile of deferredTiles) observer.observe(tile);
     } else {
@@ -66,6 +71,7 @@ export default function HomeLoadGuard() {
 
     return () => {
       window.fetch = originalFetch;
+      window.removeEventListener("click", onClick, true);
       observer?.disconnect();
     };
   }, []);
