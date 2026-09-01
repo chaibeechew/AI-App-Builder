@@ -1,0 +1,27 @@
+name: LANERIQ AI QA Production 7-Surface Stability 1000
+
+on:
+  push:
+    branches:
+      - qa-production-7surface-1000-20260902
+
+permissions:
+  contents: read
+
+jobs:
+  production-stability-1000:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      LANERIQ_PRODUCTION_URL: https://laneriq-ai.vercel.app
+      LANERIQ_STABILITY_RUNS: '1000'
+      LANERIQ_STABILITY_TIMEOUT_MS: '8000'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Run 1000 production stability cycles across 7 surfaces
+        run: node scripts/production-stability-100.mjs
