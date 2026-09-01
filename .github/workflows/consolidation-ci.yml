@@ -67,6 +67,8 @@ jobs:
         run: node scripts/autonomous-game-development-agent-v3-tests.mjs
       - name: Autonomous Game Development Agent V4 contract tests
         run: node scripts/autonomous-game-development-v4-tests.mjs
+      - name: Complete Game Creation and Repository-aware V5 contract tests
+        run: node scripts/complete-game-creation-tests.mjs
       - name: MOBA Runtime V1 contract tests
         run: node scripts/moba-runtime-v1-tests.mjs
       - name: Aviation knowledge contract tests
