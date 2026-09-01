@@ -34,7 +34,18 @@
     "test:web-publish": "node scripts/web-publish-contract-tests.mjs",
     "test:apple-store": "node scripts/apple-store-contract-tests.mjs",
     "test:runtime": "node scripts/runtime-contract-tests.mjs",
-    "test:nonprod": "node scripts/non-production-100-tests.mjs"
+    "test:nonprod": "node scripts/non-production-100-tests.mjs",
+    "test:publishing-readiness": "node scripts/publishing-readiness-tests.mjs",
+    "test:seo": "node scripts/seo-foundation-tests.mjs",
+    "test:vercel-budget": "node scripts/vercel-function-budget-tests.mjs",
+    "test:project-readiness": "node scripts/project-readiness-tests.mjs",
+    "test:mobile-game": "node scripts/mobile-game-capability-tests.mjs",
+    "test:aaa-mobile": "node scripts/aaa-mobile-production-tests.mjs",
+    "test:advanced-3d": "node scripts/advanced-3d-gameplay-tests.mjs",
+    "test:advanced-genres": "node scripts/advanced-game-genres-tests.mjs",
+    "test:content-pipeline": "node scripts/content-production-pipeline-tests.mjs",
+    "test:complete-game": "node scripts/complete-game-creation-tests.mjs",
+    "test:hardening-1000": "npm run test:publishing-readiness && npm run test:seo && npm run test:vercel-budget && npm run test:project-readiness && npm run test:mobile-game && npm run test:aaa-mobile && npm run test:advanced-3d && npm run test:advanced-genres && npm run test:content-pipeline && npm run test:complete-game"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
