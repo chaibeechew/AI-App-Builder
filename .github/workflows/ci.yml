@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
     env:
@@ -105,6 +105,29 @@ jobs:
         run: npm run test:web-publish
       - name: Apple App Store contract tests
         run: npm run test:apple-store
+
+      # 1000-point hardening pack: ten previously unscored production/code areas.
+      - name: Publishing readiness contract tests
+        run: npm run test:publishing-readiness
+      - name: SEO foundation contract tests
+        run: npm run test:seo
+      - name: Vercel function budget contract tests
+        run: npm run test:vercel-budget
+      - name: Project readiness contract tests
+        run: npm run test:project-readiness
+      - name: Mobile game platform contract tests
+        run: npm run test:mobile-game
+      - name: AAA mobile production contract tests
+        run: npm run test:aaa-mobile
+      - name: Advanced 3D gameplay contract tests
+        run: npm run test:advanced-3d
+      - name: Advanced game genres contract tests
+        run: npm run test:advanced-genres
+      - name: Content production pipeline contract tests
+        run: npm run test:content-pipeline
+      - name: Complete game creation contract tests
+        run: npm run test:complete-game
+
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
@@ -114,5 +137,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI 100-point code/product validation passed. Production promotion remains a separate explicitly approved action."
+        run: echo "LANERIQ AI core gates plus the 1000-point hardening pack passed. Live provider, phone and store evidence remain separately evidence-gated."
       # This workflow validates code only. It never deploys or promotes Production.
