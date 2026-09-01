@@ -5,6 +5,7 @@ import "./backgrounds.css";
 import "./premium-journey-theme.css";
 import "./home-resilient.css";
 import "./home-load-guard.css";
+import "./language-runtime.css";
 import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 import ProductCopyFix from "./components/ProductCopyFix";
@@ -19,6 +20,7 @@ import CreationCapabilityBanner from "./components/CreationCapabilityBanner";
 import GameProGate from "./components/GameProGate";
 import GameCommercialTermsNotice from "./components/GameCommercialTermsNotice";
 import HomeLoadGuard from "./components/HomeLoadGuard";
+import LanguageRuntime from "./components/LanguageRuntime";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
 import { SEO_CORE_KEYWORDS, SEO_INDEXING_ENABLED, SEO_SITE_URL, absoluteSeoUrl, buildOrganizationJsonLd, buildSoftwareJsonLd } from "../lib/seo-foundation.js";
 
@@ -61,6 +63,7 @@ export default function RootLayout({ children }) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
         <HomeLoadGuard />
+        <LanguageRuntime />
         <PremiumJourneyTheme />
         <ProductCopyFix />
         <AdaptiveWallpaperEngine />
