@@ -77,7 +77,9 @@ assert.doesNotMatch(gameTermsNotice,/share of game profit|game-profit/i);
 
 assert.match(pricing,/You own your game/);
 assert.match(pricing,/gameTerms\.platformSalesSharePercent/);
-assert.match(pricing,/every sales channel/i);
+assert.match(pricing,/no matter where the game is sold/i);
+assert.match(pricing,/Apple App Store, Google Play, Steam/);
+assert.match(pricing,/independent website or direct sales/i);
 assert.match(pricing,/Store\/platform commissions and creator operating costs do not reduce the sales-share basis/i);
 
 assert.match(readme,/Creator-first Game policy/);
