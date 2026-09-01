@@ -1,4 +1,4 @@
-/* SoolenAI global cinematic background rotation */
+/* AI BUILD APP & WEB global cinematic background rotation */
 
 :root {
   --soolen-bg-1: url('/02ACE732-9849-4674-8901-E264BCA5C02D.png');
@@ -32,6 +32,42 @@
     var(--soolen-bg-1) !important;
 }
 
+/* Premium ornamental layer for the sign-in experience.
+   These patterns stay subtle so the scenic artwork remains visible. */
+.authPage::before,
+.authPage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.authPage::before {
+  z-index: 1;
+  opacity: .38;
+  background-image:
+    radial-gradient(circle at 86% 18%, transparent 0 86px, rgba(238,202,100,.28) 87px, transparent 89px),
+    radial-gradient(circle at 86% 18%, transparent 0 132px, rgba(238,202,100,.12) 133px, transparent 135px),
+    radial-gradient(circle at 14% 82%, transparent 0 78px, rgba(91,205,160,.16) 79px, transparent 81px),
+    repeating-linear-gradient(45deg, transparent 0 35px, rgba(236,202,102,.055) 36px, transparent 37px),
+    repeating-linear-gradient(-45deg, transparent 0 35px, rgba(236,202,102,.04) 36px, transparent 37px);
+  -webkit-mask-image: linear-gradient(135deg, rgba(0,0,0,.92), rgba(0,0,0,.18) 52%, rgba(0,0,0,.74));
+  mask-image: linear-gradient(135deg, rgba(0,0,0,.92), rgba(0,0,0,.18) 52%, rgba(0,0,0,.74));
+}
+
+.authPage::after {
+  z-index: 1;
+  opacity: .34;
+  background-image:
+    radial-gradient(circle, rgba(241,211,119,.9) 0 1px, transparent 1.7px),
+    radial-gradient(circle, rgba(255,255,255,.58) 0 1px, transparent 1.5px),
+    linear-gradient(120deg, transparent 0 68%, rgba(232,198,96,.12) 68.2%, transparent 68.6%),
+    linear-gradient(60deg, transparent 0 78%, rgba(232,198,96,.08) 78.2%, transparent 78.6%);
+  background-size: 72px 72px, 118px 118px, 100% 100%, 100% 100%;
+  background-position: 14px 18px, 56px 34px, 0 0, 0 0;
+  mix-blend-mode: screen;
+}
+
 @keyframes soolenLandscapeCycle {
   0%, 12.49% {
     background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-1);
@@ -56,6 +92,22 @@
   }
   87.5%, 100% {
     background-image: linear-gradient(rgba(1,10,12,.34), rgba(1,8,10,.74)), var(--soolen-bg-8);
+  }
+}
+
+@media (max-width: 620px) {
+  .authPage::before {
+    opacity: .48;
+    background-image:
+      radial-gradient(circle at 92% 16%, transparent 0 72px, rgba(238,202,100,.32) 73px, transparent 75px),
+      radial-gradient(circle at 92% 16%, transparent 0 112px, rgba(238,202,100,.13) 113px, transparent 115px),
+      repeating-linear-gradient(45deg, transparent 0 28px, rgba(236,202,102,.06) 29px, transparent 30px),
+      repeating-linear-gradient(-45deg, transparent 0 28px, rgba(236,202,102,.04) 29px, transparent 30px);
+  }
+
+  .authPage::after {
+    opacity: .4;
+    background-size: 58px 58px, 94px 94px, 100% 100%, 100% 100%;
   }
 }
 
