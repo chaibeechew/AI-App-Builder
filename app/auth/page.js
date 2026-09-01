@@ -4,10 +4,10 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import { PRODUCT_BRAND } from "../../lib/product-brand.js";
+import { EMAIL_OTP_POLICY, authErrorMessage, normalizeEmailAddress, normalizeEmailOtp } from "../../lib/auth/otp-policy.js";
+import { normalizeReferralCode, safeInternalNext } from "../../lib/auth/session-safety.js";
 
 export const dynamic = "force-dynamic";
-const RESEND_SECONDS = 60;
-const OTP_LENGTH = 8;
 const SMS_AUTH_ENABLED = process.env.NEXT_PUBLIC_SMS_AUTH_ENABLED === "true";
 
 function normalizePhone(value) {
@@ -16,15 +16,11 @@ function normalizePhone(value) {
   return cleaned;
 }
 
-function friendly(error, method) {
-  const code = String(error?.code || "").toLowerCase();
-  const raw = String(error?.message || "");
-  if (code === "phone_provider_disabled" || /unsupported phone provider/i.test(raw)) return "SMS verification is not enabled yet. Use Email Code for now.";
-  if (code === "over_sms_send_rate_limit") return "Too many SMS codes were requested. Please wait before trying again.";
-  if (code.includes("rate") || /rate limit|security purposes/i.test(raw)) return `Please wait about ${RESEND_SECONDS} seconds before requesting another code.`;
-  if (/expired/i.test(raw)) return "This verification code has expired. Request a new code.";
-  if (/invalid.*token|token.*invalid|otp.*invalid/i.test(raw)) return "The verification code is incorrect. Check it and try again.";
-  return raw || `Unable to ${method === "sms" ? "send SMS" : "send email"} verification code.`;
+function safeFlowError(error, method) {
+  const message = String(error?.message || "");
+  if (message === "Enter a valid email address." || message.startsWith("Enter the ") || message.startsWith("Too many incorrect")) return message;
+  if (message.startsWith("Use international format")) return message;
+  return authErrorMessage(error, method);
 }
 
 function AuthForm() {
@@ -40,28 +36,22 @@ function AuthForm() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [resendIn, setResendIn] = useState(0);
-  const referral = (searchParams.get("ref") || "").trim().toUpperCase();
-  const next = searchParams.get("next") || "/";
+  const [verifyAttempts, setVerifyAttempts] = useState(0);
+  const referral = normalizeReferralCode(searchParams.get("ref"));
+  const next = safeInternalNext(searchParams.get("next"));
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getUser().then(({ data, error: userError }) => {
       if (!active) return;
-      if (data.session) {
+      if (!userError && data?.user) {
         router.replace(next);
         router.refresh();
-      } else setChecking(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active && session) {
-        router.replace(next);
-        router.refresh();
+      } else {
+        setChecking(false);
       }
-    });
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
+    }).catch(() => { if (active) setChecking(false); });
+    return () => { active = false; };
   }, [supabase, router, next]);
 
   useEffect(() => {
@@ -79,6 +69,7 @@ function AuthForm() {
     setMessage("");
     setError("");
     setResendIn(0);
+    setVerifyAttempts(0);
   }
 
   async function sendCode(event) {
@@ -101,17 +92,18 @@ function AuthForm() {
         setSent(true);
         setMessage("SMS verification code sent.");
       } else {
-        const email = identifier.trim().toLowerCase();
-        if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error("Enter a valid email address.");
+        const email = normalizeEmailAddress(identifier);
         const result = await supabase.auth.signInWithOtp({ email, options });
         if (result.error) throw result.error;
         setIdentifier(email);
         setSent(true);
         setMessage(`${PRODUCT_BRAND.name} verification code sent to ${email}. Check your inbox and spam folder.`);
       }
-      setResendIn(RESEND_SECONDS);
+      setOtp("");
+      setVerifyAttempts(0);
+      setResendIn(EMAIL_OTP_POLICY.resendSeconds);
     } catch (e) {
-      setError(friendly(e, method));
+      setError(safeFlowError(e, method));
     } finally {
       setLoading(false);
     }
@@ -119,25 +111,45 @@ function AuthForm() {
 
   async function verify(event) {
     event.preventDefault();
+    if (verifyAttempts >= EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode) {
+      setError("Too many incorrect attempts. Request a new verification code.");
+      return;
+    }
     setLoading(true);
     setError("");
     setMessage("");
+    let attemptedRemoteVerify = false;
+    if (typeof window !== "undefined") window.__LANERIQ_AUTH_FLOW_BUSY__ = true;
     try {
-      const token = otp.trim();
-      if (!new RegExp(`^\\d{${OTP_LENGTH}}$`).test(token)) throw new Error(`Enter the ${OTP_LENGTH}-digit verification code you received.`);
+      const token = normalizeEmailOtp(otp);
+      attemptedRemoteVerify = true;
       const result = method === "sms"
         ? await supabase.auth.verifyOtp({ phone: normalizePhone(identifier), token, type: "sms" })
-        : await supabase.auth.verifyOtp({ email: identifier.trim().toLowerCase(), token, type: "email" });
+        : await supabase.auth.verifyOtp({ email: normalizeEmailAddress(identifier), token, type: "email" });
       if (result.error) throw result.error;
-      if (!result.data.session) throw new Error("Verification succeeded, but no session was created.");
+      if (!result.data?.session) throw new Error("SESSION_NOT_CREATED");
+
+      const { data: trustedUserData, error: trustedUserError } = await supabase.auth.getUser();
+      if (trustedUserError || !trustedUserData?.user) throw new Error("SESSION_USER_NOT_VERIFIED");
+      if (result.data.user?.id && trustedUserData.user.id !== result.data.user.id) throw new Error("SESSION_USER_MISMATCH");
+
       try {
-        await fetch("/api/referrals/verify", { method: "POST", headers: { "Content-Type": "application/json" } });
+        await fetch("/api/referrals/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          credentials: "same-origin",
+        });
       } catch {}
+
+      if (typeof window !== "undefined") window.__LANERIQ_AUTH_FLOW_BUSY__ = false;
       router.replace(next);
       router.refresh();
     } catch (e) {
-      setError(friendly(e, method));
+      if (attemptedRemoteVerify) setVerifyAttempts((value) => Math.min(EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode, value + 1));
+      setError(safeFlowError(e, method));
     } finally {
+      if (typeof window !== "undefined") window.__LANERIQ_AUTH_FLOW_BUSY__ = false;
       setLoading(false);
     }
   }
@@ -176,7 +188,7 @@ function AuthForm() {
             <span className="stepBadge">01</span>
           </div>
           <h2>{sent ? "Enter your code" : "Welcome back"}</h2>
-          <p>{sent ? `We sent an ${OTP_LENGTH}-digit verification code to your ${method === "email" ? "email" : "mobile"}.` : `Use a one-time ${OTP_LENGTH}-digit code. No password required.`}</p>
+          <p>{sent ? `We sent an ${EMAIL_OTP_POLICY.codeLength}-digit verification code to your ${method === "email" ? "email" : "mobile"}.` : `Use a one-time ${EMAIL_OTP_POLICY.codeLength}-digit code. No password required.`}</p>
 
           <div className="tabs" role="tablist" aria-label="Verification method">
             <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}>
@@ -199,6 +211,7 @@ function AuthForm() {
                   inputMode={method === "email" ? "email" : "tel"}
                   autoComplete={method === "email" ? "email" : "tel"}
                   autoCapitalize="none"
+                  maxLength={method === "email" ? EMAIL_OTP_POLICY.maxEmailLength : 24}
                 />
               </div>
               {referral && <div className="notice">Referral code · {referral}</div>}
@@ -209,24 +222,24 @@ function AuthForm() {
           ) : (
             <form onSubmit={verify}>
               <div className="sentTo">Code sent to <b>{identifier}</b></div>
-              <label>{OTP_LENGTH}-digit verification code</label>
+              <label>{EMAIL_OTP_POLICY.codeLength}-digit verification code</label>
               <div className="inputWrap otpWrap">
                 <span>#</span>
                 <input
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH))}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, EMAIL_OTP_POLICY.codeLength))}
                   placeholder="12345678"
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  aria-label={`${OTP_LENGTH}-digit verification code`}
+                  aria-label={`${EMAIL_OTP_POLICY.codeLength}-digit verification code`}
                 />
               </div>
-              <button className="primary" disabled={loading || otp.length !== OTP_LENGTH}>
+              <button className="primary" disabled={loading || otp.length !== EMAIL_OTP_POLICY.codeLength || verifyAttempts >= EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode}>
                 <span>{loading ? "Verifying…" : "Verify & Continue"}</span><i>→</i>
               </button>
               <div className="secondaryRow">
                 <button type="button" className="secondary" disabled={loading || resendIn > 0} onClick={sendCode}>{resendIn > 0 ? `Resend in ${resendIn}s` : "Resend Code"}</button>
-                <button type="button" className="secondary" disabled={loading} onClick={() => { setSent(false); setOtp(""); setMessage(""); setError(""); setResendIn(0); }}>Change {method === "email" ? "email" : "number"}</button>
+                <button type="button" className="secondary" disabled={loading} onClick={() => { setSent(false); setOtp(""); setMessage(""); setError(""); setResendIn(0); setVerifyAttempts(0); }}>Change {method === "email" ? "email" : "number"}</button>
               </div>
             </form>
           )}
