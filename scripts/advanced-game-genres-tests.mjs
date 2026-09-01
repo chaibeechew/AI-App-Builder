@@ -3,6 +3,7 @@ import fs from "node:fs";
 import {inferAdvancedGenreKnowledge,ADVANCED_GAME_GENRES} from "../lib/ai/advanced-game-genre-knowledge.js";
 import {inferMobileGamePlan} from "../lib/ai/mobile-game-knowledge.js";
 import {compileAdvancedGenreRuntimeV1,createAdvancedGenreState,stepStrategy,stepRacing,stepSimulation,playCard,stepSports,judgeRhythm,stepSurvival,ADVANCED_GENRE_RUNTIME_V1} from "../lib/game/advanced-genre-runtime-v1.js";
+import {resolveGeneratedRuntime} from "../lib/game/game-runtime-router-v1.js";
 
 for(const id of ["strategy","racing","simulation","card","sports","rhythm","survival"]){assert.ok(ADVANCED_GAME_GENRES[id],`Missing knowledge: ${id}`);assert.ok(ADVANCED_GENRE_RUNTIME_V1.genres.includes(id),`Missing runtime: ${id}`);}
 assert.equal(inferAdvancedGenreKnowledge("做一个三国 SLG 策略游戏","strategy").id,"strategy");
@@ -21,9 +22,9 @@ const sports=compileAdvancedGenreRuntimeV1({name:"Match",game:{archetype:"sports
 const rhythm=compileAdvancedGenreRuntimeV1({name:"Beat",game:{archetype:"rhythm"}});let ys=createAdvancedGenreState(rhythm);for(let i=0;i<24;i++)ys=judgeRhythm(ys,0);assert.equal(ys.status,"won");assert.equal(ys.bestCombo,24);
 const survival=compileAdvancedGenreRuntimeV1({name:"Run",game:{archetype:"survival"}});let vs=createAdvancedGenreState(survival);vs={...vs,time:89.9,health:100};vs=stepSurvival(vs,"dodge",.2);assert.equal(vs.status,"won");
 
-for(const [idea,id] of [["做一个历史 SLG 策略游戏","strategy"],["Create a racing mobile game","racing"],["做一个模拟经营城市游戏","simulation"],["做一个卡牌游戏","card"],["做一个足球体育游戏","sports"],["做一个音乐节奏游戏","rhythm"],["做一个生存 roguelite 游戏","survival"]]){const plan=inferMobileGamePlan(idea);assert.equal(plan.advancedGenre?.id,id,`Planner missing ${id}`);assert.ok(plan.systems.some(item=>item.startsWith(`${id.toUpperCase()}:`)));}
+for(const [idea,id] of [["做一个历史 SLG 策略游戏","strategy"],["Create a racing mobile game","racing"],["做一个模拟经营城市游戏","simulation"],["做一个卡牌游戏","card"],["做一个足球体育游戏","sports"],["做一个音乐节奏游戏","rhythm"],["做一个生存 roguelite 游戏","survival"]]){const plan=inferMobileGamePlan(idea);assert.equal(plan.advancedGenre?.id,id,`Planner missing ${id}`);assert.ok(plan.systems.some(item=>item.startsWith(`${id.toUpperCase()}:`)));const route=resolveGeneratedRuntime({productType:"mobile_game",game:{enabled:true,archetype:id,genre:id}});assert.equal(route.runtimeId,"advanced-genre-runtime-v1");assert.equal(route.type,id);assert.equal(route.eventName,`${id}_runtime_view`);}
 
 const page=fs.readFileSync("app/a/[id]/page.js","utf8");const client=fs.readFileSync("app/a/[id]/AdvancedGenreRuntimeClient.js","utf8");
-assert.match(page,/AdvancedGenreRuntimeClient/);for(const id of ["strategy","racing","simulation","card","sports","rhythm","survival"]){assert.match(page,new RegExp(`${id}_runtime_view`));assert.match(client,new RegExp(id));}
+assert.match(page,/resolveGeneratedRuntime/);assert.match(page,/AdvancedGenreRuntimeClient/);for(const id of ["strategy","racing","simulation","card","sports","rhythm","survival"])assert.match(client,new RegExp(id));
 assert.match(client,/iOS · Android · Web Preview/);assert.match(client,/Evidence-gated specialist runtime/);
-console.log("✓ SLG/Strategy, Racing, Simulation/Tycoon, Card, Sports, Rhythm and Survival have dedicated knowledge, state machines, win/lose evidence and project-preview routing");
+console.log("✓ SLG/Strategy, Racing, Simulation/Tycoon, Card, Sports, Rhythm and Survival have dedicated knowledge, state machines, win/lose evidence and shared Preview routing");
