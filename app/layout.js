@@ -34,7 +34,7 @@ const softwareSchema = buildSoftwareJsonLd();
 const discoveryDescription = `${PRODUCT_BRAND.capabilities}. ${PRODUCT_BRAND.tagline} Create apps, games and websites with AI-powered planning, design, building, testing and preview workflows for web, iOS and Android targets.`;
 const discoveryTitle = `${PRODUCT_BRAND.name} — AI App, Game & Website Builder`;
 
-const earlyHomeLoadGuard = `(()=>{try{if(location.pathname!=="/"||window.__laneriqEarlyFetchGuard)return;window.__laneriqEarlyFetchGuard=true;const blocked=new Set(["/credits","/my-apps","/templates","/studio","/image-studio"]);const original=window.fetch.bind(window);window.fetch=(input,init)=>{try{const raw=typeof input==="string"?input:input&&input.url;const url=new URL(raw||"",location.href);const headers=new Headers((init&&init.headers)||((typeof Request!=="undefined"&&input instanceof Request)?input.headers:undefined));const prefetch=headers.get("next-router-prefetch")==="1"||headers.get("purpose")==="prefetch"||String(headers.get("sec-purpose")||"").includes("prefetch");if(url.origin===location.origin&&blocked.has(url.pathname)&&prefetch)return Promise.resolve(new Response(null,{status:204}));}catch{}return original(input,init);};}catch{}})();`;
+const earlyHomeLoadGuard = `(()=>{try{if(location.pathname!=="/"||window.__laneriqEarlyFetchGuard)return;window.__laneriqEarlyFetchGuard=true;const blocked=new Set(["/credits","/my-apps","/templates","/studio","/image-studio"]);let allowPath="",allowUntil=0;addEventListener("click",e=>{try{const a=e.target&&e.target.closest&&e.target.closest("a[href]");if(!a)return;const u=new URL(a.href,location.href);if(u.origin===location.origin&&blocked.has(u.pathname)){allowPath=u.pathname;allowUntil=Date.now()+8000;}}catch{}},true);const original=window.fetch.bind(window);window.fetch=(input,init)=>{try{const raw=typeof input==="string"?input:input&&input.url;const url=new URL(raw||"",location.href);if(url.origin===location.origin&&blocked.has(url.pathname)){const allowed=url.pathname===allowPath&&Date.now()<allowUntil;if(!allowed)return Promise.resolve(new Response(null,{status:204,headers:{"Cache-Control":"no-store"}}));}}catch{}return original(input,init);};}catch{}})();`;
 
 export const metadata = {
   ...(SEO_SITE_URL ? { metadataBase: new URL(SEO_SITE_URL) } : {}),
@@ -66,8 +66,6 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="preload" as="image" href="/02ACE732-9849-4674-8901-E264BCA5C02D.png" fetchPriority="high" />
-        <link rel="preload" as="image" href="/9E5FBDF9-3CCA-4D65-B5C4-3AFF1370F377.png" fetchPriority="high" />
-        <link rel="preload" as="image" href="/16C890C3-470F-45D7-AB7C-0F08539322D6.png" fetchPriority="high" />
       </head>
       <body>
         <script dangerouslySetInnerHTML={{ __html: earlyHomeLoadGuard }} />
