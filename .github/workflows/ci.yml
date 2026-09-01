@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     permissions:
       contents: read
     env:
@@ -106,7 +106,7 @@ jobs:
       - name: Apple App Store contract tests
         run: npm run test:apple-store
 
-      # 1000-point hardening pack: ten previously unscored production/code areas.
+      # First 1000-point hardening pack.
       - name: Publishing readiness contract tests
         run: npm run test:publishing-readiness
       - name: SEO foundation contract tests
@@ -128,6 +128,28 @@ jobs:
       - name: Complete game creation contract tests
         run: npm run test:complete-game
 
+      # Second 1000-point hardening pack.
+      - name: SMS Auth contract tests
+        run: npm run test:sms-auth
+      - name: Mobile UI contract tests
+        run: npm run test:mobile-ui
+      - name: Mobile Performance contract tests
+        run: npm run test:mobile-performance
+      - name: Voice Idea contract tests
+        run: npm run test:voice
+      - name: Google Play preparation contract tests
+        run: npm run test:google-play
+      - name: AI App internal E2E contract tests
+        run: npm run test:app-e2e-code
+      - name: AI Website internal E2E contract tests
+        run: npm run test:website-e2e-code
+      - name: App and Website combined internal E2E contract tests
+        run: npm run test:combined-e2e-code
+      - name: Upload Ref mobile contract tests
+        run: npm run test:upload-ref-mobile
+      - name: Production public-surface contract tests
+        run: npm run test:production-public
+
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
@@ -137,5 +159,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI core gates plus the 1000-point hardening pack passed. Live provider, phone and store evidence remain separately evidence-gated."
-      # This workflow validates code only. It never deploys or promotes Production.
+        run: echo "LANERIQ AI core gates plus two 1000-point hardening packs passed. Final 1000-cycle Production stability test remains manual and evidence-gated."
+      # This workflow validates code only. It never triggers the final 1000-cycle Production test.
