@@ -61,6 +61,8 @@ jobs:
         run: npm run test:security
       - name: Credits and entitlement contract tests
         run: npm run test:credits
+      - name: Pro Mode contract tests
+        run: npm run test:pro
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
