@@ -30,26 +30,12 @@ const richSpec={
   name:'Release Test App',
   description:qualityWords,
   designSystem:{
-    mood:'premium natural',
-    visualDirection:'premium visual design',
-    backgroundDirection:'layered background image',
-    heroDirection:'memorable hero',
-    layoutSignature:'original responsive layout',
-    fontDirection:'readable editorial typography',
-    iconStyle:'clear accessible icons',
-    themeMode:'auto',
-    colorPreference:'industry-coordinated premium palette',
-    paletteRationale:'high contrast palette selected for audience readability and brand mood',
-    cardStyle:'layered glass and solid cards with clear hierarchy',
-    imageStyle:'cinematic original imagery with product-relevant composition',
-    wallpaperPreset:'moon-city'
+    mood:'premium natural',visualDirection:'premium visual design',backgroundDirection:'layered background image',heroDirection:'memorable hero',layoutSignature:'original responsive layout',fontDirection:'readable editorial typography',iconStyle:'clear accessible icons',themeMode:'auto',colorPreference:'industry-coordinated premium palette',paletteRationale:'high contrast palette selected for audience readability and brand mood',cardStyle:'layered glass and solid cards with clear hierarchy',imageStyle:'cinematic original imagery with product-relevant composition',wallpaperPreset:'moon-city'
   },
   qualityPlan:Object.fromEntries(RELEASE_DIMENSIONS_REQUIRED.map(id=>[id,[`${id} implementation ${qualityWords}`,`${id} recovery and validation decision`,`${id} mobile privacy accessibility workflow decision`]])),
   pages:Array.from({length:6},(_,i)=>({name:`Page ${i+1}`,description:qualityWords,purpose:'clear human workflow',layout:'responsive accessible layout',visualTreatment:'premium visual style',backgroundTreatment:'premium background'})),
   features:Array.from({length:9},(_,i)=>({name:`Feature ${i+1}`,description:qualityWords,uiPattern:'clear responsive workflow'})),
-  data:{Customer:{fields:['id','status','permission']}},
-  actions:[{name:'Retry safely',description:'validation confirmation retry error status'}],
-  navigation:[{label:'Home',route:'/'}],
+  data:{Customer:{fields:['id','status','permission']}},actions:[{name:'Retry safely',description:'validation confirmation retry error status'}],navigation:[{label:'Home',route:'/'}],
 };
 const perfectQuality=assessBuildQuality(richSpec);
 assert.equal(perfectQuality.overall,100,'Rich explicit quality evidence should be capable of reaching 100.');
@@ -88,6 +74,14 @@ assert.equal(PRODUCT_POLICY.monetization.buyout.oneAppOneLicense,true);
 assert.equal(PRODUCT_POLICY.monetization.buyout.personal.priceUsd,49);
 assert.equal(PRODUCT_POLICY.monetization.buyout.business.priceUsd,199);
 assert.equal(PRODUCT_POLICY.monetization.buyout.enterprise.priceUsd,499);
+assert.equal(PRODUCT_POLICY.monetization.buyout.gameBuyoutAvailable,false);
+assert.ok(PRODUCT_POLICY.monetization.buyout.excludedProjectTypes.includes('game'));
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.professionalOnly,true);
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.buyoutLicenseAvailable,false);
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.platformProfitSharePercent,5);
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.profitShareBasis,'game_profit');
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.cannotBeRemovedByBuyout,true);
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.continuesAfterProfessionalAccessEnds,true);
 
 console.log('✓ Release evaluator fails closed below 100 or with missing dimensions');
 console.log('✓ 100 score requires explicit per-dimension quality evidence');
@@ -97,4 +91,5 @@ console.log('✓ Production evidence contract fails closed until evidence is com
 console.log('✓ Free-first-project promotion policy remains intact');
 console.log('✓ Standard / Pro / 3-year review pricing policy remains intact');
 console.log('✓ Apple / Google external fee separation remains intact');
-console.log('✓ Existing buyout license plan remains intact');
+console.log('✓ Non-game buyout license plan remains intact');
+console.log('✓ Game policy is locked: Professional-only, no buyout, continuing 5% LANERIQ AI share of game profit');
