@@ -16,13 +16,13 @@ This tracker separates repository-verifiable quality from evidence that requires
 | Area | Baseline | Current | Status | Evidence / next gate |
 |---|---:|---:|---|---|
 | Brand identity & consistency | 88 | 100 | ✅ 100 CODE | Canonical LANERIQ AI contract, Powered by SoolenAI, renamed repo/package/CI, automated brand regression test |
-| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Game Commercial → Versions → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
+| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Game Commercial → Versions → Database → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
 | Security / Ownership | 91 | 100 | ✅ 100 CODE | Critical create/modify/data/workflow/checkout/store/publish paths owner-bound; service-role finance; RLS + client secret scan |
 | Credits System | 86 | 100 | ✅ 100 CODE | Service-role mutation only, row locks, idempotent charge/refund, exact matching refund, create reservation recovery, exact-project access |
 | Pro Mode | 88 | 100 | ✅ 100 CODE | Expiry-bound entitlement, service-only grant, owned Pro workspace, game double-gate before credit/entitlement consumption |
 | Game commercial policy | 93 | 100 | ✅ 100 CODE | Pro-only, no buyout, continuing 5% game-profit share survives Pro expiry; policy/API/UI/README locked by CI contract |
 | Version History / Undo | 90 | 100 | ✅ 100 CODE | Atomic service-only rollback RPC, owner row lock, append-only history, expected-current stale protection, replay-safe request IDs, legacy pointer rollback disabled |
-| Database / Supabase | 89 | 89 | 🟡 IN PROGRESS | Verify RLS, bounded fields, durable records, no-code safety |
+| Database / Supabase | 89 | 100 | ✅ 100 CODE | All public tables RLS-enabled live; DB-level bounded schema/records; dangerous TRUNCATE/TRIGGER/REFERENCES removed from customer roles; no-code safety mirrored in CHECK constraints |
 | Project Memory | 87 | 87 | 🟡 IN PROGRESS | Verify owner scope, bounded memory, brand/visual/reference persistence |
 | Brand Kit | 84 | 84 | 🟡 IN PROGRESS | Verify persistence and generation/modify consumption |
 | Automation / Workflows | 81 | 81 | 🟡 IN PROGRESS | Verify idempotency, timeouts, safe-test, critical-failure behavior |
@@ -78,10 +78,11 @@ The main CI requires all of the following to pass in order:
 6. Pro Mode contract tests
 7. Game commercial policy contract tests
 8. Version History and Undo contract tests
-9. Runtime reliability contract tests
-10. Non-production 100 product contract tests
-11. 100-point structural readiness gate
-12. Next.js production build
+9. Database and Supabase contract tests
+10. Runtime reliability contract tests
+11. Non-production 100 product contract tests
+12. 100-point structural readiness gate
+13. Next.js production build
 
 Production promotion remains a separate, explicitly approved action.
 
@@ -170,6 +171,24 @@ Version history and rollback are now protected as an append-only, concurrency-sa
 - The dedicated Version History contract gate, Runtime gate, Non-production gate, structural 100-point gate and Next.js production build all pass together in CI.
 
 This is a **100/100 repository + database-contract score**. It does not claim that every future live customer interaction is immune to network/device failure; retry handling is designed to make those failures safe.
+
+### 8. Database / Supabase — 100 CODE
+
+The database runtime now has live database evidence in addition to route-level validation:
+
+- Every current public base table in the live LANERIQ AI Supabase project has Row Level Security enabled.
+- `apps`, `app_versions`, `app_backend_models` and `app_data_records` have owner-scoped policies that bind customer data to `auth.uid()` and owned projects.
+- No-code Database schemas remain limited to safe supported field types, a maximum of 30 entities, 80 fields per entity, 100 relationships and 8 rollback snapshots, while credential-like fields are rejected.
+- A live database CHECK now calls `app_backend_schema_is_safe`, so the critical schema rules cannot be bypassed by writing directly to the table; the schema payload is also bounded to 2 MiB.
+- Durable App records remain limited to 24 supported fields and 2,000 characters per string value in the API, with stale-update protection through `expectedUpdatedAt`.
+- A live database CHECK now calls `app_record_json_is_bounded`, rejecting more than 24 fields, nested JSON values, oversized strings, invalid field names and oversized payloads even if the API layer is bypassed.
+- Existing 64 KiB record-object storage limits and owner/project RLS remain in force.
+- `TRUNCATE`, `TRIGGER` and `REFERENCES` privileges were removed from `anon` and `authenticated` across all public base tables; this matters because RLS does not protect `TRUNCATE`.
+- Live validation proved safe schema/records are accepted, credential-like schema fields are rejected, nested records are rejected, 25-field records are rejected, >2,000-character values are rejected, and dangerous public-table privileges are now zero.
+- Supabase security advisor reports no new database/RLS/function warning from this hardening; its remaining warning is an Auth leaked-password-protection setting and is tracked separately from the database runtime score.
+- The dedicated Database/Supabase contract gate, Runtime gate, Non-production gate, structural 100-point gate and Next.js production build all pass together in CI.
+
+This is a **100/100 database runtime/code-contract score**. It does not replace live load testing, backup-restore drills or Auth-specific production configuration.
 
 ## Working rule
 
