@@ -81,6 +81,8 @@ jobs:
         run: npm run test:modify
       - name: AI Idea Planning contract tests
         run: npm run test:idea
+      - name: Templates contract tests
+        run: npm run test:templates
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
