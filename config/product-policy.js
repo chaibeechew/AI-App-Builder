@@ -1,5 +1,5 @@
 export const PRODUCT_POLICY = Object.freeze({
-  product: "AI BUILD APP & WEB",
+  product: "LANERIQ AI",
   platformRelease: {
     productionPromotionHold: true,
     previewValidationFirst: true,
@@ -52,7 +52,7 @@ export const PRODUCT_POLICY = Object.freeze({
       fairUseApplies: true,
       externalStoreFeesExcluded: true,
       licenseSelectionPolicyUnchanged: true,
-      note: "Eligible customers can create one App + Website project, refine it with AI until it fits their needs, and complete the SoolenAI publishing workflow without an AI BUILD APP & WEB creation charge. Apple/Google developer fees and other third-party charges remain payable directly to those providers. Existing license rules remain unchanged."
+      note: "Eligible customers can create one App + Website project, refine it with AI until it fits their needs, and complete the LANERIQ AI publishing workflow without a LANERIQ AI creation charge. Apple/Google developer fees and other third-party charges remain payable directly to those providers. Existing non-game license rules remain unchanged."
     }
   },
   pricing: {
@@ -69,7 +69,7 @@ export const PRODUCT_POLICY = Object.freeze({
         "If a temporary restriction is applied for service protection, explain it clearly and preserve the customer's project and ownership.",
       ],
       implementationModel: "included_access_first_then_optional_transparent_extra_usage_where_supported",
-      note: "This is SoolenAI's own customer policy and should not be presented as an OpenAI endorsement or official OpenAI policy name.",
+      note: "This is LANERIQ AI's own customer policy and should not be presented as an OpenAI endorsement or official OpenAI policy name.",
     },
     standard: {
       priceUsd: 10,
@@ -85,7 +85,7 @@ export const PRODUCT_POLICY = Object.freeze({
       autoRenew: false,
       qualityParityWithStandard: true,
       addsDeeperControlNotBasicQuality: true,
-      description: "One payment for 12 months of Professional tools, AI Copilot and deeper project control.",
+      description: "One payment for 12 months of Professional tools, AI Copilot and deeper project control. Game creation is available only while Professional access is active.",
     },
     reviewPolicy: {
       reviewIntervalYears: 3,
@@ -133,7 +133,7 @@ export const PRODUCT_POLICY = Object.freeze({
         cadence: "one_time",
         officialRegistrationUrl: "https://play.google.com/console/signup",
       },
-      note: "Store fees are external platform fees and may vary by region or change over time. AI BUILD APP & WEB must not mark them up or collect them on behalf of Apple or Google.",
+      note: "Store fees are external platform fees and may vary by region or change over time. LANERIQ AI must not mark them up or collect them on behalf of Apple or Google.",
     },
   },
   monetization: {
@@ -143,6 +143,18 @@ export const PRODUCT_POLICY = Object.freeze({
       ratePercent: 5,
       appliesTo: "app_revenue_only",
       excludesCustomerProductOrServiceTransactions: true,
+    },
+    gameCommercialization: {
+      professionalOnly: true,
+      buyoutLicenseAvailable: false,
+      platformProfitSharePercent: 5,
+      profitShareBasis: "game_profit",
+      appliesTo: "laneriq_ai_generated_games",
+      continuesAfterProfessionalAccessEnds: true,
+      cannotBeRemovedByBuyout: true,
+      customerGameOwnershipPreserved: true,
+      legalProfitDefinitionRequiredBeforeProduction: true,
+      note: "LANERIQ AI-generated games are Pro-only. No game buyout license is offered. If a generated game is commercialized, LANERIQ AI receives a continuing 5% share of game profit. The production legal terms must define permitted cost deductions and the profit calculation clearly before launch."
     },
     referral: {
       enabled: true,
@@ -159,6 +171,8 @@ export const PRODUCT_POLICY = Object.freeze({
     },
     buyout: {
       oneAppOneLicense: true,
+      excludedProjectTypes: ["game"],
+      gameBuyoutAvailable: false,
       personal: { priceUsd: 49 },
       business: { priceUsd: 199 },
       enterprise: { priceUsd: 499 },
@@ -186,6 +200,8 @@ export const PRODUCT_POLICY = Object.freeze({
 
 export const BUYOUT_LICENSE_POLICY = Object.freeze({
   model: "one_app_one_license",
+  gameProjectBuyoutAvailable: false,
+  excludedProjectTypes: ["game"],
   personalPriceUsd: 49,
   businessPriceUsd: 199,
   enterprisePriceUsd: 499,
