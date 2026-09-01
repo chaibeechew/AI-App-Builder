@@ -16,14 +16,14 @@ This tracker separates repository-verifiable quality from evidence that requires
 | Area | Baseline | Current | Status | Evidence / next gate |
 |---|---:|---:|---|---|
 | Brand identity & consistency | 88 | 100 | ✅ 100 CODE | Canonical LANERIQ AI contract, Powered by SoolenAI, renamed repo/package/CI, automated brand regression test |
-| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Game Commercial → Versions → Database → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
+| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Game Commercial → Versions → Database → Memory → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
 | Security / Ownership | 91 | 100 | ✅ 100 CODE | Critical create/modify/data/workflow/checkout/store/publish paths owner-bound; service-role finance; RLS + client secret scan |
 | Credits System | 86 | 100 | ✅ 100 CODE | Service-role mutation only, row locks, idempotent charge/refund, exact matching refund, create reservation recovery, exact-project access |
 | Pro Mode | 88 | 100 | ✅ 100 CODE | Expiry-bound entitlement, service-only grant, owned Pro workspace, game double-gate before credit/entitlement consumption |
 | Game commercial policy | 93 | 100 | ✅ 100 CODE | Pro-only, no buyout, continuing 5% game-profit share survives Pro expiry; policy/API/UI/README locked by CI contract |
 | Version History / Undo | 90 | 100 | ✅ 100 CODE | Atomic service-only rollback RPC, owner row lock, append-only history, expected-current stale protection, replay-safe request IDs, legacy pointer rollback disabled |
 | Database / Supabase | 89 | 100 | ✅ 100 CODE | All public tables RLS-enabled live; DB-level bounded schema/records; dangerous TRUNCATE/TRIGGER/REFERENCES removed from customer roles; no-code safety mirrored in CHECK constraints |
-| Project Memory | 87 | 87 | 🟡 IN PROGRESS | Verify owner scope, bounded memory, brand/visual/reference persistence |
+| Project Memory | 87 | 100 | ✅ 100 CODE | Owner + owned-app RLS, bounded canonical memory, secrets/private-reuse blocked, create persists brand/visual/industry/reference memory, Modify consumes memory brief |
 | Brand Kit | 84 | 84 | 🟡 IN PROGRESS | Verify persistence and generation/modify consumption |
 | Automation / Workflows | 81 | 81 | 🟡 IN PROGRESS | Verify idempotency, timeouts, safe-test, critical-failure behavior |
 | AI Self-Test / Self-Heal | 90 | 90 | 🟡 IN PROGRESS | Verify create/modify quality regression and repair gates |
@@ -79,10 +79,11 @@ The main CI requires all of the following to pass in order:
 7. Game commercial policy contract tests
 8. Version History and Undo contract tests
 9. Database and Supabase contract tests
-10. Runtime reliability contract tests
-11. Non-production 100 product contract tests
-12. 100-point structural readiness gate
-13. Next.js production build
+10. Project Memory contract tests
+11. Runtime reliability contract tests
+12. Non-production 100 product contract tests
+13. 100-point structural readiness gate
+14. Next.js production build
 
 Production promotion remains a separate, explicitly approved action.
 
@@ -189,6 +190,26 @@ The database runtime now has live database evidence in addition to route-level v
 - The dedicated Database/Supabase contract gate, Runtime gate, Non-production gate, structural 100-point gate and Next.js production build all pass together in CI.
 
 This is a **100/100 database runtime/code-contract score**. It does not replace live load testing, backup-restore drills or Auth-specific production configuration.
+
+### 9. Project Memory — 100 CODE
+
+Project Memory now has an end-to-end repository and live-database contract instead of being only a storage table:
+
+- The Memory API authenticates with `auth.getUser()`, verifies the exact owned App before reads/writes, owner-scopes every `project_memory` lookup and returns memory responses with `Cache-Control: no-store`.
+- Memory update requests are bounded before and after JSON parsing, and the sanitizer limits preference keys, string lengths, media/reference entries, learned-from entries, industry structure and publishing declarations.
+- Credential-like keys such as passwords, secrets, tokens, API keys, credentials and private/auth keys are removed by the application sanitizer and rejected by the live database CHECK.
+- Raw private assets are explicitly marked non-reusable across customers; Project Memory stores only bounded project-specific preference/reference metadata rather than granting cross-customer reuse permission.
+- Brand, visual, user, workflow, industry, content and customer-owned media/reference placement preferences are normalized into one canonical memory shape.
+- Initial Generate writes canonical Project Memory containing project name, saved Brand Kit preferences, visual/theme/wallpaper preferences, industry structure, customer-owned media placements, self-heal result and build timestamp.
+- Modify loads the exact project's `project_memory`, builds a bounded `PROJECT MEMORY` brief and injects it into the AI modification prompt before generation; the current customer instruction remains authoritative when it intentionally changes an older preference.
+- After an accepted modification, the project memory is merged and updated with the newest visual direction, modification instruction, precise target and self-heal state.
+- The live database `project_memory_json_safe_check` limits memory to 128 KiB, rejects unknown top-level keys, secret-like keys, excessive nesting/arrays and unsafe preference structures.
+- Live RLS requires both `owner_id = auth.uid()` and actual ownership of the referenced App; `anon` has no direct table access, while authenticated access is limited to SELECT/INSERT/UPDATE/DELETE and excludes TRUNCATE/TRIGGER/REFERENCES.
+- Live verification confirmed legacy/canonical safe memory is accepted while secret keys, unknown keys and >30 media entries are rejected.
+- Bootstrap Database policy text was aligned with the hardened Database/Supabase CHECK so automatic module synchronization cannot regress because of stale policy wording.
+- The dedicated Project Memory contract gate, Runtime gate, Non-production gate, structural 100-point gate and Next.js production build all pass together in CI.
+
+This is a **100/100 Project Memory code + database-contract score**. It does not mean private customer assets can be learned across customers; that behavior remains explicitly prohibited.
 
 ## Working rule
 
