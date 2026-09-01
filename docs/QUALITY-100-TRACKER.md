@@ -16,11 +16,11 @@ This tracker separates repository-verifiable quality from evidence that requires
 | Area | Baseline | Current | Status | Evidence / next gate |
 |---|---:|---:|---|---|
 | Brand identity & consistency | 88 | 100 | ✅ 100 CODE | Canonical LANERIQ AI contract, Powered by SoolenAI, renamed repo/package/CI, automated brand regression test |
-| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
+| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Game Commercial → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
 | Security / Ownership | 91 | 100 | ✅ 100 CODE | Critical create/modify/data/workflow/checkout/store/publish paths owner-bound; service-role finance; RLS + client secret scan |
 | Credits System | 86 | 100 | ✅ 100 CODE | Service-role mutation only, row locks, idempotent charge/refund, exact matching refund, create reservation recovery, exact-project access |
 | Pro Mode | 88 | 100 | ✅ 100 CODE | Expiry-bound entitlement, service-only grant, owned Pro workspace, game double-gate before credit/entitlement consumption |
-| Game commercial policy | 93 | 93 | 🟡 IN PROGRESS | Verify Pro-only + no buyout + continuing 5% game-profit-share across UI/API/policy/tests |
+| Game commercial policy | 93 | 100 | ✅ 100 CODE | Pro-only, no buyout, continuing 5% game-profit share survives Pro expiry; policy/API/UI/README locked by CI contract |
 | Version History / Undo | 90 | 90 | 🟡 IN PROGRESS | Verify atomic versions, rollback ownership, stale-version protection |
 | Database / Supabase | 89 | 89 | 🟡 IN PROGRESS | Verify RLS, bounded fields, durable records, no-code safety |
 | Project Memory | 87 | 87 | 🟡 IN PROGRESS | Verify owner scope, bounded memory, brand/visual/reference persistence |
@@ -76,10 +76,11 @@ The main CI requires all of the following to pass in order:
 4. Security and ownership contract tests
 5. Credits and entitlement contract tests
 6. Pro Mode contract tests
-7. Runtime reliability contract tests
-8. Non-production 100 product contract tests
-9. 100-point structural readiness gate
-10. Next.js production build
+7. Game commercial policy contract tests
+8. Runtime reliability contract tests
+9. Non-production 100 product contract tests
+10. 100-point structural readiness gate
+11. Next.js production build
 
 Production promotion remains a separate, explicitly approved action.
 
@@ -135,6 +136,22 @@ The Pro Mode contract now requires all defined repository-verifiable access cont
 - Normal-mode Game requests clearly expose the Become Pro route rather than pretending Game creation is available in Standard.
 
 This is a **100/100 Pro entitlement/code score**. Activation through a real payment provider remains separate LIVE evidence.
+
+### 6. Game commercial policy — 100 CODE
+
+The dedicated Game commercial gate now requires all defined repository-verifiable commercial rules to remain aligned:
+
+- Game creation is Professional-only in both the dedicated Game API and the main Generate gateway.
+- Game projects cannot purchase or remove the obligation through a buyout license; non-game buyout policy stays separate.
+- Commercialized LANERIQ AI-generated games carry a continuing 5% share of **game profit**, not gross revenue.
+- The continuing 5% game-profit-share obligation remains after Professional access ends.
+- Customer ownership of the generated game remains preserved while the continuing commercial obligation remains.
+- Product policy and Game Creator policy both require production legal terms to define permitted cost deductions and profit calculation before launch.
+- The Game API returns the same commercial terms and immutable Game headers for access tier, buyout availability and profit share.
+- The customer-facing Game Pro dialog and Game Builder commercial notice explicitly state Pro-only, no buyout, 5% of game profit and continuation after Pro expiry.
+- README and automated contract tests carry the same terms, and CI fails if they drift or if the 5% rule is mislabeled as revenue share.
+
+This is a **100/100 repository commercial-policy score**. Final jurisdiction-specific legal drafting and real commercial accounting remain separate production/legal work.
 
 ## Working rule
 
