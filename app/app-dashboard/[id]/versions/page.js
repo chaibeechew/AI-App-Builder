@@ -31,7 +31,7 @@ export default async function VersionHistoryPage({ params }) {
           <span>VERSION HISTORY · SAFE ROLLBACK</span>
         </div>
         <header>
-          <div><small>PROJECT HISTORY</small><h1>{app.name}</h1><p>Every saved AI modification can become a rollback point. Restoring an older version creates a new version instead of deleting history.</p></div>
+          <div><small>PROJECT HISTORY</small><h1>{app.name}</h1><p>Every saved AI modification can become a rollback point. Restoring an older version creates a new version instead of deleting history. If the project changes while this page is open, stale rollback attempts are blocked.</p></div>
           <div className="status">{app.publish_status === "published" ? "Published" : "Draft"}</div>
         </header>
         {versionsError ? <div className="notice">Unable to load versions: {versionsError.message}</div> : null}
@@ -48,7 +48,7 @@ export default async function VersionHistoryPage({ params }) {
                 <p>{spec.description || app.description || "Saved App + Website project state."}</p>
                 <div className="facts"><span>{pageCount} pages</span><span>{featureCount} features</span><span>{new Date(version.created_at).toLocaleString()}</span></div>
               </div>
-              <VersionRollbackButton appId={id} versionId={version.id} versionNo={version.version_no} isCurrent={isCurrent} />
+              <VersionRollbackButton appId={id} versionId={version.id} versionNo={version.version_no} isCurrent={isCurrent} expectedCurrentVersionId={app.current_version_id} />
             </article>;
           }) : <div className="empty">No saved versions yet.</div>}
         </section>
