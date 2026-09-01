@@ -16,7 +16,7 @@ This tracker separates repository-verifiable quality from evidence that requires
 | Area | Baseline | Current | Status | Evidence / next gate |
 |---|---:|---:|---|---|
 | Brand identity & consistency | 88 | 100 | ✅ 100 CODE | Canonical LANERIQ AI contract, Powered by SoolenAI, renamed repo/package/CI, automated brand regression test |
-| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Game Commercial → Versions → Database → Memory → Brand Kit → Workflows → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
+| CI / Structural Quality | 96 | 100 | ✅ 100 CODE | Brand → Release → Security → Credits → Pro → Game Commercial → Versions → Database → Memory → Brand Kit → Workflows → Self-Heal → Modify → Idea → Templates → Multilingual → Account/Session → Runtime → Nonprod → 100-point gate → Next.js Build all pass |
 | Security / Ownership | 91 | 100 | ✅ 100 CODE | Critical create/modify/data/workflow/checkout/store/publish paths owner-bound; service-role finance; RLS + client secret scan |
 | Credits System | 86 | 100 | ✅ 100 CODE | Service-role mutation only, row locks, idempotent charge/refund, exact matching refund, create reservation recovery, exact-project access |
 | Pro Mode | 88 | 100 | ✅ 100 CODE | Expiry-bound entitlement, service-only grant, owned Pro workspace, game double-gate before credit/entitlement consumption |
@@ -26,13 +26,14 @@ This tracker separates repository-verifiable quality from evidence that requires
 | Project Memory | 87 | 100 | ✅ 100 CODE | Owner + owned-app RLS, bounded canonical memory, secrets/private-reuse blocked, Generate persists and Modify consumes memory |
 | Brand Kit | 84 | 100 | ✅ 100 CODE | Authenticated owner-only persistence, DB-enforced colors/lengths/HTTPS logo, Generate consumes current kit, Project Memory snapshots identity for Modify |
 | Automation / Workflows | 81 | 100 | ✅ 100 CODE | Supported trigger/action allowlists, app/workflow/owner RLS, stable idempotency keys, Safe Test zero side effects, timeout + critical fail-closed, incomplete actions never reported successful |
-| AI Self-Test / Self-Heal | 90 | 90 | 🟡 IN PROGRESS | Verify create/modify quality regression and repair gates |
-| AI Modify | 86 | 86 | 🟡 IN PROGRESS | Repository runtime can reach 100; live provider quality remains separate |
-| AI Idea Planning | 88 | 88 | 🟡 IN PROGRESS | Structural planner quality can reach 100; subjective live quality remains separate |
-| Templates | 85 | 85 | 🟡 IN PROGRESS | Verify schema, routes, safe application, responsive metadata |
-| Multilingual system | 74 | 74 | 🟡 IN PROGRESS | Reach static translation-key/coverage 100; visual phone layout remains MOBILE PENDING |
+| AI Self-Test / Self-Heal | 90 | 100 | ✅ 100 CODE | Dedicated create/modify regression + repair gate; bounded self-heal only improves or preserves accepted quality; full CI/build pass |
+| AI Modify | 86 | 100 | ✅ 100 CODE | Request-level replay, expected-version stale guard before AI/credits, precise-edit version binding, atomic persistence, refund/recovery contract |
+| AI Idea Planning | 88 | 100 | ✅ 100 CODE | Shared deterministic readiness contract; vague ideas fail closed, focused questions bounded, Voice/zero-cost/orchestrator use one gate |
+| Templates | 85 | 100 | ✅ 100 CODE | Canonical 3,000-template catalog, safe lookup/search/trending, responsive App + Website metadata, inspiration-only application through Planning |
+| Multilingual system | 74 | 100 | ✅ 100 CODE | Canonical 10-language core UI catalog with 10/10 key coverage, fallback, persistence, dynamic DOM/attributes and semantic lang/dir |
+| Account / Session Safety (code) | 82 | 100 | ✅ 100 CODE | Same-origin return-path sanitizer, server getUser guard, protected no-store, fail-closed local logout, private session cleanup and stale-page revalidation |
 | Email OTP | 86 | 86 | 🌐 LIVE PENDING | Code/flow can be verified; continuing real email reliability is external |
-| Logout / Account | 82 | 82 | 📱 MOBILE PENDING | Code hard-redirect can be verified; visible placement/interaction needs device confirmation |
+| Logout / Account mobile UX | 82 | 82 | 📱 MOBILE PENDING | Code/session safety is 100 separately; visible logout placement, touch behavior and real iPhone back-stack feel need device confirmation |
 | Mobile UI / UX | 68 | 68 | 📱 MOBILE PENDING | Skip until iPhone testing |
 | Mobile Performance | 58 | 58 | 📱 MOBILE PENDING | Skip until iPhone/network profiling |
 | Voice Idea | 66 | 66 | 📱 MOBILE PENDING | Browser microphone permissions/device behavior required |
@@ -68,10 +69,16 @@ The `LANERIQ AI 100 CI` workflow currently requires these checks in order:
 10. Project Memory contract tests
 11. Brand Kit contract tests
 12. Automation and Workflows contract tests
-13. Runtime reliability contract tests
-14. Non-production 100 product contract tests
-15. 100-point structural readiness gate
-16. Next.js production build
+13. AI Self-Test and Self-Heal contract tests
+14. AI Modify contract tests
+15. AI Idea Planning contract tests
+16. Templates contract tests
+17. Multilingual contract tests
+18. Account and Session Safety contract tests
+19. Runtime reliability contract tests
+20. Non-production 100 product contract tests
+21. 100-point structural readiness gate
+22. Next.js production build
 
 Production promotion remains a separate, explicitly approved action.
 
@@ -82,7 +89,7 @@ Production promotion remains a separate, explicitly approved action.
 - Repository/package/CI identity is aligned and `scripts/product-brand-tests.mjs` prevents regression.
 
 ### 2. CI / Structural Quality — 100 CODE
-- Main CI fails closed through dedicated commercial, security, data, memory, Brand Kit, workflow, runtime and release gates before the Next.js production build.
+- Main CI fails closed through dedicated commercial, security, data, memory, Brand Kit, workflow, AI quality, planning, template, multilingual, account/session, runtime and release gates before the Next.js production build.
 - Repository 100 does not promote Production automatically.
 
 ### 3. Security / Ownership — 100 CODE
@@ -145,6 +152,55 @@ Production promotion remains a separate, explicitly approved action.
 - The dedicated Automation/Workflows gate, Runtime gate, Non-production gate, structural 100-point gate and Next.js production build all pass together in CI.
 
 This is a **100/100 Automation / Workflows code + database-contract score**. Live delivery reliability for third-party Email/SMS/WhatsApp/Calendar providers remains external evidence and is not falsely counted as code certainty.
+
+### 12. AI Self-Test / Self-Heal — 100 CODE
+- Create and Modify quality checks share bounded regression/repair rules instead of treating any AI repair as automatically better.
+- Self-heal is accepted only under the defined quality contract and the dedicated `test:self-heal` gate runs before Runtime and production build.
+- Full CI passed with Self-Heal, Runtime, Non-production, structural 100 and Next.js production build together.
+
+### 13. AI Modify — 100 CODE
+- Precise Editor and Professional Workspace bind modifications to the version the user actually loaded; stale expected-version requests fail before AI invocation or credit consumption.
+- Stable request IDs provide request-level replay behavior so retries do not re-apply a different AI result.
+- Concurrent persistence returns the actual saved winner, and successful modifications remain append-only/atomic through the service persistence contract.
+- Failed modification paths keep bounded credit recovery/refund behavior.
+- Dedicated Modify gate, live Supabase persistence contract checks and full CI passed.
+
+### 14. AI Idea Planning — 100 CODE
+- Shared deterministic readiness rules replaced message-length and default-audience shortcuts.
+- A long but vague idea cannot self-approve; AI/model `readyToBuild:true` is advisory and the system recomputes readiness from user-confirmed requirements.
+- Voice, zero-cost fallback and `/api/orchestrate` use the same planning contract; insufficient requirements return bounded focused questions and `IDEA_NEEDS_DETAILS` rather than calling Generate.
+- Corrections can remove explicitly rejected old requirements instead of only accumulating inferred features.
+- Full CI run `33505298731` passed Idea Planning, Self-Heal, Modify, Runtime, Non-production, structural 100 and Next.js Build.
+
+### 15. Templates — 100 CODE
+- Canonical catalog is exactly 50 industries × 12 archetypes × 5 visual directions = 3,000 unique bounded templates.
+- Template API, list and detail all use the same versioned schema with safe ID lookup, bounded search/filter/trending and `no-store` responses.
+- Every template declares App + Website targets, mobile-first tablet/desktop responsiveness and `inspiration-only` application with direct copying/third-party branding preservation disabled.
+- Template detail no longer uses legacy array indexing or calls `/api/generate` directly; it returns through the normal AI Planning gate.
+- Full CI run `33505960806` passed Templates and the complete release/build chain.
+
+### 16. Multilingual system — 100 CODE
+- One canonical i18n catalog defines the 10 supported UI locales: English, Simplified Chinese, Traditional Chinese, Bahasa Melayu, Bahasa Indonesia, Japanese, Korean, Thai, Vietnamese and Spanish.
+- Every declared critical Builder/Auth/Templates UI key, Hero field and tracked placeholder has complete 10/10 non-empty locale coverage; missing keys fail the dedicated gate.
+- Unsupported/browser locales normalize deterministically with safe English fallback.
+- Runtime persists the selected language, writes semantic HTML `lang` + `dir`, handles dynamic React text such as resend countdowns, and translates tracked `placeholder`, `aria-label` and `title` attributes.
+- Full CI run `33506377239` passed Multilingual and the complete release/build chain.
+
+This is a **100/100 multilingual code/runtime-contract score**. Real phone text wrapping, touch layout and visual fit remain MOBILE PENDING rather than being inferred from CI.
+
+### 17. Account / Session Safety — 100 CODE
+- Shared return-path policy rejects external URLs, protocol-relative URLs, backslash/browser-normalization tricks, Auth loops, control characters and oversized redirect values.
+- Server proxy canonicalizes externally supplied `/auth?next=` before the Auth page can use it, preserves only safe internal protected return paths and fails closed when authenticated identity cannot be confirmed.
+- Protected project/account responses use `private, no-store` and `Pragma: no-cache` to reduce reusable sensitive browser cache after sign-out.
+- Server protection uses Supabase `auth.getUser()` rather than trusting client-stored `getSession()` data for authorization.
+- Logout explicitly uses current-session `signOut({ scope: "local" })`; navigation happens only after successful sign-out, uses history replacement, and a failed logout is shown as still-active rather than falsely reported successful.
+- Successful `SIGNED_OUT` clears project idea/reference/template/analytics sessionStorage owned by the prior browser session while intentionally preserving non-sensitive language preference.
+- Account state revalidates on auth events, browser `pageshow`/BFCache restoration and returning to a visible tab; stale signed-out protected pages hard-redirect through the safe Auth return path.
+- Auth/account listeners and browser event listeners are unsubscribed/removed on unmount.
+- Current Supabase Auth/SSR guidance and 2026 changelog were checked before the hardening; no relevant hosted-auth breaking change invalidates this contract.
+- Full CI run `33507143274` passed Account/Session Safety, Multilingual, Templates, Idea, Modify, Self-Heal, Runtime, Non-production, structural 100 and Next.js Build.
+
+This is a **100/100 account/session code-security score**. The visible Logout button placement, touch target feel and real iPhone history behavior remain separately listed as MOBILE PENDING until device testing.
 
 ## Working rule
 
