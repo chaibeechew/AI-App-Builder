@@ -10,6 +10,18 @@ const MAX_REQUEST_BYTES=32*1024;
 const REQUEST_ID=/^[A-Za-z0-9._:-]{1,160}$/;
 function json(payload,status=200){return NextResponse.json(payload,{status,headers:{"Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","X-Content-Type-Options":"nosniff"}});}
 async function releaseReservation(admin,userId,requestId){if(!admin||!userId||!requestId)return;try{await admin.rpc("server_release_game_creation",{p_user_id:userId,p_request_id:requestId});}catch{}}
+function cooldownPayload(reservation={}){
+  return {
+    level:Number(reservation?.cooldown_level||0),
+    minutes:Number(reservation?.cooldown_minutes||0)||null,
+    seconds:Number(reservation?.cooldown_seconds||0)||null,
+    until:reservation?.cooldown_until||null,
+    maximumHours:GAME_CREATOR_POLICY.fairUse.maximumCooldownHours,
+    affectsOnlyGameCreation:true,
+    ordinaryFeaturesRemainAvailable:true,
+    automaticallyResumes:true,
+  };
+}
 
 export async function POST(request){
   let admin=null,userId=null,requestId="",reservationActive=false;
@@ -27,9 +39,10 @@ export async function POST(request){
     if(!access.professional.active)return json({
       success:false,
       code:"PRO_GAME_CREATOR_REQUIRED",
-      error:"Game creation requires Pro. Become Pro to continue.",
+      error:"Game creation requires Professional or Full Access. Choose the creator plan that fits how often you build games.",
       policy:gameFairUseMessage(),
       commercialTerms:gameCommercialTerms(),
+      plans:{professional:GAME_CREATOR_POLICY.accessPlans.professional,full:GAME_CREATOR_POLICY.accessPlans.full},
       upgradePath:"/pricing"
     },403);
 
@@ -49,11 +62,20 @@ export async function POST(request){
     });
     if(reservationError)throw new Error("GAME_RESERVATION_FAILED");
     if(reservation?.status==="completed"&&reservation?.app_id){
-      return json({success:true,replayed:true,app:{id:reservation.app_id},gameCreator:{reservation:"completed",policy:gameFairUseMessage(),commercialTerms:gameCommercialTerms()}});
+      return json({success:true,replayed:true,app:{id:reservation.app_id},gameCreator:{reservation:"completed",accessPlan:reservation?.game_access_plan||access.professional.gameAccessPlan,policy:gameFairUseMessage(),commercialTerms:gameCommercialTerms()}});
     }
     if(!reservation?.allowed){
       if(reservation?.reason==="in_progress")return json({success:false,code:"GAME_REQUEST_IN_PROGRESS",error:"This Game Creator request is already running. The same request ID will not start a duplicate game."},409);
-      return json({success:false,code:"GAME_FAIR_USE_TEMPORARY_LIMIT",error:"Game creation is temporarily limited to protect shared compute. Your existing projects are unchanged.",policy:gameFairUseMessage(),commercialTerms:gameCommercialTerms()},429);
+      if(reservation?.reason==="cooldown")return json({
+        success:false,
+        code:"GAME_CREATOR_COOLDOWN",
+        error:"Game Creator is in a temporary Fair Use cooldown. App, Website and other ordinary LANERIQ AI features are still available. Game creation resumes automatically when the cooldown ends.",
+        cooldown:cooldownPayload(reservation),
+        upgrade:{plan:"full",priceUsd:199,ordinaryGameCooldownExempt:true,path:"/pricing#full-access"},
+        policy:gameFairUseMessage(),
+        commercialTerms:gameCommercialTerms()
+      },429);
+      return json({success:false,code:"GAME_FAIR_USE_TEMPORARY_LIMIT",error:"Game creation is temporarily limited to protect shared compute. Your saved projects and ordinary LANERIQ AI features are unchanged.",policy:gameFairUseMessage(),commercialTerms:gameCommercialTerms()},429);
     }
     reservationActive=true;
 
@@ -66,7 +88,7 @@ export async function POST(request){
       requestId,
       industry:"games",
       productType:"mobile_game",
-      gameCreatorPolicy:{accessTier:"professional",fairUse:true,commercialTerms:gameCommercialTerms()}
+      gameCreatorPolicy:{accessTier:reservation?.game_access_plan||access.professional.gameAccessPlan,fairUse:true,commercialTerms:gameCommercialTerms()}
     })});
     const response=await generateApp(forwarded);
     const payload=await response.clone().json().catch(()=>null);
@@ -81,13 +103,13 @@ export async function POST(request){
     response.headers.set("Cache-Control","private, no-store, max-age=0");
     response.headers.set("Pragma","no-cache");
     response.headers.set("X-Content-Type-Options","nosniff");
-    response.headers.set("X-LANERIQ-Game-Access","professional-only");
+    response.headers.set("X-LANERIQ-Game-Access",reservation?.game_access_plan||access.professional.gameAccessPlan||"professional");
     response.headers.set("X-LANERIQ-Game-Buyout","unavailable");
-    response.headers.set("X-LANERIQ-Game-Profit-Share","5-percent");
+    response.headers.set("X-LANERIQ-Game-Sales-Share","5-percent-all-sales-channels");
     return response;
   }catch(error){
     if(reservationActive)await releaseReservation(admin,userId,requestId);
     console.error("PRO_GAME_GENERATION_ERROR",error?.code||error?.name||"unknown");
-    return json({success:false,error:"Unable to start the LANERIQ AI Professional Game Creator right now."},500);
+    return json({success:false,error:"Unable to start the LANERIQ AI Game Creator right now."},500);
   }
 }
