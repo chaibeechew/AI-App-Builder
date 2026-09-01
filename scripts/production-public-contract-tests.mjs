@@ -26,6 +26,22 @@ for(const path of ["/","/auth","/api/templates?mode=meta","/api/soolenai/capabil
 }
 assert.match(stability,/path:"\/api\/apps",expect:\[401\],body:\/"code"/);
 assert.match(stability,/AUTHENTICATION_REQUIRED/);
+assert.match(stability,/function validateCapabilityPayload/);
+assert.match(stability,/ZERO_COST_PROVIDER_ALLOWLIST=new Set\(\["ollama","soolen-local"\]\)/);
+assert.match(stability,/FREE_READY_CAPABILITIES=/);
+for(const id of ["multilingual-chat","app-website-builder","coding-agent","visual-understanding","local-image-creation","browser-voice","video-storyboard","project-memory"]){
+  assert.ok(stability.includes(`"${id}"`),`Production capability semantics missing free-ready assertion for ${id}`);
+}
+assert.match(stability,/providers\?\.costMode,"zero"/);
+assert.match(stability,/providers\?\.premiumRouting,false/);
+assert.match(stability,/policy\?\.failClosed,true/);
+assert.match(stability,/policy\?\.meteredProvidersAllowed,false/);
+assert.match(stability,/policy\?\.freeTierCloudAllowed,false/);
+assert.match(stability,/policy\?\.cloudVideoAllowed,false/);
+assert.match(stability,/policy\?\.externalSpendCap,0/);
+assert.match(stability,/minimumTier!=="free"/);
+assert.match(stability,/professional_access_required/);
+assert.match(stability,/if\(target\.validate\)target\.validate\(text,run\)/);
 assert.match(stability,/Math\.min\(1000/);
 assert.match(stability,/LANERIQ_STABILITY_RUNS\|\|1000/);
 assert.match(stability,/redirect:"manual"/);
@@ -43,4 +59,5 @@ assert.doesNotMatch(vercel,/"deploymentEnabled"\s*:\s*false/);
 
 console.log("✓ Production surface code keeps SEO/capability discovery public while private customer routes remain authenticated");
 console.log("✓ Final stability run is manual-only, exactly 1000 cycles and checks 8 surfaces: seven public 200s plus one protected API JSON 401");
+console.log("✓ Every capability probe validates zero-cost semantics, approved providers, eight free-ready core capabilities and fail-closed Professional access");
 console.log("✓ Code contract is 100; final Production stability score waits for the actual 1000-run result");
