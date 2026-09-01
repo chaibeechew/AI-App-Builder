@@ -38,7 +38,22 @@ Build App Web & Game
 Apps • Games • Web  
 Create Anything. From One Idea.
 
-Game creation is a **Pro feature**. Commercial Game Mode has no buyout license and follows the platform's continuing 5% game-profit-share policy.
+## Creator-first Game policy
+
+LANERIQ AI is designed to encourage creators to keep building.
+
+- **Professional — US$68 / 12 months:** normal genuine Game creation is included. If unusually heavy repeated Game starts trigger Fair Use, only new Game creation enters a temporary progressive cooldown: **30 minutes → 1 hour → 2 hours → 4 hours → maximum 8 hours**. When the cooldown ends, Game creation resumes automatically. App, Website and ordinary LANERIQ AI features remain available throughout. After seven quiet days, the escalation level resets.
+- **Full Access — US$199 / 12 months:** includes Professional features and removes the ordinary progressive Game Creator cooldown for high-volume creators. Security, automated-abuse and infrastructure-protection safeguards still apply.
+- A Game cooldown never deletes or locks the creator's saved projects.
+- There are no surprise per-click Game creation charges under these creator plans.
+
+### Game ownership and commercial sales
+
+Creators keep ownership of their LANERIQ AI-generated games. Game projects do not offer a buyout license.
+
+When a LANERIQ AI-generated game is sold commercially, LANERIQ AI receives a continuing **5% share of game sales revenue**. This applies across **all sales channels**, including LANERIQ AI, Apple App Store, Google Play, Steam, other marketplaces, independent websites and direct/off-platform sales.
+
+The sales-share basis excludes separately stated taxes, refunds and chargebacks. Platform/store commissions and creator operating costs do not reduce the 5% sales-share basis. The obligation continues after Professional or Full Access ends. Production legal terms must define reporting and payment timing before commercial launch.
 
 ## Required Vercel environment variables
 
