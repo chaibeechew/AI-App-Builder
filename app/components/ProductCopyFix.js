@@ -2,8 +2,9 @@
 import {useEffect} from "react";
 import {PRODUCT_BRAND} from "../../lib/product-brand.js";
 
-// Legacy migration alias retained for old data/tests only: AI BUILD APP & WEB → CREOVA AI.
+// Legacy migration aliases are retained for old data/tests only; customer-facing copy resolves to LANERIQ AI.
 const REPLACEMENTS=[
+  [/CREOVA AI/gi,PRODUCT_BRAND.name],
   [/AI BUILD APP\s*&\s*WEB/gi,PRODUCT_BRAND.name],
   [/AI BUILD APP&WEB/gi,PRODUCT_BRAND.name],
   [/AI APP\s*&\s*WEB CREATOR/gi,PRODUCT_BRAND.name],
@@ -21,14 +22,14 @@ export default function ProductCopyFix(){
       for(const node of nodes){const tag=node.parentElement?.tagName;if(["SCRIPT","STYLE","TEXTAREA","INPUT"].includes(tag))continue;const next=rewrite(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;}
 
       const hero=document.querySelector(".heroCopy h1");
-      if(hero&&hero.dataset.creovaBrand!=="1"){
+      if(hero&&hero.dataset.laneriqBrand!=="1"){
         hero.innerHTML=`<span>${PRODUCT_BRAND.name}</span><strong>${PRODUCT_BRAND.capabilities}</strong>`;
-        hero.dataset.creovaBrand="1";
+        hero.dataset.laneriqBrand="1";
       }
       const heroCopy=document.querySelector(".heroCopy > p");
-      if(heroCopy&&heroCopy.dataset.creovaBrand!=="1"){
+      if(heroCopy&&heroCopy.dataset.laneriqBrand!=="1"){
         heroCopy.innerHTML=`${PRODUCT_BRAND.descriptor}<br/>${PRODUCT_BRAND.tagline}`;
-        heroCopy.dataset.creovaBrand="1";
+        heroCopy.dataset.laneriqBrand="1";
       }
       const promptLabel=document.querySelector(".promptHead label");
       if(promptLabel&&/App\s*&\s*Website/i.test(promptLabel.textContent||""))promptLabel.textContent="Describe the App, Game or Website you want to create";
