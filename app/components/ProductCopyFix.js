@@ -25,26 +25,29 @@ export default function ProductCopyFix(){
         const parent=node.parentElement;
         const tag=parent?.tagName;
         if(["SCRIPT","STYLE","TEXTAREA","INPUT"].includes(tag))continue;
-        // The approved home hero and powered-by badge are intentional copy, not legacy text.
-        if(approvedHome&&parent?.closest(".premiumHome .heroCopy"))continue;
         const next=rewrite(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;
       }
 
-      // Legacy pages may still need a canonical-brand migration. The approved homepage
-      // renders its exact visual hierarchy directly and must never be rewritten here.
-      if(!approvedHome){
-        const hero=document.querySelector(".heroCopy h1");
-        if(hero&&hero.dataset.productBrand!=="2"){
-          hero.innerHTML=`<span>${PRODUCT_BRAND.name}</span><strong>${PRODUCT_BRAND.productLine}</strong>`;
-          hero.dataset.productBrand="2";
-        }
-        const heroCopy=document.querySelector(".heroCopy > p");
-        if(heroCopy&&heroCopy.dataset.productBrand!=="2"){
-          heroCopy.innerHTML=`${PRODUCT_BRAND.descriptor}<br/>${PRODUCT_BRAND.tagline}`;
-          heroCopy.dataset.productBrand="2";
-        }
+      const hero=document.querySelector(".heroCopy h1");
+      if(hero&&hero.dataset.productBrand!=="3"){
+        hero.innerHTML=`<span>${PRODUCT_BRAND.name}</span><strong>${PRODUCT_BRAND.productLine}</strong>`;
+        hero.dataset.productBrand="3";
       }
+      const heroCopy=document.querySelector(".heroCopy > p");
+      if(heroCopy&&heroCopy.dataset.productBrand!=="3"){
+        heroCopy.innerHTML=`${PRODUCT_BRAND.descriptor}<br/>${PRODUCT_BRAND.tagline}`;
+        heroCopy.dataset.productBrand="3";
+      }
+      const powered=document.querySelector(".premiumHome .powered");
+      if(powered&&powered.dataset.productBrand!=="3"){
+        powered.innerHTML=`⌘ Powered by <b>${PRODUCT_BRAND.poweredBy}</b>`;
+        powered.dataset.productBrand="3";
+      }
+      const home=document.querySelector(".premiumHome");
+      if(home)home.classList.add("laneriqHomeV3");
 
+      // The main one-click builder currently creates App + Website together.
+      // Game remains a separate Pro creation path, so do not mislabel this CTA as a Game build action.
       const promptLabel=document.querySelector(".promptHead label");
       if(promptLabel)promptLabel.textContent="Describe the App & Website you want to build";
       const ideaBox=document.querySelector(".promptCard textarea");
