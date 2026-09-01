@@ -2,25 +2,45 @@
 
 import { useState } from "react";
 
-export default function VersionRollbackButton({ appId, versionId, versionNo, isCurrent }) {
+function newRequestId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `rollback-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export default function VersionRollbackButton({ appId, versionId, versionNo, isCurrent, expectedCurrentVersionId }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [requestId, setRequestId] = useState("");
 
   async function rollback() {
     if (isCurrent || loading) return;
     const ok = window.confirm(`Restore version ${versionNo}? A new rollback version will be created so your history stays intact.`);
     if (!ok) return;
+
+    const rollbackRequestId = requestId || newRequestId();
+    if (!requestId) setRequestId(rollbackRequestId);
     setLoading(true);
     setMessage("");
+
     try {
       const response = await fetch(`/api/apps/${appId}/rollback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ versionId }),
+        body: JSON.stringify({
+          versionId,
+          expectedCurrentVersionId,
+          requestId: rollbackRequestId,
+        }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data?.error || "Rollback failed.");
-      setMessage(`Restored as version ${data?.version?.version_no || "new"}.`);
+      if (!response.ok) {
+        if (response.status === 409) setRequestId("");
+        throw new Error(data?.error || "Rollback failed.");
+      }
+      setRequestId("");
+      setMessage(data?.replayed
+        ? `Rollback already completed as version ${data?.version?.version_no || "new"}.`
+        : `Restored as version ${data?.version?.version_no || "new"}.`);
       window.location.reload();
     } catch (error) {
       setMessage(error?.message || "Rollback failed.");
