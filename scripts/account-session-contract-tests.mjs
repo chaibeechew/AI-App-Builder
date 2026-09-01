@@ -56,6 +56,7 @@ assert.equal(isPublicAccountPath('/templates'),true);
 assert.equal(isPublicAccountPath('/templates/tpl-0001-x'),true);
 assert.equal(isPublicAccountPath('/auth'),true);
 assert.equal(isPublicAccountPath('/auth/help'),true);
+assert.equal(isPublicAccountPath('/api/soolenai/capabilities'),true,'Capability discovery must return JSON before sign-in instead of redirecting to /auth.');
 assert.equal(isPublicAccountPath('/robots.txt'),true,'robots.txt must never redirect to authentication.');
 assert.equal(isPublicAccountPath('/sitemap.xml'),true,'sitemap.xml must never redirect to authentication.');
 assert.equal(PUBLIC_DISCOVERY_PATHS.length,8,'The eight canonical SEO landing pages must stay explicit and bounded.');
@@ -119,7 +120,7 @@ assert.match(account,/isPublicAccountPath\(window\.location\.pathname\)/);
 
 console.log('✓ Return-path sanitizer blocks external, protocol-relative, backslash, auth-loop, control-character and oversized redirects');
 console.log('✓ Server proxy canonicalizes /auth next before rendering and protects private routes with fresh Supabase getUser validation');
-console.log('✓ robots, sitemap and the eight canonical SEO landing pages remain explicit public discovery routes');
+console.log('✓ robots, sitemap, capability discovery and the eight canonical SEO landing pages remain explicit public routes');
 console.log('✓ Protected responses are no-store and signed-out BFCache/tab restores are revalidated client-side');
 console.log('✓ Logout is current-session scoped, fail-closed on error, uses history replace and clears private session drafts');
 console.log('✓ Auth/account listeners unsubscribe cleanly and OTP flow now coordinates safe redirect ownership');
