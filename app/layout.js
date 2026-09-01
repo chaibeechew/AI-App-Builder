@@ -21,11 +21,12 @@ const homeCanonical = absoluteSeoUrl("/");
 const googleVerification = String(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "").trim();
 const organizationSchema = buildOrganizationJsonLd();
 const softwareSchema = buildSoftwareJsonLd();
+const discoveryDescription = `${PRODUCT_BRAND.capabilities}. ${PRODUCT_BRAND.tagline} Create apps, games and websites with AI-powered planning, design, building, testing and preview workflows for web, iOS and Android targets.`;
 
 export const metadata = {
   ...(SEO_SITE_URL ? { metadataBase: new URL(SEO_SITE_URL) } : {}),
   title: "LANERIQ AI — AI App, Game & Website Builder",
-  description: "Create apps, games and websites from one idea with LANERIQ AI. AI-powered planning, design, building, testing and preview workflows for web, iOS and Android targets.",
+  description: discoveryDescription,
   applicationName: PRODUCT_BRAND.name,
   category: "technology",
   keywords: SEO_CORE_KEYWORDS,
@@ -36,13 +37,13 @@ export const metadata = {
     locale: "en_US",
     siteName: PRODUCT_BRAND.name,
     title: "LANERIQ AI — AI App, Game & Website Builder",
-    description: "Create apps, games and websites from one idea with AI-powered planning, building, testing and preview workflows.",
+    description: discoveryDescription,
     ...(homeCanonical ? { url: homeCanonical } : {}),
   },
   twitter: {
     card: "summary_large_image",
     title: "LANERIQ AI — AI App, Game & Website Builder",
-    description: "Create apps, games and websites from one idea.",
+    description: `${PRODUCT_BRAND.tagline} ${PRODUCT_BRAND.capabilities}.`,
   },
   ...(googleVerification ? { verification: { google: googleVerification } } : {}),
 };
