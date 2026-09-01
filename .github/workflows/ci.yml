@@ -95,6 +95,8 @@ jobs:
         run: npm run test:image-studio
       - name: AI Video Generator contract tests
         run: npm run test:video
+      - name: AI Avatar Creator contract tests
+        run: npm run test:avatar
       - name: Runtime reliability contract tests
         run: npm run test:runtime
       - name: Non-production 100 product contract tests
