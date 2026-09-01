@@ -3,8 +3,7 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "devCommand": "next dev",
-  "ignoreCommand": "node scripts/vercel-ignore-build.mjs",
   "git": {
-    "deploymentEnabled": true
+    "deploymentEnabled": false
   }
 }
