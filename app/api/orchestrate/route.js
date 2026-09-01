@@ -11,7 +11,8 @@ export async function POST(request){
     if(!idea)return NextResponse.json({error:"Build idea is required."},{status:400});
     if(idea.length>IDEA_PLANNING_LIMITS.MAX_IDEA_LENGTH)return NextResponse.json({error:"Build idea is too long."},{status:413});
 
-    const planning=buildIdeaPlan(idea,{previousPlan:body?.previousPlan||null});
+    // Readiness is recomputed from the current customer message. Client-supplied plan history cannot self-authorize a build.
+    const planning=buildIdeaPlan(idea);
     if(!planning.readyToBuild){
       return NextResponse.json({
         success:false,
