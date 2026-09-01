@@ -23,6 +23,7 @@ import GameProGate from "./components/GameProGate";
 import GameCommercialTermsNotice from "./components/GameCommercialTermsNotice";
 import HomeLoadGuard from "./components/HomeLoadGuard";
 import LanguageRuntime from "./components/LanguageRuntime";
+import AuthFlowGuard from "./components/AuthFlowGuard";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
 import { SEO_CORE_KEYWORDS, SEO_INDEXING_ENABLED, SEO_SITE_URL, absoluteSeoUrl, buildOrganizationJsonLd, buildSoftwareJsonLd } from "../lib/seo-foundation.js";
 
@@ -74,6 +75,7 @@ export default function RootLayout({ children }) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
         <HomeLoadGuard />
         <LanguageRuntime />
+        <AuthFlowGuard />
         <PremiumJourneyTheme />
         <ProductCopyFix />
         <AdaptiveWallpaperEngine />
