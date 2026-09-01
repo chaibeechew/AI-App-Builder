@@ -63,6 +63,14 @@ assert.equal(PRODUCT_POLICY.pricing.standard.billing,'one_time');
 assert.equal(PRODUCT_POLICY.pricing.professional.priceUsd,68);
 assert.equal(PRODUCT_POLICY.pricing.professional.accessDays,365);
 assert.equal(PRODUCT_POLICY.pricing.professional.autoRenew,false);
+assert.deepEqual(PRODUCT_POLICY.pricing.professional.gameCooldownMinutes,[30,60,120,240,480]);
+assert.equal(PRODUCT_POLICY.pricing.professional.maximumGameCooldownHours,8);
+assert.equal(PRODUCT_POLICY.pricing.professional.ordinaryFeaturesRemainAvailableDuringGameCooldown,true);
+assert.equal(PRODUCT_POLICY.pricing.fullAccess.priceUsd,199);
+assert.equal(PRODUCT_POLICY.pricing.fullAccess.accessDays,365);
+assert.equal(PRODUCT_POLICY.pricing.fullAccess.autoRenew,false);
+assert.equal(PRODUCT_POLICY.pricing.fullAccess.ordinaryGameCooldownExempt,true);
+assert.equal(PRODUCT_POLICY.pricing.fullAccess.safetyAndAbuseProtectionStillApplies,true);
 assert.equal(PRODUCT_POLICY.pricing.reviewPolicy.reviewIntervalYears,3);
 assert.equal(PRODUCT_POLICY.pricing.reviewPolicy.increaseIsOptional,true);
 
@@ -78,8 +86,10 @@ assert.equal(PRODUCT_POLICY.monetization.buyout.gameBuyoutAvailable,false);
 assert.ok(PRODUCT_POLICY.monetization.buyout.excludedProjectTypes.includes('game'));
 assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.professionalOnly,true);
 assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.buyoutLicenseAvailable,false);
-assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.platformProfitSharePercent,5);
-assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.profitShareBasis,'game_profit');
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.platformSalesSharePercent,5);
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.salesShareBasis,'gross_game_sales_revenue_excluding_taxes_refunds_chargebacks');
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.appliesAcrossAllSalesChannels,true);
+assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.platformAndStoreCommissionsDoNotReduceShareBasis,true);
 assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.cannotBeRemovedByBuyout,true);
 assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.continuesAfterProfessionalAccessEnds,true);
 
@@ -89,7 +99,7 @@ console.log('✓ Beauty 100 requires complete palette, card, image and wallpaper
 console.log('✓ Keyword-only quality claims are capped below 100');
 console.log('✓ Production evidence contract fails closed until evidence is complete');
 console.log('✓ Free-first-project promotion policy remains intact');
-console.log('✓ Standard / Pro / 3-year review pricing policy remains intact');
+console.log('✓ Standard / Professional / Full Access creator pricing and Fair Use policy remain intact');
 console.log('✓ Apple / Google external fee separation remains intact');
 console.log('✓ Non-game buyout license plan remains intact');
-console.log('✓ Game policy is locked: Professional-only, no buyout, continuing 5% LANERIQ AI share of game profit');
+console.log('✓ Game policy is locked: creator ownership, no buyout, continuing 5% LANERIQ AI share of game sales revenue across all sales channels');
