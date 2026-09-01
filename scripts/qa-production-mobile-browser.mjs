@@ -8,6 +8,13 @@ const context = await browser.newContext({ ...iphone, locale: "en-US" });
 
 const results = [];
 
+async function navigateAndSettle(page, url) {
+  const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.locator("body").waitFor({ state: "visible", timeout: 10_000 });
+  await page.waitForTimeout(1_500);
+  return response;
+}
+
 async function inspectPage(route, { expectAuthRedirect = false, expectPublic = false } = {}) {
   const page = await context.newPage();
   const consoleErrors = [];
@@ -19,7 +26,7 @@ async function inspectPage(route, { expectAuthRedirect = false, expectPublic = f
   page.on("pageerror", (error) => pageErrors.push(String(error)));
 
   const startedAt = Date.now();
-  const response = await page.goto(`${baseUrl}${route}`, { waitUntil: "networkidle", timeout: 30_000 });
+  const response = await navigateAndSettle(page, `${baseUrl}${route}`);
   const elapsedMs = Date.now() - startedAt;
   const finalUrl = new URL(page.url());
   const status = response?.status() ?? null;
@@ -66,7 +73,7 @@ for (const route of ["/generate", "/projects", "/publishing-center"]) {
 }
 
 const authPage = await context.newPage();
-const authResponse = await authPage.goto(`${baseUrl}/auth?next=https://evil.example/path`, { waitUntil: "networkidle", timeout: 30_000 });
+const authResponse = await navigateAndSettle(authPage, `${baseUrl}/auth?next=https://evil.example/path`);
 assert.ok(authResponse, "Auth canonicalization must return a response");
 const safeAuthUrl = new URL(authPage.url());
 assert.equal(safeAuthUrl.origin, new URL(baseUrl).origin, "External next must never leave the LANERIQ AI origin");
