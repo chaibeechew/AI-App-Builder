@@ -156,11 +156,13 @@ export default function LanguageRuntime() {
   }, [language, mounted]);
 
   const current = useMemo(() => SUPPORTED_LANGUAGES.find((item) => item.code === language) || SUPPORTED_LANGUAGES[0], [language]);
+  const homeNav = mounted ? document.querySelector(".premiumHome .bottomNav") : null;
   const topActions = mounted ? document.querySelector(".premiumHome .topActions") : null;
-  const button = <button className={`laneriqLangButton ${topActions ? "inline" : "floating"}`} onClick={() => setOpen(true)} aria-label={translateUiText("Change language", language)}><span>🌐</span><b>{current.short}</b></button>;
+  const portalTarget = homeNav || topActions;
+  const button = <button className={`laneriqLangButton ${portalTarget ? "inline" : "floating"}`} onClick={() => setOpen(true)} aria-label={translateUiText("Change language", language)}><span>🌐</span><b>{current.short}</b></button>;
 
   return <>
-    {topActions ? createPortal(button, topActions) : button}
+    {portalTarget ? createPortal(button, portalTarget) : button}
     {open && mounted && createPortal(
       <div className="laneriqLangBackdrop" onClick={() => setOpen(false)}>
         <section className="laneriqLangSheet" onClick={(event) => event.stopPropagation()} aria-label={translateUiText("Language", language)}>
