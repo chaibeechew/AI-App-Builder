@@ -31,6 +31,30 @@ function safeName(value) {
   return String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+function buildEvidence(buildInfo, results, failure = null) {
+  return {
+    evidenceVersion: 1,
+    evidenceLevel: "BROWSER_EMULATION",
+    physicalDeviceVerified: false,
+    liveProviderVerified: false,
+    officialStoreVerified: false,
+    productionUrl: baseUrl,
+    expectedSha: expectedSha || null,
+    buildInfo,
+    generatedAt: new Date().toISOString(),
+    browsers: results,
+    ...(failure ? { failure } : {}),
+  };
+}
+
+async function writeEvidence(buildInfo, results, failure = null) {
+  await fs.writeFile(
+    path.join(artifactDir, "report.json"),
+    `${JSON.stringify(buildEvidence(buildInfo, results, failure), null, 2)}\n`,
+    "utf8",
+  );
+}
+
 async function pageBaseline(page, pathname, { requireHome = false } = {}) {
   const response = await page.goto(`${baseUrl}${pathname}`, { waitUntil: "domcontentloaded", timeout: 45_000 });
   assert(response, `${pathname} navigation did not return a response`);
@@ -41,13 +65,26 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
   const metrics = await page.evaluate(({ requireHome }) => {
     const width = window.innerWidth;
     const documentWidth = document.documentElement.scrollWidth;
-    const inputSizes = Array.from(document.querySelectorAll("input:not([type='hidden']), textarea, select"))
+    const visibleInputs = Array.from(document.querySelectorAll("input:not([type='hidden']), textarea, select"))
       .filter((element) => {
         const style = getComputedStyle(element);
         const rect = element.getBoundingClientRect();
         return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
       })
-      .map((element) => Number.parseFloat(getComputedStyle(element).fontSize || "0"));
+      .map((element) => {
+        const style = getComputedStyle(element);
+        const parentClass = element.parentElement?.className;
+        return {
+          tag: element.tagName.toLowerCase(),
+          type: element.getAttribute("type") || null,
+          id: element.id || null,
+          className: typeof element.className === "string" ? element.className : null,
+          parentClassName: typeof parentClass === "string" ? parentClass : null,
+          ariaLabel: element.getAttribute("aria-label") || null,
+          placeholder: element.getAttribute("placeholder") || null,
+          fontSize: Number.parseFloat(style.fontSize || "0"),
+        };
+      });
     const criticalTargets = requireHome
       ? Array.from(document.querySelectorAll(".buildCta, .bottomNav a, .bottomNav button"))
       : [];
@@ -59,7 +96,8 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
       width,
       documentWidth,
       noHorizontalOverflow: documentWidth <= width + 1,
-      visibleInputFontMinimum: inputSizes.length ? Math.min(...inputSizes) : null,
+      visibleInputs,
+      visibleInputFontMinimum: visibleInputs.length ? Math.min(...visibleInputs.map((input) => input.fontSize)) : null,
       homePresent: Boolean(document.querySelector(".premiumHome")),
       duplicateOverlayCount: document.querySelectorAll(".studioLauncher, .referenceDock, .sv-fab").length,
       criticalTargetSizes,
@@ -67,8 +105,10 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
   }, { requireHome });
 
   assert.equal(metrics.noHorizontalOverflow, true, `${pathname} has horizontal overflow: ${metrics.documentWidth}px > ${metrics.width}px`);
-  if (metrics.visibleInputFontMinimum !== null) {
-    assert(metrics.visibleInputFontMinimum >= 16, `${pathname} has a visible input below 16px (${metrics.visibleInputFontMinimum}px), risking iOS auto-zoom`);
+  const undersizedInputs = metrics.visibleInputs.filter((input) => input.fontSize < 16);
+  if (undersizedInputs.length) {
+    const details = undersizedInputs.map((input) => `${input.tag}${input.id ? `#${input.id}` : ""}${input.className ? `.${input.className.split(/\s+/).filter(Boolean).join(".")}` : ""}=${input.fontSize}px`).join(", ");
+    assert.fail(`${pathname} has visible editable controls below 16px, risking iOS auto-zoom: ${details}`);
   }
   if (requireHome) {
     assert.equal(metrics.homePresent, true, "Homepage must render .premiumHome");
@@ -110,76 +150,81 @@ for (const entry of browserMatrix) {
 
 const buildInfo = await verifyProductionBuild();
 const results = [];
+let runFailure = null;
 
-for (const entry of browserMatrix) {
-  const browser = await entry.browserType.launch({ headless: true });
-  const context = await browser.newContext({
-    ...entry.device,
-    locale: "en-MY",
-    timezoneId: "Asia/Kuala_Lumpur",
-    colorScheme: "dark",
-  });
-  const page = await context.newPage();
-  const pageErrors = [];
-  const consoleErrors = [];
-  page.on("pageerror", (error) => pageErrors.push(String(error?.message || error)));
-  page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text());
-  });
-
-  try {
-    const home = await pageBaseline(page, "/", { requireHome: true });
-    await page.screenshot({ path: path.join(artifactDir, `${entry.id}-home.png`), fullPage: true });
-
-    const auth = await pageBaseline(page, "/auth");
-    await page.screenshot({ path: path.join(artifactDir, `${entry.id}-auth.png`), fullPage: true });
-
-    const readiness = await readinessEvidence(page);
-    await page.screenshot({ path: path.join(artifactDir, `${entry.id}-mobile-readiness.png`), fullPage: true });
-
-    const discovery = await pageBaseline(page, "/ai-app-game-website-builder");
-
-    assert.deepEqual(pageErrors, [], `${entry.label} page errors: ${pageErrors.join(" | ")}`);
-    assert.deepEqual(consoleErrors, [], `${entry.label} console errors: ${consoleErrors.join(" | ")}`);
-
-    results.push({
-      id: entry.id,
-      label: entry.label,
-      evidenceLevel: "BROWSER_EMULATION",
-      home,
-      auth,
-      readiness: {
-        score: readiness.score,
-        requiredChecks: readiness.requiredChecks,
-        passedRequiredChecks: readiness.passedRequiredChecks,
-        permissionPromptsTriggered: readiness.permissionPromptsTriggered,
-        checks: readiness.checks,
-      },
-      discovery,
-      pageErrors,
-      consoleErrors,
-      passed: true,
+try {
+  for (const entry of browserMatrix) {
+    const browser = await entry.browserType.launch({ headless: true });
+    const context = await browser.newContext({
+      ...entry.device,
+      locale: "en-MY",
+      timezoneId: "Asia/Kuala_Lumpur",
+      colorScheme: "dark",
     });
-    console.log(`✓ ${entry.label}: Production homepage, auth, mobile readiness and discovery surfaces passed`);
-  } finally {
-    await context.close();
-    await browser.close();
+    const page = await context.newPage();
+    const pageErrors = [];
+    const consoleErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error?.message || error)));
+    page.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(message.text());
+    });
+
+    try {
+      const home = await pageBaseline(page, "/", { requireHome: true });
+      await page.screenshot({ path: path.join(artifactDir, `${entry.id}-home.png`), fullPage: true });
+
+      const auth = await pageBaseline(page, "/auth");
+      await page.screenshot({ path: path.join(artifactDir, `${entry.id}-auth.png`), fullPage: true });
+
+      const readiness = await readinessEvidence(page);
+      await page.screenshot({ path: path.join(artifactDir, `${entry.id}-mobile-readiness.png`), fullPage: true });
+
+      const discovery = await pageBaseline(page, "/ai-app-game-website-builder");
+      await page.screenshot({ path: path.join(artifactDir, `${entry.id}-discovery.png`), fullPage: true });
+
+      assert.deepEqual(pageErrors, [], `${entry.label} page errors: ${pageErrors.join(" | ")}`);
+      assert.deepEqual(consoleErrors, [], `${entry.label} console errors: ${consoleErrors.join(" | ")}`);
+
+      results.push({
+        id: entry.id,
+        label: entry.label,
+        evidenceLevel: "BROWSER_EMULATION",
+        home,
+        auth,
+        readiness: {
+          score: readiness.score,
+          requiredChecks: readiness.requiredChecks,
+          passedRequiredChecks: readiness.passedRequiredChecks,
+          permissionPromptsTriggered: readiness.permissionPromptsTriggered,
+          checks: readiness.checks,
+        },
+        discovery,
+        pageErrors,
+        consoleErrors,
+        passed: true,
+      });
+      await writeEvidence(buildInfo, results);
+      console.log(`✓ ${entry.label}: Production homepage, auth, mobile readiness and discovery surfaces passed`);
+    } catch (error) {
+      runFailure = {
+        browserId: entry.id,
+        browserLabel: entry.label,
+        url: page.url(),
+        message: String(error?.message || error),
+        pageErrors,
+        consoleErrors,
+      };
+      await page.screenshot({ path: path.join(artifactDir, `${entry.id}-failure.png`), fullPage: true }).catch(() => {});
+      await writeEvidence(buildInfo, results, runFailure);
+      throw error;
+    } finally {
+      await context.close();
+      await browser.close();
+    }
   }
+} finally {
+  await writeEvidence(buildInfo, results, runFailure);
 }
 
-const evidence = {
-  evidenceVersion: 1,
-  evidenceLevel: "BROWSER_EMULATION",
-  physicalDeviceVerified: false,
-  liveProviderVerified: false,
-  officialStoreVerified: false,
-  productionUrl: baseUrl,
-  expectedSha: expectedSha || null,
-  buildInfo,
-  generatedAt: new Date().toISOString(),
-  browsers: results,
-};
-
-await fs.writeFile(path.join(artifactDir, "report.json"), `${JSON.stringify(evidence, null, 2)}\n`, "utf8");
 console.log(`✓ Production mobile browser QA passed ${results.length}/${browserMatrix.length} browser/device profiles`);
 console.log(`✓ Evidence saved to ${safeName(path.relative(process.cwd(), artifactDir)) || "artifacts"}; this is browser emulation, not physical-device proof`);
