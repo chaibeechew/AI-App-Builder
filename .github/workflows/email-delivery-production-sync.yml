@@ -37,17 +37,24 @@ jobs:
             exit 2
           fi
 
-          smtp_user="${SMTP_USER:-${GMAIL_USER:-}}"
-          smtp_pass="${SMTP_PASS:-${GMAIL_APP_PASSWORD:-}}"
-          smtp_host="${SMTP_HOST:-}"
-          email_from="${EMAIL_FROM:-$smtp_user}"
-
-          if [ -z "$smtp_host" ] && { [ -n "${GMAIL_USER:-}" ] || [[ "$smtp_user" == *@gmail.com ]]; }; then
+          if [ -n "${GMAIL_USER:-}" ] && [ -n "${GMAIL_APP_PASSWORD:-}" ]; then
             smtp_host="smtp.gmail.com"
+            smtp_port="465"
+            smtp_user="$(printf '%s' "$GMAIL_USER" | tr -d '\r\n')"
+            smtp_pass="$(printf '%s' "$GMAIL_APP_PASSWORD" | tr -d '[:space:]')"
+            email_from="${EMAIL_FROM:-$smtp_user}"
+            transport="Gmail dedicated secrets"
+          else
+            smtp_host="${SMTP_HOST:-}"
+            smtp_port="${SMTP_PORT:-465}"
+            smtp_user="${SMTP_USER:-}"
+            smtp_pass="${SMTP_PASS:-}"
+            email_from="${EMAIL_FROM:-$smtp_user}"
+            transport="generic SMTP secrets"
           fi
 
           if [ -n "$smtp_host" ] && [ -n "$smtp_user" ] && [ -n "$smtp_pass" ] && [ -n "$email_from" ]; then
-            echo "Production Email Verification transport: Gmail/SMTP configuration is complete."
+            echo "Production Email Verification transport is complete using ${transport}."
             exit 0
           fi
 
@@ -57,7 +64,7 @@ jobs:
           fi
 
           echo "Production Email Verification delivery is not configured."
-          echo "Add VERCEL_TOKEN plus either Gmail/SMTP secrets (GMAIL_USER + GMAIL_APP_PASSWORD, or SMTP_HOST + SMTP_USER + SMTP_PASS; EMAIL_FROM optional for SMTP) or Resend secrets (RESEND_API_KEY + EMAIL_FROM)."
+          echo "Add VERCEL_TOKEN plus either Gmail credentials (GMAIL_USER + GMAIL_APP_PASSWORD), generic SMTP credentials (SMTP_HOST + SMTP_USER + SMTP_PASS), or Resend credentials (RESEND_API_KEY + EMAIL_FROM)."
           exit 2
 
       - name: Upsert Vercel Production email delivery configuration
@@ -74,18 +81,20 @@ jobs:
         run: |
           set -euo pipefail
 
-          smtp_user="${SMTP_USER:-${GMAIL_USER:-}}"
-          smtp_pass="${SMTP_PASS:-${GMAIL_APP_PASSWORD:-}}"
-          smtp_host="${SMTP_HOST:-}"
-          smtp_port="${SMTP_PORT:-465}"
-          email_from="${EMAIL_FROM:-$smtp_user}"
-
-          if [ -z "${SMTP_PASS:-}" ] && [ -n "${GMAIL_APP_PASSWORD:-}" ]; then
-            smtp_pass="$(printf '%s' "$GMAIL_APP_PASSWORD" | tr -d '[:space:]')"
-          fi
-
-          if [ -z "$smtp_host" ] && { [ -n "${GMAIL_USER:-}" ] || [[ "$smtp_user" == *@gmail.com ]]; }; then
+          if [ -n "${GMAIL_USER:-}" ] && [ -n "${GMAIL_APP_PASSWORD:-}" ]; then
             smtp_host="smtp.gmail.com"
+            smtp_port="465"
+            smtp_user="$(printf '%s' "$GMAIL_USER" | tr -d '\r\n')"
+            smtp_pass="$(printf '%s' "$GMAIL_APP_PASSWORD" | tr -d '[:space:]')"
+            email_from="${EMAIL_FROM:-$smtp_user}"
+            transport="Gmail"
+          else
+            smtp_host="${SMTP_HOST:-}"
+            smtp_port="${SMTP_PORT:-465}"
+            smtp_user="${SMTP_USER:-}"
+            smtp_pass="${SMTP_PASS:-}"
+            email_from="${EMAIL_FROM:-$smtp_user}"
+            transport="SMTP"
           fi
 
           if [ -n "$smtp_host" ] && [ -n "$smtp_user" ] && [ -n "$smtp_pass" ] && [ -n "$email_from" ]; then
@@ -102,7 +111,6 @@ jobs:
                 {key:"SMTP_PASS",value:$pass,type:"sensitive",target:["production"],comment:"LANERIQ Email Verification SMTP credential"},
                 {key:"EMAIL_FROM",value:$from,type:"sensitive",target:["production"],comment:"LANERIQ Email Verification sender"}
               ]')"
-            transport="SMTP"
           else
             payload="$(jq -cn \
               --arg resend "$RESEND_API_KEY" \
