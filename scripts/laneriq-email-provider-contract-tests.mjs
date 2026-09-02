@@ -46,8 +46,7 @@ assert.match(migration,/grant execute on function public\.laneriq_finish_email.*
 assert.match(adapter,/sendLaneriqEmail/);
 assert.match(adapter,/provider:"LANERIQ Email"/);
 assert.doesNotMatch(adapter,/sendManagedEmail/);
-assert.match(verification,/purpose:"verification"/);
-assert.ok(verification.indexOf('purpose:"verification"')>verification.indexOf('deliverCommunication({'),'Verification delivery must label the LANERIQ Email queue purpose.');
+assert.match(verification,/deliverCommunication\(\{[\s\S]*?channel:"email",[\s\S]*?html:verificationHtml\(code\),\s*purpose:"verification",[\s\S]*?\}\)/);
 assert.doesNotMatch(adapter,/TWILIO|sendManagedSms|api\.twilio/i);
 
 console.log('✓ LANERIQ Email Provider owns provider identity and LANERIQ Message IDs');
