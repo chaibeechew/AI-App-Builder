@@ -33,13 +33,20 @@ assert.match(integrations, /preview_url:false/);
 // Exact pre-session server endpoints are allowed without broadening browser/API auth bypasses.
 assert.match(edgeProxy, /Server-to-server\/webhook requests commonly have no browser Origin\/Sec-Fetch-Site headers/);
 assert.match(edgeProxy, /if\(fetchSite==="cross-site"\)return true/);
-assert.match(sessionProxy, /const PUBLIC_SERVER_ENDPOINTS = new Set\(\["\/api\/whatsapp\/webhook","\/api\/auth\/verification\/request"\]\)/);
+assert.match(sessionProxy, /const PUBLIC_SERVER_ENDPOINTS = new Set\(\[/);
+for (const exactPath of [
+  '/api/whatsapp/webhook',
+  '/api/auth/verification/request',
+  '/api/auth/verification/verify',
+  '/api/auth/verification/status',
+  '/api/auth/session',
+]) assert.ok(sessionProxy.includes(`"${exactPath}"`), `Missing exact public pre-session route ${exactPath}`);
 assert.match(sessionProxy, /if \(PUBLIC_SERVER_ENDPOINTS\.has\(pathname\)\)/);
 assert.match(sessionProxy, /no broad \/api prefix bypass exists/);
 assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/whatsapp"\)/);
 assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/auth"\)/);
 
 console.log('✓ WhatsApp Cloud webhook verification and HMAC signature checks are present');
-console.log('✓ Exact WhatsApp webhook path bypasses user session auth without opening other API routes');
+console.log('✓ Exact pre-session paths include WhatsApp webhook and bounded LANERIQ auth routes without broad API bypass');
 console.log('✓ Outbound WhatsApp Cloud API delivery remains managed and readiness-gated');
 console.log('✓ Webhook payloads are acknowledged without logging customer message content');

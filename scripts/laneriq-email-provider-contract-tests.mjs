@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const root=process.cwd();
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const provider=read('lib/email-provider/server.js');
+const adapter=read('lib/communications/delivery-adapter.js');
+const verification=read('lib/verification/server.js');
+const migration=read('supabase/migrations/20260902092000_laneriq_email_provider_v1.sql');
+
+assert.match(provider,/PROVIDER_NAME="LANERIQ Email"/);
+assert.match(provider,/providerAuthority:"laneriq"/);
+assert.match(provider,/createCipheriv\("aes-256-gcm"/);
+assert.match(provider,/createDecipheriv\("aes-256-gcm"/);
+assert.match(provider,/setAAD\(Buffer\.from\("laneriq-email-provider-v1"\)\)/);
+assert.match(provider,/getAuthTag\(\)/);
+assert.match(provider,/createHmac\("sha256"/);
+assert.match(provider,/recipientHash/);
+assert.match(provider,/lqem_/);
+assert.match(provider,/laneriq_enqueue_email/);
+assert.match(provider,/laneriq_claim_email/);
+assert.match(provider,/laneriq_finish_email/);
+assert.match(provider,/status:"deferred"/);
+assert.match(provider,/retryAfterSeconds:300/);
+assert.doesNotMatch(provider,/console\.(log|error)/);
+
+assert.match(migration,/private\.laneriq_email_messages/);
+assert.match(migration,/payload_ciphertext text not null/);
+assert.match(migration,/payload_iv text not null/);
+assert.match(migration,/payload_tag text not null/);
+assert.match(migration,/recipient_hash text not null/);
+assert.doesNotMatch(migration,/\b(recipient|email|message_body|body|subject|html|otp|verification_code)\s+text\b/i);
+assert.match(migration,/enable row level security/);
+assert.match(migration,/revoke all on private\.laneriq_email_messages from public, anon, authenticated/);
+assert.match(migration,/grant select, insert, update, delete on private\.laneriq_email_messages to service_role/);
+assert.match(migration,/security definer/);
+assert.match(migration,/set search_path = ''/);
+assert.match(migration,/for update skip locked/);
+assert.match(migration,/status in \('queued','sending','sent','deferred','bounced','failed'\)/);
+assert.match(migration,/attempts integer not null default 0/);
+assert.match(migration,/max_attempts integer not null default 5/);
+assert.match(migration,/revoke all on function public\.laneriq_enqueue_email/);
+assert.match(migration,/grant execute on function public\.laneriq_finish_email.*to service_role/);
+
+assert.match(adapter,/sendLaneriqEmail/);
+assert.match(adapter,/provider:"LANERIQ Email"/);
+assert.doesNotMatch(adapter,/sendManagedEmail/);
+assert.match(verification,/deliverCommunication\(\{[\s\S]*?channel:"email",[\s\S]*?html:verificationHtml\(code\),\s*purpose:"verification",[\s\S]*?\}\)/);
+assert.doesNotMatch(adapter,/TWILIO|sendManagedSms|api\.twilio/i);
+
+console.log('✓ LANERIQ Email Provider owns provider identity and LANERIQ Message IDs');
+console.log('✓ Email payloads are AES-256-GCM encrypted at rest and recipients are HMAC-only metadata');
+console.log('✓ Queue claim is atomic, retry-aware, private-schema and service-role-only');
+console.log('✓ Verification routes Email through LANERIQ Email Provider with no paid SMS fallback');
