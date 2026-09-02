@@ -28,16 +28,18 @@ assert.ok(!clean.includes('/a/'),'Discovery/community CSS must never target gene
 assert.ok(!clean.includes('/website/'),'Discovery/community CSS must never target generated Website routes');
 assert.doesNotMatch(clean,/(^|\n)\s*(html|body|\*)\s*[{,]/m,'Discovery/community shell must not use global document selectors');
 
-// Soolen AI Capability Center keeps server-truth capability/provider/subscription boundaries.
-assert.match(soolen,/fetch\("\/api\/soolenai\/capabilities", \{ cache: "no-store" \}\)/);
-assert.match(soolen,/const advancedReady = Boolean\(data\?\.providers\?\.premiumRouting\)/);
+// Soolen Platform Operator keeps server-truth capability/subscription boundaries while hiding infrastructure providers from ordinary users.
+assert.match(soolen,/fetch\("\/api\/soolenai\/capabilities",\{cache:"no-store"\}\)/);
+assert.match(soolen,/const advancedReady=Boolean\(data\?\.providers\?\.premiumRouting\)/);
 assert.match(soolen,/disabled=\{!advancedReady\}/);
-assert.match(soolen,/mode: advanced \? "advanced" : "standard"/);
-assert.match(soolen,/const costMode = data\?\.policy\?\.mode \|\| "zero"/);
-assert.match(soolen,/capability\.status === "ready" \|\| item\.status === "integration_ready"|item\.status === "ready" \|\| item\.status === "integration_ready"/);
+assert.match(soolen,/mode:advanced\?"advanced":"standard"/);
+assert.match(soolen,/const costMode=data\?\.policy\?\.mode\|\|"zero"/);
+assert.match(soolen,/item\.status==="ready"\|\|item\.status==="integration_ready"/);
 assert.match(soolen,/STATUS_LABELS/);
-assert.match(soolen,/Authorized providers only/);
-assert.match(soolen,/付费能力只有在有效订阅与服务授权同时通过后才开启/);
+assert.match(soolen,/SOOLEN AI · PLATFORM OPERATOR/);
+assert.match(soolen,/One App/);
+for(const stage of ['Build','Verify','Deploy','Publish'])assert.match(soolen,new RegExp(`label:\"${stage}\"|>${stage}<`));
+assert.doesNotMatch(soolen,/via authorized|Connect Ollama|providers connected|Supabase|GitHub|Vercel|Meta/);
 
 // Community Chat stays explicit opt-in, authenticated, room-scoped, bounded and reversible.
 assert.match(community,/supabase\.auth\.getUser\(\)/);
@@ -64,6 +66,6 @@ assert.match(template,/sessionStorage\.setItem\("soolenAppIdea"/);
 assert.match(template,/sessionStorage\.setItem\("soolenInspirationTemplate"/);
 assert.match(template,/re-plan and reimagine the structure, visuals and copy rather than clone a third-party product/);
 
-console.log('✓ Big Moon Valley carries through Soolen AI Center, opt-in Community Chat and Template Detail');
-console.log('✓ Capability truth, chat membership/privacy and inspiration originality contracts remain intact');
-console.log('✓ Generated customer App/Website routes remain separated and SMS stays on hold');
+console.log('✓ Big Moon Valley carries through Soolen Platform Operator, opt-in Community Chat and Template Detail');
+console.log('✓ Provider-opaque platform truth, chat membership/privacy and inspiration originality contracts remain intact');
+console.log('✓ Generated customer App/Website routes remain separated and paid SMS stays disabled');
