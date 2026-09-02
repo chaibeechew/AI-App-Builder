@@ -57,13 +57,13 @@ begin
 
   perform pg_advisory_xact_lock(hashtextextended(p_recipient_hash, 0));
 
-  update private.laneriq_verification_challenges
+  update private.laneriq_verification_challenges as existing
      set status = 'superseded'
-   where recipient_hash = p_recipient_hash
-     and channel = p_channel
-     and consumed_at is null
-     and status in ('pending','delivered')
-     and expires_at > now();
+   where existing.recipient_hash = p_recipient_hash
+     and existing.channel = p_channel
+     and existing.consumed_at is null
+     and existing.status in ('pending','delivered')
+     and existing.expires_at > now();
 
   insert into private.laneriq_verification_challenges(
     id, channel, recipient_hash, code_hash, referral_code, status, max_attempts, expires_at
@@ -73,9 +73,9 @@ begin
   on conflict (id) do nothing;
 
   return query
-  select c.id, c.expires_at
-    from private.laneriq_verification_challenges c
-   where c.id = p_id;
+  select created.id, created.expires_at
+    from private.laneriq_verification_challenges as created
+   where created.id = p_id;
 end;
 $$;
 
@@ -113,9 +113,9 @@ as $$
 declare
   c private.laneriq_verification_challenges%rowtype;
 begin
-  select * into c
-    from private.laneriq_verification_challenges
-   where id = p_id
+  select challenge.* into c
+    from private.laneriq_verification_challenges as challenge
+   where challenge.id = p_id
    for update;
 
   if not found or c.recipient_hash <> p_recipient_hash or c.channel <> 'email' then
@@ -139,23 +139,27 @@ begin
   end if;
 
   if c.expires_at <= now() then
-    update private.laneriq_verification_challenges set status='expired' where id=p_id;
+    update private.laneriq_verification_challenges as challenge
+       set status='expired'
+     where challenge.id=p_id;
     return query select 'expired'::text, c.referral_code, c.attempts, c.max_attempts;
     return;
   end if;
 
   if c.attempts >= c.max_attempts then
-    update private.laneriq_verification_challenges set status='locked' where id=p_id;
+    update private.laneriq_verification_challenges as challenge
+       set status='locked'
+     where challenge.id=p_id;
     return query select 'locked'::text, c.referral_code, c.attempts, c.max_attempts;
     return;
   end if;
 
   if c.code_hash <> p_code_hash then
-    update private.laneriq_verification_challenges
-       set attempts = attempts + 1,
+    update private.laneriq_verification_challenges as challenge
+       set attempts = challenge.attempts + 1,
            last_attempt_at = now(),
-           status = case when attempts + 1 >= max_attempts then 'locked' else status end
-     where id = p_id;
+           status = case when challenge.attempts + 1 >= challenge.max_attempts then 'locked' else challenge.status end
+     where challenge.id = p_id;
     return query
     select case when c.attempts + 1 >= c.max_attempts then 'locked' else 'invalid' end::text,
            c.referral_code,
@@ -164,12 +168,12 @@ begin
     return;
   end if;
 
-  update private.laneriq_verification_challenges
-     set attempts = attempts + 1,
+  update private.laneriq_verification_challenges as challenge
+     set attempts = challenge.attempts + 1,
          last_attempt_at = now(),
          consumed_at = now(),
          status = 'verified'
-   where id = p_id;
+   where challenge.id = p_id;
 
   return query select 'verified'::text, c.referral_code, c.attempts + 1, c.max_attempts;
 end;
