@@ -37,8 +37,6 @@ assert.match(modify,/\.eq\(\s*["']owner_id["']\s*,\s*user\.id\s*\)/);
 assert.match(publish,/\.eq\(\s*["']owner_id["']\s*,\s*user\.id\s*\)/);
 assert.match(quality,/\.eq\(\s*["']owner_id["']\s*,\s*user\.id\s*\)/);
 assert.match(publish,/evaluateReleaseReadiness/);
-
-// Durable app records: authenticate, bind project + row ownership, bound input, and conflict-safe updates.
 assert.match(records,/\.eq\("id",id\)\.eq\("owner_id",user\.id\)/);
 assert.match(records,/\.eq\("owner_id",ctx\.user\.id\)/);
 assert.match(records,/MAX_RECORDS\s*=\s*100/);
@@ -48,42 +46,32 @@ assert.match(records,/expectedUpdatedAt/);
 assert.match(records,/status:expectedUpdatedAt\?409:404/);
 assert.match(recordsMigration,/enable row level security/i);
 assert.match(recordsMigration,/owner_id\s*=\s*\(select auth\.uid\(\)\)/i);
-
-// No-code database: project ownership is checked before model reads/writes and credential-like fields are rejected.
 assert.match(database,/function getOwnedApp[\s\S]*\.eq\("owner_id",\s*userId\)/);
 assert.match(database,/SECRET_FIELD/);
 assert.match(database,/SAFE_TYPES/);
 assert.match(database,/owner_id:\s*user\.id/);
 assert.match(database,/providerHidden:true/);
-
-// Bootstrap: only the owner can attach modules/assets and every created child row is owner-bound.
 assert.match(bootstrap,/\.eq\("id",id\)\.eq\("owner_id",user\.id\)/);
 assert.match(bootstrap,/\.eq\("id",app\.current_version_id\)\.eq\("app_id",id\)/);
 for(const marker of ['app_backend_models','app_workflows','project_assets','video_projects'])assert.match(bootstrap,new RegExp(marker));
 assert.match(bootstrap,/owner_id:user\.id/);
 assert.match(bootstrap,/expectedVersionId/);
-
-// Workflow execution: app + workflow + run history are all owner-scoped, replay-safe and bounded.
 assert.match(workflowRun,/\.eq\("id",id\)\.eq\("owner_id",user\.id\)/);
 assert.match(workflowRun,/\.eq\("id",workflowId\)\.eq\("app_id",id\)\.eq\("owner_id",user\.id\)/);
 assert.match(workflowRun,/\.eq\("owner_id",user\.id\)\.eq\("workflow_id",workflowId\)\.eq\("idempotency_key",idempotencyKey\)/);
 assert.match(workflowRun,/actions\.slice\(0,12\)/);
 assert.match(workflowRun,/Workflow action timed out/);
 assert.match(workflowRun,/safeFailureMessage/);
-
-// Monetization checkout: authoritative owner-scoped offer data, secure redirect origin and owner-scoped tracking.
+assert.doesNotMatch(workflowRun,/sendManagedSms|send_sms/);
 assert.match(checkout,/\.eq\("id",id\)\.eq\("owner_id",user\.id\)/);
 assert.match(checkout,/\.eq\("id",offerId\)\.eq\("app_id",id\)\.eq\("owner_id",user\.id\)/);
 assert.match(checkout,/url\.protocol!=="https:"/);
 assert.match(checkout,/idempotencyKey=`checkout:\$\{user\.id\}:\$\{id\}:\$\{offer\.id\}:/);
 assert.match(checkout,/owner_id:user\.id/);
-
-// Store approval and publish request: exact current version + owned app chain before any privileged write.
 assert.match(storeApprove,/\.eq\("id", listing\.app_id\)\.eq\("owner_id", user\.id\)/);
 assert.match(storeApprove,/app\.current_version_id !== listing\.version_id/);
 assert.ok(storeApprove.indexOf('.eq("owner_id", user.id)') < storeApprove.indexOf('createAdminClient()'),'Store approval must verify ownership before using admin client.');
 assert.match(storeApprove,/\.eq\("app_id",app\.id\)\.eq\("version_id",app\.current_version_id\)/);
-
 assert.match(publishRequest,/\.eq\("id", appId\)\.eq\("owner_id", user\.id\)/);
 assert.match(publishRequest,/app\.current_version_id !== versionId/);
 assert.match(publishRequest,/\.eq\("id", versionId\)\.eq\("app_id", appId\)/);
@@ -94,7 +82,6 @@ assert.match(publishRequest,/p_request_id:requestId/);
 assert.ok(publishRequest.indexOf('.eq("owner_id", user.id)') < publishRequest.indexOf('createAdminClient()'),'Publish request must verify ownership before using admin client.');
 assert.match(publishRequest,/evaluateReleaseReadiness/);
 assert.match(publishRequest,/officialSubmissionConfirmed:false/);
-
 assert.match(storePublishRpc,/security definer set search_path=''/);
 assert.match(storePublishRpc,/where requested_by=uid and source_request_id=request_key for update/);
 assert.match(storePublishRpc,/from public\.apps where id=p_app_id and owner_id=uid for update/);
@@ -106,8 +93,6 @@ assert.match(storePublishRpc,/source_request_id,metadata/);
 assert.match(storePublishRpc,/officialSubmissionConfirmed',false/);
 assert.match(storePublishRpc,/revoke all on function public\.server_create_store_publish_request\(uuid,uuid,uuid,uuid,text,text\) from public,anon,authenticated/);
 assert.match(storePublishRpc,/grant execute on function public\.server_create_store_publish_request\(uuid,uuid,uuid,uuid,text,text\) to service_role/);
-
-// Buyout RPC hardening.
 assert.match(buyout,/to_regprocedure\('public\.has_active_buyout\(uuid,uuid\)'\)/);
 assert.match(buyout,/alter function public\.has_active_buyout\(uuid, uuid\) rename to has_active_buyout_legacy/);
 assert.match(buyout,/function public\.has_active_buyout\(p_app_id uuid\)/);
@@ -115,8 +100,6 @@ assert.match(buyout,/security invoker/);
 assert.doesNotMatch(buyout,/function public\.has_active_buyout\(p_app_id uuid\)[\s\S]{0,120}security definer/);
 assert.match(buyout,/drop function if exists public\.has_active_buyout_legacy\(uuid, uuid\)/);
 assert.doesNotMatch(buyout,/grant execute on function public\.has_active_buyout(?:_legacy)?\(uuid, uuid\)/);
-
-// Server-only finance and modification persistence.
 assert.match(admin,/SUPABASE_SECRET_KEY\|\|process\.env\.SUPABASE_SERVICE_ROLE_KEY/);
 for(const name of ['server_consume_app_builder_entitlement','server_consume_ai_credits','server_refund_ai_credits','server_bind_app_builder_project_access','server_restore_failed_app_builder_create'])assert.match(finance,new RegExp(name));
 for(const source of [generate,modify]){
@@ -140,20 +123,13 @@ assert.match(modifyRuntime,/revoke all on function public\.server_save_app_modif
 assert.match(modifyRuntime,/grant execute on function public\.server_save_app_modification\(uuid,uuid,uuid,text,jsonb,text\)[\s\S]*to service_role/);
 for(const signature of ['consume_app_builder_entitlement\\(text,uuid,text\\)','bind_app_builder_project_access\\(uuid,text\\)','restore_failed_app_builder_create\\(text\\)','consume_ai_credits\\(numeric,text,text,jsonb\\)','refund_ai_credits\\(text,numeric,text,jsonb\\)'])assert.match(revokeLegacy,new RegExp(`revoke all on function public\\.${signature} from public,anon,authenticated`));
 
-// No server credentials or non-public environment variables may appear in client components.
-const forbidden=['SUPABASE_SERVICE_ROLE_KEY','SUPABASE_SECRET_KEY','VERCEL_TOKEN','OPENROUTER_API_KEY','GROQ_API_KEY','GEMINI_API_KEY','CLOUDFLARE_AI_API_TOKEN','STRIPE_SECRET_KEY','TWILIO_AUTH_TOKEN','RESEND_API_KEY'];
+const forbidden=['SUPABASE_SERVICE_ROLE_KEY','SUPABASE_SECRET_KEY','VERCEL_TOKEN','OPENROUTER_API_KEY','GROQ_API_KEY','GEMINI_API_KEY','CLOUDFLARE_AI_API_TOKEN','STRIPE_SECRET_KEY','RESEND_API_KEY','WHATSAPP_ACCESS_TOKEN','WHATSAPP_APP_SECRET'];
 function filesUnder(dir){if(!exists(dir))return[];const out=[];for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const rel=path.join(dir,entry.name);if(entry.isDirectory())out.push(...filesUnder(rel));else if(/\.(?:js|jsx|ts|tsx)$/.test(entry.name))out.push(rel)}return out;}
 const clientFiles=filesUnder('app').filter(p=>/^\s*["']use client["'];/m.test(read(p))),leaked=[];
 for(const file of clientFiles){const source=read(file);for(const name of forbidden)if(source.includes(name))leaked.push(`${file}: ${name}`);for(const m of source.matchAll(/process\.env\.([A-Z0-9_]+)/g))if(!m[1].startsWith('NEXT_PUBLIC_'))leaked.push(`${file}: non-public env ${m[1]}`)}
 assert.deepEqual(leaked,[]);
 
 console.log('✓ Critical create/modify/release routes authenticate and enforce project ownership server-side');
-console.log('✓ Records, database and bootstrap are owner-scoped, bounded and conflict-safe');
-console.log('✓ Workflow execution binds app/workflow/run ownership and is replay-safe');
-console.log('✓ Checkout uses owner-scoped authoritative offers, HTTPS redirects and owner-scoped tracking');
-console.log('✓ Store approval and publish requests verify owned exact-version chains before service-only atomic writes');
-console.log('✓ Buyout migration is idempotent and SECURITY INVOKER');
-console.log('✓ Entitlement, credit charge/refund and project binding use service-role-only RPCs');
-console.log('✓ Professional AI modify persistence is service-only, expected-version bound and replay safe');
-console.log('✓ Legacy authenticated financial RPCs have a post-Preview revocation migration');
+console.log('✓ Workflow execution is owner-bound, replay-safe and has no paid SMS action path');
+console.log('✓ WhatsApp/Email provider secrets remain server-only');
 console.log(`✓ ${clientFiles.length} client component(s) scanned with no server-secret references`);
