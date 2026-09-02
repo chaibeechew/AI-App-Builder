@@ -33,6 +33,18 @@ async function readLaneriqSession() {
   return { response, data };
 }
 
+async function upgradeVerifiedCompatibilitySession() {
+  const response = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    credentials: "same-origin",
+    body: JSON.stringify({ action: "upgrade_verified_compatibility" }),
+  });
+  const data = await response.json().catch(() => ({}));
+  return { response, data };
+}
+
 function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -172,8 +184,9 @@ function AuthForm() {
         const result = await supabase.auth.verifyOtp({ phone: normalizePhoneNumber(identifier), token, type: "sms" });
         if (result.error) throw result.error;
         if (!result.data?.session) throw new Error("SESSION_NOT_CREATED");
-        // Upgrade the temporary compatibility identity to a LANERIQ-primary session before continuing.
-        const { response: sessionResponse, data: sessionData } = await readLaneriqSession();
+        // Only a freshly verified WhatsApp compatibility session may explicitly upgrade
+        // a browser that already carries the LANERIQ-primary marker.
+        const { response: sessionResponse, data: sessionData } = await upgradeVerifiedCompatibilitySession();
         if (!sessionResponse.ok || sessionData?.authenticated !== true || sessionData?.sessionAuthority !== "laneriq") throw new Error("SESSION_NOT_CREATED");
       }
 
