@@ -5,11 +5,10 @@ import { useEffect,useState } from "react";
 
 const CHANNELS=[
   ["email","Email","Send confirmations, receipts and follow-ups."],
-  ["sms","SMS","Send verification, reminders and alerts."],
   ["calendar","Calendar","Create appointments and event reminders."],
   ["payments","Payments","Accept one-time payments and subscriptions."],
   ["maps","Maps & Location","Add maps and location-aware features."],
-  ["whatsapp","WhatsApp","Send business messages from automations."],
+  ["whatsapp","WhatsApp","Send verification and business messages through Meta WhatsApp Cloud API."],
 ];
 
 export default function IntegrationsPage({params}){
