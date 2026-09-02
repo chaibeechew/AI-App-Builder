@@ -58,6 +58,9 @@ jobs:
       - name: Run cross-engine Production mobile browser QA
         run: node scripts/production-mobile-browser-qa.mjs
 
+      - name: Record Production mobile performance browser evidence
+        run: node scripts/production-mobile-performance-evidence.mjs
+
       - name: Upload browser-emulation evidence
         if: always()
         uses: actions/upload-artifact@v4
