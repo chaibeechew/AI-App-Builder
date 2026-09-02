@@ -42,12 +42,20 @@ for(const match of clean.matchAll(/([^{}]+)\{/g)){
 }
 assert.ok(selectorCount>=70,'Account selector scope check must cover the full Auth/My Projects visual layer');
 
-assert.match(auth,/const SMS_AUTH_ENABLED = process\.env\.NEXT_PUBLIC_SMS_AUTH_ENABLED === "true";/,'SMS must remain controlled by the existing environment flag');
-assert.match(auth,/if \(value === "sms" && !SMS_AUTH_ENABLED\) return;/,'Disabled SMS method must remain non-selectable');
-assert.match(auth,/disabled=\{!SMS_AUTH_ENABLED\}/,'SMS tab must remain disabled while SMS is on hold');
-assert.match(auth,/SMS_AUTH_ENABLED \? "READY" : "SOON"/,'Disabled SMS tab must remain visibly marked as SOON');
+assert.match(auth,/const WHATSAPP_AUTH_ENABLED = process\.env\.NEXT_PUBLIC_WHATSAPP_AUTH_ENABLED === "true";/,'WhatsApp must be controlled by the dedicated environment flag');
+assert.match(auth,/if \(value === "whatsapp" && !WHATSAPP_AUTH_ENABLED\) return;/,'Unconfigured WhatsApp must remain non-selectable');
+assert.match(auth,/disabled=\{!WHATSAPP_AUTH_ENABLED\}/,'WhatsApp tab must fail closed until the Meta + Auth Hook path is ready');
+assert.match(auth,/WHATSAPP_AUTH_ENABLED \? "READY" : "SETUP"/,'WhatsApp status must be explicit');
+assert.match(auth,/Email Code/,'Email Code must remain available');
+assert.match(auth,/WhatsApp Code/,'WhatsApp Code must be the only phone verification option');
+assert.doesNotMatch(auth,/<strong>SMS Code<\/strong>/,'Paid SMS must not remain as a customer verification option');
+assert.doesNotMatch(auth,/process\.env\.NEXT_PUBLIC_SMS_AUTH_ENABLED|const\s+SMS_AUTH_ENABLED\s*=/,'Retired SMS feature flag must never be active');
+assert.doesNotMatch(auth,/switchMethod\("sms"\)/,'Retired SMS method must not be selectable');
+assert.match(auth,/No paid SMS fallback is used/,'Auth UI must explicitly forbid paid SMS fallback');
 assert.match(auth,/supabase\.auth\.signInWithOtp\(\{ email, options \}\)/,'Email OTP send path must remain intact');
+assert.match(auth,/supabase\.auth\.signInWithOtp\(\{ phone, options \}\)/,'WhatsApp uses Supabase phone OTP only as the secure OTP/session authority');
 assert.match(auth,/supabase\.auth\.verifyOtp\(\{ email: normalizeEmailAddress\(identifier\), token, type: "email" \}\)/,'Email OTP verification path must remain intact');
+assert.match(auth,/supabase\.auth\.verifyOtp\(\{ phone: normalizePhoneNumber\(identifier\), token, type: "sms" \}\)/,'Supabase internal phone OTP verification type remains intact for the WhatsApp Auth Hook path');
 assert.match(auth,/const \{ data: trustedUserData, error: trustedUserError \} = await supabase\.auth\.getUser\(\)/,'Trusted session user verification must remain intact');
 assert.match(auth,/safeInternalNext\(searchParams\.get\("next"\)\)/,'Auth redirect target must remain internally sanitized');
 assert.match(authCss,/\.inputWrap input[\s\S]*font-size:16px/,'Base Auth CSS must keep iPhone-safe input sizing even without the shell override');
@@ -63,5 +71,5 @@ assert.match(projects,/href=\{`\/website\/\$\{app\.id\}`\}/,'Generated Website n
 
 console.log('✓ Big Moon Valley now carries through LANERIQ Auth and authenticated My Projects shells');
 console.log(`✓ ${selectorCount} account-shell selectors are scoped only to Auth/loading/My Projects roots`);
-console.log('✓ Email OTP, trusted session verification, safe redirects, owner filtering and sign-out contracts remain intact');
-console.log('✓ SMS remains environment-gated, disabled and marked SOON while live SMS stays on hold');
+console.log('✓ Email Code + WhatsApp Code are the only customer verification choices; paid SMS fallback is removed');
+console.log('✓ Trusted session verification, safe redirects, owner filtering and sign-out contracts remain intact');

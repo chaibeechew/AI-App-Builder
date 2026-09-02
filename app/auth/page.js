@@ -7,18 +7,18 @@ import { createClient } from "../../lib/supabase/client";
 import { PRODUCT_BRAND } from "../../lib/product-brand.js";
 import {
   EMAIL_OTP_POLICY,
-  SMS_OTP_POLICY,
+  WHATSAPP_OTP_POLICY,
   authErrorMessage,
   normalizeEmailAddress,
   normalizeEmailOtp,
   normalizePhoneNumber,
-  normalizeSmsOtp,
+  normalizeWhatsAppOtp,
   otpPolicyForMethod,
 } from "../../lib/auth/otp-policy.js";
 import { normalizeReferralCode, safeInternalNext } from "../../lib/auth/session-safety.js";
 
 export const dynamic = "force-dynamic";
-const SMS_AUTH_ENABLED = process.env.NEXT_PUBLIC_SMS_AUTH_ENABLED === "true";
+const WHATSAPP_AUTH_ENABLED = process.env.NEXT_PUBLIC_WHATSAPP_AUTH_ENABLED === "true";
 
 function safeFlowError(error, method) {
   const message = String(error?.message || "");
@@ -76,7 +76,7 @@ function AuthForm() {
   }
 
   function switchMethod(value) {
-    if (value === "sms" && !SMS_AUTH_ENABLED) return;
+    if (value === "whatsapp" && !WHATSAPP_AUTH_ENABLED) return;
     setMethod(value);
     resetFlow();
   }
@@ -84,8 +84,8 @@ function AuthForm() {
   async function sendCode(event) {
     event?.preventDefault?.();
     if (loading || (sent && resendIn > 0)) return;
-    if (method === "sms" && !SMS_AUTH_ENABLED) {
-      setError("SMS verification is not enabled yet. Use Email Code for now.");
+    if (method === "whatsapp" && !WHATSAPP_AUTH_ENABLED) {
+      setError("WhatsApp verification is still being configured. Email Code remains available.");
       return;
     }
     setLoading(true);
@@ -93,12 +93,14 @@ function AuthForm() {
     setMessage("");
     try {
       const options = { shouldCreateUser: true, data: referral ? { referral_code: referral } : undefined };
-      if (method === "sms") {
+      if (method === "whatsapp") {
         const phone = normalizePhoneNumber(identifier);
+        // Supabase phone OTP is retained only as the secure OTP/session authority.
+        // Delivery must be routed through the configured Meta WhatsApp Auth Hook; there is no UI SMS fallback.
         const result = await supabase.auth.signInWithOtp({ phone, options });
         if (result.error) throw result.error;
         setIdentifier(phone);
-        setMessage(`SMS verification code sent to ${phone}.`);
+        setMessage(`WhatsApp verification code sent to ${phone}.`);
       } else {
         const email = normalizeEmailAddress(identifier);
         const result = await supabase.auth.signInWithOtp({ email, options });
@@ -119,7 +121,7 @@ function AuthForm() {
 
   async function verify(event) {
     event.preventDefault();
-    const maxAttempts = method === "sms" ? SMS_OTP_POLICY.maxVerifyAttemptsPerCode : EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode;
+    const maxAttempts = method === "whatsapp" ? WHATSAPP_OTP_POLICY.maxVerifyAttemptsPerCode : EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode;
     if (verifyAttempts >= maxAttempts) {
       setError("Too many incorrect attempts. Request a new verification code.");
       return;
@@ -130,9 +132,11 @@ function AuthForm() {
     let attemptedRemoteVerify = false;
     if (typeof window !== "undefined") window.__LANERIQ_AUTH_FLOW_BUSY__ = true;
     try {
-      const token = method === "sms" ? normalizeSmsOtp(otp) : normalizeEmailOtp(otp);
+      const token = method === "whatsapp" ? normalizeWhatsAppOtp(otp) : normalizeEmailOtp(otp);
       attemptedRemoteVerify = true;
-      const result = method === "sms"
+      // Supabase currently names phone OTP verification type "sms" internally even when a Send SMS Hook
+      // delivers the OTP over Meta WhatsApp. This value is never presented as a customer verification option.
+      const result = method === "whatsapp"
         ? await supabase.auth.verifyOtp({ phone: normalizePhoneNumber(identifier), token, type: "sms" })
         : await supabase.auth.verifyOtp({ email: normalizeEmailAddress(identifier), token, type: "email" });
       if (result.error) throw result.error;
@@ -165,9 +169,10 @@ function AuthForm() {
 
   if (checking) return <main className="loadingScreen">Checking your session…</main>;
 
-  const identifierLabel = method === "email" ? "Email address" : "Mobile number";
-  const methodLabel = method === "email" ? "Email" : "SMS";
-  const codePlaceholder = method === "email" ? "1".repeat(EMAIL_OTP_POLICY.codeLength) : "1".repeat(SMS_OTP_POLICY.codeLength);
+  const isWhatsApp = method === "whatsapp";
+  const identifierLabel = isWhatsApp ? "WhatsApp number" : "Email address";
+  const methodLabel = isWhatsApp ? "WhatsApp" : "Email";
+  const codePlaceholder = isWhatsApp ? "1".repeat(WHATSAPP_OTP_POLICY.codeLength) : "1".repeat(EMAIL_OTP_POLICY.codeLength);
 
   return (
     <main className="authPage">
@@ -191,19 +196,19 @@ function AuthForm() {
         <section className="authCard" aria-live="polite">
           <div className="cardTop"><small>SECURE VERIFICATION</small><span>{sent ? "02" : "01"}</span></div>
           <h2>{sent ? "Enter your code" : "Welcome back"}</h2>
-          <p>{sent ? `We sent a ${policy.codeLength}-digit ${methodLabel} verification code.` : "Choose Email or SMS. Each method uses its own secure one-time-code policy."}</p>
+          <p>{sent ? `We sent a ${policy.codeLength}-digit ${methodLabel} verification code.` : "Choose Email Code or WhatsApp Code. No paid SMS fallback is used."}</p>
 
           <div className="tabs" role="tablist" aria-label="Verification method">
             <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}><span>✉</span><strong>Email Code</strong><b>READY</b></button>
-            <button type="button" role="tab" aria-selected={method === "sms"} className={method === "sms" ? "active" : ""} disabled={!SMS_AUTH_ENABLED} onClick={() => switchMethod("sms")}><span>◉</span><strong>SMS Code</strong><b>{SMS_AUTH_ENABLED ? "READY" : "SOON"}</b></button>
+            <button type="button" role="tab" aria-selected={method === "whatsapp"} className={method === "whatsapp" ? "active" : ""} disabled={!WHATSAPP_AUTH_ENABLED} onClick={() => switchMethod("whatsapp")}><span>◉</span><strong>WhatsApp Code</strong><b>{WHATSAPP_AUTH_ENABLED ? "READY" : "SETUP"}</b></button>
           </div>
 
           {!sent ? (
             <form onSubmit={sendCode}>
               <label htmlFor="auth-identifier">{identifierLabel}</label>
               <div className="inputWrap">
-                <span>{method === "email" ? "@" : "+"}</span>
-                <input id="auth-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={method === "email" ? "you@example.com" : "+60123456789"} inputMode={method === "email" ? "email" : "tel"} autoComplete={method === "email" ? "email" : "tel"} autoCapitalize="none" maxLength={method === "email" ? EMAIL_OTP_POLICY.maxEmailLength : SMS_OTP_POLICY.maxPhoneLength + 8} required />
+                <span>{isWhatsApp ? "+" : "@"}</span>
+                <input id="auth-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={isWhatsApp ? "+60123456789" : "you@example.com"} inputMode={isWhatsApp ? "tel" : "email"} autoComplete={isWhatsApp ? "tel" : "email"} autoCapitalize="none" maxLength={isWhatsApp ? WHATSAPP_OTP_POLICY.maxPhoneLength + 8 : EMAIL_OTP_POLICY.maxEmailLength} required />
               </div>
               {referral && <div className="notice">Referral code · {referral}</div>}
               <button className="primary" disabled={loading}><span>{loading ? "Sending…" : `Send ${methodLabel} Code`}</span><i>→</i></button>
@@ -219,7 +224,7 @@ function AuthForm() {
               <button className="primary" disabled={loading || otp.length !== policy.codeLength || verifyAttempts >= policy.maxVerifyAttemptsPerCode}><span>{loading ? "Verifying…" : "Verify & Continue"}</span><i>→</i></button>
               <div className="secondaryRow">
                 <button type="button" className="secondary" disabled={loading || resendIn > 0} onClick={sendCode}>{resendIn > 0 ? `Resend in ${resendIn}s` : "Resend Code"}</button>
-                <button type="button" className="secondary" disabled={loading} onClick={() => { setSent(false); setOtp(""); setMessage(""); setError(""); setResendIn(0); setVerifyAttempts(0); }}>Change {method === "email" ? "email" : "number"}</button>
+                <button type="button" className="secondary" disabled={loading} onClick={() => { setSent(false); setOtp(""); setMessage(""); setError(""); setResendIn(0); setVerifyAttempts(0); }}>Change {isWhatsApp ? "number" : "email"}</button>
               </div>
             </form>
           )}

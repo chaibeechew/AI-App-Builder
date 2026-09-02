@@ -85,10 +85,11 @@ assert.match(runtime,/translateTree\(document\.body, language\)/);
 assert.match(layout,/<LanguageRuntime \/>/);
 assert.match(layout,/<html lang="en">/);
 
-// Critical source surfaces must map their visible English chrome into the complete catalog.
+// Critical source surfaces must map stable visible English chrome into the complete catalog.
+// WhatsApp-specific phone auth labels are separately locked below so the retired SMS label cannot return.
 const requiredSurfacePhrases=[
   [home,['Describe the App & Website you want to build','✦ Improve Prompt','Choose a Style','Or Choose a Template','BUILD APP + WEBSITE','Dashboard','My Creations','Templates','More']],
-  [auth,['Checking your session…','Secure sign in','CREATE WITHOUT LIMITS','One code.','Your whole studio.','SECURE VERIFICATION','Enter your code','Welcome back','Email Code','SMS Code','Email address','Mobile number','Verify & Continue','Resend Code','Encrypted session','One-time code','Rate-limit aware']],
+  [auth,['Checking your session…','Secure sign in','CREATE WITHOUT LIMITS','One code.','Your whole studio.','SECURE VERIFICATION','Enter your code','Welcome back','Email Code','Email address','Verify & Continue','Resend Code','Encrypted session','One-time code','Rate-limit aware']],
   [templates,['Reference. Reimagine. Build something original.','Create from scratch →','🔥 Trending 100','All Inspirations','All industries','All styles','AI Reimagine →','Reference only · AI will reimagine the structure, visuals and copy.','No inspiration matched these filters. Try a broader search.']],
 ];
 for(const [source,phrases] of requiredSurfacePhrases){
@@ -98,6 +99,11 @@ for(const [source,phrases] of requiredSurfacePhrases){
   }
 }
 
+assert.match(auth,/WhatsApp Code/,'WhatsApp Code must remain the only phone verification label');
+assert.match(auth,/WhatsApp number/,'WhatsApp phone input must remain explicit');
+assert.doesNotMatch(auth,/<strong>SMS Code<\/strong>/,'Retired SMS verification label must not return');
+assert.doesNotMatch(auth,/switchMethod\("sms"\)/,'Retired SMS verification method must not return');
+
 // Main Builder and Templates searchable placeholders are also complete across all locales.
 for(const phrase of CRITICAL_ATTRIBUTE_PHRASES){
   assert.ok(home.includes(phrase)||templates.includes(phrase),`Tracked placeholder no longer exists on a critical surface: ${phrase}`);
@@ -106,5 +112,6 @@ for(const phrase of CRITICAL_ATTRIBUTE_PHRASES){
 console.log('✓ Multilingual catalog has complete 10/10 locale coverage for every declared core UI key');
 console.log('✓ Hero and critical placeholder catalogs have complete 10/10 coverage with deterministic English fallback');
 console.log('✓ Runtime persists language, sets html lang/dir, translates dynamic React text and key accessibility attributes');
-console.log('✓ Builder, Auth and Templates critical chrome is locked to the canonical translation catalog');
+console.log('✓ Builder, stable Auth chrome and Templates critical chrome remain locked to the canonical translation catalog');
+console.log('✓ Auth phone verification is explicitly WhatsApp-only; retired SMS labels and methods are blocked');
 console.log('✓ Unsupported locales fail safely and no legacy duplicate PHRASES/HERO dictionary remains in the runtime');
