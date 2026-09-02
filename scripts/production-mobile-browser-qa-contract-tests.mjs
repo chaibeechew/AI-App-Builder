@@ -26,7 +26,7 @@ for (const pattern of [
   /PUBLIC_READ_ONLY_OBSERVABILITY_ENDPOINTS\.has\(pathname\)/,
   /request\.method === "GET"/,
   /request\.method === "HEAD"/,
-  /no broad \/api bypass/,
+  /no broad \/api prefix bypass/,
 ]) assert.match(sessionProxy, pattern);
 assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/build-info"\)/, "Build identity access must remain exact-path only.");
 
@@ -76,7 +76,7 @@ assert.match(layout, /BuilderGlobalOverlays/);
 assert.doesNotMatch(layout, /<StudioLauncher\s*\/>|<ReferenceUploader\s*\/>|<SoolenVoiceAssistant\s*\/>/, "Heavy global overlays must be mounted only through the route gate.");
 
 console.log("✓ Public build identity is privacy-safe, exact-commit aware, no-store and GET/HEAD-only before sign-in");
-console.log("✓ Session protection keeps the build identity bypass exact-path only with no broad /api bypass");
+console.log("✓ Session protection keeps the build identity bypass exact-path only with no broad /api prefix bypass");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
 console.log("✓ Browser QA stays permission-free and labels evidence as browser emulation, never physical-device proof");
 console.log("✓ Homepage/auth/evidence/customer-preview surfaces do not mount duplicate heavy global builder overlays");
