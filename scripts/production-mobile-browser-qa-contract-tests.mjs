@@ -1,0 +1,70 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const read = (file) => fs.readFileSync(file, "utf8");
+const buildInfo = read("app/api/build-info/route.js");
+const workflow = read(".github/workflows/production-mobile-browser-qa.yml");
+const runner = read("scripts/production-mobile-browser-qa.mjs");
+const policy = read("lib/ui/global-overlay-policy.js");
+const overlays = read("app/components/BuilderGlobalOverlays.js");
+const studio = read("app/components/StudioLauncher.js");
+const layout = read("app/layout.js");
+
+for (const pattern of [
+  /VERCEL_GIT_COMMIT_SHA/,
+  /VERCEL_GIT_COMMIT_REF/,
+  /VERCEL_ENV/,
+  /private, no-store, max-age=0/,
+  /PRODUCT_BRAND\.name/,
+]) assert.match(buildInfo, pattern);
+assert.doesNotMatch(buildInfo, /TOKEN|SECRET|PASSWORD|SERVICE_ROLE|API_KEY/i, "Public build identity must never expose secrets or credentials.");
+
+for (const pattern of [
+  /playwright@1\.62\.1/,
+  /install --with-deps chromium webkit/,
+  /\/api\/build-info/,
+  /LANERIQ_EXPECTED_SHA/,
+  /production-mobile-browser-qa\.mjs/,
+  /actions\/upload-artifact@v4/,
+]) assert.match(workflow, pattern);
+
+for (const pattern of [
+  /webkit/,
+  /devices\["iPhone 13"\]/,
+  /chromium/,
+  /devices\["Pixel 5"\]/,
+  /BROWSER_EMULATION/,
+  /physicalDeviceVerified:\s*false/,
+  /\/mobile-readiness/,
+  /permissionPromptsTriggered/,
+  /noHorizontalOverflow/,
+  /duplicateOverlayCount/,
+  /page\.screenshot/,
+  /consoleErrors/,
+  /pageErrors/,
+]) assert.match(runner, pattern);
+assert.doesNotMatch(runner, /getUserMedia\s*\(|grantPermissions|permissions\.query|signInWithOtp|verifyOtp/i, "Browser-emulation QA must stay permission-free and must not exercise Email/SMS Auth.");
+
+for (const pattern of [
+  /"\/"/,
+  /"\/auth"/,
+  /"\/studio"/,
+  /"\/production-e2e"/,
+  /"\/mobile-readiness"/,
+  /"\/a\/"/,
+  /"\/website\/"/,
+  /"\/release\/"/,
+]) assert.match(policy, pattern);
+
+assert.match(overlays, /shouldHideBuilderGlobalOverlay/);
+assert.match(overlays, /<StudioLauncher\s*\/>/);
+assert.match(overlays, /<ReferenceUploader\s*\/>/);
+assert.match(overlays, /<SoolenVoiceAssistant\s*\/>/);
+assert.match(studio, /shouldHideBuilderGlobalOverlay/);
+assert.match(layout, /BuilderGlobalOverlays/);
+assert.doesNotMatch(layout, /<StudioLauncher\s*\/>|<ReferenceUploader\s*\/>|<SoolenVoiceAssistant\s*\/>/, "Heavy global overlays must be mounted only through the route gate.");
+
+console.log("✓ Public build identity is privacy-safe, exact-commit aware and no-store");
+console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
+console.log("✓ Browser QA stays permission-free and labels evidence as browser emulation, never physical-device proof");
+console.log("✓ Homepage/auth/evidence/customer-preview surfaces do not mount duplicate heavy global builder overlays");

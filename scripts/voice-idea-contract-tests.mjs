@@ -9,6 +9,8 @@ import {
 } from "../lib/voice/voice-idea-policy.js";
 
 const voice = fs.readFileSync("app/components/SoolenVoiceAssistant.js", "utf8");
+const overlays = fs.readFileSync("app/components/BuilderGlobalOverlays.js", "utf8");
+const overlayPolicy = fs.readFileSync("lib/ui/global-overlay-policy.js", "utf8");
 const layout = fs.readFileSync("app/layout.js", "utf8");
 
 assert.equal(VOICE_IDEA_POLICY.maxTranscriptLength, 4000);
@@ -42,11 +44,16 @@ for (const pattern of [
   /100svh/,
   /prefers-reduced-motion:reduce/,
 ]) assert.match(voice, pattern);
-assert.match(layout, /SoolenVoiceAssistant/);
+assert.match(layout, /BuilderGlobalOverlays/);
+assert.match(overlays, /SoolenVoiceAssistant/);
+assert.match(overlays, /shouldHideBuilderGlobalOverlay\(pathname\)/);
+assert.match(overlayPolicy, /"\/"/);
+assert.match(overlayPolicy, /"\/mobile-readiness"/);
 assert.doesNotMatch(voice, /getUserMedia\([^)]*\)[\s\S]{0,100}start\(\)/, "Voice must not auto-start microphone capture.");
 assert.doesNotMatch(voice, /Your voice is private and secure/, "Voice UI must not overclaim browser/provider privacy guarantees.");
 
 console.log("✓ Voice Idea has bounded transcript/language/error policies and never auto-starts microphone capture");
 console.log("✓ Recognition stops on timeout, pagehide, hidden-tab and unmount lifecycle boundaries");
 console.log("✓ Voice transcript is bounded before sessionStorage and Builder event handoff");
+console.log("✓ Voice mounts through the shared route gate so homepage/evidence routes avoid unnecessary listener setup");
 console.log("✓ Mobile safe-area and reduced-motion behavior are enforced while real microphone behavior remains device-evidence gated");

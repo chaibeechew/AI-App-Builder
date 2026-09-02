@@ -30,10 +30,8 @@ import "./property-crm-golden-reference.css";
 import "./generated-industry-visual-v2.css";
 import "./home-canonical-v4.css";
 import AccountNav from "./components/AccountNav";
-import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
+import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
 import ProductCopyFix from "./components/ProductCopyFix";
-import ReferenceUploader from "./components/ReferenceUploader";
-import StudioLauncher from "./components/StudioLauncher";
 import AdaptiveWallpaperEngine from "./components/AdaptiveWallpaperEngine";
 import PremiumJourneyTheme from "./components/PremiumJourneyTheme";
 import PreciseEditAssistant from "./components/PreciseEditAssistant";
@@ -106,9 +104,7 @@ export default function RootLayout({ children }) {
         <PreciseEditAssistant />
         <GeneratedDataManager />
         <PublishingReadinessMount />
-        <StudioLauncher />
-        <ReferenceUploader />
-        <SoolenVoiceAssistant />
+        <BuilderGlobalOverlays />
       </body>
     </html>
   );
