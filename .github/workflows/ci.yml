@@ -109,6 +109,8 @@ jobs:
         run: npm run test:web-publish
       - name: Web Publish public runtime contract tests
         run: npm run test:web-publish-public
+      - name: Web Publish live evidence contract tests
+        run: npm run test:web-publish-evidence
       - name: Apple App Store contract tests
         run: npm run test:apple-store
 
@@ -169,5 +171,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI core gates plus zero-cost safety/execution, mobile diagnostics, authenticated Production E2E evidence tooling, public Web Publish runtime security and two 1000-point hardening packs passed. External physical-device/provider/store proof remains evidence-gated."
+        run: echo "LANERIQ AI core gates plus zero-cost safety/execution, mobile diagnostics, authenticated Production E2E evidence, public Web Publish runtime security, user-triggered Web Publish lifecycle evidence safety and two 1000-point hardening packs passed. External physical-device/provider/store proof remains evidence-gated."
       # This workflow validates code only. It never substitutes code for authenticated live, physical-device, provider or store evidence.
