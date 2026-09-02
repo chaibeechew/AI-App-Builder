@@ -23,16 +23,18 @@ const WHATSAPP_AUTH_ENABLED = process.env.NEXT_PUBLIC_WHATSAPP_AUTH_ENABLED === 
 function safeFlowError(error, method) {
   const message = String(error?.message || "");
   if (message === "Enter a valid email address." || message.startsWith("Enter the ") || message.startsWith("Too many incorrect")) return message;
-  if (message.startsWith("Use international format")) return message;
+  if (message.startsWith("Use international format") || message.startsWith("This verification code") || message.startsWith("The verification code")) return message;
   return authErrorMessage(error, method);
 }
 
 function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Existing projects still use a Supabase session compatibility bridge while LANERIQ migrates session authority.
   const supabase = useMemo(() => createClient(), []);
   const [method, setMethod] = useState("email");
   const [identifier, setIdentifier] = useState("");
+  const [challengeId, setChallengeId] = useState("");
   const [otp, setOtp] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,6 +69,7 @@ function AuthForm() {
 
   function resetFlow() {
     setIdentifier("");
+    setChallengeId("");
     setOtp("");
     setSent(false);
     setMessage("");
@@ -108,7 +111,9 @@ function AuthForm() {
         requestError.code = data?.code || "VERIFICATION_REQUEST_FAILED";
         throw requestError;
       }
+      if (method === "email" && !/^[a-f0-9]{48}$/.test(String(data?.challengeId || ""))) throw new Error("Email verification challenge was not created.");
       setIdentifier(normalized);
+      setChallengeId(method === "email" ? String(data.challengeId) : "");
       setMessage(method === "whatsapp"
         ? `WhatsApp verification code sent to ${normalized}.`
         : `${PRODUCT_BRAND.name} verification code sent to ${normalized}. Check your inbox and spam folder.`);
@@ -138,16 +143,33 @@ function AuthForm() {
     try {
       const token = method === "whatsapp" ? normalizeWhatsAppOtp(otp) : normalizeEmailOtp(otp);
       attemptedRemoteVerify = true;
-      // Phone OTP remains an internal auth protocol name only. Customer delivery is WhatsApp and there is no SMS fallback.
-      const result = method === "whatsapp"
-        ? await supabase.auth.verifyOtp({ phone: normalizePhoneNumber(identifier), token, type: "sms" })
-        : await supabase.auth.verifyOtp({ email: normalizeEmailAddress(identifier), token, type: "email" });
-      if (result.error) throw result.error;
-      if (!result.data?.session) throw new Error("SESSION_NOT_CREATED");
+
+      if (method === "email") {
+        if (!challengeId) throw new Error("This verification code has expired. Request a new code.");
+        const response = await fetch("/api/auth/verification/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          credentials: "same-origin",
+          body: JSON.stringify({ method: "email", identifier: normalizeEmailAddress(identifier), challengeId, code: token }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data?.success !== true) {
+          if (data?.code === "VERIFICATION_LOCKED") setVerifyAttempts(maxAttempts);
+          else if (Number.isFinite(Number(data?.attempts))) setVerifyAttempts(Math.min(maxAttempts, Number(data.attempts)));
+          const verifyError = new Error(data?.error || "Unable to complete email verification right now.");
+          verifyError.code = data?.code || "VERIFICATION_FAILED";
+          throw verifyError;
+        }
+      } else {
+        // Phone OTP remains an internal compatibility protocol name only. Customer delivery is WhatsApp and there is no SMS fallback.
+        const result = await supabase.auth.verifyOtp({ phone: normalizePhoneNumber(identifier), token, type: "sms" });
+        if (result.error) throw result.error;
+        if (!result.data?.session) throw new Error("SESSION_NOT_CREATED");
+      }
 
       const { data: trustedUserData, error: trustedUserError } = await supabase.auth.getUser();
       if (trustedUserError || !trustedUserData?.user) throw new Error("SESSION_USER_NOT_VERIFIED");
-      if (result.data.user?.id && trustedUserData.user.id !== result.data.user.id) throw new Error("SESSION_USER_MISMATCH");
 
       try {
         await fetch("/api/referrals/verify", {
@@ -162,7 +184,7 @@ function AuthForm() {
       router.replace(next);
       router.refresh();
     } catch (flowError) {
-      if (attemptedRemoteVerify) setVerifyAttempts((value) => Math.min(maxAttempts, value + 1));
+      if (attemptedRemoteVerify && method === "whatsapp") setVerifyAttempts((value) => Math.min(maxAttempts, value + 1));
       setError(safeFlowError(flowError, method));
     } finally {
       if (typeof window !== "undefined") window.__LANERIQ_AUTH_FLOW_BUSY__ = false;
@@ -202,7 +224,7 @@ function AuthForm() {
           <p>{sent ? `We sent a ${policy.codeLength}-digit ${methodLabel} verification code.` : "Choose Email Code or WhatsApp Code. No paid SMS fallback is used."}</p>
 
           <div className="tabs" role="tablist" aria-label="Verification method">
-            <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}><span>✉</span><strong>Email Code</strong><b>READY</b></button>
+            <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}><span>✉</span><strong>Email Code</strong><b>LANERIQ</b></button>
             <button type="button" role="tab" aria-selected={method === "whatsapp"} className={method === "whatsapp" ? "active" : ""} disabled={!WHATSAPP_AUTH_ENABLED} onClick={() => switchMethod("whatsapp")}><span>◉</span><strong>WhatsApp Code</strong><b>{WHATSAPP_AUTH_ENABLED ? "READY" : "SETUP"}</b></button>
           </div>
 
@@ -227,7 +249,7 @@ function AuthForm() {
               <button className="primary" disabled={loading || otp.length !== policy.codeLength || verifyAttempts >= policy.maxVerifyAttemptsPerCode}><span>{loading ? "Verifying…" : "Verify & Continue"}</span><i>→</i></button>
               <div className="secondaryRow">
                 <button type="button" className="secondary" disabled={loading || resendIn > 0} onClick={sendCode}>{resendIn > 0 ? `Resend in ${resendIn}s` : "Resend Code"}</button>
-                <button type="button" className="secondary" disabled={loading} onClick={() => { setSent(false); setOtp(""); setMessage(""); setError(""); setResendIn(0); setVerifyAttempts(0); }}>Change {isWhatsApp ? "number" : "email"}</button>
+                <button type="button" className="secondary" disabled={loading} onClick={() => { setSent(false); setChallengeId(""); setOtp(""); setMessage(""); setError(""); setResendIn(0); setVerifyAttempts(0); }}>Change {isWhatsApp ? "number" : "email"}</button>
               </div>
             </form>
           )}
