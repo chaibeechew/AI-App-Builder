@@ -23,6 +23,7 @@ import "./big-moon-valley-game-pro-commerce.css";
 import "./big-moon-valley-discovery-community.css";
 import "./home-iphone-rescue.css";
 import "./home-water-moon.css";
+import "./home-water-static.css";
 import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 import ProductCopyFix from "./components/ProductCopyFix";
@@ -80,7 +81,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <link rel="preload" as="image" href="/big-moon-valley.svg" fetchPriority="high" />
+        <link rel="preload" as="image" href="/laneriq-water-home.svg" fetchPriority="high" />
       </head>
       <body>
         <script dangerouslySetInnerHTML={{ __html: earlyHomeLoadGuard }} />
