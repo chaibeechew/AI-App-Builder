@@ -10,6 +10,7 @@ const policy = read("lib/ui/global-overlay-policy.js");
 const overlays = read("app/components/BuilderGlobalOverlays.js");
 const studio = read("app/components/StudioLauncher.js");
 const layout = read("app/layout.js");
+const homeInputSafety = read("app/home-mobile-input-safety.css");
 
 for (const pattern of [
   /VERCEL_GIT_COMMIT_SHA/,
@@ -50,11 +51,21 @@ for (const pattern of [
   /permissionPromptsTriggered/,
   /noHorizontalOverflow/,
   /duplicateOverlayCount/,
+  /visibleInputs/,
+  /undersizedInputs/,
   /page\.screenshot/,
+  /failure\.png/,
+  /writeEvidence/,
   /consoleErrors/,
   /pageErrors/,
 ]) assert.match(runner, pattern);
 assert.doesNotMatch(runner, /getUserMedia\s*\(|grantPermissions|permissions\.query|signInWithOtp|verifyOtp/i, "Browser-emulation QA must stay permission-free and must not exercise Email/SMS Auth.");
+
+assert.match(layout, /home-mobile-input-safety\.css/);
+assert.match(homeInputSafety, /@media\s*\(max-width:\s*820px\)/);
+assert.match(homeInputSafety, /\.premiumHome textarea/);
+assert.match(homeInputSafety, /\.premiumHome input:not\(\[type="hidden"\]\)/);
+assert.match(homeInputSafety, /font-size:\s*16px\s*!important/);
 
 for (const pattern of [
   /"\/"/,
@@ -78,5 +89,7 @@ assert.doesNotMatch(layout, /<StudioLauncher\s*\/>|<ReferenceUploader\s*\/>|<Soo
 console.log("✓ Public build identity is privacy-safe, exact-commit aware, no-store and GET/HEAD-only before sign-in");
 console.log("✓ Session protection keeps the build identity bypass exact-path only with no broad /api prefix bypass");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
+console.log("✓ Homepage editable controls are forced to >=16px on mobile to prevent iOS Safari focus auto-zoom");
+console.log("✓ Browser QA preserves failure screenshots/report details, including undersized editable-control diagnostics");
 console.log("✓ Browser QA stays permission-free and labels evidence as browser emulation, never physical-device proof");
 console.log("✓ Homepage/auth/evidence/customer-preview surfaces do not mount duplicate heavy global builder overlays");
