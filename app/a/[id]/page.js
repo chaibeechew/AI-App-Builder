@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server.js";
 import { loadVisibleProject, loadVisibleProjectMedia } from "../../../lib/publishing/public-project-runtime.js";
 import { resolveGeneratedRuntime } from "../../../lib/game/game-runtime-router-v1.js";
+import { applyGeneratedExperienceStandard } from "../../../lib/design/generated-experience-standard.js";
 import GeneratedAppClient from "./GeneratedAppClient";
 import GameRuntimeClient from "./GameRuntimeClient";
 import MobaRuntimeClient from "./MobaRuntimeClient";
@@ -35,7 +36,8 @@ export default async function GeneratedAppPage({ params }) {
 
   const { admin, app, version } = visible;
   const media = await loadVisibleProjectMedia(admin, id);
-  const specification = version.specification;
+  const experience = applyGeneratedExperienceStandard({ specification: version.specification, app });
+  const specification = experience.specification;
   const route = resolveGeneratedRuntime(specification);
   const routedSpecification = route.isGame && route.archetypeOverride
     ? { ...specification, game: { ...(specification.game || {}), archetype: route.archetypeOverride } }
@@ -52,5 +54,5 @@ export default async function GeneratedAppPage({ params }) {
     default: runtime = <GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
   }
 
-  return <><AnalyticsTracker appId={id} channel={route.isGame ? "game" : "app"} eventName={route.eventName}/>{runtime}</>;
+  return <div className={`generatedExperience generatedExperience--${experience.industry}`} data-laneriq-standard={experience.standardId} data-theme-mode={specification?.designSystem?.themeMode||"auto"}><AnalyticsTracker appId={id} channel={route.isGame ? "game" : "app"} eventName={route.eventName}/>{runtime}</div>;
 }

@@ -25,6 +25,7 @@ import "./home-iphone-rescue.css";
 import "./home-water-moon.css";
 import "./home-signature-v3.css";
 import "./home-signature-mobile-final.css";
+import "./generated-app-premium.css";
 import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 import ProductCopyFix from "./components/ProductCopyFix";
