@@ -63,8 +63,10 @@ assert.doesNotMatch(runner, /getUserMedia\s*\(|grantPermissions|permissions\.que
 
 assert.match(layout, /home-mobile-input-safety\.css/);
 assert.match(homeInputSafety, /@media\s*\(max-width:\s*820px\)/);
+assert.match(homeInputSafety, /\.premiumHome \.promptCard textarea/);
+assert.match(homeInputSafety, /\.premiumHome \.promptCard input:not\(\[type="hidden"\]\)/);
+assert.match(homeInputSafety, /\.premiumHome \.promptCard select/);
 assert.match(homeInputSafety, /\.premiumHome textarea/);
-assert.match(homeInputSafety, /\.premiumHome input:not\(\[type="hidden"\]\)/);
 assert.match(homeInputSafety, /font-size:\s*16px\s*!important/);
 
 for (const pattern of [
@@ -89,7 +91,7 @@ assert.doesNotMatch(layout, /<StudioLauncher\s*\/>|<ReferenceUploader\s*\/>|<Soo
 console.log("✓ Public build identity is privacy-safe, exact-commit aware, no-store and GET/HEAD-only before sign-in");
 console.log("✓ Session protection keeps the build identity bypass exact-path only with no broad /api prefix bypass");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
-console.log("✓ Homepage editable controls are forced to >=16px on mobile to prevent iOS Safari focus auto-zoom");
+console.log("✓ Final homepage mobile input authority matches higher-specificity prompt-card rules and forces editable controls to >=16px");
 console.log("✓ Browser QA preserves failure screenshots/report details, including undersized editable-control diagnostics");
 console.log("✓ Browser QA stays permission-free and labels evidence as browser emulation, never physical-device proof");
 console.log("✓ Homepage/auth/evidence/customer-preview surfaces do not mount duplicate heavy global builder overlays");
