@@ -19,6 +19,7 @@ import "./big-moon-valley-creator-services.css";
 import "./big-moon-valley-project-intelligence.css";
 import "./big-moon-valley-creative-assets.css";
 import "./big-moon-valley-data-automation.css";
+import "./big-moon-valley-game-pro-commerce.css";
 import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 import ProductCopyFix from "./components/ProductCopyFix";
