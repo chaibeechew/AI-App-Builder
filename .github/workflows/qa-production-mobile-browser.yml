@@ -1,0 +1,32 @@
+name: LANERIQ AI QA Production Mobile Browser
+
+on:
+  push:
+    branches: [production-mobile-browser-hardening-20260902]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  production-mobile-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      LANERIQ_PRODUCTION_URL: https://laneriq-ai.vercel.app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install browser QA dependency
+        run: npm install --no-save --no-audit --no-fund @playwright/test@1.57.0
+      - name: Install WebKit and Chromium
+        run: npx playwright install --with-deps webkit chromium
+      - name: Run Production cross-engine mobile browser QA
+        run: timeout --signal=TERM --kill-after=10s 180s node scripts/qa-production-mobile-browser.mjs
