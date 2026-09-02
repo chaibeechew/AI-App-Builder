@@ -1,0 +1,102 @@
+/* LANERIQ AI mobile hardening for Account, Voice Idea and Upload Ref.
+   This layer is intentionally loaded last so legacy feature-local styles cannot
+   shrink critical touch targets or push panels under iPhone safe areas. */
+
+@media(max-width:720px){
+  .accountNav{
+    right:max(10px,env(safe-area-inset-right))!important;
+    top:max(62px,calc(54px + env(safe-area-inset-top)))!important;
+    max-width:calc(100vw - 20px)!important;
+  }
+  .accountNav .accountTrigger,
+  .accountNav .visibleLogout,
+  .accountNav .accountMenu button{
+    min-height:44px!important;
+    touch-action:manipulation;
+  }
+  .accountNav .accountTrigger{min-width:44px!important}
+  .accountNav .visibleLogout{padding-inline:12px!important}
+  .accountNav .accountMenu{
+    right:0!important;
+    max-height:min(70svh,calc(100svh - 126px))!important;
+    overflow:auto!important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  .accountNav .signOutError{
+    right:0!important;
+    width:min(320px,calc(100vw - 20px))!important;
+    max-height:35svh;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+}
+
+@media(max-width:600px){
+  .sv-backdrop{
+    padding:0!important;
+    overscroll-behavior:contain;
+  }
+  .sv-panel{
+    width:100vw!important;
+    min-height:100svh!important;
+    height:100svh!important;
+    max-height:100svh!important;
+    border-radius:0!important;
+    padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  .sv-panel .sv-close,
+  .sv-panel .sv-mic,
+  .sv-panel .sv-play,
+  .sv-panel .sv-build,
+  .sv-panel select,
+  .sv-panel textarea,
+  .sv-toggle{
+    min-height:44px!important;
+    touch-action:manipulation;
+  }
+  .sv-panel select,
+  .sv-panel textarea{font-size:16px!important}
+  .sv-panel .sv-status{scroll-margin-bottom:calc(24px + env(safe-area-inset-bottom))}
+}
+
+@media(max-width:640px){
+  .referenceDock{
+    right:max(10px,env(safe-area-inset-right))!important;
+    bottom:max(72px,calc(62px + env(safe-area-inset-bottom)))!important;
+  }
+  .referenceDock>.trigger{
+    min-width:44px!important;
+    min-height:44px!important;
+    touch-action:manipulation;
+  }
+  .referenceDock .panel{
+    position:fixed!important;
+    inset:0!important;
+    width:100vw!important;
+    height:100svh!important;
+    max-height:100svh!important;
+    border-radius:0!important;
+    padding:max(18px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  .referenceDock .panel header>button,
+  .referenceDock .panel .upload,
+  .referenceDock .panel .analyze,
+  .referenceDock .grid article>button{
+    min-width:44px!important;
+    min-height:44px!important;
+    touch-action:manipulation;
+  }
+  .referenceDock .grid article{
+    grid-template-columns:64px minmax(0,1fr) 44px!important;
+    min-height:62px;
+  }
+  .referenceDock .grid b,
+  .referenceDock .grid small{max-width:none!important}
+}
