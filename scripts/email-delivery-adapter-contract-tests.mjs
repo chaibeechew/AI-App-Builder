@@ -4,6 +4,7 @@ import path from 'node:path';
 
 const root=process.cwd();
 const integrations=fs.readFileSync(path.join(root,'lib/integrations/server.js'),'utf8');
+const productionSync=fs.readFileSync(path.join(root,'.github/workflows/email-delivery-production-sync.yml'),'utf8');
 
 assert.match(integrations,/import tls from "node:tls"/,'Managed SMTP must use TLS.');
 assert.match(integrations,/function smtpReady\(\)/);
@@ -22,6 +23,23 @@ assert.doesNotMatch(integrations,/console\.(log|info|warn|error|debug)/,'Email c
 assert.doesNotMatch(integrations,/sendManagedSms|TWILIO|api\.twilio/i,'Paid SMS fallback must remain absent.');
 assert.match(integrations,/line_items\[0\]\[price_data\]\[unit_amount\]/,'Email adapter changes must not regress Stripe checkout amount encoding.');
 
+assert.ok(productionSync.includes('GMAIL_USER: ${{ secrets.GMAIL_USER }}'),'Production sync must accept a Gmail account secret.');
+assert.ok(productionSync.includes('GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}'),'Production sync must accept a Gmail App Password secret.');
+assert.ok(productionSync.includes('SMTP_USER: ${{ secrets.SMTP_USER }}'),'Production sync must retain generic SMTP compatibility.');
+assert.ok(productionSync.includes('SMTP_PASS: ${{ secrets.SMTP_PASS }}'),'Production sync must retain generic SMTP password compatibility.');
+assert.match(productionSync,/smtp\.gmail\.com/,'Gmail mode must resolve the official Gmail SMTP host.');
+assert.match(productionSync,/smtp_port="\$\{SMTP_PORT:-465\}"/,'Gmail/SMTPS must default to TLS port 465.');
+assert.match(productionSync,/tr -d '\[:space:\]'/,'Pasted Gmail App Password grouping whitespace must be removed before SMTP authentication.');
+assert.match(productionSync,/key:"SMTP_HOST"/);
+assert.match(productionSync,/key:"SMTP_USER"/);
+assert.match(productionSync,/key:"SMTP_PASS"/);
+assert.match(productionSync,/key:"EMAIL_FROM"/);
+assert.match(productionSync,/RESEND_API_KEY/,'Resend must remain an optional replaceable transport.');
+assert.match(productionSync,/vercel@latest deploy --prod --yes/,'Production must redeploy after email environment synchronization.');
+assert.doesNotMatch(productionSync,/echo\s+"?\$\{?(?:SMTP_PASS|GMAIL_APP_PASSWORD|RESEND_API_KEY|VERCEL_TOKEN)/,'Production sync must never echo secret values.');
+
 console.log('✓ LANERIQ Email Delivery supports replaceable TLS SMTP or Resend transports');
+console.log('✓ Gmail App Password deployment sync maps safely into the LANERIQ SMTP runtime contract');
+console.log('✓ Production email env synchronization is followed by a fresh Vercel Production deployment');
 console.log('✓ SMTP envelope/header hardening prevents CRLF injection and validates TLS certificates');
 console.log('✓ Email delivery changes preserve no-SMS policy and payment checkout contract');
