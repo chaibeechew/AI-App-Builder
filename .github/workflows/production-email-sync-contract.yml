@@ -1,0 +1,31 @@
+name: Production Email Sync Contract
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/email-delivery-production-sync.yml'
+      - '.github/workflows/production-email-sync-contract.yml'
+      - 'scripts/production-email-sync-contract-tests.mjs'
+      - 'scripts/email-delivery-adapter-contract-tests.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/email-delivery-production-sync.yml'
+      - '.github/workflows/production-email-sync-contract.yml'
+      - 'scripts/production-email-sync-contract-tests.mjs'
+      - 'scripts/email-delivery-adapter-contract-tests.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/production-email-sync-contract-tests.mjs
+      - run: node scripts/email-delivery-adapter-contract-tests.mjs
