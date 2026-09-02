@@ -148,7 +148,12 @@ assert.match(authPage,/data\?\.sessionAuthority !== "laneriq"/);
 assert.match(authPage,/upgradeVerifiedCompatibilitySession\(\)/);
 assert.match(authPage,/action:\s*"upgrade_verified_compatibility"/);
 assert.doesNotMatch(authPage,/verifyOtp\(\{ email:/);
-assert.match(authPage,/supabase\.auth\.verifyOtp\(\{ phone:/);
+assert.match(authPage,/compatibilityClient\.auth\.verifyOtp\(\{ phone, token, type: "sms" \}\)/);
+assert.match(authPage,/await import\("\.\.\/\.\.\/lib\/supabase\/client"\)/);
+assert.doesNotMatch(authPage,/import \{ createClient \} from "\.\.\/\.\.\/lib\/supabase\/client"/);
+assert.match(authPage,/SESSION_CHECK_TIMEOUT_MS\s*=\s*3500/);
+assert.match(authPage,/controller\.abort\(\)/);
+assert.match(authPage,/failOpenTimer/);
 assert.match(authPage,/window\.__LANERIQ_AUTH_FLOW_BUSY__ = true/);
 assert.doesNotMatch(authPage,/const next = searchParams\.get\("next"\) \|\| "\/"/);
 
@@ -175,3 +180,4 @@ console.log('✓ robots, sitemap, capability discovery and the eight canonical S
 console.log('✓ Protected responses are no-store and signed-out BFCache/tab restores are revalidated client-side');
 console.log('✓ Logout revokes LANERIQ authority before cookie clearing and stale compatibility cookies cannot resurrect the browser');
 console.log('✓ WhatsApp compatibility can upgrade only through the explicit fresh-verification path');
+console.log('✓ Mobile Auth exits session checking within a bounded wait and Email does not initialize the compatibility client');

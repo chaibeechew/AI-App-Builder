@@ -70,10 +70,13 @@ assert.match(verificationVerify,/sessionAuthority:"laneriq"/,'Email verification
 assert.match(verificationEngine,/crypto\.randomInt/,'LANERIQ must generate Email OTP cryptographically');
 assert.match(verificationEngine,/createHmac\("sha256"/,'LANERIQ must store verification secrets as HMACs');
 assert.match(verificationEngine,/createLaneriqSession\(prepared\.userId\)/,'Verified Email must mint LANERIQ primary session');
-assert.match(auth,/supabase\.auth\.verifyOtp\(\{ phone: normalizePhoneNumber\(identifier\), token, type: "sms" \}\)/,'Internal phone OTP compatibility protocol remains intact while customer delivery stays WhatsApp-only');
+assert.doesNotMatch(auth,/import \{ createClient \} from "\.\.\/\.\.\/lib\/supabase\/client"/,'Email auth entry must not eagerly initialize the compatibility browser client');
+assert.match(auth,/await import\("\.\.\/\.\.\/lib\/supabase\/client"\)/,'WhatsApp compatibility client must be lazy-loaded only on explicit verification');
+assert.match(auth,/compatibilityClient\.auth\.verifyOtp\(\{ phone, token, type: "sms" \}\)/,'Internal phone OTP compatibility protocol remains intact while customer delivery stays WhatsApp-only');
+assert.match(auth,/verifyWhatsAppCompatibility\(\{ phone: normalizePhoneNumber\(identifier\), token \}\)/,'WhatsApp verification must use the lazy compatibility helper');
 assert.match(auth,/upgradeVerifiedCompatibilitySession\(\)/,'Fresh WhatsApp compatibility verification must upgrade into LANERIQ Session');
 assert.doesNotMatch(auth,/supabase\.auth\.getUser\(\)/,'Browser Auth must not trust the compatibility identity as primary session truth');
-const whatsappVerify=auth.indexOf('supabase.auth.verifyOtp({ phone:');
+const whatsappVerify=auth.indexOf('await verifyWhatsAppCompatibility({ phone: normalizePhoneNumber(identifier), token })');
 const laneriqUpgrade=auth.indexOf('await upgradeVerifiedCompatibilitySession()');
 assert.ok(whatsappVerify>=0&&laneriqUpgrade>whatsappVerify,'WhatsApp OTP must succeed before LANERIQ Session upgrade');
 assert.match(sessionRoute,/requireFreshSignIn:true/,'WhatsApp session upgrade must require recent verified compatibility identity');
