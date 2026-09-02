@@ -46,7 +46,7 @@ body:has(.premiumHome) > .laneriqLangButton.floating{display:none!important}
   .premiumHome .featureCards{grid-template-columns:repeat(2,minmax(0,92px))!important;gap:9px!important;margin:-2px 0 12px!important}
   .premiumHome .feature{min-height:98px!important;padding:9px 7px!important;border-radius:16px!important}.premiumHome .feature>i,.premiumHome .feature>i.green{width:37px!important;height:37px!important;font-size:22px!important}.premiumHome .feature b::after{font-size:10.5px!important}
 
-  .premiumHome .promptCard,.premiumHome .choiceCard{border-radius:18px!important}.premiumHome .promptHead label::after{font-size:14px!important}.premiumHome .promptCard textarea{min-height:94px!important;font-size:12px!important}.premiumHome .inputTools button{font-size:9px!important;padding:6px 9px!important}
+  .premiumHome .promptCard,.premiumHome .choiceCard{border-radius:18px!important}.premiumHome .promptHead label::after{font-size:14px!important}.premiumHome .promptCard textarea{min-height:94px!important;font-size:16px!important}.premiumHome .inputTools button{font-size:9px!important;padding:6px 9px!important}
   .premiumHome .buildCta{min-height:60px!important;padding:14px 16px!important}.premiumHome .buildCta span::after{font-size:15px!important}
 
   .premiumHome .bottomNav{width:calc(100% - 16px)!important;min-height:64px!important;padding:6px!important;border-radius:19px!important}
