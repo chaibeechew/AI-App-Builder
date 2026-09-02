@@ -61,6 +61,9 @@ jobs:
       - name: Record Production mobile performance browser evidence
         run: node scripts/production-mobile-performance-evidence.mjs
 
+      - name: Verify Account Voice and Upload Ref mobile surfaces
+        run: node scripts/production-mobile-feature-surfaces-qa.mjs
+
       - name: Upload browser-emulation evidence
         if: always()
         uses: actions/upload-artifact@v4
