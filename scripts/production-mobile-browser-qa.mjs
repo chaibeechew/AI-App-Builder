@@ -4,6 +4,7 @@ import path from "node:path";
 import { chromium, devices, webkit } from "playwright";
 
 const baseUrl = String(process.env.LANERIQ_PRODUCTION_URL || "https://laneriq-ai.vercel.app").replace(/\/$/, "");
+const productionOrigin = new URL(baseUrl).origin;
 const expectedSha = String(process.env.LANERIQ_EXPECTED_SHA || "").trim();
 const artifactDir = path.resolve("artifacts/production-mobile-browser-qa");
 
@@ -33,7 +34,7 @@ function safeName(value) {
 
 function buildEvidence(buildInfo, results, failure = null) {
   return {
-    evidenceVersion: 1,
+    evidenceVersion: 2,
     evidenceLevel: "BROWSER_EMULATION",
     physicalDeviceVerified: false,
     liveProviderVerified: false,
@@ -139,6 +140,17 @@ async function readinessEvidence(page) {
   return report;
 }
 
+function classifyHttpFailure(response) {
+  const status = response.status();
+  if (status < 400) return null;
+  const url = new URL(response.url());
+  const item = { status, method: response.request().method(), origin: url.origin, path: `${url.pathname}${url.search}` };
+  if (url.origin === productionOrigin && url.pathname === "/api/auth/session" && status === 401 && item.method === "GET") {
+    return { expected: true, item };
+  }
+  return { expected: false, item };
+}
+
 const browserMatrix = [
   { id: "webkit-iphone13", label: "WebKit · iPhone 13", browserType: webkit, device: devices["iPhone 13"] },
   { id: "chromium-pixel5", label: "Chromium · Pixel 5", browserType: chromium, device: devices["Pixel 5"] },
@@ -164,9 +176,22 @@ try {
     const page = await context.newPage();
     const pageErrors = [];
     const consoleErrors = [];
+    const expectedSession401s = [];
+    const unexpectedHttpFailures = [];
+    const expected401ConsoleNoise = [];
+
     page.on("pageerror", (error) => pageErrors.push(String(error?.message || error)));
+    page.on("response", (response) => {
+      const classified = classifyHttpFailure(response);
+      if (!classified) return;
+      if (classified.expected) expectedSession401s.push(classified.item);
+      else unexpectedHttpFailures.push(classified.item);
+    });
     page.on("console", (message) => {
-      if (message.type() === "error") consoleErrors.push(message.text());
+      if (message.type() !== "error") return;
+      const text = message.text();
+      if (/Failed to load resource:.*401\s*\(Unauthorized\)/i.test(text)) expected401ConsoleNoise.push(text);
+      else consoleErrors.push(text);
     });
 
     try {
@@ -183,7 +208,9 @@ try {
       await page.screenshot({ path: path.join(artifactDir, `${entry.id}-discovery.png`), fullPage: true });
 
       assert.deepEqual(pageErrors, [], `${entry.label} page errors: ${pageErrors.join(" | ")}`);
+      assert.deepEqual(unexpectedHttpFailures, [], `${entry.label} unexpected HTTP failures: ${JSON.stringify(unexpectedHttpFailures)}`);
       assert.deepEqual(consoleErrors, [], `${entry.label} console errors: ${consoleErrors.join(" | ")}`);
+      assert(expected401ConsoleNoise.length <= expectedSession401s.length, `${entry.label} emitted more generic 401 console errors (${expected401ConsoleNoise.length}) than expected signed-out session responses (${expectedSession401s.length})`);
 
       results.push({
         id: entry.id,
@@ -201,10 +228,14 @@ try {
         discovery,
         pageErrors,
         consoleErrors,
+        expectedSession401s,
+        expected401ConsoleNoiseCount: expected401ConsoleNoise.length,
+        unexpectedHttpFailures,
         passed: true,
       });
       await writeEvidence(buildInfo, results);
       console.log(`✓ ${entry.label}: Production homepage, auth, mobile readiness and discovery surfaces passed`);
+      console.log(`✓ ${entry.label}: ${expectedSession401s.length} signed-out /api/auth/session 401 response(s) classified as expected; unexpected HTTP failures 0`);
     } catch (error) {
       runFailure = {
         browserId: entry.id,
@@ -213,6 +244,9 @@ try {
         message: String(error?.message || error),
         pageErrors,
         consoleErrors,
+        expectedSession401s,
+        expected401ConsoleNoise,
+        unexpectedHttpFailures,
       };
       await page.screenshot({ path: path.join(artifactDir, `${entry.id}-failure.png`), fullPage: true }).catch(() => {});
       await writeEvidence(buildInfo, results, runFailure);
