@@ -5,6 +5,7 @@ import { buildAutonomousPlan, orchestrationBrief } from "../lib/build/orchestrat
 const home=fs.readFileSync("app/page.js","utf8");
 const generate=fs.readFileSync("app/api/generate/route.js","utf8");
 const preview=fs.readFileSync("app/a/[id]/page.js","utf8");
+const publicRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
 
 const plan=buildAutonomousPlan({idea:"Create a mobile-first real estate CRM app with clients, properties, appointments and follow-up automation"});
 assert.equal(plan.modules.app,true);
@@ -39,13 +40,23 @@ assert.ok(generate.indexOf('.from("app_versions").insert')<generate.indexOf('cur
 
 for(const pattern of [
   /auth\.getUser\(\)/,
-  /\.from\("apps"\).*current_version_id/,
-  /\.from\("app_versions"\)/,
-  /version\.id === app\.current_version_id/,
+  /loadVisibleProject\(\{ id, userId: user\?\.id \|\| null \}\)/,
+  /loadVisibleProjectMedia/,
   /GeneratedAppClient/,
   /notFound\(\)/,
 ]) assert.match(preview,pattern);
 
+for(const pattern of [
+  /\.from\("apps"\)/,
+  /current_version_id/,
+  /if \(!isOwner && !isPublished\) return null/,
+  /\.from\("app_versions"\)/,
+  /\.eq\("id", app\.current_version_id\)/,
+  /\.eq\("app_id", app\.id\)/,
+  /\.select\("id,version_no,specification"\)/,
+]) assert.match(publicRuntime,pattern);
+assert.doesNotMatch(preview,/\.from\("apps"\)|\.from\("app_versions"\)/,"Preview must use the shared server-only visibility/current-version loader rather than direct project reads.");
+
 console.log("✓ AI App internal E2E locks Planning → verified Generate → App save → Version save → current pointer → Preview");
-console.log("✓ Failed/unverified generation cannot be persisted and Preview reads the authoritative saved current version");
+console.log("✓ Failed/unverified generation cannot be persisted and Preview resolves the authoritative current version through the server-only owner/published visibility gate");
 console.log("✓ Real external AI-provider success remains LIVE evidence and is not fabricated by this code gate");
