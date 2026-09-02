@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { evaluateReleaseReadiness, evaluateProductionEvidence, RELEASE_SCORE_REQUIRED, RELEASE_DIMENSIONS_REQUIRED, PRODUCTION_EVIDENCE_REQUIREMENTS } from '../lib/release-readiness.js';
 import { assessBuildQuality } from '../lib/buildStandards.js';
+import { applySoolenMaxSecurity } from '../lib/ai/soolenai-max-security.js';
 import { PRODUCT_POLICY } from '../config/product-policy.js';
 
 function report(score=100){
@@ -25,8 +26,8 @@ const missingResult=evaluateReleaseReadiness(missing);
 assert.equal(missingResult.releaseReady,false,'Missing dimensions must fail closed.');
 assert.deepEqual(missingResult.missing,['privacy']);
 
-const qualityWords='error loading empty retry backup offline validation status confirmation auth login permission role secure access admin token privacy consent personal delete export private data mobile simple clear search filter navigation responsive accessible visual design style brand image gallery theme layout hero background premium palette color wallpaper card human natural friendly personalized context local language workflow';
-const richSpec={
+const qualityWords='error loading empty retry backup offline validation status confirmation auth login permission role secure access admin token rls csrf rate ssrf csp malware privacy consent personal delete export private data mobile simple clear search filter navigation responsive accessible visual design style brand image gallery theme layout hero background premium palette color wallpaper card human natural friendly personalized context local language workflow';
+const richSpec=applySoolenMaxSecurity({
   name:'Release Test App',
   description:qualityWords,
   designSystem:{
@@ -36,10 +37,11 @@ const richSpec={
   pages:Array.from({length:6},(_,i)=>({name:`Page ${i+1}`,description:qualityWords,purpose:'clear human workflow',layout:'responsive accessible layout',visualTreatment:'premium visual style',backgroundTreatment:'premium background'})),
   features:Array.from({length:9},(_,i)=>({name:`Feature ${i+1}`,description:qualityWords,uiPattern:'clear responsive workflow'})),
   data:{Customer:{fields:['id','status','permission']}},actions:[{name:'Retry safely',description:'validation confirmation retry error status'}],navigation:[{label:'Home',route:'/'}],
-};
+});
 const perfectQuality=assessBuildQuality(richSpec);
-assert.equal(perfectQuality.overall,100,'Rich explicit quality evidence should be capable of reaching 100.');
+assert.equal(perfectQuality.overall,100,'Rich explicit quality evidence plus mandatory MAX security should be capable of reaching 100.');
 assert.equal(perfectQuality.dimensions.every(x=>x.score===100),true,'Every dimension must independently reach 100.');
+assert.equal(perfectQuality.security.passed,true,'A perfect release fixture must pass SoolenAI MAX security.');
 const keywordOnly=assessBuildQuality({...richSpec,qualityPlan:{}});
 assert.equal(keywordOnly.overall<100,true,'Keyword-rich specifications without explicit quality evidence must not reach 100.');
 assert.equal(keywordOnly.dimensions.every(x=>x.score<=99),true,'Missing qualityPlan evidence must cap every dimension below 100.');
@@ -94,7 +96,7 @@ assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.cannotBeRemovedBy
 assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.continuesAfterProfessionalAccessEnds,true);
 
 console.log('✓ Release evaluator fails closed below 100 or with missing dimensions');
-console.log('✓ 100 score requires explicit per-dimension quality evidence');
+console.log('✓ 100 score requires explicit per-dimension quality evidence plus SoolenAI Secure-by-Default MAX');
 console.log('✓ Beauty 100 requires complete palette, card, image and wallpaper evidence');
 console.log('✓ Keyword-only quality claims are capped below 100');
 console.log('✓ Production evidence contract fails closed until evidence is complete');
