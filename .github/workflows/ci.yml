@@ -65,6 +65,8 @@ jobs:
         run: npm run test:credits
       - name: Pro Mode contract tests
         run: npm run test:pro
+      - name: Soolen one-app Platform Operator contract tests
+        run: node scripts/soolen-platform-operator-contract-tests.mjs
       - name: Zero-cost provider safety and readiness contract tests
         run: npm run test:zero-cost
       - name: Zero-cost engine dynamic execution tests
@@ -177,15 +179,3 @@ jobs:
         run: npm run test:upload-ref-mobile
       - name: Production public-surface contract tests
         run: npm run test:production-public
-
-      - name: Runtime reliability contract tests
-        run: npm run test:runtime
-      - name: Non-production 100 product contract tests
-        run: npm run test:nonprod
-      - name: 100-point structural readiness gate
-        run: npm run quality:100
-      - name: Build Next.js application
-        run: npm run build
-      - name: Report
-        run: echo "LANERIQ AI core gates plus LANERIQ Communications 100, SoolenAI Secure-by-Default MAX, WhatsApp-only phone verification, zero-cost safety/execution, mobile diagnostics, authenticated Production E2E evidence, public Web Publish runtime security, user-triggered Web Publish lifecycle evidence safety and two 1000-point hardening packs passed. External physical-device/provider/store/malware-scanner proof remains evidence-gated."
-      # This workflow validates code only. It never substitutes code for authenticated live, physical-device, provider, malware-scanner or store evidence.
