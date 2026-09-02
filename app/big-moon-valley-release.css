@@ -1,0 +1,353 @@
+/* LANERIQ AI Big Moon Valley release/publishing shell.
+   Applies only to LANERIQ release tools; customer-generated /a and /website surfaces remain untouched. */
+
+.releasePage,
+.publishPage{
+  position:relative!important;
+  min-height:100svh!important;
+  padding:max(28px,env(safe-area-inset-top)) 18px max(92px,calc(72px + env(safe-area-inset-bottom)))!important;
+  overflow-x:hidden!important;
+  background:
+    linear-gradient(180deg,rgba(0,7,6,.02) 0%,rgba(0,8,7,.10) 24%,rgba(0,9,7,.70) 50%,rgba(0,8,7,.97) 100%),
+    url('/big-moon-valley.svg') 66% top/cover fixed no-repeat!important;
+  color:#f5fff9!important;
+}
+.releasePage::before,
+.publishPage::before{
+  content:''!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 76% 12%,rgba(255,216,111,.11),transparent 30%),
+    linear-gradient(90deg,rgba(0,9,7,.57),rgba(0,9,7,.08) 50%,rgba(0,9,7,.12))!important;
+}
+.releasePage>.wrap,
+.publishPage>.wrap,
+.releasePage>.loading,
+.publishPage>.box{
+  position:relative!important;
+  z-index:1!important;
+}
+.releasePage>.wrap,
+.publishPage>.wrap{
+  width:min(1120px,100%)!important;
+  max-width:1120px!important;
+  margin:0 auto!important;
+  padding-top:clamp(150px,22svh,250px)!important;
+}
+.releasePage>.loading,
+.publishPage>.box{
+  width:min(620px,calc(100% - 16px))!important;
+  margin:clamp(180px,28svh,300px) auto 0!important;
+  padding:22px!important;
+  border:1px solid rgba(230,190,87,.40)!important;
+  border-radius:22px!important;
+  background:rgba(3,20,15,.82)!important;
+  box-shadow:0 28px 70px rgba(0,0,0,.38)!important;
+  backdrop-filter:blur(26px)!important;
+  -webkit-backdrop-filter:blur(26px)!important;
+}
+
+.releasePage .back,
+.publishPage .back{
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:44px!important;
+  padding:9px 13px!important;
+  border:1px solid rgba(225,187,83,.30)!important;
+  border-radius:999px!important;
+  background:rgba(2,20,15,.58)!important;
+  color:#f0ca68!important;
+  text-decoration:none!important;
+  font-weight:850!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+.releasePage .eyebrow,
+.publishPage .eyebrow{
+  color:#f0c965!important;
+  text-shadow:0 2px 18px rgba(0,0,0,.55)!important;
+}
+.releasePage .wrap>h1,
+.publishPage .wrap>h1{
+  max-width:760px!important;
+  margin:12px 0 9px!important;
+  color:#fff8dc!important;
+  font-size:clamp(44px,7vw,76px)!important;
+  line-height:.94!important;
+  letter-spacing:-.048em!important;
+  text-shadow:0 8px 36px rgba(0,0,0,.55)!important;
+}
+.releasePage .intro,
+.publishPage .intro{
+  max-width:720px!important;
+  color:#c2d1cb!important;
+  font-size:13px!important;
+  line-height:1.65!important;
+  text-shadow:0 2px 16px rgba(0,0,0,.52)!important;
+}
+
+/* Shared premium glass surfaces. */
+.releasePage .quality,
+.releasePage .evidence,
+.releasePage .websiteCard,
+.releasePage .choices article,
+.releasePage .success,
+.releasePage .error,
+.releasePage .note,
+.publishPage .agentCard,
+.publishPage .card,
+.publishPage .fees,
+.publishPage .publishCard,
+.publishPage .notice,
+.publishPage .error{
+  border-color:rgba(229,189,84,.32)!important;
+  background:linear-gradient(145deg,rgba(5,31,24,.78),rgba(2,14,11,.89))!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(28px) saturate(1.08)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(1.08)!important;
+}
+.releasePage .quality,
+.releasePage .evidence,
+.releasePage .websiteCard,
+.publishPage .agentCard,
+.publishPage .card,
+.publishPage .fees,
+.publishPage .publishCard{
+  border-radius:24px!important;
+}
+.releasePage .quality.ready{border-color:rgba(94,225,163,.40)!important}
+.releasePage .quality.attention{border-color:rgba(238,195,86,.47)!important}
+
+.releasePage .qualityHead>strong{
+  color:#f2cc68!important;
+  text-shadow:0 0 22px rgba(239,194,78,.22)!important;
+}
+.releasePage .scores article,
+.releasePage .evidenceGrid div,
+.publishPage .agentStats span,
+.publishPage .agentNeeds div,
+.publishPage .check{
+  border:1px solid rgba(255,255,255,.065)!important;
+  background:rgba(5,29,22,.68)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.025)!important;
+}
+.releasePage .scores article{min-height:104px!important;border-radius:15px!important}
+.releasePage .scores article.pass{border-color:rgba(89,220,159,.16)!important}
+.releasePage .scores article.fail{outline:none!important;border-color:rgba(235,190,81,.34)!important;background:rgba(50,40,15,.48)!important}
+.releasePage .blockers{
+  border:1px solid rgba(236,193,80,.25)!important;
+  background:rgba(62,47,13,.47)!important;
+}
+
+.releasePage .qualityActions button,
+.releasePage .qualityActions a,
+.releasePage .websiteActions a,
+.releasePage .websiteActions button,
+.releasePage .choices button,
+.releasePage .choices a,
+.publishPage .actions button,
+.publishPage .feeCards a,
+.publishPage .storeButtons button{
+  min-height:48px!important;
+  border-radius:13px!important;
+  font-weight:900!important;
+  touch-action:manipulation!important;
+}
+.releasePage .websiteActions a:not(.outline),
+.releasePage .websiteActions button,
+.releasePage .choices button,
+.releasePage .choices a,
+.publishPage .actions button:first-child,
+.publishPage .storeButtons button{
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 50%,#aa6d16 100%)!important;
+  color:#142018!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.25),0 0 24px rgba(225,176,53,.12)!important;
+}
+.releasePage .qualityActions button,
+.releasePage .qualityActions a,
+.releasePage .websiteActions .outline,
+.publishPage .actions .secondary{
+  border:1px solid rgba(229,190,86,.32)!important;
+  background:rgba(3,23,17,.68)!important;
+  color:#f0ca68!important;
+}
+.releasePage button:disabled,
+.publishPage button:disabled{opacity:.44!important;cursor:not-allowed!important}
+
+.releasePage .sectionTitle>span,
+.releasePage .icon{
+  background:linear-gradient(145deg,#f1d373,#b9791a)!important;
+  color:#112018!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.22)!important;
+}
+.releasePage .websitePreview{
+  position:relative!important;
+  overflow:hidden!important;
+  border:1px solid rgba(235,198,100,.28)!important;
+  background:
+    linear-gradient(180deg,rgba(0,8,6,.03),rgba(0,10,8,.73)),
+    url('/big-moon-valley.svg') 66% 18%/cover no-repeat!important;
+  color:#fff6d4!important;
+  box-shadow:inset 0 -38px 64px rgba(0,7,5,.30)!important;
+}
+.releasePage .websitePreview small{color:#d4dfda!important}
+.releasePage .choices article{min-height:310px!important}
+.releasePage .choices p{color:#a9bbb3!important}
+
+/* Store publishing forms. */
+.publishPage .agentCard{border-color:rgba(89,220,159,.27)!important}
+.publishPage .agentStats b{color:#8ce3b8!important}
+.publishPage .formGrid label,
+.publishPage .toggles label{
+  color:#dce8e2!important;
+}
+.publishPage input,
+.publishPage select,
+.publishPage textarea{
+  min-height:48px!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  border-radius:12px!important;
+  background:rgba(2,17,13,.76)!important;
+  color:#f7fbf9!important;
+  font-size:16px!important;
+  outline:none!important;
+}
+.publishPage textarea{min-height:96px!important}
+.publishPage input:focus,
+.publishPage select:focus,
+.publishPage textarea:focus{
+  border-color:rgba(237,196,91,.55)!important;
+  box-shadow:0 0 0 3px rgba(237,196,91,.08)!important;
+}
+.publishPage .feeCards a{
+  border:1px solid rgba(231,190,83,.25)!important;
+  background:rgba(4,26,20,.70)!important;
+  color:#f2d37b!important;
+}
+.publishPage .notice{color:#a0e4c1!important}
+.publishPage .error{color:#ffaaa2!important}
+
+/* Publishing readiness dock uses the same visual language without covering customer content. */
+.storeReadinessDock .storeReadinessToggle{
+  min-height:44px!important;
+  border-color:rgba(232,193,89,.44)!important;
+  background:rgba(3,24,18,.82)!important;
+  color:#f0ca68!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.34)!important;
+  backdrop-filter:blur(20px)!important;
+  -webkit-backdrop-filter:blur(20px)!important;
+}
+.storeReadinessDock .storeReadinessPanel{
+  border-color:rgba(232,193,89,.38)!important;
+  background:
+    radial-gradient(circle at 90% 0%,rgba(238,197,91,.08),transparent 31%),
+    linear-gradient(150deg,rgba(5,31,24,.95),rgba(2,14,11,.97))!important;
+  box-shadow:0 30px 82px rgba(0,0,0,.47)!important;
+  backdrop-filter:blur(30px) saturate(1.08)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(1.08)!important;
+}
+.storeReadinessDock .summary span,
+.storeReadinessDock .rows article,
+.storeReadinessDock .prepare,
+.storeReadinessDock .declarations{
+  background:rgba(5,30,23,.76)!important;
+  border-color:rgba(255,255,255,.07)!important;
+}
+.storeReadinessDock textarea,
+.storeReadinessDock input:not([type='checkbox']),
+.storeReadinessDock select{
+  min-height:44px!important;
+  background:rgba(2,17,13,.80)!important;
+  border-color:rgba(255,255,255,.10)!important;
+  color:#fff!important;
+  font-size:16px!important;
+}
+.storeReadinessDock .saveRow button,
+.storeReadinessDock .prepare a{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+
+@media(max-width:760px){
+  .releasePage>.wrap,
+  .publishPage>.wrap{padding-top:clamp(130px,20svh,190px)!important}
+  .releasePage .scores{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .releasePage .websiteCard,
+  .releasePage .choices,
+  .releasePage .evidenceGrid,
+  .publishPage .grid,
+  .publishPage .agentNeeds,
+  .publishPage .formGrid,
+  .publishPage .feeCards{grid-template-columns:1fr!important}
+}
+
+@media(max-width:520px){
+  .releasePage,
+  .publishPage{
+    padding:max(12px,env(safe-area-inset-top)) 10px max(98px,calc(78px + env(safe-area-inset-bottom)))!important;
+    background:
+      linear-gradient(180deg,rgba(0,7,6,0) 0%,rgba(0,8,7,.06) 25%,rgba(0,9,7,.75) 49%,rgba(0,8,7,.98) 100%),
+      url('/big-moon-valley.svg') 67% top/cover scroll no-repeat!important;
+  }
+  .releasePage::before,
+  .publishPage::before{
+    background:linear-gradient(90deg,rgba(0,9,7,.34),rgba(0,9,7,.025) 69%,rgba(0,9,7,.06))!important;
+  }
+  .releasePage>.wrap,
+  .publishPage>.wrap{
+    padding-top:clamp(190px,31svh,270px)!important;
+  }
+  .releasePage .wrap>h1,
+  .publishPage .wrap>h1{
+    max-width:88%!important;
+    font-size:clamp(38px,12vw,52px)!important;
+  }
+  .releasePage .intro,
+  .publishPage .intro{font-size:12px!important}
+  .releasePage .quality,
+  .releasePage .evidence,
+  .releasePage .websiteCard,
+  .releasePage .choices article,
+  .publishPage .agentCard,
+  .publishPage .card,
+  .publishPage .fees,
+  .publishPage .publishCard{
+    padding:16px!important;
+    border-radius:20px!important;
+    backdrop-filter:blur(23px) saturate(1.06)!important;
+    -webkit-backdrop-filter:blur(23px) saturate(1.06)!important;
+  }
+  .releasePage .qualityHead{align-items:flex-start!important}
+  .releasePage .qualityHead>strong{font-size:38px!important}
+  .releasePage .scores{grid-template-columns:1fr 1fr!important}
+  .releasePage .qualityActions,
+  .publishPage .actions,
+  .publishPage .storeButtons{display:grid!important;grid-template-columns:1fr!important}
+  .releasePage .qualityActions>* ,
+  .publishPage .actions>* ,
+  .publishPage .storeButtons>*{width:100%!important;justify-content:center!important;text-align:center!important}
+  .releasePage .websitePreview{min-height:210px!important}
+  .releasePage .choices article{min-height:260px!important}
+  .storeReadinessDock{right:8px!important;bottom:max(118px,calc(98px + env(safe-area-inset-bottom)))!important}
+  .storeReadinessDock .storeReadinessPanel{width:calc(100vw - 16px)!important;max-height:68svh!important;border-radius:20px!important}
+}
+
+@media(max-width:380px){
+  .releasePage>.wrap,
+  .publishPage>.wrap{padding-top:190px!important}
+  .releasePage .scores{grid-template-columns:1fr!important}
+  .releasePage .wrap>h1,
+  .publishPage .wrap>h1{font-size:38px!important;max-width:94%!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .releasePage *,
+  .publishPage *,
+  .storeReadinessDock *{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
