@@ -11,6 +11,13 @@ const migration=read('supabase/migrations/20260902092000_laneriq_email_provider_
 
 assert.match(provider,/PROVIDER_NAME="LANERIQ Email"/);
 assert.match(provider,/providerAuthority:"laneriq"/);
+assert.match(provider,/LANERIQ_EMAIL_PROVIDER_SECRET/);
+assert.match(provider,/LANERIQ_VERIFICATION_SECRET/);
+assert.match(provider,/LANERIQ_COMMUNICATIONS_HASH_SECRET/);
+assert.match(provider,/LANERIQ_COMMUNICATION_PRIVACY_SECRET/);
+assert.match(provider,/SUPABASE_SECRET_KEY/);
+assert.match(provider,/SUPABASE_SERVICE_ROLE_KEY/);
+assert.ok(provider.indexOf('SUPABASE_SECRET_KEY')<provider.indexOf('SUPABASE_SERVICE_ROLE_KEY'),'Provider secret chain must prefer the modern Supabase server secret before the legacy service-role fallback.');
 assert.match(provider,/createCipheriv\("aes-256-gcm"/);
 assert.match(provider,/createDecipheriv\("aes-256-gcm"/);
 assert.match(provider,/setAAD\(Buffer\.from\("laneriq-email-provider-v1"\)\)/);
@@ -51,5 +58,6 @@ assert.doesNotMatch(adapter,/TWILIO|sendManagedSms|api\.twilio/i);
 
 console.log('✓ LANERIQ Email Provider owns provider identity and LANERIQ Message IDs');
 console.log('✓ Email payloads are AES-256-GCM encrypted at rest and recipients are HMAC-only metadata');
+console.log('✓ Provider root secret chain is aligned with LANERIQ Communications without exposing raw server secrets');
 console.log('✓ Queue claim is atomic, retry-aware, private-schema and service-role-only');
 console.log('✓ Verification routes Email through LANERIQ Email Provider with no paid SMS fallback');
