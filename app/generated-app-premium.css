@@ -12,10 +12,17 @@
 .generatedExperience .generatedApp button{min-height:44px;cursor:pointer}
 .generatedExperience .generatedApp :focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important}
 
+/* Generated customer products should show the customer's own product first.
+   LANERIQ remains a quality signature rather than a large customer-facing template stamp. */
+.generatedExperience .appHeader small{font-size:0!important}
+.generatedExperience .appHeader small::after{content:"PREMIUM APP EXPERIENCE";font-size:9px!important;font-weight:900!important;letter-spacing:.15em!important;color:var(--accent)!important}
+.generatedExperience .generatedApp footer{font-size:0!important}
+.generatedExperience .generatedApp footer::before{content:"Secure project experience";font-size:9px!important;letter-spacing:.04em!important;opacity:.7!important}
+
 /* Property CRM is the first golden reference: signature future-city/water atmosphere,
-   deep navy glass and restrained gold/ice-blue accents. Customer custom palettes are
-   still respected by the runtime token system; this supplies the first-output art direction. */
-.generatedExperience--property .generatedApp{
+   deep navy glass and restrained gold/ice-blue accents. Explicit customer custom themes
+   keep their own artwork/palette instead of being forced into the LANERIQ signature scene. */
+.generatedExperience--property:not([data-theme-mode="custom"]) .generatedApp{
   background-color:#03101f!important;
   background-image:
     linear-gradient(180deg,rgba(0,8,20,.10) 0%,rgba(0,8,20,.28) 36%,rgba(0,7,18,.78) 74%,rgba(0,6,15,.97) 100%),
@@ -26,7 +33,7 @@
   background-attachment:scroll!important;
   color:#f8fbff!important;
 }
-.generatedExperience--property .generatedApp:before{
+.generatedExperience--property:not([data-theme-mode="custom"]) .generatedApp:before{
   background:radial-gradient(circle at 18% 10%,rgba(241,189,75,.10),transparent 26%),linear-gradient(180deg,transparent 0%,rgba(1,10,22,.18) 42%,rgba(1,9,20,.72) 100%)!important
 }
 
@@ -43,16 +50,15 @@
   backdrop-filter:blur(22px) saturate(1.06)!important;
   -webkit-backdrop-filter:blur(22px) saturate(1.06)!important;
 }
-.generatedExperience--property .appHeader,
-.generatedExperience--property .card,
-.generatedExperience--property .panel,
-.generatedExperience--property .mediaGallery article{
+.generatedExperience--property:not([data-theme-mode="custom"]) .appHeader,
+.generatedExperience--property:not([data-theme-mode="custom"]) .card,
+.generatedExperience--property:not([data-theme-mode="custom"]) .panel,
+.generatedExperience--property:not([data-theme-mode="custom"]) .mediaGallery article{
   background:linear-gradient(145deg,rgba(6,35,56,.86),rgba(2,17,31,.92))!important;
   color:#f8fbff!important;
   border-color:rgba(92,181,235,.28)!important
 }
 .generatedExperience .appHeader{padding:20px!important}
-.generatedExperience .appHeader small,
 .generatedExperience .heroCard small,
 .generatedExperience .panel>small{color:var(--accent)!important;font-weight:900!important;letter-spacing:.14em!important}
 .generatedExperience .appHeader h1{font-size:clamp(30px,6.6vw,58px)!important;line-height:.98!important;letter-spacing:-.035em!important;margin:8px 0!important}
@@ -70,7 +76,7 @@
   position:relative!important;overflow:hidden!important;margin-top:2px!important;padding:28px!important;min-height:170px!important;
   display:flex!important;flex-direction:column!important;justify-content:flex-end!important
 }
-.generatedExperience--property .heroCard{
+.generatedExperience--property:not([data-theme-mode="custom"]) .heroCard{
   min-height:210px!important;
   background:linear-gradient(135deg,rgba(5,46,77,.90),rgba(2,18,35,.93))!important;
   border-color:rgba(241,189,75,.42)!important;
@@ -112,18 +118,18 @@
 .generatedExperience .recordList article{border-radius:14px!important;background:color-mix(in srgb,var(--background) 62%,transparent)!important;border:1px solid color-mix(in srgb,var(--accent) 12%,transparent)!important}
 .generatedExperience .empty{padding:22px 8px!important;text-align:center!important;opacity:.64!important}
 .generatedExperience .notice{border-radius:16px!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important}
-.generatedExperience .generatedApp footer{opacity:.58!important;font-size:10px!important;letter-spacing:.02em!important}
+.generatedExperience .generatedApp footer{opacity:.58!important;letter-spacing:.02em!important}
 
 @media(max-width:700px){
   .generatedExperience .generatedApp{padding:12px 12px 104px!important}
-  .generatedExperience--property .generatedApp{background-size:100% auto!important;background-position:center top!important}
+  .generatedExperience--property:not([data-theme-mode="custom"]) .generatedApp{background-size:100% auto!important;background-position:center top!important}
   .generatedExperience .appHeader{display:block!important;padding:16px!important;border-radius:18px!important}
   .generatedExperience .appHeader h1{font-size:clamp(29px,9.4vw,39px)!important}
   .generatedExperience .appHeader p{font-size:12px!important;margin-bottom:14px!important}
   .generatedExperience .headerActions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important}
   .generatedExperience .headerActions button{width:100%!important;padding:9px 10px!important}
   .generatedExperience .heroCard{min-height:178px!important;padding:20px!important;border-radius:18px!important}
-  .generatedExperience--property .heroCard{min-height:195px!important}
+  .generatedExperience--property:not([data-theme-mode="custom"]) .heroCard{min-height:195px!important}
   .generatedExperience .heroCard h2{font-size:30px!important}
   .generatedExperience .heroCard p{font-size:12px!important}
   .generatedExperience .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
