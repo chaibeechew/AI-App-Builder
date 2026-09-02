@@ -1,135 +1,48 @@
-/* LANERIQ AI — final iPhone composition refinements.
-   Keeps language control inside the main bottom navigation and gives the
-   future-city artwork enough breathing room on narrow screens. */
+/* LANERIQ AI — final iPhone composition refinements. */
 
-/* The language control is a real nav item now, never a detached floating pill. */
-body:has(.premiumHome) .laneriqLangButton,
-body:has(.premiumHome) .laneriqLangButton.inline,
-body:has(.premiumHome) .laneriqLangButton.floating{
-  position:static!important;
-  inset:auto!important;
-  transform:none!important;
-  z-index:auto!important;
-  min-width:0!important;
-  width:100%!important;
-  height:auto!important;
-  min-height:52px!important;
-  padding:5px 3px!important;
-  border:0!important;
-  border-radius:14px!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  backdrop-filter:none!important;
-  -webkit-backdrop-filter:none!important;
-  color:#aebdcb!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:4px!important;
-  font-size:9px!important;
+/* Hide the temporary pre-hydration language control beside <main>. */
+body:has(.premiumHome) > .laneriqLangButton.floating{display:none!important}
+
+/* Once hydrated, LanguageRuntime portals into .bottomNav as a normal sixth item. */
+body:has(.premiumHome) .bottomNav .laneriqLangButton,
+body:has(.premiumHome) .bottomNav .laneriqLangButton.inline{
+  position:static!important;inset:auto!important;transform:none!important;z-index:auto!important;
+  min-width:0!important;width:100%!important;height:auto!important;min-height:52px!important;
+  padding:5px 3px!important;border:0!important;border-radius:14px!important;background:transparent!important;
+  box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  color:#aebdcb!important;display:flex!important;flex-direction:column!important;align-items:center!important;
+  justify-content:center!important;gap:4px!important;font-size:9px!important
 }
-body:has(.premiumHome) .laneriqLangButton span{font-size:17px!important;line-height:1!important}
-body:has(.premiumHome) .laneriqLangButton b{font-size:9px!important;color:#aebdcb!important;line-height:1!important}
+body:has(.premiumHome) .bottomNav .laneriqLangButton span{font-size:17px!important;line-height:1!important}
+body:has(.premiumHome) .bottomNav .laneriqLangButton b{font-size:9px!important;color:#aebdcb!important;line-height:1!important}
 
-.premiumHome .bottomNav{
-  grid-template-columns:repeat(6,minmax(0,1fr))!important;
-  bottom:max(10px,env(safe-area-inset-bottom))!important;
-}
+.premiumHome .bottomNav{grid-template-columns:repeat(6,minmax(0,1fr))!important;bottom:max(10px,env(safe-area-inset-bottom))!important}
 
-/* Future city / people artwork as the actual homepage background. */
-.premiumHome .bg,
-.premiumHome.laneriqHomeV3 .bg{
-  background-image:
-    linear-gradient(180deg,rgba(0,7,18,.03) 0%,rgba(0,8,18,.00) 30%,rgba(0,8,20,.14) 52%,rgba(0,8,19,.58) 76%,rgba(0,7,16,.94) 100%),
-    url('/laneriq-future-city-people.webp')!important;
-  background-position:center top,center top!important;
-  background-repeat:no-repeat!important;
-  background-size:cover,cover!important;
+/* Final future-city / people / koi artwork. */
+.premiumHome .bg,.premiumHome.laneriqHomeV3 .bg{
+  background-image:linear-gradient(180deg,rgba(0,7,18,.03) 0%,rgba(0,8,18,0) 30%,rgba(0,8,20,.14) 52%,rgba(0,8,19,.58) 76%,rgba(0,7,16,.94) 100%),url('/laneriq-future-city-people.webp')!important;
+  background-position:center top,center top!important;background-repeat:no-repeat!important;background-size:cover,cover!important
 }
 
 @media(max-width:520px){
-  .premiumHome{padding-bottom:116px!important}
-  .premiumHome .frame{width:calc(100% - 16px)!important}
-  .premiumHome .topbar{min-height:80px!important;padding:10px 0 2px!important}
-  .premiumHome .spark{top:54px!important;width:34px!important;height:34px!important;font-size:28px!important}
+  .premiumHome{padding-bottom:116px!important}.premiumHome .frame{width:calc(100% - 16px)!important}
+  .premiumHome .topbar{min-height:80px!important;padding:10px 0 2px!important}.premiumHome .spark{top:54px!important;width:34px!important;height:34px!important;font-size:28px!important}
   .premiumHome .credits{min-height:42px!important;padding:7px 12px!important;font-size:11px!important}
-
-  .premiumHome .heroCopy{
-    min-height:585px!important;
-    padding:82px 2px 20px!important;
-  }
-  .premiumHome .heroCopy h1 span::after{
-    font-size:clamp(42px,12.2vw,54px)!important;
-    line-height:.98!important;
-    letter-spacing:.02em!important;
-  }
-  .premiumHome .heroCopy h1 strong{margin-top:13px!important}
-  .premiumHome .heroCopy h1 strong::after{
-    font-size:11px!important;
-    letter-spacing:.16em!important;
-  }
-  .premiumHome .heroCopy p{margin-top:14px!important}
-  .premiumHome .heroCopy p::before{font-size:27px!important}
-  .premiumHome .powered{margin-top:7px!important}
-  .premiumHome .powered::after{font-size:12px!important}
-
-  .premiumHome .featureCards{
-    grid-template-columns:repeat(2,minmax(0,96px))!important;
-    gap:10px!important;
-    margin:-4px 0 12px!important;
-  }
-  .premiumHome .feature{min-height:105px!important;padding:10px 7px!important;border-radius:17px!important}
-  .premiumHome .feature>i,.premiumHome .feature>i.green{width:39px!important;height:39px!important;font-size:23px!important}
-  .premiumHome .feature b::after{font-size:11px!important}
-
-  .premiumHome .promptCard,.premiumHome .choiceCard{border-radius:18px!important}
-  .premiumHome .promptHead label::after{font-size:14px!important}
-  .premiumHome .promptCard textarea{min-height:94px!important;font-size:12px!important}
-  .premiumHome .inputTools button{font-size:9px!important;padding:6px 9px!important}
-
-  .premiumHome .buildCta{min-height:60px!important;padding:14px 16px!important}
-  .premiumHome .buildCta span::after{font-size:15px!important}
-
-  .premiumHome .bottomNav{
-    width:calc(100% - 16px)!important;
-    min-height:64px!important;
-    padding:6px!important;
-    border-radius:19px!important;
-    grid-template-columns:repeat(6,minmax(0,1fr))!important;
-  }
-  .premiumHome .bottomNav a,
-  .premiumHome .bottomNav button,
-  body:has(.premiumHome) .laneriqLangButton{
-    min-width:0!important;
-    min-height:50px!important;
-    padding:4px 1px!important;
-  }
-  .premiumHome .bottomNav span,
-  body:has(.premiumHome) .laneriqLangButton b{font-size:7px!important}
-  .premiumHome .bottomNav i,
-  body:has(.premiumHome) .laneriqLangButton span{font-size:16px!important}
-  .premiumHome .bottomNav .active i{
-    width:38px!important;
-    height:38px!important;
-    margin-top:-17px!important;
-  }
-
-  /* Portrait crop: moon/city stay high; people and koi remain visible. */
-  .premiumHome .bg,
-  .premiumHome.laneriqHomeV3 .bg{
-    background-position:center top,52% top!important;
-    background-size:cover,auto 820px!important;
-    background-color:#03101f!important;
-  }
+  .premiumHome .heroCopy{min-height:585px!important;padding:82px 2px 20px!important}
+  .premiumHome .heroCopy h1 span::after{font-size:clamp(42px,12.2vw,54px)!important;line-height:.98!important;letter-spacing:.02em!important}
+  .premiumHome .heroCopy h1 strong{margin-top:13px!important}.premiumHome .heroCopy h1 strong::after{font-size:11px!important;letter-spacing:.16em!important}
+  .premiumHome .heroCopy p{margin-top:14px!important}.premiumHome .heroCopy p::before{font-size:27px!important}.premiumHome .powered{margin-top:7px!important}.premiumHome .powered::after{font-size:12px!important}
+  .premiumHome .featureCards{grid-template-columns:repeat(2,minmax(0,96px))!important;gap:10px!important;margin:-4px 0 12px!important}
+  .premiumHome .feature{min-height:105px!important;padding:10px 7px!important;border-radius:17px!important}.premiumHome .feature>i,.premiumHome .feature>i.green{width:39px!important;height:39px!important;font-size:23px!important}.premiumHome .feature b::after{font-size:11px!important}
+  .premiumHome .promptCard,.premiumHome .choiceCard{border-radius:18px!important}.premiumHome .promptHead label::after{font-size:14px!important}.premiumHome .promptCard textarea{min-height:94px!important;font-size:12px!important}.premiumHome .inputTools button{font-size:9px!important;padding:6px 9px!important}
+  .premiumHome .buildCta{min-height:60px!important;padding:14px 16px!important}.premiumHome .buildCta span::after{font-size:15px!important}
+  .premiumHome .bottomNav{width:calc(100% - 16px)!important;min-height:64px!important;padding:6px!important;border-radius:19px!important;grid-template-columns:repeat(6,minmax(0,1fr))!important}
+  .premiumHome .bottomNav a,.premiumHome .bottomNav button,.premiumHome .bottomNav .laneriqLangButton{min-width:0!important;min-height:50px!important;padding:4px 1px!important}
+  .premiumHome .bottomNav span,.premiumHome .bottomNav .laneriqLangButton b{font-size:7px!important}.premiumHome .bottomNav i,.premiumHome .bottomNav .laneriqLangButton span{font-size:16px!important}
+  .premiumHome .bottomNav .active i{width:38px!important;height:38px!important;margin-top:-17px!important}
+  .premiumHome .bg,.premiumHome.laneriqHomeV3 .bg{background-position:center top,52% top!important;background-size:cover,auto 820px!important;background-color:#03101f!important}
 }
 
 @media(max-width:380px){
-  .premiumHome .heroCopy{min-height:555px!important}
-  .premiumHome .heroCopy h1 span::after{font-size:40px!important}
-  .premiumHome .heroCopy h1 strong::after{font-size:9.5px!important;letter-spacing:.13em!important}
-  .premiumHome .heroCopy p::before{font-size:24px!important}
-  .premiumHome .featureCards{grid-template-columns:repeat(2,minmax(0,88px))!important}
-  .premiumHome .bottomNav span,
-  body:has(.premiumHome) .laneriqLangButton b{font-size:6.4px!important}
+  .premiumHome .heroCopy{min-height:555px!important}.premiumHome .heroCopy h1 span::after{font-size:40px!important}.premiumHome .heroCopy h1 strong::after{font-size:9.5px!important;letter-spacing:.13em!important}.premiumHome .heroCopy p::before{font-size:24px!important}.premiumHome .featureCards{grid-template-columns:repeat(2,minmax(0,88px))!important}.premiumHome .bottomNav span,.premiumHome .bottomNav .laneriqLangButton b{font-size:6.4px!important}
 }
