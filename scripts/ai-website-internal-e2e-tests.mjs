@@ -5,7 +5,9 @@ import { buildAutonomousPlan, orchestrationBrief } from "../lib/build/orchestrat
 const home=fs.readFileSync("app/page.js","utf8");
 const engine=fs.readFileSync("engine/autonomous-engine.js","utf8");
 const generate=fs.readFileSync("app/api/generate/route.js","utf8");
-const preview=fs.readFileSync("app/a/[id]/page.js","utf8");
+const appPreview=fs.readFileSync("app/a/[id]/page.js","utf8");
+const websitePreview=fs.readFileSync("app/website/[id]/page.js","utf8");
+const publicRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
 
 const plan=buildAutonomousPlan({idea:"Create a premium multilingual property website with listings, enquiry forms and mobile-first navigation"});
 assert.equal(plan.modules.website,true);
@@ -33,11 +35,29 @@ assert.match(generate,/\.from\("app_versions"\)\.insert/);
 assert.match(generate,/current_version_id:version\.id/);
 assert.match(generate,/App \+ Website/);
 
-assert.match(preview,/current_version_id/);
-assert.match(preview,/current\.specification/);
-assert.match(preview,/GeneratedAppClient/);
-assert.match(preview,/appleWebApp/);
+for(const source of [appPreview,websitePreview]){
+  assert.match(source,/auth\.getUser\(\)/,"App and Website previews must resolve trusted owner identity.");
+  assert.match(source,/loadVisibleProject\(\{id|loadVisibleProject\(\{ id/,"App and Website previews must use the shared visibility/current-version loader.");
+  assert.match(source,/loadVisibleProjectMedia/);
+  assert.match(source,/notFound\(\)/,"Hidden/missing projects must fail closed.");
+}
+assert.match(appPreview,/GeneratedAppClient/);
+assert.match(appPreview,/appleWebApp/);
+assert.match(websitePreview,/version\.specification/);
+assert.match(websitePreview,/Customer Website/);
+assert.match(websitePreview,/Created with LANERIQ AI/);
 
-console.log("✓ AI Website internal E2E locks mobile-first Website planning into the same verified Generate/save/version/Preview chain");
+for(const pattern of [
+  /current_version_id/,
+  /if \(!isOwner && !isPublished\) return null/,
+  /\.eq\("id", app\.current_version_id\)/,
+  /\.eq\("app_id", app\.id\)/,
+  /\.select\("id,version_no,specification"\)/,
+]) assert.match(publicRuntime,pattern);
+assert.doesNotMatch(appPreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
+assert.doesNotMatch(websitePreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
+
+console.log("✓ AI Website internal E2E locks mobile-first Website planning into the same verified Generate/save/version/App + Website Preview chain");
+console.log("✓ Both previews resolve the authoritative current specification through the shared server-only owner/published visibility gate");
 console.log("✓ Engine requires pages, navigation, responsive web behavior and switchable language rather than a text-only landing mockup");
 console.log("✓ Real provider-generated Website output remains LIVE evidence and is not claimed by this deterministic code gate");
