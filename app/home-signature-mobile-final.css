@@ -45,7 +45,7 @@ body:has(.premiumHome) .laneriqLangButton b{font-size:9px!important;color:#aebdc
     url('/laneriq-future-city-people.webp')!important;
   background-position:center top,center top!important;
   background-repeat:no-repeat!important;
-  background-size:cover!important;
+  background-size:cover,cover!important;
 }
 
 @media(max-width:520px){
@@ -115,11 +115,11 @@ body:has(.premiumHome) .laneriqLangButton b{font-size:9px!important;color:#aebdc
     margin-top:-17px!important;
   }
 
-  /* The portrait crop keeps moon/city high and the three people + koi visible. */
+  /* Portrait crop: moon/city stay high; people and koi remain visible. */
   .premiumHome .bg,
   .premiumHome.laneriqHomeV3 .bg{
     background-position:center top,52% top!important;
-    background-size:auto 100%,auto 820px!important;
+    background-size:cover,auto 820px!important;
     background-color:#03101f!important;
   }
 }
