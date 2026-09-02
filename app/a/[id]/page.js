@@ -54,5 +54,5 @@ export default async function GeneratedAppPage({ params }) {
     default: runtime = <GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
   }
 
-  return <div className={`generatedExperience generatedExperience--${experience.industry}`} data-laneriq-standard={experience.standardId}><AnalyticsTracker appId={id} channel={route.isGame ? "game" : "app"} eventName={route.eventName}/>{runtime}</div>;
+  return <div className={`generatedExperience generatedExperience--${experience.industry}`} data-laneriq-standard={experience.standardId} data-theme-mode={specification?.designSystem?.themeMode||"auto"}><AnalyticsTracker appId={id} channel={route.isGame ? "game" : "app"} eventName={route.eventName}/>{runtime}</div>;
 }
