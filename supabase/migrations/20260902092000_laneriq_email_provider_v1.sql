@@ -43,6 +43,8 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  inserted integer := 0;
 begin
   if auth.role() <> 'service_role' then
     raise exception 'service_role required';
@@ -56,10 +58,11 @@ begin
     p_purpose, greatest(1, least(20, coalesce(p_max_attempts, 5)))
   )
   on conflict (id) do nothing;
+  get diagnostics inserted = row_count;
 
   return query
   select p_id,
-    case when found then 'queued'::text else 'duplicate'::text end;
+    case when inserted = 1 then 'queued'::text else 'duplicate'::text end;
 end;
 $$;
 
@@ -126,7 +129,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  updated boolean := false;
+  updated_rows integer := 0;
 begin
   if auth.role() <> 'service_role' then
     raise exception 'service_role required';
@@ -147,8 +150,8 @@ begin
       updated_at = now()
   where m.id = p_id and m.status = 'sending';
 
-  get diagnostics updated = row_count;
-  return updated;
+  get diagnostics updated_rows = row_count;
+  return updated_rows = 1;
 end;
 $$;
 
