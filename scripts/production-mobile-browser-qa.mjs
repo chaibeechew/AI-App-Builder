@@ -34,7 +34,7 @@ function safeName(value) {
 
 function buildEvidence(buildInfo, results, failure = null) {
   return {
-    evidenceVersion: 2,
+    evidenceVersion: 3,
     evidenceLevel: "BROWSER_EMULATION",
     physicalDeviceVerified: false,
     liveProviderVerified: false,
@@ -101,6 +101,7 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
       visibleInputFontMinimum: visibleInputs.length ? Math.min(...visibleInputs.map((input) => input.fontSize)) : null,
       homePresent: Boolean(document.querySelector(".premiumHome")),
       duplicateOverlayCount: document.querySelectorAll(".studioLauncher, .referenceDock, .sv-fab").length,
+      wallpaperControlCount: document.querySelectorAll(".wallpaperControl").length,
       criticalTargetSizes,
     };
   }, { requireHome });
@@ -114,6 +115,7 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
   if (requireHome) {
     assert.equal(metrics.homePresent, true, "Homepage must render .premiumHome");
     assert.equal(metrics.duplicateOverlayCount, 0, "Homepage must not mount duplicate Studio / Reference / Voice global overlays");
+    assert.equal(metrics.wallpaperControlCount, 0, "Homepage must not mount the global Wallpaper control over primary builder actions");
     assert(metrics.criticalTargetSizes.length >= 5, "Homepage must expose primary build and bottom-navigation touch targets");
     for (const size of metrics.criticalTargetSizes) {
       assert(size.height >= 44, `Homepage critical touch target is ${size.height}px tall; minimum is 44px`);
@@ -123,7 +125,8 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
 }
 
 async function readinessEvidence(page) {
-  await pageBaseline(page, "/mobile-readiness");
+  const baseline = await pageBaseline(page, "/mobile-readiness");
+  assert.equal(baseline.wallpaperControlCount, 0, "Mobile readiness evidence must not be obscured by the Wallpaper control");
   const reportField = page.locator('textarea[aria-label="Mobile readiness evidence report"]');
   await reportField.waitFor({ state: "visible", timeout: 20_000 });
   await page.waitForFunction(() => {
@@ -190,7 +193,7 @@ try {
     page.on("console", (message) => {
       if (message.type() !== "error") return;
       const text = message.text();
-      if (/Failed to load resource:.*401\s*\(Unauthorized\)/i.test(text)) expected401ConsoleNoise.push(text);
+      if (/Failed to load resource:.*status of 401\b/i.test(text)) expected401ConsoleNoise.push(text);
       else consoleErrors.push(text);
     });
 
@@ -199,6 +202,7 @@ try {
       await page.screenshot({ path: path.join(artifactDir, `${entry.id}-home.png`), fullPage: true });
 
       const auth = await pageBaseline(page, "/auth");
+      assert.equal(auth.wallpaperControlCount, 0, "Auth must not mount the Wallpaper control over login actions");
       await page.screenshot({ path: path.join(artifactDir, `${entry.id}-auth.png`), fullPage: true });
 
       const readiness = await readinessEvidence(page);
