@@ -1,0 +1,331 @@
+/* LANERIQ AI Big Moon Valley project-intelligence shell.
+   Scope is intentionally limited to authenticated Analytics, AI Operations and Version History.
+   Project data queries, rollback behavior, generated /a + /website surfaces and SMS remain unchanged. */
+
+main.page:has(.bars),
+main.page:has(.checks .summary),
+main.historyPage{
+  position:relative!important;
+  min-height:100svh!important;
+  overflow-x:hidden!important;
+  color:#f6fff9!important;
+  background:
+    linear-gradient(180deg,rgba(0,7,6,.02) 0%,rgba(0,8,7,.10) 24%,rgba(0,9,7,.72) 52%,rgba(0,8,7,.985) 100%),
+    url('/big-moon-valley.svg') 66% top/cover fixed no-repeat!important;
+}
+main.page:has(.bars)::before,
+main.page:has(.checks .summary)::before,
+main.historyPage::before{
+  content:''!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 77% 10%,rgba(255,220,120,.11),transparent 29%),
+    linear-gradient(90deg,rgba(0,10,8,.58),rgba(0,10,8,.03) 54%,rgba(0,10,8,.15))!important;
+}
+main.page:has(.bars)>.wrap,
+main.page:has(.checks .summary)>.wrap,
+main.historyPage>.wrap{
+  position:relative!important;
+  z-index:1!important;
+  width:min(1080px,100%)!important;
+  max-width:1080px!important;
+  margin:0 auto!important;
+  padding-top:clamp(150px,22svh,250px)!important;
+}
+
+/* Shared navigation, titles and cinematic hierarchy. */
+main.page:has(.bars) .back,
+main.page:has(.checks .summary) .back,
+main.historyPage .back{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border:1px solid rgba(235,198,93,.30)!important;
+  border-radius:999px!important;
+  padding:9px 13px!important;
+  background:rgba(3,24,18,.64)!important;
+  color:#f0cc68!important;
+  text-decoration:none!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.20)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.bars) .eyebrow,
+main.page:has(.checks .summary) .eyebrow,
+main.historyPage header small,
+main.historyPage .topbar{
+  color:#f0cc68!important;
+  text-shadow:0 3px 16px rgba(0,0,0,.48)!important;
+}
+main.page:has(.bars) h1,
+main.page:has(.checks .summary) h1,
+main.historyPage h1{
+  color:#fff8df!important;
+  font-size:clamp(44px,6vw,70px)!important;
+  line-height:.98!important;
+  letter-spacing:-.045em!important;
+  text-shadow:0 12px 44px rgba(0,0,0,.56)!important;
+}
+main.page:has(.bars)>.wrap>p,
+main.page:has(.checks .summary) header p,
+main.historyPage header p{
+  color:#c0d0c9!important;
+  text-shadow:0 2px 14px rgba(0,0,0,.42)!important;
+}
+
+/* Analytics: premium observation room, data semantics unchanged. */
+main.page:has(.bars) .stats article,
+main.page:has(.bars) .card{
+  border-color:rgba(235,198,93,.22)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.78),rgba(2,15,12,.91))!important;
+  box-shadow:0 24px 66px rgba(0,0,0,.31),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(26px) saturate(1.07)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.07)!important;
+}
+main.page:has(.bars) .stats article{
+  min-height:126px!important;
+  border-radius:20px!important;
+}
+main.page:has(.bars) .stats small,
+main.page:has(.bars) .bars span,
+main.page:has(.bars) .bars strong,
+main.page:has(.bars) .card p,
+main.page:has(.bars) .empty{
+  color:#9eb0a8!important;
+}
+main.page:has(.bars) .stats strong,
+main.page:has(.bars) .card h2{
+  color:#fff4d8!important;
+}
+main.page:has(.bars) .stats strong{
+  color:#f0cc68!important;
+  text-shadow:0 6px 24px rgba(0,0,0,.26)!important;
+}
+main.page:has(.bars) .bars{
+  min-height:260px!important;
+  padding:14px 10px 4px!important;
+  border:1px solid rgba(255,255,255,.055)!important;
+  border-radius:18px!important;
+  background:rgba(1,15,11,.42)!important;
+}
+main.page:has(.bars) .bars i{
+  background:rgba(255,255,255,.055)!important;
+}
+main.page:has(.bars) .bars i b{
+  background:linear-gradient(180deg,#f5dc85,#c38b28)!important;
+  box-shadow:0 0 20px rgba(231,188,70,.16)!important;
+}
+main.page:has(.bars) .empty{
+  border-color:rgba(235,198,93,.25)!important;
+  background:rgba(3,24,18,.52)!important;
+}
+
+/* AI Operations: health signals keep their truthfulness while joining the cockpit. */
+main.page:has(.checks .summary) header{
+  margin-top:22px!important;
+}
+main.page:has(.checks .summary) .score{
+  flex:0 0 auto!important;
+  width:126px!important;
+  height:126px!important;
+  border-color:rgba(126,221,181,.34)!important;
+  background:linear-gradient(145deg,rgba(27,91,67,.76),rgba(6,37,28,.88))!important;
+  box-shadow:0 22px 60px rgba(0,0,0,.29),inset 0 1px rgba(255,255,255,.04)!important;
+  backdrop-filter:blur(22px)!important;
+  -webkit-backdrop-filter:blur(22px)!important;
+}
+main.page:has(.checks .summary) .score.warn{
+  border-color:rgba(235,198,93,.40)!important;
+  background:linear-gradient(145deg,rgba(76,61,20,.78),rgba(36,29,10,.90))!important;
+}
+main.page:has(.checks .summary) .summary div,
+main.page:has(.checks .summary) .checks article,
+main.page:has(.checks .summary) .note{
+  border-color:rgba(235,198,93,.20)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.77),rgba(2,15,12,.90))!important;
+  box-shadow:0 22px 58px rgba(0,0,0,.27),inset 0 1px rgba(255,255,255,.03)!important;
+  backdrop-filter:blur(24px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(1.06)!important;
+}
+main.page:has(.checks .summary) .summary strong{
+  color:#f0cc68!important;
+}
+main.page:has(.checks .summary) .summary small,
+main.page:has(.checks .summary) .checks small,
+main.page:has(.checks .summary) .note{
+  color:#9caea6!important;
+}
+main.page:has(.checks .summary) .checks .ok{
+  background:rgba(41,130,92,.52)!important;
+  color:#b5efd1!important;
+}
+main.page:has(.checks .summary) .checks .bad{
+  background:rgba(104,77,21,.62)!important;
+  color:#f6d987!important;
+}
+main.page:has(.checks .summary) .actions a{
+  min-height:48px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-color:rgba(255,241,191,.36)!important;
+  background:rgba(4,27,20,.72)!important;
+  color:#f0cc68!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.18)!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.checks .summary) .actions a:hover{
+  border-color:rgba(240,204,104,.62)!important;
+  background:rgba(9,43,32,.82)!important;
+}
+
+/* Version History: recovery stays safe, append-only and clearly reversible. */
+main.historyPage .topbar{
+  min-height:44px!important;
+}
+main.historyPage header{
+  padding:22px 0 28px!important;
+}
+main.historyPage .status{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(126,221,181,.28)!important;
+  background:rgba(17,68,48,.58)!important;
+  color:#a9eccb!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+main.historyPage .version,
+main.historyPage .notice,
+main.historyPage .empty{
+  border-color:rgba(235,198,93,.20)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.78),rgba(2,15,12,.91))!important;
+  box-shadow:0 23px 62px rgba(0,0,0,.29),inset 0 1px rgba(255,255,255,.032)!important;
+  backdrop-filter:blur(25px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(25px) saturate(1.06)!important;
+}
+main.historyPage .version.current{
+  border-color:rgba(240,204,104,.48)!important;
+  box-shadow:0 26px 70px rgba(0,0,0,.34),0 0 0 1px rgba(240,204,104,.055)!important;
+}
+main.historyPage .versionHead>span{
+  background:linear-gradient(145deg,#f2d678,#b7791e)!important;
+  color:#132018!important;
+  box-shadow:0 9px 24px rgba(0,0,0,.20)!important;
+}
+main.historyPage .version h2{
+  color:#fff5d9!important;
+}
+main.historyPage .version p,
+main.historyPage .facts span,
+main.historyPage .notice,
+main.historyPage .empty,
+main.historyPage .rollbackWrap small{
+  color:#a2b4ac!important;
+}
+main.historyPage .facts span{
+  border:1px solid rgba(255,255,255,.06)!important;
+  background:rgba(255,255,255,.045)!important;
+}
+main.historyPage .rollbackButton,
+main.historyPage .currentButton{
+  min-height:48px!important;
+  padding:11px 14px!important;
+  touch-action:manipulation!important;
+}
+main.historyPage .rollbackButton{
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#132018!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.24)!important;
+}
+main.historyPage .currentButton{
+  border-color:rgba(126,221,181,.26)!important;
+  background:rgba(21,76,55,.56)!important;
+  color:#abe9cc!important;
+}
+main.historyPage .footerActions a{
+  min-height:48px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  touch-action:manipulation!important;
+}
+main.historyPage .footerActions .primary{
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676,#c58a28)!important;
+  color:#132018!important;
+}
+main.historyPage .footerActions .secondary{
+  border-color:rgba(235,198,93,.30)!important;
+  background:rgba(3,24,18,.64)!important;
+  color:#f0cc68!important;
+}
+
+@media(max-width:760px){
+  main.page:has(.bars),
+  main.page:has(.checks .summary),
+  main.historyPage{
+    background-position:64% top!important;
+    background-attachment:scroll!important;
+  }
+  main.page:has(.bars)>.wrap,
+  main.page:has(.checks .summary)>.wrap,
+  main.historyPage>.wrap{
+    padding-top:clamp(128px,19svh,190px)!important;
+  }
+  main.page:has(.checks .summary) header{
+    align-items:flex-start!important;
+  }
+  main.page:has(.checks .summary) .score{
+    width:94px!important;
+    height:94px!important;
+  }
+}
+
+@media(max-width:520px){
+  main.page:has(.bars),
+  main.page:has(.checks .summary),
+  main.historyPage{
+    padding-left:14px!important;
+    padding-right:14px!important;
+    padding-bottom:max(90px,calc(70px + env(safe-area-inset-bottom)))!important;
+  }
+  main.page:has(.bars) .stats,
+  main.page:has(.checks .summary) .summary,
+  main.page:has(.checks .summary) .checks{
+    grid-template-columns:1fr!important;
+  }
+  main.page:has(.bars) .stats article{
+    min-height:112px!important;
+  }
+  main.page:has(.checks .summary) header,
+  main.historyPage header{
+    flex-direction:column!important;
+  }
+  main.historyPage .version{
+    grid-template-columns:1fr!important;
+  }
+  main.historyPage .rollbackWrap{
+    justify-items:stretch!important;
+  }
+  main.historyPage .rollbackWrap small{
+    max-width:none!important;
+    text-align:left!important;
+  }
+  main.historyPage .footerActions{
+    flex-direction:column!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  main.page:has(.bars) *,
+  main.page:has(.checks .summary) *,
+  main.historyPage *{
+    scroll-behavior:auto!important;
+  }
+}
