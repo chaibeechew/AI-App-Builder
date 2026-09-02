@@ -167,6 +167,8 @@ jobs:
         run: npm run test:mobile-performance
       - name: Mobile Readiness diagnostics contract tests
         run: npm run test:mobile-readiness
+      - name: Production mobile browser QA contract tests
+        run: npm run test:production-mobile-browser-qa
       - name: Voice Idea contract tests
         run: npm run test:voice
       - name: Google Play preparation contract tests
@@ -193,5 +195,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI one-app Soolen Platform Operator, LANERIQ-owned Email Verification + LANERIQ Email Provider v1 + primary Session Authority, Pro Edit-on-demand, Communications 100, provider-opaque infrastructure, runtime, structural readiness and production build gates passed. External live transport/store evidence remains evidence-gated."
+        run: echo "LANERIQ AI code gates passed, live Email sync remains explicitly ON HOLD, and Production mobile browser-emulation architecture is regression-gated. External authenticated, physical-device, provider, transport and store evidence remains evidence-gated."
       # This workflow validates code only. It never substitutes code for authenticated live, physical-device, transport, malware-scanner or store evidence.
