@@ -19,6 +19,7 @@ import { normalizeReferralCode, safeInternalNext } from "../../lib/auth/session-
 export const dynamic = "force-dynamic";
 const WHATSAPP_AUTH_ENABLED = process.env.NEXT_PUBLIC_WHATSAPP_AUTH_ENABLED === "true";
 const SESSION_CHECK_TIMEOUT_MS = 3500;
+const VERIFICATION_READINESS_REFRESH_MS = 30000;
 
 function safeFlowError(error, method) {
   const message = String(error?.message || "");
@@ -39,6 +40,31 @@ async function readLaneriqSession() {
     });
     const data = await response.json().catch(() => ({}));
     return { response, data };
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+async function readEmailVerificationReadiness() {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
+  try {
+    const response = await fetch("/api/auth/verification/status", {
+      method: "GET",
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => ({}));
+    const ready = response.ok
+      && data?.ready === true
+      && data?.channel === "email"
+      && data?.otpAuthority === "laneriq"
+      && data?.sessionAuthority === "laneriq"
+      && data?.stages?.guard === true
+      && data?.stages?.storage === true
+      && data?.stages?.delivery === true;
+    return Boolean(ready);
   } finally {
     window.clearTimeout(timer);
   }
@@ -74,6 +100,8 @@ function AuthForm() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [emailReady, setEmailReady] = useState(false);
+  const [emailReadinessChecked, setEmailReadinessChecked] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [resendIn, setResendIn] = useState(0);
@@ -109,6 +137,34 @@ function AuthForm() {
   }, [router, next]);
 
   useEffect(() => {
+    let active = true;
+    let refreshing = false;
+
+    const refreshReadiness = async () => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const ready = await readEmailVerificationReadiness();
+        if (active) setEmailReady(ready);
+      } catch {
+        if (active) setEmailReady(false);
+      } finally {
+        refreshing = false;
+        if (active) setEmailReadinessChecked(true);
+      }
+    };
+
+    refreshReadiness();
+    const timer = window.setInterval(refreshReadiness, VERIFICATION_READINESS_REFRESH_MS);
+    window.addEventListener("focus", refreshReadiness);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshReadiness);
+    };
+  }, []);
+
+  useEffect(() => {
     if (resendIn <= 0) return;
     const timer = window.setInterval(() => setResendIn((value) => Math.max(0, value - 1)), 1000);
     return () => window.clearInterval(timer);
@@ -134,6 +190,10 @@ function AuthForm() {
   async function sendCode(event) {
     event?.preventDefault?.();
     if (loading || resendIn > 0) return;
+    if (method === "email" && (!emailReadinessChecked || !emailReady)) {
+      setError("LANERIQ Email Verification is preparing. Please try again shortly.");
+      return;
+    }
     if (method === "whatsapp" && !WHATSAPP_AUTH_ENABLED) {
       setError("WhatsApp verification is still being configured. Email Code remains available.");
       return;
@@ -246,6 +306,8 @@ function AuthForm() {
   const identifierLabel = isWhatsApp ? "WhatsApp number" : "Email address";
   const methodLabel = isWhatsApp ? "WhatsApp" : "Email";
   const codePlaceholder = isWhatsApp ? "1".repeat(WHATSAPP_OTP_POLICY.codeLength) : "1".repeat(EMAIL_OTP_POLICY.codeLength);
+  const emailStatusLabel = !emailReadinessChecked ? "CHECK" : emailReady ? "READY" : "PREPARING";
+  const emailSendUnavailable = !isWhatsApp && (!emailReadinessChecked || !emailReady);
 
   return (
     <main className="authPage">
@@ -272,7 +334,7 @@ function AuthForm() {
           <p>{sent ? `We sent a ${policy.codeLength}-digit ${methodLabel} verification code.` : "Choose Email Code or WhatsApp Code. No paid SMS fallback is used."}</p>
 
           <div className="tabs" role="tablist" aria-label="Verification method">
-            <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}><span>✉</span><strong>Email Code</strong><b>LANERIQ</b></button>
+            <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}><span>✉</span><strong>Email Code</strong><b>{emailStatusLabel}</b></button>
             <button type="button" role="tab" aria-selected={method === "whatsapp"} className={method === "whatsapp" ? "active" : ""} disabled={!WHATSAPP_AUTH_ENABLED} onClick={() => switchMethod("whatsapp")}><span>◉</span><strong>WhatsApp Code</strong><b>{WHATSAPP_AUTH_ENABLED ? "READY" : "SETUP"}</b></button>
           </div>
 
@@ -284,7 +346,8 @@ function AuthForm() {
                 <input id="auth-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={isWhatsApp ? "+60123456789" : "you@example.com"} inputMode={isWhatsApp ? "tel" : "email"} autoComplete={isWhatsApp ? "tel" : "email"} autoCapitalize="none" maxLength={isWhatsApp ? WHATSAPP_OTP_POLICY.maxPhoneLength + 8 : EMAIL_OTP_POLICY.maxEmailLength} required />
               </div>
               {referral && <div className="notice">Referral code · {referral}</div>}
-              <button className="primary" disabled={loading || resendIn > 0}><span>{loading ? "Sending…" : resendIn > 0 ? `Try again in ${resendIn}s` : `Send ${methodLabel} Code`}</span><i>→</i></button>
+              {!isWhatsApp && emailReadinessChecked && !emailReady && <div className="notice">LANERIQ Email Verification is preparing. Sending will be enabled automatically when the service is ready.</div>}
+              <button className="primary" disabled={loading || resendIn > 0 || emailSendUnavailable}><span>{loading ? "Sending…" : resendIn > 0 ? `Try again in ${resendIn}s` : emailSendUnavailable ? (emailReadinessChecked ? "Preparing Email Verification…" : "Checking Email Verification…") : `Send ${methodLabel} Code`}</span><i>→</i></button>
             </form>
           ) : (
             <form onSubmit={verify}>
@@ -296,7 +359,7 @@ function AuthForm() {
               </div>
               <button className="primary" disabled={loading || otp.length !== policy.codeLength || verifyAttempts >= policy.maxVerifyAttemptsPerCode}><span>{loading ? "Verifying…" : "Verify & Continue"}</span><i>→</i></button>
               <div className="secondaryRow">
-                <button type="button" className="secondary" disabled={loading || resendIn > 0} onClick={sendCode}>{resendIn > 0 ? `Resend in ${resendIn}s` : "Resend Code"}</button>
+                <button type="button" className="secondary" disabled={loading || resendIn > 0 || emailSendUnavailable} onClick={sendCode}>{resendIn > 0 ? `Resend in ${resendIn}s` : "Resend Code"}</button>
                 <button type="button" className="secondary" disabled={loading} onClick={() => { setSent(false); setChallengeId(""); setOtp(""); setMessage(""); setError(""); setResendIn(0); setVerifyAttempts(0); }}>Change {isWhatsApp ? "number" : "email"}</button>
               </div>
             </form>

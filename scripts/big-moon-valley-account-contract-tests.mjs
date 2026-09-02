@@ -51,9 +51,13 @@ assert.match(auth,/const WHATSAPP_AUTH_ENABLED = process\.env\.NEXT_PUBLIC_WHATS
 assert.match(auth,/if \(value === "whatsapp" && !WHATSAPP_AUTH_ENABLED\) return;/,'Unconfigured WhatsApp must remain non-selectable');
 assert.match(auth,/disabled=\{!WHATSAPP_AUTH_ENABLED\}/,'WhatsApp tab must fail closed until the managed delivery path is ready');
 assert.match(auth,/WHATSAPP_AUTH_ENABLED \? "READY" : "SETUP"/,'WhatsApp status must be explicit');
-assert.match(auth,/Email Code/,'Email Code must remain available');
+assert.match(auth,/Email Code/,'Email Code option must remain visible');
 assert.match(auth,/WhatsApp Code/,'WhatsApp Code must be the only phone verification option');
-assert.match(auth,/<b>LANERIQ<\/b>/,'Email Code must identify the LANERIQ-owned verification path');
+assert.match(auth,/fetch\("\/api\/auth\/verification\/status"/,'Email Code must use LANERIQ-owned live verification readiness');
+assert.match(auth,/data\?\.otpAuthority === "laneriq"/,'Email readiness must identify LANERIQ as OTP authority');
+assert.match(auth,/data\?\.sessionAuthority === "laneriq"/,'Email readiness must identify LANERIQ as session authority');
+assert.match(auth,/emailStatusLabel = !emailReadinessChecked \? "CHECK" : emailReady \? "READY" : "PREPARING"/,'Email Code status must reflect live LANERIQ readiness instead of a static claim');
+assert.match(auth,/emailSendUnavailable/,'Email Code must fail closed while managed delivery is unavailable');
 assert.doesNotMatch(auth,/<strong>SMS Code<\/strong>/,'Paid SMS must not remain as a customer verification option');
 assert.doesNotMatch(auth,/process\.env\.NEXT_PUBLIC_SMS_AUTH_ENABLED|const\s+SMS_AUTH_ENABLED\s*=/,'Retired SMS feature flag must never be active');
 assert.doesNotMatch(auth,/switchMethod\("sms"\)/,'Retired SMS method must not be selectable');
@@ -105,5 +109,5 @@ assert.match(projects,/href=\{`\/website\/\$\{app\.id\}`\}/,'Generated Website n
 
 console.log('✓ Big Moon Valley carries through LANERIQ-owned Email OTP and LANERIQ-primary account sessions');
 console.log(`✓ ${selectorCount} account-shell selectors are scoped only to Auth/loading/My Projects roots`);
-console.log('✓ Email Code is LANERIQ-generated/verified; WhatsApp compatibility verification explicitly upgrades to LANERIQ Session');
+console.log('✓ Email Code is LANERIQ-generated/verified and live-readiness-gated; WhatsApp compatibility verification explicitly upgrades to LANERIQ Session');
 console.log('✓ My Projects keeps owner-scoped transitional data access while logout revokes LANERIQ authority first and fails closed');
