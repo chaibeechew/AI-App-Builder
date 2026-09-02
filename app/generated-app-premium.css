@@ -1,0 +1,153 @@
+/* LANERIQ AI Generated Experience Standard v1.
+   Applies a premium quality floor to generated non-game Apps while preserving
+   each project's own design tokens and customer identity. */
+
+.generatedExperience{min-height:100vh;background:#03101f;color:#f8fbff}
+.generatedExperience .generatedApp{padding-bottom:96px!important;isolation:isolate}
+.generatedExperience .generatedApp a{color:inherit!important;text-decoration:none!important}
+.generatedExperience .generatedApp button,
+.generatedExperience .generatedApp input,
+.generatedExperience .generatedApp textarea,
+.generatedExperience .generatedApp select{font:inherit;appearance:none;-webkit-appearance:none}
+.generatedExperience .generatedApp button{min-height:44px;cursor:pointer}
+.generatedExperience .generatedApp :focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important}
+
+/* Property CRM is the first golden reference: signature future-city/water atmosphere,
+   deep navy glass and restrained gold/ice-blue accents. Customer custom palettes are
+   still respected by the runtime token system; this supplies the first-output art direction. */
+.generatedExperience--property .generatedApp{
+  background-color:#03101f!important;
+  background-image:
+    linear-gradient(180deg,rgba(0,8,20,.10) 0%,rgba(0,8,20,.28) 36%,rgba(0,7,18,.78) 74%,rgba(0,6,15,.97) 100%),
+    url('/laneriq-future-city-people.webp')!important;
+  background-position:center top!important;
+  background-repeat:no-repeat!important;
+  background-size:min(1180px,100vw) auto!important;
+  background-attachment:scroll!important;
+  color:#f8fbff!important;
+}
+.generatedExperience--property .generatedApp:before{
+  background:radial-gradient(circle at 18% 10%,rgba(241,189,75,.10),transparent 26%),linear-gradient(180deg,transparent 0%,rgba(1,10,22,.18) 42%,rgba(1,9,20,.72) 100%)!important
+}
+
+.generatedExperience .appHeader,
+.generatedExperience .heroCard,
+.generatedExperience .card,
+.generatedExperience .panel,
+.generatedExperience .mediaGallery article{
+  border-radius:20px!important;
+  border:1px solid color-mix(in srgb,var(--accent) 24%,rgba(110,190,235,.24))!important;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--surface) 84%,transparent),color-mix(in srgb,var(--background) 88%,transparent))!important;
+  color:var(--foreground)!important;
+  box-shadow:0 20px 54px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(22px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.06)!important;
+}
+.generatedExperience--property .appHeader,
+.generatedExperience--property .card,
+.generatedExperience--property .panel,
+.generatedExperience--property .mediaGallery article{
+  background:linear-gradient(145deg,rgba(6,35,56,.86),rgba(2,17,31,.92))!important;
+  color:#f8fbff!important;
+  border-color:rgba(92,181,235,.28)!important
+}
+.generatedExperience .appHeader{padding:20px!important}
+.generatedExperience .appHeader small,
+.generatedExperience .heroCard small,
+.generatedExperience .panel>small{color:var(--accent)!important;font-weight:900!important;letter-spacing:.14em!important}
+.generatedExperience .appHeader h1{font-size:clamp(30px,6.6vw,58px)!important;line-height:.98!important;letter-spacing:-.035em!important;margin:8px 0!important}
+.generatedExperience .appHeader p{max-width:680px!important;line-height:1.55!important;opacity:.82!important}
+.generatedExperience .headerActions button,
+.generatedExperience .actionBar button,
+.generatedExperience .panel form button{
+  border-radius:14px!important;border:1px solid color-mix(in srgb,var(--accent) 32%,transparent)!important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 82%,#fff 6%),color-mix(in srgb,var(--primary) 78%,#000 12%))!important;
+  color:#fff!important;font-weight:850!important;box-shadow:0 10px 26px rgba(0,0,0,.22)!important
+}
+.generatedExperience .headerActions button:first-child{background:color-mix(in srgb,var(--surface) 84%,transparent)!important;color:var(--foreground)!important}
+
+.generatedExperience .heroCard{
+  position:relative!important;overflow:hidden!important;margin-top:2px!important;padding:28px!important;min-height:170px!important;
+  display:flex!important;flex-direction:column!important;justify-content:flex-end!important
+}
+.generatedExperience--property .heroCard{
+  min-height:210px!important;
+  background:linear-gradient(135deg,rgba(5,46,77,.90),rgba(2,18,35,.93))!important;
+  border-color:rgba(241,189,75,.42)!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.34),inset 0 1px rgba(255,255,255,.04)!important
+}
+.generatedExperience .heroCard h2{font-size:clamp(28px,5vw,44px)!important;line-height:1.02!important;letter-spacing:-.035em!important;margin:8px 0!important}
+.generatedExperience .heroCard p{max-width:720px!important;font-size:14px!important;line-height:1.55!important;opacity:.84!important}
+
+.generatedExperience .generatedApp nav{
+  scrollbar-width:none!important;gap:8px!important;padding:14px 0!important
+}
+.generatedExperience .generatedApp nav::-webkit-scrollbar{display:none!important}
+.generatedExperience .generatedApp nav button{
+  flex:0 0 auto!important;border-radius:999px!important;padding:9px 14px!important;
+  border:1px solid color-mix(in srgb,var(--accent) 18%,transparent)!important;
+  background:color-mix(in srgb,var(--surface) 78%,transparent)!important;color:var(--foreground)!important;
+  font-weight:800!important;box-shadow:none!important
+}
+.generatedExperience .generatedApp nav button.active{
+  border-color:color-mix(in srgb,var(--accent) 58%,transparent)!important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 84%,#fff 4%),color-mix(in srgb,var(--background) 76%,#000))!important;
+  color:#fff!important;box-shadow:0 8px 22px rgba(0,0,0,.24)!important
+}
+
+.generatedExperience .grid{gap:12px!important}
+.generatedExperience .card{min-height:150px!important;padding:18px!important}
+.generatedExperience .card span{color:var(--accent)!important}
+.generatedExperience .card h3{font-size:16px!important;line-height:1.15!important;margin:10px 0 7px!important}
+.generatedExperience .card p{font-size:12px!important;line-height:1.5!important;opacity:.74!important}
+.generatedExperience .workspace{gap:12px!important}
+.generatedExperience .panel{padding:18px!important}
+.generatedExperience .panel label{color:inherit!important}
+.generatedExperience .panel input,
+.generatedExperience .panel textarea,
+.generatedExperience .panel select{
+  min-height:44px!important;border-radius:12px!important;border:1px solid color-mix(in srgb,var(--foreground) 18%,transparent)!important;
+  background:color-mix(in srgb,var(--background) 58%,transparent)!important;color:inherit!important;padding:11px 12px!important
+}
+.generatedExperience .recordList article{border-radius:14px!important;background:color-mix(in srgb,var(--background) 62%,transparent)!important;border:1px solid color-mix(in srgb,var(--accent) 12%,transparent)!important}
+.generatedExperience .empty{padding:22px 8px!important;text-align:center!important;opacity:.64!important}
+.generatedExperience .notice{border-radius:16px!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important}
+.generatedExperience .generatedApp footer{opacity:.58!important;font-size:10px!important;letter-spacing:.02em!important}
+
+@media(max-width:700px){
+  .generatedExperience .generatedApp{padding:12px 12px 104px!important}
+  .generatedExperience--property .generatedApp{background-size:100% auto!important;background-position:center top!important}
+  .generatedExperience .appHeader{display:block!important;padding:16px!important;border-radius:18px!important}
+  .generatedExperience .appHeader h1{font-size:clamp(29px,9.4vw,39px)!important}
+  .generatedExperience .appHeader p{font-size:12px!important;margin-bottom:14px!important}
+  .generatedExperience .headerActions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important}
+  .generatedExperience .headerActions button{width:100%!important;padding:9px 10px!important}
+  .generatedExperience .heroCard{min-height:178px!important;padding:20px!important;border-radius:18px!important}
+  .generatedExperience--property .heroCard{min-height:195px!important}
+  .generatedExperience .heroCard h2{font-size:30px!important}
+  .generatedExperience .heroCard p{font-size:12px!important}
+  .generatedExperience .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .generatedExperience .card{min-height:142px!important;padding:14px!important;border-radius:16px!important}
+  .generatedExperience .card h3{font-size:13px!important}.generatedExperience .card p{font-size:10.5px!important}
+  .generatedExperience .workspace{grid-template-columns:1fr!important}
+  .generatedExperience .panel{border-radius:17px!important;padding:15px!important}
+
+  /* Generated Apps behave like Apps on iPhone: page navigation becomes a stable bottom dock. */
+  .generatedExperience .generatedApp nav{
+    position:fixed!important;z-index:120!important;left:50%!important;bottom:max(10px,env(safe-area-inset-bottom))!important;
+    transform:translateX(-50%)!important;width:calc(100% - 18px)!important;max-width:620px!important;
+    min-height:66px!important;padding:7px!important;display:flex!important;align-items:stretch!important;
+    border-radius:20px!important;border:1px solid rgba(91,174,226,.28)!important;
+    background:rgba(1,14,28,.93)!important;box-shadow:0 20px 55px rgba(0,0,0,.48)!important;
+    backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important;overflow-x:auto!important
+  }
+  .generatedExperience .generatedApp nav button{min-width:82px!important;min-height:50px!important;border-radius:14px!important;padding:6px 8px!important;font-size:9px!important}
+  .generatedExperience .generatedApp nav button.active{border-color:rgba(241,189,75,.58)!important;color:#ffe49a!important;background:rgba(6,32,50,.96)!important}
+}
+
+@media(max-width:390px){
+  .generatedExperience .generatedApp{padding-left:9px!important;padding-right:9px!important}
+  .generatedExperience .grid{grid-template-columns:1fr 1fr!important}
+  .generatedExperience .card{padding:12px!important}.generatedExperience .card h3{font-size:12px!important}.generatedExperience .card p{font-size:9.8px!important}
+  .generatedExperience .generatedApp nav button{min-width:74px!important;font-size:8px!important}
+}
