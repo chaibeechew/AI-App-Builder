@@ -26,6 +26,17 @@ async function box(page,selector){
   return page.locator(selector).evaluate(el=>{const r=el.getBoundingClientRect();return{width:Math.round(r.width),height:Math.round(r.height),fontSize:Number.parseFloat(getComputedStyle(el).fontSize||"0")};});
 }
 
+async function layerOrder(page, modalSelector){
+  return page.evaluate((selector)=>{
+    const modal=document.querySelector(selector);
+    const language=document.querySelector(".laneriqLangButton.floating");
+    return {
+      modalZ:Number.parseInt(getComputedStyle(modal).zIndex||"0",10)||0,
+      languageZ:language?(Number.parseInt(getComputedStyle(language).zIndex||"0",10)||0):0,
+    };
+  },modalSelector);
+}
+
 const buildInfo=await verifyBuild();
 const matrix=[
   {id:"webkit-iphone13",label:"WebKit · iPhone 13",browserType:webkit,device:devices["iPhone 13"]},
@@ -82,8 +93,11 @@ for(const entry of matrix){
     const voiceViewport=await page.evaluate(()=>({innerWidth,scrollWidth:document.documentElement.scrollWidth,captureCalls:window.__laneriqQaCaptureCalls||0}));
     assert(voiceViewport.scrollWidth<=voiceViewport.innerWidth+1,`${entry.label} Voice dialog creates horizontal overflow`);
     assert.equal(voiceViewport.captureCalls,0,`${entry.label} opening Voice Idea must not request microphone capture`);
+    const voiceLayers=await layerOrder(page,".sv-backdrop");
+    assert(voiceLayers.modalZ>voiceLayers.languageZ,`${entry.label} Voice modal z-index ${voiceLayers.modalZ} must exceed floating Language control ${voiceLayers.languageZ}`);
     await voicePanel.screenshot({path:path.join(artifactDir,`${entry.id}-voice-idea-open.png`)});
     await page.locator(".sv-close").click();
+    await voicePanel.waitFor({state:"hidden",timeout:5000});
 
     const refTrigger=page.locator(".referenceDock>.trigger");
     await refTrigger.waitFor({state:"visible",timeout:10000});
@@ -96,9 +110,13 @@ for(const entry of matrix){
     assert(refPanel.height>=refPanel.viewport*.95,`${entry.label} Upload Ref mobile panel must use the viewport instead of a cramped floating sheet`);
     assert(refPanel.scrollWidth<=refPanel.innerWidth+1,`${entry.label} Upload Ref panel creates horizontal overflow`);
     assert.equal(await page.evaluate(()=>window.__laneriqQaCaptureCalls||0),0,`${entry.label} opening Upload Ref must not request media capture`);
+    const referenceLayers=await layerOrder(page,".referenceDock");
+    assert(referenceLayers.modalZ>referenceLayers.languageZ,`${entry.label} Upload Ref modal z-index ${referenceLayers.modalZ} must exceed floating Language control ${referenceLayers.languageZ}`);
     await refPanelLocator.screenshot({path:path.join(artifactDir,`${entry.id}-upload-ref-open.png`)});
+    await page.locator(".referenceDock .panel header>button").click();
+    await refPanelLocator.waitFor({state:"hidden",timeout:5000});
 
-    results.push({id:entry.id,label:entry.label,evidenceLevel:"BROWSER_EMULATION",account:{signedOutChromeHidden:true,touchTargetsAtLeast44:true},voiceIdea:{openedWithoutCapture:true,touchTargetsAtLeast44:true,inputFontAtLeast16:true,noHorizontalOverflow:true},uploadRef:{openedWithoutCapture:true,viewportPanel:true,touchTargetsAtLeast44:true,noHorizontalOverflow:true},passed:true});
+    results.push({id:entry.id,label:entry.label,evidenceLevel:"BROWSER_EMULATION",account:{signedOutChromeHidden:true,touchTargetsAtLeast44:true},voiceIdea:{openedWithoutCapture:true,touchTargetsAtLeast44:true,inputFontAtLeast16:true,noHorizontalOverflow:true,modalAboveFloatingUtilities:true,closeInteractionPassed:true},uploadRef:{openedWithoutCapture:true,viewportPanel:true,touchTargetsAtLeast44:true,noHorizontalOverflow:true,modalAboveFloatingUtilities:true,closeInteractionPassed:true},passed:true});
     console.log(`✓ ${entry.label}: Account/Logout, Voice Idea and Upload Ref mobile surface checks passed`);
   }finally{
     await context.close();
@@ -108,4 +126,5 @@ for(const entry of matrix){
 
 await fs.writeFile(path.join(artifactDir,"feature-surfaces-report.json"),`${JSON.stringify({evidenceLevel:"BROWSER_EMULATION",physicalDeviceVerified:false,permissionActionsExercised:false,productionUrl:baseUrl,buildInfo,generatedAt:new Date().toISOString(),results},null,2)}\n`,"utf8");
 console.log("✓ Three mobile feature surfaces passed Production browser emulation without exercising microphone/camera/file-picker permissions");
+console.log("✓ Feature modals stay above floating utility controls and both close actions are pointer-accessible in the evidence matrix");
 console.log("✓ Physical iPhone Account logout, microphone capture and Photos/Camera picker behavior remain separate device-evidence gates");
