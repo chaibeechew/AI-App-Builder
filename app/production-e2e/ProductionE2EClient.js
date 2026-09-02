@@ -202,6 +202,7 @@ export default function ProductionE2EClient() {
           <button type="button" onClick={runEvidence} disabled={!selected || running}>{running ? "Running evidence…" : "Run Production evidence"}</button>
           <button type="button" onClick={copyReport} disabled={!report}>Copy report</button>
           <button type="button" onClick={loadApps} disabled={loadingApps}>Refresh projects</button>
+          <a href="/web-publish-evidence">Web Publish lifecycle →</a>
           <a href="/">Create new App + Website</a>
         </div>
         {copyState ? <p className={styles.copyState} role="status">{copyState}</p> : null}
