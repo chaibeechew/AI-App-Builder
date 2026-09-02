@@ -15,7 +15,7 @@ export default async function OperationsPage({params}){
     supabase.from("analytics_events").select("event_name,created_at").eq("app_id",id).gte("created_at",new Date(Date.now()-7*24*60*60*1000).toISOString()).limit(2000)
   ]);
   const quality=assessBuildQuality(version?.specification||{});const managed=integrationStatus();const active=(workflows||[]).filter(x=>x.enabled);const partial=(runs||[]).filter(x=>x.status==="partial"||x.status==="failed").length;const views=(events||[]).filter(x=>x.event_name==="app_view"||x.event_name==="website_view").length;
-  const externalTypes=new Set(active.flatMap(w=>(w.actions||[]).map(a=>a.type)));const needsEmail=externalTypes.has("send_email")&&!managed.email.ready;const needsSms=externalTypes.has("send_sms")&&!managed.sms.ready;const needsCalendar=externalTypes.has("calendar")&&!managed.calendar.ready;
+  const externalTypes=new Set(active.flatMap(w=>(w.actions||[]).map(a=>a.type)));const needsEmail=externalTypes.has("send_email")&&!managed.email.ready;const needsWhatsApp=externalTypes.has("send_whatsapp")&&!managed.whatsapp.ready;const needsCalendar=externalTypes.has("calendar")&&!managed.calendar.ready;
   const checks=[
     {label:"Build quality",ok:quality.overall>=75,detail:`${quality.overall}/100 specification quality`},
     {label:"Publishing",ok:app.publish_status==="published",detail:app.publish_status==="published"?"App + Website published":"Still in draft / preview"},
@@ -23,7 +23,7 @@ export default async function OperationsPage({params}){
     {label:"Automation",ok:active.length>0,detail:`${active.length} active workflows`},
     {label:"Recent workflow health",ok:partial===0,detail:partial?`${partial} recent runs need attention`:"No recent failed/partial runs"},
     {label:"Email delivery",ok:!needsEmail,detail:needsEmail?"Workflow needs email but managed delivery is not configured":"Ready or not required"},
-    {label:"SMS delivery",ok:!needsSms,detail:needsSms?"Workflow needs SMS but managed delivery is not configured":"Ready or not required"},
+    {label:"WhatsApp delivery",ok:!needsWhatsApp,detail:needsWhatsApp?"Workflow needs WhatsApp but Meta Cloud delivery is not configured":"Ready or not required"},
     {label:"Calendar",ok:!needsCalendar,detail:needsCalendar?"Workflow needs calendar but managed calendar is not configured":"Ready or not required"},
   ];
   const attention=checks.filter(x=>!x.ok).length;
