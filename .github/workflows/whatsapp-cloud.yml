@@ -6,7 +6,10 @@ on:
       - 'app/api/whatsapp/**'
       - 'lib/integrations/server.js'
       - 'proxy.js'
+      - 'supabase/functions/send-whatsapp-otp/**'
+      - 'supabase/config.toml'
       - 'scripts/whatsapp-cloud-webhook-contract-tests.mjs'
+      - 'scripts/whatsapp-otp-hook-contract-tests.mjs'
       - '.github/workflows/whatsapp-cloud.yml'
   push:
     branches:
@@ -15,7 +18,10 @@ on:
       - 'app/api/whatsapp/**'
       - 'lib/integrations/server.js'
       - 'proxy.js'
+      - 'supabase/functions/send-whatsapp-otp/**'
+      - 'supabase/config.toml'
       - 'scripts/whatsapp-cloud-webhook-contract-tests.mjs'
+      - 'scripts/whatsapp-otp-hook-contract-tests.mjs'
       - '.github/workflows/whatsapp-cloud.yml'
 
 permissions:
@@ -32,5 +38,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Verify WhatsApp Cloud contract
+      - name: Verify WhatsApp Cloud webhook contract
         run: node scripts/whatsapp-cloud-webhook-contract-tests.mjs
+      - name: Verify WhatsApp OTP auth hook contract
+        run: node scripts/whatsapp-otp-hook-contract-tests.mjs
