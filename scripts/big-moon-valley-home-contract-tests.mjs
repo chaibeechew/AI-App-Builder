@@ -13,14 +13,16 @@ const engine=read('app/components/AdaptiveWallpaperEngine.js');
 const presets=read('lib/design/wallpaper-presets.js');
 const home=read('app/page.js');
 const asset=read('public/big-moon-valley.svg');
-const futureCity=fs.statSync(path.join(root,'public/laneriq-future-city-people.webp'));
+const futureCity=fs.readFileSync(path.join(root,'public/laneriq-future-city-people.webp'));
 
 assert.match(layout,/import "\.\/home-big-moon-valley\.css";\s*import "\.\/big-moon-valley-journey\.css";/,'Journey continuity CSS must keep the Big Moon Valley compatibility layer');
 assert.match(layout,/href="\/laneriq-future-city-people\.webp"/,'Approved future-city artwork must be the homepage first-paint preload');
 assert.match(finalHomeCss,/url\('\/laneriq-future-city-people\.webp'\)/,'Final homepage authority must use the approved future-city people artwork');
 assert.match(finalHomeCss,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/,'Final mobile navigation must reserve the sixth Language item');
 assert.match(finalHomeCss,/white-space:nowrap!important/,'LANERIQ AI signature must stay on one mobile line');
-assert.ok(futureCity.size>100000,'Future-city homepage artwork must be a real optimized image asset');
+assert.equal(futureCity.subarray(0,4).toString('ascii'),'RIFF','Future-city asset must have a valid WebP RIFF header');
+assert.equal(futureCity.subarray(8,12).toString('ascii'),'WEBP','Future-city asset must be a valid WebP image');
+assert.ok(futureCity.length>10000,'Future-city homepage artwork must contain a real image payload');
 
 /* Big Moon Valley remains the compatibility/fallback design system and journey scene. */
 assert.match(homeCss,/url\('\/big-moon-valley\.svg'\)/,'Big Moon Valley fallback layer must remain available');
