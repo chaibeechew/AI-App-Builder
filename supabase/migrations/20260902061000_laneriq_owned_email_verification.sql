@@ -1,4 +1,8 @@
-create table if not exists public.laneriq_verification_challenges (
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+grant usage on schema private to service_role;
+
+create table if not exists private.laneriq_verification_challenges (
   id text primary key,
   channel text not null check (channel in ('email','whatsapp')),
   recipient_hash text not null,
@@ -14,14 +18,14 @@ create table if not exists public.laneriq_verification_challenges (
 );
 
 create index if not exists laneriq_verification_recipient_created_idx
-  on public.laneriq_verification_challenges (recipient_hash, created_at desc);
+  on private.laneriq_verification_challenges (recipient_hash, created_at desc);
 create index if not exists laneriq_verification_expiry_idx
-  on public.laneriq_verification_challenges (expires_at)
+  on private.laneriq_verification_challenges (expires_at)
   where consumed_at is null;
 
-alter table public.laneriq_verification_challenges enable row level security;
-revoke all on table public.laneriq_verification_challenges from public, anon, authenticated;
-grant all on table public.laneriq_verification_challenges to service_role;
+alter table private.laneriq_verification_challenges enable row level security;
+revoke all on table private.laneriq_verification_challenges from public, anon, authenticated;
+grant all on table private.laneriq_verification_challenges to service_role;
 
 create or replace function public.laneriq_create_verification_challenge(
   p_id text,
@@ -53,7 +57,7 @@ begin
 
   perform pg_advisory_xact_lock(hashtextextended(p_recipient_hash, 0));
 
-  update public.laneriq_verification_challenges
+  update private.laneriq_verification_challenges
      set status = 'superseded'
    where recipient_hash = p_recipient_hash
      and channel = p_channel
@@ -61,7 +65,7 @@ begin
      and status in ('pending','delivered')
      and expires_at > now();
 
-  insert into public.laneriq_verification_challenges(
+  insert into private.laneriq_verification_challenges(
     id, channel, recipient_hash, code_hash, referral_code, status, max_attempts, expires_at
   ) values (
     p_id, p_channel, p_recipient_hash, p_code_hash, nullif(left(coalesce(p_referral_code,''),64),''), 'pending', p_max_attempts, p_expires_at
@@ -70,7 +74,7 @@ begin
 
   return query
   select c.id, c.expires_at
-    from public.laneriq_verification_challenges c
+    from private.laneriq_verification_challenges c
    where c.id = p_id;
 end;
 $$;
@@ -88,7 +92,7 @@ begin
   if p_status not in ('delivered','delivery_failed') then
     raise exception 'invalid delivery status';
   end if;
-  update public.laneriq_verification_challenges
+  update private.laneriq_verification_challenges
      set status = p_status
    where id = p_id
      and consumed_at is null
@@ -107,10 +111,10 @@ security definer
 set search_path = ''
 as $$
 declare
-  c public.laneriq_verification_challenges%rowtype;
+  c private.laneriq_verification_challenges%rowtype;
 begin
   select * into c
-    from public.laneriq_verification_challenges
+    from private.laneriq_verification_challenges
    where id = p_id
    for update;
 
@@ -135,19 +139,19 @@ begin
   end if;
 
   if c.expires_at <= now() then
-    update public.laneriq_verification_challenges set status='expired' where id=p_id;
+    update private.laneriq_verification_challenges set status='expired' where id=p_id;
     return query select 'expired'::text, c.referral_code, c.attempts, c.max_attempts;
     return;
   end if;
 
   if c.attempts >= c.max_attempts then
-    update public.laneriq_verification_challenges set status='locked' where id=p_id;
+    update private.laneriq_verification_challenges set status='locked' where id=p_id;
     return query select 'locked'::text, c.referral_code, c.attempts, c.max_attempts;
     return;
   end if;
 
   if c.code_hash <> p_code_hash then
-    update public.laneriq_verification_challenges
+    update private.laneriq_verification_challenges
        set attempts = attempts + 1,
            last_attempt_at = now(),
            status = case when attempts + 1 >= max_attempts then 'locked' else status end
@@ -160,7 +164,7 @@ begin
     return;
   end if;
 
-  update public.laneriq_verification_challenges
+  update private.laneriq_verification_challenges
      set attempts = attempts + 1,
          last_attempt_at = now(),
          consumed_at = now(),
