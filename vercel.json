@@ -4,6 +4,6 @@
   "installCommand": "npm install",
   "devCommand": "next dev",
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": true
   }
 }
