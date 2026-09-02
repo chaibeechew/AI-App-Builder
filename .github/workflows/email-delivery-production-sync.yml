@@ -13,46 +13,124 @@ permissions:
 jobs:
   sync-email-delivery:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    env:
+      VERCEL_PROJECT_ID: prj_Q6mR7lmYGGKCW0ARu2Fgm9Pyzfcl
+      VERCEL_ORG_ID: team_r2xREQWKQzVw1bdswbpW5j8Y
     steps:
       - name: Require deployment secrets
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
         run: |
           set -euo pipefail
-          missing=0
-          for name in VERCEL_TOKEN RESEND_API_KEY EMAIL_FROM; do
-            if [ -z "${!name:-}" ]; then
-              echo "Missing GitHub secret: ${name}"
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then exit 2; fi
-          echo "Required production email delivery secrets are present."
+
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "Missing GitHub secret: VERCEL_TOKEN"
+            exit 2
+          fi
+
+          smtp_user="${SMTP_USER:-${GMAIL_USER:-}}"
+          smtp_pass="${SMTP_PASS:-${GMAIL_APP_PASSWORD:-}}"
+          smtp_host="${SMTP_HOST:-}"
+          email_from="${EMAIL_FROM:-$smtp_user}"
+
+          if [ -z "$smtp_host" ] && { [ -n "${GMAIL_USER:-}" ] || [[ "$smtp_user" == *@gmail.com ]]; }; then
+            smtp_host="smtp.gmail.com"
+          fi
+
+          if [ -n "$smtp_host" ] && [ -n "$smtp_user" ] && [ -n "$smtp_pass" ] && [ -n "$email_from" ]; then
+            echo "Production Email Verification transport: Gmail/SMTP configuration is complete."
+            exit 0
+          fi
+
+          if [ -n "${RESEND_API_KEY:-}" ] && [ -n "${EMAIL_FROM:-}" ]; then
+            echo "Production Email Verification transport: Resend configuration is complete."
+            exit 0
+          fi
+
+          echo "Production Email Verification delivery is not configured."
+          echo "Add VERCEL_TOKEN plus either Gmail/SMTP secrets (GMAIL_USER + GMAIL_APP_PASSWORD, or SMTP_HOST + SMTP_USER + SMTP_PASS; EMAIL_FROM optional for SMTP) or Resend secrets (RESEND_API_KEY + EMAIL_FROM)."
+          exit 2
 
       - name: Upsert Vercel Production email delivery configuration
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
         run: |
           set -euo pipefail
-          payload="$(jq -cn \
-            --arg resend "$RESEND_API_KEY" \
-            --arg from "$EMAIL_FROM" \
-            '[
-              {key:"RESEND_API_KEY",value:$resend,type:"sensitive",target:["production"],comment:"LANERIQ managed Email Verification delivery"},
-              {key:"EMAIL_FROM",value:$from,type:"sensitive",target:["production"],comment:"LANERIQ managed Email Verification sender"}
-            ]')"
+
+          smtp_user="${SMTP_USER:-${GMAIL_USER:-}}"
+          smtp_pass="${SMTP_PASS:-${GMAIL_APP_PASSWORD:-}}"
+          smtp_host="${SMTP_HOST:-}"
+          smtp_port="${SMTP_PORT:-465}"
+          email_from="${EMAIL_FROM:-$smtp_user}"
+
+          if [ -z "${SMTP_PASS:-}" ] && [ -n "${GMAIL_APP_PASSWORD:-}" ]; then
+            smtp_pass="$(printf '%s' "$GMAIL_APP_PASSWORD" | tr -d '[:space:]')"
+          fi
+
+          if [ -z "$smtp_host" ] && { [ -n "${GMAIL_USER:-}" ] || [[ "$smtp_user" == *@gmail.com ]]; }; then
+            smtp_host="smtp.gmail.com"
+          fi
+
+          if [ -n "$smtp_host" ] && [ -n "$smtp_user" ] && [ -n "$smtp_pass" ] && [ -n "$email_from" ]; then
+            payload="$(jq -cn \
+              --arg host "$smtp_host" \
+              --arg port "$smtp_port" \
+              --arg user "$smtp_user" \
+              --arg pass "$smtp_pass" \
+              --arg from "$email_from" \
+              '[
+                {key:"SMTP_HOST",value:$host,type:"sensitive",target:["production"],comment:"LANERIQ Email Verification SMTP host"},
+                {key:"SMTP_PORT",value:$port,type:"sensitive",target:["production"],comment:"LANERIQ Email Verification SMTP port"},
+                {key:"SMTP_USER",value:$user,type:"sensitive",target:["production"],comment:"LANERIQ Email Verification SMTP user"},
+                {key:"SMTP_PASS",value:$pass,type:"sensitive",target:["production"],comment:"LANERIQ Email Verification SMTP credential"},
+                {key:"EMAIL_FROM",value:$from,type:"sensitive",target:["production"],comment:"LANERIQ Email Verification sender"}
+              ]')"
+            transport="SMTP"
+          else
+            payload="$(jq -cn \
+              --arg resend "$RESEND_API_KEY" \
+              --arg from "$EMAIL_FROM" \
+              '[
+                {key:"RESEND_API_KEY",value:$resend,type:"sensitive",target:["production"],comment:"LANERIQ Email Verification delivery"},
+                {key:"EMAIL_FROM",value:$from,type:"sensitive",target:["production"],comment:"LANERIQ Email Verification sender"}
+              ]')"
+            transport="Resend"
+          fi
 
           response="$(curl --fail-with-body --silent --show-error \
             --request POST \
-            --url 'https://api.vercel.com/v10/projects/prj_Q6mR7lmYGGKCW0ARu2Fgm9Pyzfcl/env?upsert=true&teamId=team_r2xREQWKQzVw1bdswbpW5j8Y' \
+            --url "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env?upsert=true&teamId=${VERCEL_ORG_ID}" \
             --header "Authorization: Bearer ${VERCEL_TOKEN}" \
             --header 'Content-Type: application/json' \
             --data "$payload")"
 
           printf '%s' "$response" | jq -e '((.failed // []) | length) == 0' >/dev/null
-          echo "Vercel Production email delivery configuration synced without exposing secret values."
+          echo "Vercel Production ${transport} email delivery configuration synced without exposing secret values."
+
+      - name: Check out LANERIQ AI
+        uses: actions/checkout@v4
+
+      - name: Redeploy Production with refreshed email configuration
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+          echo "LANERIQ AI Production redeployed with the refreshed Email Verification transport configuration."
