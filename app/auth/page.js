@@ -27,10 +27,16 @@ function safeFlowError(error, method) {
   return authErrorMessage(error, method);
 }
 
+async function readLaneriqSession() {
+  const response = await fetch("/api/auth/session", { method: "GET", cache: "no-store", credentials: "same-origin" });
+  const data = await response.json().catch(() => ({}));
+  return { response, data };
+}
+
 function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Existing projects still use a Supabase session compatibility bridge while LANERIQ migrates session authority.
+  // Supabase remains only as the temporary WhatsApp/data-access compatibility bridge.
   const supabase = useMemo(() => createClient(), []);
   const [method, setMethod] = useState("email");
   const [identifier, setIdentifier] = useState("");
@@ -49,9 +55,9 @@ function AuthForm() {
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getUser().then(({ data, error: userError }) => {
+    readLaneriqSession().then(({ response, data }) => {
       if (!active) return;
-      if (!userError && data?.user) {
+      if (response.ok && data?.authenticated === true && data?.sessionAuthority === "laneriq") {
         router.replace(next);
         router.refresh();
       } else {
@@ -59,7 +65,7 @@ function AuthForm() {
       }
     }).catch(() => { if (active) setChecking(false); });
     return () => { active = false; };
-  }, [supabase, router, next]);
+  }, [router, next]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -154,7 +160,7 @@ function AuthForm() {
           body: JSON.stringify({ method: "email", identifier: normalizeEmailAddress(identifier), challengeId, code: token }),
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || data?.success !== true) {
+        if (!response.ok || data?.success !== true || data?.sessionAuthority !== "laneriq") {
           if (data?.code === "VERIFICATION_LOCKED") setVerifyAttempts(maxAttempts);
           else if (Number.isFinite(Number(data?.attempts))) setVerifyAttempts(Math.min(maxAttempts, Number(data.attempts)));
           const verifyError = new Error(data?.error || "Unable to complete email verification right now.");
@@ -166,10 +172,10 @@ function AuthForm() {
         const result = await supabase.auth.verifyOtp({ phone: normalizePhoneNumber(identifier), token, type: "sms" });
         if (result.error) throw result.error;
         if (!result.data?.session) throw new Error("SESSION_NOT_CREATED");
+        // Upgrade the temporary compatibility identity to a LANERIQ-primary session before continuing.
+        const { response: sessionResponse, data: sessionData } = await readLaneriqSession();
+        if (!sessionResponse.ok || sessionData?.authenticated !== true || sessionData?.sessionAuthority !== "laneriq") throw new Error("SESSION_NOT_CREATED");
       }
-
-      const { data: trustedUserData, error: trustedUserError } = await supabase.auth.getUser();
-      if (trustedUserError || !trustedUserData?.user) throw new Error("SESSION_USER_NOT_VERIFIED");
 
       try {
         await fetch("/api/referrals/verify", {
