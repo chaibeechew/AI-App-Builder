@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { communicationGuardStatus } from "../../../../../lib/communications/guard.js";
 import { deliveryAdapterStatus } from "../../../../../lib/communications/delivery-adapter.js";
+import { emailTransportRuntimeDiagnostics } from "../../../../../lib/integrations/email-runtime-diagnostics.js";
 import { createAdminClient } from "../../../../../lib/supabase/admin.js";
 
 const ATTENTION_CODES=new Set([
@@ -64,9 +65,18 @@ async function recentEmailHealth(){
   }
 }
 
+function runtimeDiagnosis(recent,runtime){
+  if(runtime.configurationIssue)return runtime.configurationIssue;
+  if(recent.issue==="smtp_auth_failed"&&runtime.provider==="gmail")return "gmail_credentials_rejected";
+  if(recent.issue==="smtp_sender_rejected"&&runtime.provider==="gmail")return "gmail_sender_rejected";
+  if(recent.issue)return recent.issue;
+  return null;
+}
+
 export async function GET(){
   const guard=communicationGuardStatus();
   const delivery=deliveryAdapterStatus();
+  const runtime=emailTransportRuntimeDiagnostics();
   const [storage,recent]=await Promise.all([storageReady(),recentEmailHealth()]);
   const stages={
     guard:Boolean(guard.ready),
@@ -94,6 +104,15 @@ export async function GET(){
       attempts:recent.attempts,
       maxAttempts:recent.maxAttempts,
       updatedAt:recent.updatedAt,
+    },
+    transportHealth:{
+      provider:runtime.provider,
+      gmail:runtime.gmail,
+      portExpected:runtime.portExpected,
+      credentialShapeValid:runtime.credentialShapeValid,
+      senderAligned:runtime.senderAligned,
+      configurationIssue:runtime.configurationIssue,
+      diagnosis:runtimeDiagnosis(recent,runtime),
     },
     otpAuthority:"laneriq",
     sessionAuthority:"laneriq",
