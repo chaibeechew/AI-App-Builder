@@ -34,12 +34,16 @@ assert.match(analytics,/\.eq\("app_id",id\)/);
 assert.match(analytics,/30\*24\*60\*60\*1000/);
 assert.match(analytics,/Privacy-minimized project usage signals/);
 
-// Operations keeps owner filtering and reports external delivery readiness without changing providers.
+// Operations keeps owner filtering and reports LANERIQ-managed communication readiness.
 assert.match(operations,/if\(!user\)redirect/);
 assert.match(operations,/\.eq\("owner_id",user\.id\)/);
+assert.match(operations,/laneriqCommunicationStatus\(\)/);
 assert.match(operations,/integrationStatus\(\)/);
-assert.match(operations,/needsSms=externalTypes\.has\("send_sms"\)&&!managed\.sms\.ready/);
+assert.match(operations,/needsEmail=externalTypes\.has\("send_email"\)&&!communications\.channels\.email\.ready/);
+assert.match(operations,/needsWhatsApp=externalTypes\.has\("send_whatsapp"\)&&!communications\.channels\.whatsapp\.ready/);
+assert.doesNotMatch(operations,/needsSms|send_sms|SMS delivery/);
 assert.match(operations,/AI Operations reports observable project state/);
+assert.match(operations,/LANERIQ owns the application-facing backend contract/);
 
 // Version History keeps append-only rollback, stale-write protection and idempotent request IDs.
 assert.match(versions,/\.eq\("owner_id", user\.id\)/);
@@ -50,5 +54,5 @@ assert.match(rollback,/response\.status === 409/);
 assert.match(rollback,/window\.location\.reload\(\)/);
 
 console.log('✓ Big Moon Valley Project Intelligence shell is scoped to Analytics, AI Operations and Version History');
-console.log('✓ Ownership, privacy, rollback/idempotency and observable-state contracts remain intact');
-console.log('✓ Generated App/Website customer surfaces remain separated and SMS stays on hold');
+console.log('✓ Ownership, privacy, rollback/idempotency and LANERIQ communication readiness contracts remain intact');
+console.log('✓ Generated App/Website customer surfaces stay separated from replaceable provider adapters');
