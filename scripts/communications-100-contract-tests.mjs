@@ -11,13 +11,15 @@ const limits=read('lib/communications/limits.js');
 const adapter=read('lib/communications/delivery-adapter.js');
 const store=read('lib/communications/store.js');
 const migration=read('supabase/migrations/20260902052500_harden_laneriq_communications.sql');
+const verificationMigration=read('supabase/migrations/20260902061000_laneriq_owned_email_verification.sql');
+const verificationEngine=read('lib/verification/server.js');
 const workflow=read('app/api/apps/[id]/workflows/[workflowId]/run/route.js');
 const verificationRequest=read('app/api/auth/verification/request/route.js');
+const verificationVerify=read('app/api/auth/verification/verify/route.js');
 const proxy=read('lib/supabase/proxy.js');
 const orchestrator=read('lib/build/orchestrator.js');
 const auth=read('app/auth/page.js');
 
-// Launch-year promise: first 12 months are platform-fee free and never silently charge/fallback to paid SMS.
 assert.match(policy,/launchYearMonths:12/);
 assert.match(policy,/customerPlatformFee:0/);
 assert.match(policy,/autoChargeCustomer:false/);
@@ -28,7 +30,6 @@ assert.match(policy,/providerCostAbsorbedByLaneriqDuringLaunchYear:true/);
 assert.match(policy,/overBudgetBehavior:"pause_or_use_available_free_route"/);
 assert.match(policy,/billingFailureBehavior:"never_auto_charge_customer"/);
 
-// LANERIQ core is provider-opaque and provider/storage adapters are replaceable.
 assert.match(policy,/providerOpaqueToGeneratedApps:true/);
 assert.match(policy,/storeAdapterReplaceable:true/);
 assert.match(policy,/deliveryAdapterReplaceable:true/);
@@ -38,7 +39,6 @@ assert.doesNotMatch(core,/sendManagedEmail|sendManagedWhatsApp|graph\.facebook|r
 assert.doesNotMatch(adapter,/sendManagedSms|TWILIO|api\.twilio/i);
 assert.match(adapter,/SUPPORTED=new Set\(\["email","whatsapp"\]\)/);
 
-// Persistent fair-use and duplicate suppression are enforced before any provider call.
 assert.match(limits,/verification/);
 assert.match(limits,/cooldownSeconds:60/);
 assert.match(limits,/whatsapp:Object\.freeze\(\{cooldownSeconds:60,hourly:5,daily:12\}\)/);
@@ -57,7 +57,6 @@ assert.match(migration,/hourly_limit/);
 assert.match(migration,/daily_limit/);
 assert.match(migration,/cooldown/);
 
-// Privacy: dispatch storage contains hashes/status only, never message body or raw recipient fields.
 assert.match(policy,/recipientStoredAsHashOnly:true/);
 assert.match(policy,/messageBodyStored:false/);
 assert.match(migration,/scope_hash text not null/);
@@ -66,7 +65,6 @@ assert.doesNotMatch(migration,/\b(phone|email|message_body|body|otp|verification
 assert.match(guard,/createHmac\("sha256"/);
 assert.doesNotMatch(guard,/console\.(log|error).*recipient|console\.(log|error).*body/i);
 
-// Guard persistence is server-only. Generated/authenticated users cannot mutate quota or delivery history.
 assert.match(migration,/enable row level security/);
 assert.match(migration,/revoke all on public\.communication_dispatches from public,anon,authenticated/);
 assert.match(migration,/to service_role/);
@@ -75,28 +73,41 @@ assert.match(store,/createAdminClient/);
 assert.match(store,/server_claim_communication_dispatch/);
 assert.match(store,/server_finish_communication_dispatch/);
 
-// Every workflow action gets a stable per-run dispatch key; rate-limit results remain partial, never falsely successful.
 assert.match(workflow,/purpose:"automation"/);
 assert.match(workflow,/scope:`workflow:\$\{user\.id\}:\$\{id\}`/);
 assert.match(workflow,/idempotencyKey:`laneriq:\$\{runId\}:\$\{actionIndex\}:/);
 assert.match(workflow,/status==="rate_limited"/);
 assert.match(workflow,/No customer was charged/);
 
-// Login code requests also pass through LANERIQ guard before current Auth delivery.
+// Email login is now fully LANERIQ-owned at OTP generation/verification; WhatsApp remains compatibility authority for now.
 assert.match(auth,/fetch\("\/api\/auth\/verification\/request"/);
+assert.match(auth,/fetch\("\/api\/auth\/verification\/verify"/);
 assert.doesNotMatch(auth,/auth\.signInWithOtp/);
+assert.doesNotMatch(auth,/verifyOtp\(\{ email:/);
+assert.match(verificationRequest,/requestLaneriqEmailVerification/);
+assert.match(verificationRequest,/otpAuthority:"laneriq"/);
+assert.doesNotMatch(verificationRequest,/signInWithOtp\(\{email:/);
 assert.match(verificationRequest,/claimLaneriqCommunication/);
 assert.match(verificationRequest,/purpose:"verification"/);
 assert.match(verificationRequest,/sameOrigin\(request\)/);
 assert.match(verificationRequest,/VERIFICATION_RATE_LIMIT/);
-const verificationClaimCall=verificationRequest.indexOf('claim=await claimLaneriqCommunication');
-const otpGenerationCall=verificationRequest.indexOf('supabase.auth.signInWithOtp');
-assert.ok(verificationClaimCall>=0&&otpGenerationCall>verificationClaimCall,'Verification fair-use guard must run before OTP generation/delivery.');
+assert.match(verificationEngine,/crypto\.randomInt/);
+assert.match(verificationEngine,/createHmac\("sha256"/);
+assert.match(verificationEngine,/laneriq_create_verification_challenge/);
+assert.match(verificationEngine,/laneriq_consume_verification_challenge/);
+assert.match(verificationEngine,/deliverCommunication/);
+assert.ok(verificationEngine.indexOf('claimLaneriqCommunication') < verificationEngine.indexOf('deliverCommunication({'),'Verification fair-use guard must run before LANERIQ Email delivery.');
+assert.match(verificationVerify,/verifyLaneriqEmailVerification/);
+assert.match(verificationMigration,/recipient_hash text not null/);
+assert.match(verificationMigration,/code_hash text not null/);
+assert.doesNotMatch(verificationMigration,/\b(email|phone|otp|verification_code|code)\s+text\b/i);
+assert.match(verificationMigration,/for update/);
+assert.match(verificationMigration,/consumed_at = now\(\)/);
 assert.match(proxy,/PUBLIC_SERVER_ENDPOINTS/);
 assert.match(proxy,/"\/api\/auth\/verification\/request"/);
+assert.match(proxy,/"\/api\/auth\/verification\/verify"/);
 assert.doesNotMatch(proxy,/startsWith\("\/api\/auth"\)/);
 
-// Natural-language creator experience remains one-sentence auto-setup; paid SMS is not exposed in auth.
 assert.match(orchestrator,/service:"LANERIQ Verification"/);
 assert.match(orchestrator,/autoSetup:true/);
 assert.match(orchestrator,/providerOpaque:true/);
@@ -110,7 +121,6 @@ assert.doesNotMatch(auth,/NEXT_PUBLIC_SMS_AUTH_ENABLED/);
 console.log('✓ LANERIQ Launch Year Free is 12 months, RM0 platform fee, fair-use protected and never auto-charges customers');
 console.log('✓ LANERIQ Communications core is provider-opaque with replaceable delivery/storage adapters');
 console.log('✓ Persistent atomic source/recipient cooldown-hour-day limits and idempotency run before delivery');
-console.log('✓ Communication history stores hashes/status only and is service-role protected');
-console.log('✓ Workflow dispatches use stable per-run keys and never report rate-limited sends as successful');
-console.log('✓ Login verification requests are LANERIQ-guarded before OTP generation/delivery');
+console.log('✓ Communication and verification history store hashes/status only and are service-role protected');
+console.log('✓ Email OTP generation + verification are LANERIQ-owned with atomic one-use challenges');
 console.log('✓ One-sentence Verification auto-setup remains Email + WhatsApp only with no paid SMS fallback');
