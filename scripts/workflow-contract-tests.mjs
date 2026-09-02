@@ -9,6 +9,10 @@ const definitions=read('app/api/apps/[id]/workflows/route.js');
 const run=read('app/api/apps/[id]/workflows/[workflowId]/run/route.js');
 const page=read('app/workflows/[id]/page.js');
 const communications=read('lib/communications/server.js');
+const deliveryAdapter=read('lib/communications/delivery-adapter.js');
+const communicationGuard=read('lib/communications/guard.js');
+const communicationStore=read('lib/communications/store.js');
+const communicationsMigration=read('supabase/migrations/20260902052500_harden_laneriq_communications.sql');
 const integrations=read('lib/integrations/server.js');
 const bootstrap=read('app/api/apps/[id]/bootstrap/route.js');
 const migration=read('supabase/migrations/20260901111658_harden_workflow_runtime_contract.sql');
@@ -59,18 +63,33 @@ assert.match(run,/recorded as partial, not successful/);
 assert.match(run,/critical action did not complete, so the workflow stopped safely/i);
 assert.match(run,/status==="failed"\?409:status==="partial"\?207:200/);
 
-// Generated projects call LANERIQ Communications, while provider adapters remain private and replaceable.
+// Generated projects call LANERIQ Communications. The core owns idempotency/privacy/fair-use and never imports provider implementations.
 assert.match(run,/sendLaneriqCommunication/);
+assert.match(run,/purpose:"automation"/);
+assert.match(run,/idempotencyKey:`laneriq:\$\{runId\}:\$\{actionIndex\}:/);
 assert.match(communications,/service:"LANERIQ Communications"/);
 assert.match(communications,/CHANNELS=new Set\(\["email","whatsapp"\]\)/);
-assert.match(communications,/sendManagedEmail/);
-assert.match(communications,/sendManagedWhatsApp/);
+assert.match(communications,/claimLaneriqCommunication/);
+assert.match(communications,/deliverCommunication/);
+assert.ok(communications.indexOf('claimLaneriqCommunication')<communications.indexOf('deliverCommunication'),'LANERIQ persistent guard must run before provider delivery.');
+assert.doesNotMatch(communications,/sendManagedEmail|sendManagedWhatsApp|graph\.facebook|resend\.com|TWILIO|api\.twilio/i);
+assert.match(deliveryAdapter,/sendManagedEmail/);
+assert.match(deliveryAdapter,/sendManagedWhatsApp/);
+assert.doesNotMatch(deliveryAdapter,/sendManagedSms|TWILIO|api\.twilio/i);
+assert.match(communicationGuard,/createHmac\("sha256"/);
+assert.match(communicationGuard,/claimCommunicationDispatch/);
+assert.match(communicationStore,/server_claim_communication_dispatch/);
+assert.match(communicationsMigration,/communication_dispatches_scope_idempotency_uq/);
+assert.match(communicationsMigration,/pg_advisory_xact_lock/);
+assert.match(communicationsMigration,/recipient_hourly_limit/);
+assert.match(communicationsMigration,/recipient_daily_limit/);
 assert.match(integrations,/providerFetch/);
 assert.match(integrations,/AbortController/);
 assert.match(integrations,/External provider timed out\. Please retry safely/);
 for(const marker of ['integrationStatus().email.ready','integrationStatus().whatsapp.ready','integrationStatus().calendar.ready'])assert.match(integrations,new RegExp(marker.replace(/[().]/g,'\\$&')));
 assert.doesNotMatch(integrations,/TWILIO_|sendManagedSms|channel:"sms"/);
 assert.match(run,/integration_required/);
+assert.match(run,/status==="rate_limited"/);
 
 // Live DB contract mirrors ownership and payload safety. Historical rows may retain legacy action names,
 // but the current API/runtime cannot create or execute paid SMS actions.
@@ -96,8 +115,8 @@ assert.match(bootstrap,/app_workflows/);
 assert.match(bootstrap,/owner_id:user\.id/);
 
 console.log('✓ Workflow definitions are owner-bound, bounded, secret-filtered and restricted to LANERIQ-supported actions');
-console.log('✓ Every workflow run requires a stable idempotency key and concurrent duplicate execution is database-blocked');
+console.log('✓ Every workflow run requires stable idempotency and LANERIQ adds per-message duplicate/fair-use protection');
 console.log('✓ Safe Test simulates every supported side-effect action before any customer-data write or external provider call');
-console.log('✓ LANERIQ Communications owns the app-facing Email/WhatsApp contract while provider adapters stay replaceable');
+console.log('✓ LANERIQ Communications owns the app-facing Email/WhatsApp contract while provider/storage adapters stay replaceable');
 console.log('✓ Paid SMS is absent from the executable workflow and provider surfaces');
 console.log('✓ Live DB constraints/RLS bind workflow runs and records to the actual owned app/workflow chain');
