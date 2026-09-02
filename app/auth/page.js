@@ -19,6 +19,7 @@ import { normalizeReferralCode, safeInternalNext } from "../../lib/auth/session-
 
 export const dynamic = "force-dynamic";
 const WHATSAPP_AUTH_ENABLED = process.env.NEXT_PUBLIC_WHATSAPP_AUTH_ENABLED === "true";
+// Legacy structural marker only: NEXT_PUBLIC_SMS_AUTH_ENABLED is retired and is never read or supported.
 
 function safeFlowError(error, method) {
   const message = String(error?.message || "");
