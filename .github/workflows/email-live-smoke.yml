@@ -1,0 +1,36 @@
+name: LANERIQ Email Live Smoke
+
+on:
+  push:
+    branches: [email-live-smoke-20260902]
+    paths:
+      - '.github/workflows/email-live-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  production-email-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Request one production LANERIQ email verification code
+        run: |
+          set -euo pipefail
+          recipient="$(jq -r '.head_commit.author.email // empty' "$GITHUB_EVENT_PATH")"
+          test -n "$recipient"
+          request_id="smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          payload="$(jq -cn --arg email "$recipient" --arg requestId "$request_id" '{method:"email",identifier:$email,requestId:$requestId}')"
+          code="$(curl --silent --show-error --output /tmp/laneriq-email-smoke.json --write-out '%{http_code}' \
+            --request POST \
+            --url 'https://laneriq-ai.vercel.app/api/auth/verification/request' \
+            --header 'Origin: https://laneriq-ai.vercel.app' \
+            --header 'Sec-Fetch-Site: same-origin' \
+            --header 'Content-Type: application/json' \
+            --data "$payload")"
+          if [ "$code" != "200" ]; then
+            echo "Production Email Verification smoke request failed with HTTP ${code}."
+            exit 2
+          fi
+          jq -e '.success == true and .channel == "email" and .otpAuthority == "laneriq"' /tmp/laneriq-email-smoke.json >/dev/null
+          echo 'Production LANERIQ Email Verification request completed successfully.'
