@@ -49,6 +49,8 @@ declare
   v_last timestamptz;
   v_hourly integer;
   v_daily integer;
+  v_recipient_hourly integer;
+  v_recipient_daily integer;
   v_retry integer;
   v_id uuid;
 begin
@@ -84,11 +86,27 @@ begin
     return;
   end if;
 
+  select count(*)::integer into v_recipient_hourly from public.communication_dispatches
+    where recipient_hash=p_recipient_hash and channel=p_channel and purpose=p_purpose
+      and created_at>=now()-interval '1 hour' and status in ('claimed','completed');
+  if v_recipient_hourly>=p_hourly_limit then
+    return query select null::uuid,'recipient_hourly_limit'::text,3600,null::text;
+    return;
+  end if;
+
   select count(*)::integer into v_daily from public.communication_dispatches
     where scope_hash=p_scope_hash and channel=p_channel and purpose=p_purpose
       and created_at>=now()-interval '24 hours' and status in ('claimed','completed');
   if v_daily>=p_daily_limit then
     return query select null::uuid,'daily_limit'::text,86400,null::text;
+    return;
+  end if;
+
+  select count(*)::integer into v_recipient_daily from public.communication_dispatches
+    where recipient_hash=p_recipient_hash and channel=p_channel and purpose=p_purpose
+      and created_at>=now()-interval '24 hours' and status in ('claimed','completed');
+  if v_recipient_daily>=p_daily_limit then
+    return query select null::uuid,'recipient_daily_limit'::text,86400,null::text;
     return;
   end if;
 
