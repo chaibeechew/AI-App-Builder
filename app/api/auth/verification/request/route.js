@@ -3,12 +3,13 @@ import { createClient } from "../../../../../lib/supabase/server.js";
 import { authErrorMessage, normalizeEmailAddress, normalizePhoneNumber } from "../../../../../lib/auth/otp-policy.js";
 import { normalizeReferralCode } from "../../../../../lib/auth/session-safety.js";
 import { claimLaneriqCommunication, completeLaneriqCommunication } from "../../../../../lib/communications/guard.js";
+import { requestLaneriqEmailVerification } from "../../../../../lib/verification/server.js";
 
 function json(payload,status=200,retryAfter=0){const response=NextResponse.json(payload,{status});response.headers.set("Cache-Control","private, no-store, max-age=0");response.headers.set("Pragma","no-cache");response.headers.set("X-Content-Type-Options","nosniff");if(retryAfter>0)response.headers.set("Retry-After",String(Math.ceil(retryAfter)));return response;}
 function sameOrigin(request){try{const origin=request.headers.get("origin");if(!origin)return false;const originHost=new URL(origin).host;const expectedHost=request.headers.get("x-forwarded-host")||request.headers.get("host")||request.nextUrl.host;const fetchSite=String(request.headers.get("sec-fetch-site")||"").toLowerCase();return originHost===expectedHost&&fetchSite!=="cross-site";}catch{return false;}}
 function requestId(value){const id=String(value||"").trim().replace(/[^a-zA-Z0-9._:-]/g,"-").slice(0,120);if(!id)throw new Error("Verification request id is required.");return id;}
 function clientScope(request){const forwarded=String(request.headers.get("x-forwarded-for")||"").split(",")[0].trim();const real=String(request.headers.get("x-real-ip")||"").trim();const ip=(forwarded||real||"unknown").slice(0,100);return `verification-ip:${ip}`;}
-function providerFailureStatus(error){const code=String(error?.code||"").toLowerCase();if(code.includes("rate"))return 429;if(code==="phone_provider_disabled"||code==="email_provider_disabled")return 503;return 400;}
+function providerFailureStatus(error){const code=String(error?.code||"").toLowerCase();if(code.includes("rate"))return 429;if(code==="phone_provider_disabled")return 503;return 400;}
 
 export async function POST(request){
   let claim=null;
@@ -22,8 +23,20 @@ export async function POST(request){
     const identifier=method==="email"?normalizeEmailAddress(body?.identifier):normalizePhoneNumber(body?.identifier);
     const id=requestId(body?.requestId);
     const referral=normalizeReferralCode(body?.referral);
+    const scope=clientScope(request);
 
-    claim=await claimLaneriqCommunication({channel:method,purpose:"verification",scope:clientScope(request),recipient:identifier,idempotencyKey:`verification:${id}`});
+    if(method==="email"){
+      const owned=await requestLaneriqEmailVerification({email:identifier,scope,requestId:id,referral});
+      const status=Number(owned?.status||200);
+      if(!owned?.success){
+        const message=owned?.code==="VERIFICATION_RATE_LIMIT"?"Too many verification codes were requested. Please wait before trying again.":owned?.code==="VERIFICATION_NOT_READY"?"Email verification is not available yet.":"Unable to request an email verification code right now.";
+        return json({success:false,error:message,code:owned?.code||"VERIFICATION_REQUEST_FAILED",reason:owned?.reason,retryAfterSeconds:owned?.retryAfterSeconds},status,status===429?Number(owned?.retryAfterSeconds||60):0);
+      }
+      return json({success:true,channel:"email",service:"LANERIQ Verification",otpAuthority:"laneriq",challengeId:owned.challengeId,expiresInSeconds:owned.expiresInSeconds,platformFee:0,replayed:Boolean(owned.replayed),duplicateSuppressed:Boolean(owned.duplicateSuppressed)});
+    }
+
+    // WhatsApp remains on the current compatibility authority until its LANERIQ-owned challenge path is enabled.
+    claim=await claimLaneriqCommunication({channel:"whatsapp",purpose:"verification",scope,recipient:identifier,idempotencyKey:`verification:${id}`});
     if(claim.decision==="replay"){
       if(claim.dispatchStatus==="completed")return json({success:true,replayed:true,duplicateSuppressed:true});
       if(claim.dispatchStatus==="claimed")return json({success:true,replayed:true,inProgress:true,duplicateSuppressed:true},202);
@@ -34,19 +47,17 @@ export async function POST(request){
 
     const supabase=await createClient();
     const options={shouldCreateUser:true,data:referral?{referral_code:referral}:undefined};
-    const result=method==="email"
-      ? await supabase.auth.signInWithOtp({email:identifier,options})
-      : await supabase.auth.signInWithOtp({phone:identifier,options});
+    const result=await supabase.auth.signInWithOtp({phone:identifier,options});
     if(result.error){
       const code=String(result.error.code||"").toLowerCase();
-      const integrationRequired=code==="phone_provider_disabled"||code==="email_provider_disabled";
+      const integrationRequired=code==="phone_provider_disabled";
       try{await completeLaneriqCommunication({dispatchId:claim.dispatchId,status:integrationRequired?"integration_required":"failed",errorCode:integrationRequired?"verification_not_ready":"verification_request_failed"});}catch{}
       const status=providerFailureStatus(result.error);
-      return json({success:false,error:authErrorMessage(result.error,method),code:integrationRequired?"VERIFICATION_NOT_READY":status===429?"VERIFICATION_RATE_LIMIT":"VERIFICATION_REQUEST_FAILED"},status,status===429?60:0);
+      return json({success:false,error:authErrorMessage(result.error,"whatsapp"),code:integrationRequired?"VERIFICATION_NOT_READY":status===429?"VERIFICATION_RATE_LIMIT":"VERIFICATION_REQUEST_FAILED"},status,status===429?60:0);
     }
 
     try{await completeLaneriqCommunication({dispatchId:claim.dispatchId,status:"completed"});}catch{}
-    return json({success:true,channel:method,service:"LANERIQ Verification",platformFee:0});
+    return json({success:true,channel:"whatsapp",service:"LANERIQ Verification",platformFee:0});
   }catch(error){
     if(claim?.dispatchId&&claim?.decision==="claimed")try{await completeLaneriqCommunication({dispatchId:claim.dispatchId,status:"failed",errorCode:"verification_internal_error"});}catch{}
     const message=error?.message==="LANERIQ communications privacy guard is not configured."?"Verification service is not configured yet.":authErrorMessage(error,method);
