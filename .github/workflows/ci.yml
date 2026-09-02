@@ -179,3 +179,15 @@ jobs:
         run: npm run test:upload-ref-mobile
       - name: Production public-surface contract tests
         run: npm run test:production-public
+
+      - name: Runtime reliability contract tests
+        run: npm run test:runtime
+      - name: Non-production 100 product contract tests
+        run: npm run test:nonprod
+      - name: 100-point structural readiness gate
+        run: npm run quality:100
+      - name: Build Next.js application
+        run: npm run build
+      - name: Report
+        run: echo "LANERIQ AI one-app Soolen Platform Operator, Pro Edit-on-demand, Communications 100, secure verification, provider-opaque infrastructure, runtime, structural readiness and production build gates passed. External live-provider delivery/store evidence remains evidence-gated."
+      # This workflow validates code only. It never substitutes code for authenticated live, physical-device, provider, malware-scanner or store evidence.
