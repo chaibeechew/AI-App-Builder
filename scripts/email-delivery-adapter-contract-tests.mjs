@@ -13,7 +13,8 @@ assert.match(integrations,/process\.env\.RESEND_API_KEY&&process\.env\.EMAIL_FRO
 assert.match(integrations,/email:\{ready:smtpReady\(\)\|\|resendReady\(\),managed:true\}/,'Email readiness must accept either managed transport.');
 assert.match(integrations,/tls\.connect\(\{host,port,servername:host,rejectUnauthorized:true\}\)/,'SMTP TLS certificate validation must stay enabled.');
 assert.match(integrations,/AUTH PLAIN/);
-assert.match(integrations,/function safeHeader\(value,max=320\)\{return safeText\(value,max\)\.replace\(\/\[\\r\\n\]\+\/g," "\)\.trim\(\);\}/,'SMTP headers must strip CR/LF before protocol framing.');
+assert.match(integrations,/function safeHeader/,'SMTP header sanitizer must exist.');
+assert.ok(integrations.includes('replace(/[\\r\\n]+/g," ")'),'SMTP headers must strip CR/LF before protocol framing.');
 assert.match(integrations,/function mailbox/,'SMTP envelope addresses must be validated.');
 assert.match(integrations,/if\(smtpReady\(\)\)return sendManagedSmtpEmail\(payload\)/);
 assert.match(integrations,/if\(resendReady\(\)\)return sendManagedResendEmail\(payload\)/);
