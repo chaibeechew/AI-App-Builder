@@ -1,0 +1,453 @@
+/* LANERIQ AI Big Moon Valley discovery shell.
+   Strictly scoped to Create, Inspirations/Templates and Studio product surfaces.
+   Generation, template retrieval, auth, providers and customer output are not changed here. */
+
+main.page:has(.builder aside),
+.templatesPage,
+.studioShell{
+  position:relative!important;
+  min-height:100svh!important;
+  overflow-x:hidden!important;
+  color:#f7fbf8!important;
+  background:
+    linear-gradient(180deg,rgba(0,7,6,.02) 0%,rgba(0,8,7,.08) 23%,rgba(0,9,7,.69) 50%,rgba(0,8,7,.98) 100%),
+    url('/big-moon-valley.svg') 67% top/cover fixed no-repeat!important;
+}
+main.page:has(.builder aside)::before,
+.templatesPage::before,
+.studioShell::before{
+  content:''!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 77% 10%,rgba(255,221,126,.10),transparent 29%),
+    linear-gradient(90deg,rgba(0,9,7,.55),rgba(0,9,7,.02) 53%,rgba(0,9,7,.13))!important;
+}
+
+/* Create: keep the real build workflow and turn the outer shell into a premium command path. */
+main.page:has(.builder aside) .backdrop{
+  display:none!important;
+}
+main.page:has(.builder aside) .wrap{
+  position:relative!important;
+  z-index:1!important;
+  max-width:1120px!important;
+  padding:max(20px,env(safe-area-inset-top)) 18px max(92px,calc(72px + env(safe-area-inset-bottom)))!important;
+}
+main.page:has(.builder aside) .wrap>header{
+  min-height:52px!important;
+  padding:7px 9px!important;
+  border:1px solid rgba(235,198,93,.20)!important;
+  border-radius:18px!important;
+  background:rgba(3,23,17,.48)!important;
+  box-shadow:0 16px 42px rgba(0,0,0,.17)!important;
+  backdrop-filter:blur(20px) saturate(1.05)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(1.05)!important;
+}
+main.page:has(.builder aside) .wrap>header a{
+  min-height:40px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(235,198,93,.27)!important;
+  background:rgba(3,25,19,.68)!important;
+  color:#fff4cf!important;
+}
+main.page:has(.builder aside) .wrap>header span,
+main.page:has(.builder aside) .hero small,
+main.page:has(.builder aside) label,
+main.page:has(.builder aside) .planBox>b{
+  color:#f0cb68!important;
+}
+main.page:has(.builder aside) .hero{
+  max-width:900px!important;
+  padding:clamp(150px,22svh,250px) 0 34px!important;
+}
+main.page:has(.builder aside) .hero h1{
+  color:#fff9df!important;
+  text-shadow:0 10px 42px rgba(0,0,0,.56)!important;
+}
+main.page:has(.builder aside) .hero em{
+  color:#f0cb68!important;
+}
+main.page:has(.builder aside) .hero p{
+  color:#c2d2cb!important;
+  text-shadow:0 2px 16px rgba(0,0,0,.43)!important;
+}
+main.page:has(.builder aside) .promo,
+main.page:has(.builder aside) .visualNote{
+  border-color:rgba(235,198,93,.28)!important;
+  background:rgba(3,24,18,.62)!important;
+  color:#dce8e2!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.15)!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+}
+main.page:has(.builder aside) .main,
+main.page:has(.builder aside) aside{
+  border-color:rgba(235,198,93,.27)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.78),rgba(2,15,12,.91))!important;
+  box-shadow:0 28px 72px rgba(0,0,0,.33),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(28px) saturate(1.08)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(1.08)!important;
+}
+main.page:has(.builder aside) .row input,
+main.page:has(.builder aside) textarea{
+  min-height:52px!important;
+  border-color:rgba(255,255,255,.11)!important;
+  background:rgba(2,17,13,.84)!important;
+  color:#fff!important;
+  font-size:16px!important;
+  outline:none!important;
+}
+main.page:has(.builder aside) textarea{
+  min-height:178px!important;
+}
+main.page:has(.builder aside) .row input:focus,
+main.page:has(.builder aside) textarea:focus{
+  border-color:rgba(239,201,96,.61)!important;
+  box-shadow:0 0 0 3px rgba(239,201,96,.08)!important;
+}
+main.page:has(.builder aside) .row button,
+main.page:has(.builder aside) .plan,
+main.page:has(.builder aside) .build{
+  min-height:48px!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.builder aside) .row button,
+main.page:has(.builder aside) .build{
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#142018!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.24),0 0 24px rgba(225,176,53,.10)!important;
+}
+main.page:has(.builder aside) .plan{
+  border-color:rgba(235,198,93,.30)!important;
+  background:rgba(4,31,23,.72)!important;
+  color:#efd478!important;
+}
+main.page:has(.builder aside) .risk,
+main.page:has(.builder aside) .uploadInfo,
+main.page:has(.builder aside) .planBox,
+main.page:has(.builder aside) .consent{
+  border-color:rgba(255,255,255,.08)!important;
+  background:rgba(4,27,21,.65)!important;
+}
+main.page:has(.builder aside) aside>div{
+  border-color:rgba(255,255,255,.08)!important;
+}
+main.page:has(.builder aside) aside>div span{
+  color:#f0cb68!important;
+}
+
+/* Inspirations: moon-and-valley cover first, then search/filter glass library. */
+.templatesPage{
+  padding:max(26px,env(safe-area-inset-top)) clamp(16px,5vw,70px) max(86px,calc(62px + env(safe-area-inset-bottom)))!important;
+}
+.templatesPage .glow{
+  display:none!important;
+}
+.templatesPage header,
+.templatesPage .stats,
+.templatesPage .controls,
+.templatesPage .titleRow,
+.templatesPage .grid,
+.templatesPage .loading,
+.templatesPage .error,
+.templatesPage footer{
+  position:relative!important;
+  z-index:1!important;
+}
+.templatesPage header{
+  padding-top:clamp(150px,22svh,250px)!important;
+  margin-bottom:30px!important;
+}
+.templatesPage .eyebrow,
+.templatesPage .titleRow small{
+  color:#f0cb68!important;
+}
+.templatesPage h1{
+  color:#fff8dc!important;
+  text-shadow:0 9px 38px rgba(0,0,0,.54)!important;
+}
+.templatesPage header p{
+  color:#c1d1ca!important;
+  text-shadow:0 2px 14px rgba(0,0,0,.42)!important;
+}
+.templatesPage .button,
+.templatesPage .use{
+  min-height:48px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:1px solid rgba(255,241,191,.44)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#132018!important;
+  box-shadow:0 12px 29px rgba(0,0,0,.22)!important;
+  touch-action:manipulation!important;
+}
+.templatesPage .stats article,
+.templatesPage .controls,
+.templatesPage .card,
+.templatesPage .loading,
+.templatesPage .error,
+.templatesPage .empty{
+  border-color:rgba(235,198,93,.22)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.76),rgba(2,15,12,.90))!important;
+  box-shadow:0 22px 58px rgba(0,0,0,.27),inset 0 1px rgba(255,255,255,.03)!important;
+  backdrop-filter:blur(26px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.06)!important;
+}
+.templatesPage .stats b,
+.templatesPage .cardTop b,
+.templatesPage footer a{
+  color:#f0cb68!important;
+}
+.templatesPage .controls button,
+.templatesPage .controls input,
+.templatesPage .controls select{
+  min-height:46px!important;
+  border-color:rgba(255,255,255,.10)!important;
+  background:rgba(2,18,14,.82)!important;
+  color:#eff7f3!important;
+  font-size:16px!important;
+  touch-action:manipulation!important;
+}
+.templatesPage .controls button.on{
+  border-color:rgba(255,241,191,.44)!important;
+  background:linear-gradient(135deg,#efd16b,#c6922e)!important;
+  color:#142018!important;
+}
+.templatesPage .card{
+  min-height:378px!important;
+  border-radius:22px!important;
+}
+.templatesPage .card:hover{
+  border-color:rgba(240,202,104,.52)!important;
+  transform:translateY(-2px)!important;
+}
+.templatesPage .card .icon{
+  border:1px solid rgba(255,241,191,.40)!important;
+  background:linear-gradient(145deg,#efd16f,#a96e1b)!important;
+  box-shadow:0 9px 24px rgba(0,0,0,.19)!important;
+}
+.templatesPage .chips span,
+.templatesPage .note{
+  background:rgba(6,41,30,.52)!important;
+}
+
+/* Studio: keep module routing and quality semantics, upgrade the product lobby. */
+.studioShell{
+  padding-bottom:max(90px,calc(70px + env(safe-area-inset-bottom)))!important;
+}
+.studioShell .studioBackdrop{
+  display:none!important;
+}
+.studioShell .studioTop,
+.studioShell .heroStudio,
+.studioShell .qualityPanel,
+.studioShell .modules,
+.studioShell .flowBar{
+  position:relative!important;
+  z-index:1!important;
+}
+.studioShell .studioTop{
+  margin:max(18px,env(safe-area-inset-top)) 5% 0!important;
+  padding:7px 9px!important;
+  min-height:54px!important;
+  border:1px solid rgba(235,198,93,.20)!important;
+  border-radius:18px!important;
+  background:rgba(3,23,17,.48)!important;
+  box-shadow:0 16px 42px rgba(0,0,0,.17)!important;
+  backdrop-filter:blur(20px) saturate(1.05)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(1.05)!important;
+}
+.studioShell .back{
+  min-height:40px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(235,198,93,.27)!important;
+  background:rgba(3,25,19,.68)!important;
+  color:#fff4cf!important;
+}
+.studioShell .studioTop span,
+.studioShell .heroStudio small,
+.studioShell .sectionHead small,
+.studioShell .sectionHead>b,
+.studioShell .moduleCard span,
+.studioShell .open{
+  color:#f0cb68!important;
+}
+.studioShell .heroStudio{
+  max-width:1120px!important;
+  padding:clamp(150px,22svh,250px) 24px 56px!important;
+}
+.studioShell .heroStudio h1{
+  color:#fff8dc!important;
+  text-shadow:0 10px 42px rgba(0,0,0,.56)!important;
+}
+.studioShell .heroStudio em{
+  color:#f0cb68!important;
+}
+.studioShell .heroStudio p{
+  color:#c4d3cd!important;
+  text-shadow:0 2px 15px rgba(0,0,0,.42)!important;
+}
+.studioShell .heroActions a{
+  min-height:46px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  touch-action:manipulation!important;
+}
+.studioShell .heroActions .primary{
+  min-height:48px!important;
+  border:1px solid rgba(255,241,191,.44)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#142018!important;
+  box-shadow:0 12px 29px rgba(0,0,0,.22)!important;
+}
+.studioShell .heroActions .secondary{
+  border-color:rgba(235,198,93,.25)!important;
+  background:rgba(3,25,19,.68)!important;
+  color:#ead782!important;
+}
+.studioShell .qualityPanel,
+.studioShell .modules,
+.studioShell .flowBar{
+  border-color:rgba(235,198,93,.25)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.76),rgba(2,15,12,.90))!important;
+  box-shadow:0 28px 72px rgba(0,0,0,.31),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(27px) saturate(1.07)!important;
+  -webkit-backdrop-filter:blur(27px) saturate(1.07)!important;
+}
+.studioShell .qualityGrid article,
+.studioShell .moduleCard{
+  border-color:rgba(255,255,255,.08)!important;
+  background:rgba(4,28,21,.66)!important;
+}
+.studioShell .qualityGrid span{
+  border:1px solid rgba(255,241,191,.42)!important;
+  background:linear-gradient(145deg,#efd16f,#aa701c)!important;
+  color:#142018!important;
+}
+.studioShell .moduleCard{
+  min-height:205px!important;
+  transition:transform .18s ease,border-color .18s ease!important;
+}
+.studioShell .moduleCard:hover{
+  border-color:rgba(240,202,104,.50)!important;
+  transform:translateY(-2px)!important;
+}
+.studioShell .flowBar{
+  min-height:54px!important;
+}
+
+@media(max-width:850px){
+  main.page:has(.builder aside) .hero,
+  .templatesPage header,
+  .studioShell .heroStudio{
+    padding-top:clamp(160px,25svh,225px)!important;
+  }
+  .templatesPage header{
+    align-items:flex-start!important;
+    flex-direction:column!important;
+  }
+  .templatesPage .button{
+    align-self:flex-start!important;
+  }
+}
+
+@media(max-width:520px){
+  main.page:has(.builder aside),
+  .templatesPage,
+  .studioShell{
+    background:
+      linear-gradient(180deg,rgba(0,7,6,0) 0%,rgba(0,8,7,.04) 24%,rgba(0,9,7,.72) 47%,rgba(0,8,7,.98) 100%),
+      url('/big-moon-valley.svg') 67% top/cover scroll no-repeat!important;
+  }
+  main.page:has(.builder aside) .wrap{
+    padding:max(10px,env(safe-area-inset-top)) 10px max(96px,calc(76px + env(safe-area-inset-bottom)))!important;
+  }
+  main.page:has(.builder aside) .hero{
+    padding-top:clamp(205px,33svh,285px)!important;
+  }
+  main.page:has(.builder aside) .hero h1,
+  .templatesPage h1,
+  .studioShell .heroStudio h1{
+    font-size:clamp(40px,13vw,54px)!important;
+    line-height:.96!important;
+  }
+  main.page:has(.builder aside) .builder{
+    grid-template-columns:1fr!important;
+  }
+  main.page:has(.builder aside) .main,
+  main.page:has(.builder aside) aside{
+    padding:18px!important;
+  }
+  main.page:has(.builder aside) .row{
+    grid-template-columns:1fr!important;
+  }
+  main.page:has(.builder aside) .row button{
+    width:100%!important;
+  }
+  .templatesPage{
+    padding:max(12px,env(safe-area-inset-top)) 10px max(88px,calc(68px + env(safe-area-inset-bottom)))!important;
+  }
+  .templatesPage header{
+    padding-top:clamp(205px,33svh,285px)!important;
+  }
+  .templatesPage .controls,
+  .templatesPage .grid{
+    grid-template-columns:1fr!important;
+  }
+  .templatesPage .tabs{
+    grid-column:auto!important;
+  }
+  .templatesPage .button,
+  .templatesPage .use{
+    width:100%!important;
+  }
+  .studioShell .studioTop{
+    margin:max(10px,env(safe-area-inset-top)) 10px 0!important;
+  }
+  .studioShell .heroStudio{
+    padding:clamp(205px,33svh,285px) 12px 44px!important;
+  }
+  .studioShell .heroActions a{
+    width:100%!important;
+  }
+  .studioShell .qualityGrid,
+  .studioShell .moduleGrid{
+    grid-template-columns:1fr!important;
+  }
+  .studioShell .qualityPanel,
+  .studioShell .modules{
+    width:calc(100% - 20px)!important;
+  }
+  .studioShell .flowBar{
+    margin-inline:10px!important;
+  }
+}
+
+@media(max-width:380px){
+  main.page:has(.builder aside) .hero,
+  .templatesPage header,
+  .studioShell .heroStudio{
+    padding-top:200px!important;
+  }
+  .templatesPage .stats{
+    grid-template-columns:1fr!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  main.page:has(.builder aside) *,
+  .templatesPage *,
+  .studioShell *{
+    scroll-behavior:auto!important;
+    transition:none!important;
+    animation:none!important;
+  }
+}
