@@ -8,6 +8,8 @@ const provider=read('lib/email-provider/server.js');
 const adapter=read('lib/communications/delivery-adapter.js');
 const verification=read('lib/verification/server.js');
 const migration=read('supabase/migrations/20260902092000_laneriq_email_provider_v1.sql');
+const healthMigration=read('supabase/migrations/20260902160000_email_verification_health_snapshot.sql');
+const healthRoute=read('app/api/auth/verification/status/route.js');
 
 assert.match(provider,/PROVIDER_NAME="LANERIQ Email"/);
 assert.match(provider,/providerAuthority:"laneriq"/);
@@ -30,6 +32,11 @@ assert.match(provider,/laneriq_claim_email/);
 assert.match(provider,/laneriq_finish_email/);
 assert.match(provider,/status:"deferred"/);
 assert.match(provider,/retryAfterSeconds:300/);
+assert.match(provider,/normalizeManagedEmailRuntime/);
+assert.match(provider,/smtp\.gmail\.com/);
+assert.match(provider,/normalize\("NFKC"\)/);
+assert.match(provider,/\\u200B-\\u200D\\uFEFF/);
+assert.match(provider,/errorCode:delivered\.errorCode\|\|null/);
 assert.doesNotMatch(provider,/console\.(log|error)/);
 
 assert.match(migration,/private\.laneriq_email_messages/);
@@ -50,6 +57,19 @@ assert.match(migration,/max_attempts integer not null default 5/);
 assert.match(migration,/revoke all on function public\.laneriq_enqueue_email/);
 assert.match(migration,/grant execute on function public\.laneriq_finish_email.*to service_role/);
 
+assert.match(healthMigration,/laneriq_email_verification_health/);
+assert.match(healthMigration,/m\.purpose = 'verification'/);
+assert.match(healthMigration,/m\.last_error_code/);
+assert.match(healthMigration,/service_role required/);
+assert.match(healthMigration,/revoke all on function public\.laneriq_email_verification_health\(\) from public, anon, authenticated/);
+assert.match(healthMigration,/grant execute on function public\.laneriq_email_verification_health\(\) to service_role/);
+assert.doesNotMatch(healthMigration,/recipient_hash|payload_ciphertext|payload_iv|payload_tag/);
+assert.match(healthRoute,/laneriq_email_verification_health/);
+assert.match(healthRoute,/operationalReady/);
+assert.match(healthRoute,/deliveryHealth/);
+assert.match(healthRoute,/smtp_auth_failed/);
+assert.doesNotMatch(healthRoute,/recipient_hash|payload_ciphertext|payload_iv|payload_tag/);
+
 assert.match(adapter,/sendLaneriqEmail/);
 assert.match(adapter,/provider:"LANERIQ Email"/);
 assert.doesNotMatch(adapter,/sendManagedEmail/);
@@ -60,4 +80,6 @@ console.log('✓ LANERIQ Email Provider owns provider identity and LANERIQ Messa
 console.log('✓ Email payloads are AES-256-GCM encrypted at rest and recipients are HMAC-only metadata');
 console.log('✓ Provider root secret chain is aligned with LANERIQ Communications without exposing raw server secrets');
 console.log('✓ Queue claim is atomic, retry-aware, private-schema and service-role-only');
+console.log('✓ Gmail App Password input is normalized without logging or exposing secret material');
+console.log('✓ Verification health exposes only privacy-safe operational state and provider error codes');
 console.log('✓ Verification routes Email through LANERIQ Email Provider with no paid SMS fallback');
