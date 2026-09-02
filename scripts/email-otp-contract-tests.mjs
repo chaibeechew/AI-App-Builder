@@ -5,6 +5,7 @@ import { EMAIL_OTP_POLICY, authErrorMessage, normalizeEmailAddress, normalizeEma
 const authPage = await readFile(new URL('../app/auth/page.js', import.meta.url), 'utf8');
 const requestRoute = await readFile(new URL('../app/api/auth/verification/request/route.js', import.meta.url), 'utf8');
 const verifyRoute = await readFile(new URL('../app/api/auth/verification/verify/route.js', import.meta.url), 'utf8');
+const statusRoute = await readFile(new URL('../app/api/auth/verification/status/route.js', import.meta.url), 'utf8');
 const sessionRoute = await readFile(new URL('../app/api/auth/session/route.js', import.meta.url), 'utf8');
 const engine = await readFile(new URL('../lib/verification/server.js', import.meta.url), 'utf8');
 const communicationsGuard = await readFile(new URL('../lib/communications/guard.js', import.meta.url), 'utf8');
@@ -51,6 +52,20 @@ assert.match(requestRoute, /sameOrigin\(request\)/);
 assert.match(requestRoute, /VERIFICATION_RATE_LIMIT/);
 assert.match(requestRoute, /Cache-Control","private, no-store, max-age=0/);
 
+assert.match(statusRoute, /communicationGuardStatus/);
+assert.match(statusRoute, /deliveryAdapterStatus/);
+assert.match(statusRoute, /communication_dispatches/);
+assert.match(statusRoute, /service:"LANERIQ Verification"/);
+assert.match(statusRoute, /channel:"email"/);
+assert.match(statusRoute, /stages=\{/);
+assert.match(statusRoute, /guard:Boolean\(guard\.ready\)/);
+assert.match(statusRoute, /storage:Boolean\(storage\)/);
+assert.match(statusRoute, /delivery:Boolean\(delivery\.email\?\.ready\)/);
+assert.match(statusRoute, /otpAuthority:"laneriq"/);
+assert.match(statusRoute, /sessionAuthority:"laneriq"/);
+assert.match(statusRoute, /private, no-store/);
+assert.doesNotMatch(statusRoute, /RESEND_API_KEY|EMAIL_FROM|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY/);
+
 assert.match(engine, /crypto\.randomInt/);
 assert.match(engine, /createHmac\("sha256"/);
 assert.match(engine, /LANERIQ_VERIFICATION_SECRET\|\|process\.env\.LANERIQ_COMMUNICATIONS_HASH_SECRET\|\|process\.env\.LANERIQ_COMMUNICATION_PRIVACY_SECRET/);
@@ -93,6 +108,7 @@ assert.match(verifyRoute, /sessionAuthority:"laneriq"/);
 assert.doesNotMatch(verifyRoute, /sessionToken:/);
 assert.match(sessionRoute, /sessionAuthority:"laneriq"/);
 assert.match(proxy, /"\/api\/auth\/verification\/verify"/);
+assert.match(proxy, /"\/api\/auth\/verification\/status"/);
 assert.match(proxy, /"\/api\/auth\/session"/);
 assert.doesNotMatch(proxy, /startsWith\("\/api\/auth"\)/);
 
@@ -128,3 +144,4 @@ console.log('✓ Browser requests/verifies Email Code through exact same-origin 
 console.log('✓ LANERIQ Session is primary; the legacy identity exists only for transitional data access');
 console.log('✓ Verification storage is private-schema, RLS protected, service-role only and RPC ambiguity regression-gated');
 console.log('✓ Verification and Communications share a backward-compatible server-only privacy secret chain');
+console.log('✓ Verification health exposes only provider-opaque guard/storage/delivery readiness');
