@@ -1,0 +1,116 @@
+/* LANERIQ/SoolenAI generated industry visual system v2.
+   Background/media stays visible, foreground copy stays concise, and mobile type
+   never turns the first screen into a wall of text. Golden-reference apps keep
+   their dedicated final layer. */
+
+.generatedExperience:not([data-golden-reference="true"]) .generatedApp{
+  background-attachment:fixed!important;
+  background-position:center top!important;
+  background-size:cover!important;
+}
+
+.generatedExperience:not([data-golden-reference="true"]) .generatedApp:before{
+  background:
+    linear-gradient(180deg,rgba(0,0,0,.08) 0%,rgba(0,0,0,.14) 42%,rgba(0,0,0,.42) 100%)!important;
+}
+
+.generatedExperience:not([data-golden-reference="true"]) .appHeader,
+.generatedExperience:not([data-golden-reference="true"]) .card,
+.generatedExperience:not([data-golden-reference="true"]) .panel,
+.generatedExperience:not([data-golden-reference="true"]) .mediaGallery article{
+  background:color-mix(in srgb,var(--surface) 78%,transparent)!important;
+  backdrop-filter:blur(16px) saturate(1.04)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(1.04)!important;
+}
+
+.generatedExperience:not([data-golden-reference="true"]) .appHeader{
+  border-color:color-mix(in srgb,var(--accent) 30%,transparent)!important;
+}
+
+.generatedExperience:not([data-golden-reference="true"]) .appHeader h1{
+  font-size:clamp(28px,5.2vw,44px)!important;
+  line-height:1.03!important;
+  letter-spacing:-.025em!important;
+  margin:7px 0 9px!important;
+  text-wrap:balance;
+}
+
+.generatedExperience:not([data-golden-reference="true"]) .appHeader p{
+  max-width:660px!important;
+  font-size:clamp(12px,1.8vw,15px)!important;
+  line-height:1.5!important;
+  margin:0!important;
+  opacity:.86!important;
+}
+
+.generatedExperience:not([data-golden-reference="true"]) .heroCard{
+  min-height:148px!important;
+  padding:20px!important;
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--primary) 68%,transparent),color-mix(in srgb,var(--background) 74%,transparent))!important;
+  backdrop-filter:blur(12px)!important;
+  -webkit-backdrop-filter:blur(12px)!important;
+}
+
+.generatedExperience:not([data-golden-reference="true"]) .heroCard h2{
+  font-size:clamp(22px,3.4vw,30px)!important;
+  line-height:1.05!important;
+  margin:7px 0 9px!important;
+}
+
+.generatedExperience:not([data-golden-reference="true"]) .heroCard p{
+  max-width:680px!important;
+  font-size:clamp(11px,1.7vw,14px)!important;
+  line-height:1.5!important;
+  margin:0!important;
+}
+
+.generatedExperience:not([data-golden-reference="true"]) .card{
+  min-height:126px!important;
+  padding:16px!important;
+}
+.generatedExperience:not([data-golden-reference="true"]) .card h3{font-size:14px!important;line-height:1.18!important;margin:9px 0 6px!important}
+.generatedExperience:not([data-golden-reference="true"]) .card p{font-size:11px!important;line-height:1.45!important}
+
+/* Each industry keeps the same quality floor while feeling materially different. */
+.generatedExperience--property{--industry-radius:20px}
+.generatedExperience--hospitality{--industry-radius:22px}
+.generatedExperience--beauty{--industry-radius:24px}
+.generatedExperience--education{--industry-radius:18px}
+.generatedExperience--health{--industry-radius:18px}
+.generatedExperience--finance{--industry-radius:16px}
+.generatedExperience--travel{--industry-radius:22px}
+.generatedExperience--commerce{--industry-radius:18px}
+.generatedExperience--game{--industry-radius:16px}
+.generatedExperience--corporate{--industry-radius:16px}
+.generatedExperience--creator{--industry-radius:22px}
+.generatedExperience--logistics{--industry-radius:16px}
+.generatedExperience--automotive{--industry-radius:16px}
+.generatedExperience--fitness{--industry-radius:20px}
+
+.generatedExperience:not([data-golden-reference="true"]) .appHeader,
+.generatedExperience:not([data-golden-reference="true"]) .heroCard,
+.generatedExperience:not([data-golden-reference="true"]) .card,
+.generatedExperience:not([data-golden-reference="true"]) .panel{
+  border-radius:var(--industry-radius,20px)!important;
+}
+
+@media(max-width:700px){
+  .generatedExperience:not([data-golden-reference="true"]) .generatedApp{padding:10px 10px 112px!important}
+  .generatedExperience:not([data-golden-reference="true"]) .appHeader{padding:14px!important;gap:12px!important}
+  .generatedExperience:not([data-golden-reference="true"]) .appHeader h1{font-size:clamp(26px,8.2vw,34px)!important;line-height:1.02!important}
+  .generatedExperience:not([data-golden-reference="true"]) .appHeader p{font-size:11.5px!important;line-height:1.45!important}
+  .generatedExperience:not([data-golden-reference="true"]) .heroCard{min-height:132px!important;padding:15px!important}
+  .generatedExperience:not([data-golden-reference="true"]) .heroCard h2{font-size:22px!important}
+  .generatedExperience:not([data-golden-reference="true"]) .heroCard p{font-size:10.8px!important}
+  .generatedExperience:not([data-golden-reference="true"]) .card{min-height:116px!important;padding:12px!important}
+  .generatedExperience:not([data-golden-reference="true"]) .card h3{font-size:12px!important}
+  .generatedExperience:not([data-golden-reference="true"]) .card p{font-size:9.8px!important}
+  .generatedExperience:not([data-golden-reference="true"]) .mediaGallery img,
+  .generatedExperience:not([data-golden-reference="true"]) .mediaGallery video{height:178px!important}
+}
+
+@media(max-width:390px){
+  .generatedExperience:not([data-golden-reference="true"]) .appHeader h1{font-size:26px!important}
+  .generatedExperience:not([data-golden-reference="true"]) .heroCard h2{font-size:21px!important}
+}
