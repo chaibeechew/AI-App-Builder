@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { LANERIQ_SESSION_COOKIE, laneriqSessionCookieOptions } from "../../../../../lib/auth/laneriq-session.js";
 import { normalizeEmailAddress, normalizeEmailOtp } from "../../../../../lib/auth/otp-policy.js";
 import { verifyLaneriqEmailVerification } from "../../../../../lib/verification/server.js";
 
@@ -23,12 +24,15 @@ export async function POST(request){
         VERIFICATION_LOCKED:"Too many incorrect attempts. Request a new verification code.",
         VERIFICATION_ALREADY_USED:"This verification code has already been used. Request a new code.",
         VERIFICATION_NOT_READY:"Email verification is not available yet.",
-        SESSION_BRIDGE_FAILED:"Your code was verified, but the secure session could not be completed. Request a new code and try again.",
+        SESSION_AUTHORITY_FAILED:"Your code was verified, but the secure LANERIQ session could not be completed. Request a new code and try again.",
       };
       const status=Number(result?.status||400);
       return json({success:false,error:messages[result?.code]||"Unable to complete email verification right now.",code:result?.code||"VERIFICATION_FAILED",attempts:result?.attempts,maxAttempts:result?.maxAttempts},status,status===429?60:0);
     }
-    return json({success:true,service:"LANERIQ Verification",otpAuthority:"laneriq",sessionCreated:true});
+    if(!result.sessionToken)return json({success:false,error:"The secure LANERIQ session could not be completed.",code:"SESSION_AUTHORITY_FAILED"},503);
+    const response=json({success:true,service:"LANERIQ Verification",otpAuthority:"laneriq",sessionAuthority:"laneriq",sessionCreated:true});
+    response.cookies.set(LANERIQ_SESSION_COOKIE,result.sessionToken,laneriqSessionCookieOptions());
+    return response;
   }catch{
     return json({success:false,error:"Unable to complete email verification right now.",code:"VERIFICATION_FAILED"},503);
   }
