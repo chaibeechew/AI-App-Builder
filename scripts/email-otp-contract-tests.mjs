@@ -7,6 +7,7 @@ const requestRoute = await readFile(new URL('../app/api/auth/verification/reques
 const verifyRoute = await readFile(new URL('../app/api/auth/verification/verify/route.js', import.meta.url), 'utf8');
 const engine = await readFile(new URL('../lib/verification/server.js', import.meta.url), 'utf8');
 const migration = await readFile(new URL('../supabase/migrations/20260902061000_laneriq_owned_email_verification.sql', import.meta.url), 'utf8');
+const repairMigration = await readFile(new URL('../supabase/migrations/20260902065500_fix_laneriq_verification_rpc_ambiguity.sql', import.meta.url), 'utf8');
 const proxy = await readFile(new URL('../lib/supabase/proxy.js', import.meta.url), 'utf8');
 const authGuard = await readFile(new URL('../app/components/AuthFlowGuard.js', import.meta.url), 'utf8');
 
@@ -57,7 +58,12 @@ assert.match(engine, /laneriq_consume_verification_challenge/);
 assert.match(engine, /deliverCommunication/);
 assert.match(engine, /otpAuthority:"laneriq"/);
 assert.match(engine, /compatibilityBridge:"supabase_session_only"/);
-assert.ok(engine.indexOf('decision!=="verified"') < engine.indexOf('mintCompatibilitySession(email'), 'Compatibility session must only be minted after LANERIQ verifies the code.');
+const verifyFnStart=engine.indexOf('export async function verifyLaneriqEmailVerification');
+assert.ok(verifyFnStart>=0,'LANERIQ Email verification function must exist.');
+const verifyFn=engine.slice(verifyFnStart);
+const verifiedGate=verifyFn.indexOf('if(decision!=="verified")');
+const sessionMintCall=verifyFn.indexOf('await mintCompatibilitySession(email');
+assert.ok(verifiedGate>=0&&sessionMintCall>verifiedGate,'Compatibility session must only be minted after LANERIQ verifies the code.');
 assert.doesNotMatch(engine, /console\.(log|info|warn|error|debug)/);
 
 assert.match(verifyRoute, /verifyLaneriqEmailVerification/);
@@ -80,10 +86,15 @@ assert.match(migration, /grant all on table private\.laneriq_verification_challe
 assert.match(migration, /pg_advisory_xact_lock/);
 assert.match(migration, /for update/);
 assert.match(migration, /status = 'superseded'/);
-assert.match(migration, /attempts \+ 1 >= max_attempts/);
+assert.match(migration, /challenge\.attempts \+ 1 >= challenge\.max_attempts/);
 assert.match(migration, /consumed_at = now\(\)/);
+assert.doesNotMatch(migration, /\n\s+and expires_at > now\(\)/);
+assert.doesNotMatch(migration, /set attempts = attempts \+ 1/);
 assert.match(migration, /revoke all on function public\.laneriq_consume_verification_challenge/);
 assert.match(migration, /grant execute on function public\.laneriq_consume_verification_challenge/);
+assert.match(repairMigration, /existing\.expires_at > now\(\)/);
+assert.match(repairMigration, /challenge\.attempts \+ 1 >= challenge\.max_attempts/);
+assert.match(repairMigration, /grant execute on function public\.laneriq_consume_verification_challenge.*to service_role/);
 
 assert.match(authGuard, /window\.__LANERIQ_AUTH_FLOW_BUSY__ === true/);
 assert.match(authGuard, /supabase\.auth\.getUser\(\)/);
@@ -93,4 +104,4 @@ console.log('✓ Email OTP generation and validation are owned by LANERIQ Verifi
 console.log('✓ Email challenges are HMAC-only, 10-minute, one-use, superseding and 5-attempt locked');
 console.log('✓ Browser requests and verifies Email Code only through exact same-origin LANERIQ endpoints');
 console.log('✓ Existing Supabase session is now a post-verification compatibility bridge only');
-console.log('✓ Verification storage is private-schema, RLS protected and service-role only');
+console.log('✓ Verification storage is private-schema, RLS protected, service-role only and RPC ambiguity regression-gated');
