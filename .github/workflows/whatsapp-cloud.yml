@@ -3,19 +3,31 @@ name: WhatsApp Cloud Contract
 on:
   pull_request:
     paths:
+      - 'app/auth/**'
       - 'app/api/whatsapp/**'
+      - 'app/api/auth/whatsapp-otp-hook/**'
+      - 'lib/auth/otp-policy.js'
+      - 'lib/auth/verification-channels.js'
       - 'lib/integrations/server.js'
+      - 'lib/supabase/proxy.js'
       - 'proxy.js'
       - 'scripts/whatsapp-cloud-webhook-contract-tests.mjs'
+      - 'scripts/whatsapp-auth-contract-tests.mjs'
       - '.github/workflows/whatsapp-cloud.yml'
   push:
     branches:
       - main
     paths:
+      - 'app/auth/**'
       - 'app/api/whatsapp/**'
+      - 'app/api/auth/whatsapp-otp-hook/**'
+      - 'lib/auth/otp-policy.js'
+      - 'lib/auth/verification-channels.js'
       - 'lib/integrations/server.js'
+      - 'lib/supabase/proxy.js'
       - 'proxy.js'
       - 'scripts/whatsapp-cloud-webhook-contract-tests.mjs'
+      - 'scripts/whatsapp-auth-contract-tests.mjs'
       - '.github/workflows/whatsapp-cloud.yml'
 
 permissions:
@@ -32,5 +44,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Verify WhatsApp Cloud contract
+      - name: Verify WhatsApp Cloud webhook contract
         run: node scripts/whatsapp-cloud-webhook-contract-tests.mjs
+      - name: Verify Email and Meta WhatsApp authentication contract
+        run: node scripts/whatsapp-auth-contract-tests.mjs
