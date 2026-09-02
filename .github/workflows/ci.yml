@@ -103,6 +103,8 @@ jobs:
         run: npm run test:upload-ref
       - name: Image Studio contract tests
         run: npm run test:image-studio
+      - name: Big Moon Valley creator services contract tests
+        run: node scripts/big-moon-valley-creator-services-contract-tests.mjs
       - name: AI Video Generator contract tests
         run: npm run test:video
       - name: AI Avatar Creator contract tests
