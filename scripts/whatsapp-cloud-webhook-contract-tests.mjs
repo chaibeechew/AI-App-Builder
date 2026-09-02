@@ -30,13 +30,14 @@ assert.match(integrations, /messaging_product:"whatsapp"/);
 assert.match(integrations, /replace\(\/\[\^0-9\]\/g,""\)/);
 assert.match(integrations, /preview_url:false/);
 
-// Server-to-server Meta webhook requests are allowed without weakening browser mutation protection.
+// Exact pre-session server endpoints are allowed without broadening browser/API auth bypasses.
 assert.match(edgeProxy, /Server-to-server\/webhook requests commonly have no browser Origin\/Sec-Fetch-Site headers/);
 assert.match(edgeProxy, /if\(fetchSite==="cross-site"\)return true/);
-assert.match(sessionProxy, /const PUBLIC_SERVER_WEBHOOKS = new Set\(\["\/api\/whatsapp\/webhook"\]\)/);
-assert.match(sessionProxy, /if \(PUBLIC_SERVER_WEBHOOKS\.has\(pathname\)\)/);
-assert.match(sessionProxy, /route itself performs verify-token checks for GET and HMAC signature checks for POST/);
+assert.match(sessionProxy, /const PUBLIC_SERVER_ENDPOINTS = new Set\(\["\/api\/whatsapp\/webhook","\/api\/auth\/verification\/request"\]\)/);
+assert.match(sessionProxy, /if \(PUBLIC_SERVER_ENDPOINTS\.has\(pathname\)\)/);
+assert.match(sessionProxy, /no broad \/api prefix bypass exists/);
 assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/whatsapp"\)/);
+assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/auth"\)/);
 
 console.log('✓ WhatsApp Cloud webhook verification and HMAC signature checks are present');
 console.log('✓ Exact WhatsApp webhook path bypasses user session auth without opening other API routes');
