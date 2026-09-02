@@ -1,0 +1,36 @@
+name: WhatsApp Cloud Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/whatsapp/**'
+      - 'lib/integrations/server.js'
+      - 'proxy.js'
+      - 'scripts/whatsapp-cloud-webhook-contract-tests.mjs'
+      - '.github/workflows/whatsapp-cloud.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/api/whatsapp/**'
+      - 'lib/integrations/server.js'
+      - 'proxy.js'
+      - 'scripts/whatsapp-cloud-webhook-contract-tests.mjs'
+      - '.github/workflows/whatsapp-cloud.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify WhatsApp Cloud contract
+        run: node scripts/whatsapp-cloud-webhook-contract-tests.mjs
