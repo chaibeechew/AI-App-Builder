@@ -80,10 +80,7 @@ async function inspectDocument(page, route, engineLabel, { publicRoute = false, 
 
   const startedAt = Date.now();
   const response = await settle(page, `${baseUrl}${route}`, `${engineLabel} ${route}`);
-  if (protectedRoute) {
-    await page.waitForURL((url) => url.origin === baseOrigin && url.pathname === "/auth", { timeout: 10_000 });
-    await page.waitForTimeout(200);
-  }
+  if (protectedRoute) await page.waitForTimeout(450);
   const snapshot = await snapshotDocument(page, `${engineLabel} ${route}`);
   const elapsedMs = Date.now() - startedAt;
   const finalUrl = new URL(snapshot.href);
