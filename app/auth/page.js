@@ -83,7 +83,7 @@ function AuthForm() {
 
   async function sendCode(event) {
     event?.preventDefault?.();
-    if (loading || (sent && resendIn > 0)) return;
+    if (loading || resendIn > 0) return;
     if (method === "whatsapp" && !WHATSAPP_AUTH_ENABLED) {
       setError("WhatsApp verification is still being configured. Email Code remains available.");
       return;
@@ -92,22 +92,26 @@ function AuthForm() {
     setError("");
     setMessage("");
     try {
-      const options = { shouldCreateUser: true, data: referral ? { referral_code: referral } : undefined };
-      if (method === "whatsapp") {
-        const phone = normalizePhoneNumber(identifier);
-        // Supabase phone OTP is retained only as the secure OTP/session authority.
-        // Delivery must be routed through the configured Meta WhatsApp Auth Hook; there is no UI SMS fallback.
-        const result = await supabase.auth.signInWithOtp({ phone, options });
-        if (result.error) throw result.error;
-        setIdentifier(phone);
-        setMessage(`WhatsApp verification code sent to ${phone}.`);
-      } else {
-        const email = normalizeEmailAddress(identifier);
-        const result = await supabase.auth.signInWithOtp({ email, options });
-        if (result.error) throw result.error;
-        setIdentifier(email);
-        setMessage(`${PRODUCT_BRAND.name} verification code sent to ${email}. Check your inbox and spam folder.`);
+      const normalized = method === "whatsapp" ? normalizePhoneNumber(identifier) : normalizeEmailAddress(identifier);
+      const requestId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const response = await fetch("/api/auth/verification/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        credentials: "same-origin",
+        body: JSON.stringify({ method, identifier: normalized, referral: referral || undefined, requestId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success !== true) {
+        if (response.status === 429) setResendIn(Math.min(300, Math.max(policy.resendSeconds, Number(data?.retryAfterSeconds || 0))));
+        const requestError = new Error(data?.error || "Unable to request a verification code.");
+        requestError.code = data?.code || "VERIFICATION_REQUEST_FAILED";
+        throw requestError;
       }
+      setIdentifier(normalized);
+      setMessage(method === "whatsapp"
+        ? `WhatsApp verification code sent to ${normalized}.`
+        : `${PRODUCT_BRAND.name} verification code sent to ${normalized}. Check your inbox and spam folder.`);
       setOtp("");
       setVerifyAttempts(0);
       setSent(true);
@@ -134,8 +138,7 @@ function AuthForm() {
     try {
       const token = method === "whatsapp" ? normalizeWhatsAppOtp(otp) : normalizeEmailOtp(otp);
       attemptedRemoteVerify = true;
-      // Supabase currently names phone OTP verification type "sms" internally even when a Send SMS Hook
-      // delivers the OTP over Meta WhatsApp. This value is never presented as a customer verification option.
+      // Phone OTP remains an internal auth protocol name only. Customer delivery is WhatsApp and there is no SMS fallback.
       const result = method === "whatsapp"
         ? await supabase.auth.verifyOtp({ phone: normalizePhoneNumber(identifier), token, type: "sms" })
         : await supabase.auth.verifyOtp({ email: normalizeEmailAddress(identifier), token, type: "email" });
@@ -211,7 +214,7 @@ function AuthForm() {
                 <input id="auth-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={isWhatsApp ? "+60123456789" : "you@example.com"} inputMode={isWhatsApp ? "tel" : "email"} autoComplete={isWhatsApp ? "tel" : "email"} autoCapitalize="none" maxLength={isWhatsApp ? WHATSAPP_OTP_POLICY.maxPhoneLength + 8 : EMAIL_OTP_POLICY.maxEmailLength} required />
               </div>
               {referral && <div className="notice">Referral code · {referral}</div>}
-              <button className="primary" disabled={loading}><span>{loading ? "Sending…" : `Send ${methodLabel} Code`}</span><i>→</i></button>
+              <button className="primary" disabled={loading || resendIn > 0}><span>{loading ? "Sending…" : resendIn > 0 ? `Try again in ${resendIn}s` : `Send ${methodLabel} Code`}</span><i>→</i></button>
             </form>
           ) : (
             <form onSubmit={verify}>
