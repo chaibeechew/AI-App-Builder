@@ -79,7 +79,6 @@ assert.match(workflow,/idempotencyKey:`laneriq:\$\{runId\}:\$\{actionIndex\}:/);
 assert.match(workflow,/status==="rate_limited"/);
 assert.match(workflow,/No customer was charged/);
 
-// Email login is now fully LANERIQ-owned at OTP generation/verification; WhatsApp remains compatibility authority for now.
 assert.match(auth,/fetch\("\/api\/auth\/verification\/request"/);
 assert.match(auth,/fetch\("\/api\/auth\/verification\/verify"/);
 assert.doesNotMatch(auth,/auth\.signInWithOtp/);
@@ -98,9 +97,11 @@ assert.match(verificationEngine,/laneriq_consume_verification_challenge/);
 assert.match(verificationEngine,/deliverCommunication/);
 assert.ok(verificationEngine.indexOf('claimLaneriqCommunication') < verificationEngine.indexOf('deliverCommunication({'),'Verification fair-use guard must run before LANERIQ Email delivery.');
 assert.match(verificationVerify,/verifyLaneriqEmailVerification/);
+assert.match(verificationMigration,/create table if not exists private\.laneriq_verification_challenges/);
 assert.match(verificationMigration,/recipient_hash text not null/);
 assert.match(verificationMigration,/code_hash text not null/);
 assert.doesNotMatch(verificationMigration,/\b(email|phone|otp|verification_code|code)\s+text\b/i);
+assert.match(verificationMigration,/revoke all on schema private from public, anon, authenticated/);
 assert.match(verificationMigration,/for update/);
 assert.match(verificationMigration,/consumed_at = now\(\)/);
 assert.match(proxy,/PUBLIC_SERVER_ENDPOINTS/);
@@ -122,5 +123,5 @@ console.log('✓ LANERIQ Launch Year Free is 12 months, RM0 platform fee, fair-u
 console.log('✓ LANERIQ Communications core is provider-opaque with replaceable delivery/storage adapters');
 console.log('✓ Persistent atomic source/recipient cooldown-hour-day limits and idempotency run before delivery');
 console.log('✓ Communication and verification history store hashes/status only and are service-role protected');
-console.log('✓ Email OTP generation + verification are LANERIQ-owned with atomic one-use challenges');
+console.log('✓ Email OTP generation + verification are LANERIQ-owned with atomic one-use private-schema challenges');
 console.log('✓ One-sentence Verification auto-setup remains Email + WhatsApp only with no paid SMS fallback');
