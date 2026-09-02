@@ -11,7 +11,7 @@ import {
   revokeLaneriqSessionToken,
   validateLaneriqSessionToken,
 } from "../../../../lib/auth/laneriq-session.js";
-import { createClient as createSupabaseCompatibilityClient } from "../../../../lib/supabase/server.js";
+import { createClient as createCompatibilityClient } from "../../../../lib/supabase/server.js";
 
 function responseJson(payload,status=200){
   const response=NextResponse.json(payload,{status});
@@ -39,10 +39,24 @@ function setPrimaryCookies(response,token){
   return response;
 }
 
+async function mintFromCompatibilityIdentity(){
+  const compatibilityClient=await createCompatibilityClient();
+  const {data,error}=await compatibilityClient.auth.getUser();
+  const user=data?.user;
+  if(error||!user?.id)return null;
+  const migrated=await createLaneriqSession(user.id);
+  return {userId:user.id,token:migrated.token,expiresAt:migrated.expiresAt};
+}
+
 export async function GET(request){
   const token=String(request.cookies.get(LANERIQ_SESSION_COOKIE)?.value||"");
   const mode=request.cookies.get(LANERIQ_SESSION_MODE_COOKIE)?.value;
-  const laneriqSession=await validateLaneriqSessionToken(token);
+  let laneriqSession=null;
+  try{
+    laneriqSession=await validateLaneriqSessionToken(token);
+  }catch{
+    return responseJson({success:false,authenticated:false,sessionAuthority:"laneriq",code:"SESSION_NOT_READY"},503);
+  }
   if(laneriqSession){
     return responseJson({
       success:true,
@@ -54,26 +68,22 @@ export async function GET(request){
   }
 
   // Once a browser has moved to LANERIQ-primary mode, never resurrect a stale
-  // compatibility-provider cookie as an authentication source.
+  // compatibility cookie as an authentication source.
   if(isLaneriqPrimarySessionMode(mode)){
     return responseJson({success:false,authenticated:false,sessionAuthority:"laneriq",code:"SESSION_REQUIRED"},401);
   }
 
-  // Temporary legacy migration path: an already-signed-in customer is upgraded
-  // to a LANERIQ session automatically, without asking them to link or configure anything.
+  // Temporary legacy migration path. This is provider-opaque to customer-facing APIs.
   try{
-    const compatibilityClient=await createSupabaseCompatibilityClient();
-    const {data,error}=await compatibilityClient.auth.getUser();
-    const user=data?.user;
-    if(error||!user?.id)return responseJson({success:false,authenticated:false,sessionAuthority:"laneriq",code:"SESSION_REQUIRED"},401);
-    const migrated=await createLaneriqSession(user.id);
+    const migrated=await mintFromCompatibilityIdentity();
+    if(!migrated)return responseJson({success:false,authenticated:false,sessionAuthority:"laneriq",code:"SESSION_REQUIRED"},401);
     const response=responseJson({
       success:true,
       authenticated:true,
       migrated:true,
       sessionAuthority:"laneriq",
-      compatibilityBridge:"supabase_data_access_transition",
-      user:{id:user.id},
+      compatibilityBridge:"legacy_data_access_transition",
+      user:{id:migrated.userId},
       expiresAt:migrated.expiresAt,
     });
     return setPrimaryCookies(response,migrated.token);
@@ -86,13 +96,45 @@ export async function POST(request){
   if(!sameOrigin(request))return responseJson({success:false,error:"Session request was blocked.",code:"ORIGIN_REQUIRED"},403);
   if(!String(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return responseJson({success:false,error:"JSON request required.",code:"JSON_REQUIRED"},415);
   const body=await request.json().catch(()=>({}));
-  if(String(body?.action||"").toLowerCase()!=="logout")return responseJson({success:false,error:"Unsupported session action.",code:"SESSION_ACTION_INVALID"},400);
+  const action=String(body?.action||"").trim().toLowerCase();
+
+  // Used only immediately after the current WhatsApp compatibility OTP succeeds.
+  // The primary-mode marker still blocks all passive/stale compatibility fallback.
+  if(action==="upgrade_verified_compatibility"){
+    try{
+      const upgraded=await mintFromCompatibilityIdentity();
+      if(!upgraded)return responseJson({success:false,authenticated:false,sessionAuthority:"laneriq",code:"SESSION_REQUIRED"},401);
+      const response=responseJson({
+        success:true,
+        authenticated:true,
+        upgraded:true,
+        sessionAuthority:"laneriq",
+        compatibilityBridge:"legacy_data_access_transition",
+        user:{id:upgraded.userId},
+        expiresAt:upgraded.expiresAt,
+      });
+      return setPrimaryCookies(response,upgraded.token);
+    }catch{
+      return responseJson({success:false,authenticated:false,sessionAuthority:"laneriq",code:"SESSION_NOT_READY"},503);
+    }
+  }
+
+  if(action!=="logout")return responseJson({success:false,error:"Unsupported session action.",code:"SESSION_ACTION_INVALID"},400);
 
   const token=String(request.cookies.get(LANERIQ_SESSION_COOKIE)?.value||"");
-  const revoked=token?await revokeLaneriqSessionToken(token):false;
+  let revoked=false;
+  if(token){
+    try{
+      revoked=await revokeLaneriqSessionToken(token);
+    }catch{
+      // Do not clear the browser token when authoritative revocation could not be confirmed.
+      return responseJson({success:false,authenticated:true,sessionAuthority:"laneriq",code:"SESSION_REVOKE_UNAVAILABLE"},503);
+    }
+  }
+
   let compatibilityCleared=false;
   try{
-    const compatibilityClient=await createSupabaseCompatibilityClient();
+    const compatibilityClient=await createCompatibilityClient();
     const {error}=await compatibilityClient.auth.signOut({scope:"local"});
     compatibilityCleared=!error;
   }catch{}
