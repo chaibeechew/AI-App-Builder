@@ -1,9 +1,8 @@
 "use client";
 
 import "./auth.css";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "../../lib/supabase/client";
 import { PRODUCT_BRAND } from "../../lib/product-brand.js";
 import {
   EMAIL_OTP_POLICY,
@@ -19,6 +18,7 @@ import { normalizeReferralCode, safeInternalNext } from "../../lib/auth/session-
 
 export const dynamic = "force-dynamic";
 const WHATSAPP_AUTH_ENABLED = process.env.NEXT_PUBLIC_WHATSAPP_AUTH_ENABLED === "true";
+const SESSION_CHECK_TIMEOUT_MS = 3500;
 
 function safeFlowError(error, method) {
   const message = String(error?.message || "");
@@ -28,9 +28,28 @@ function safeFlowError(error, method) {
 }
 
 async function readLaneriqSession() {
-  const response = await fetch("/api/auth/session", { method: "GET", cache: "no-store", credentials: "same-origin" });
-  const data = await response.json().catch(() => ({}));
-  return { response, data };
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
+  try {
+    const response = await fetch("/api/auth/session", {
+      method: "GET",
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => ({}));
+    return { response, data };
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+async function verifyWhatsAppCompatibility({ phone, token }) {
+  // The compatibility client is loaded only when the user explicitly verifies WhatsApp.
+  // Email sign-in remains LANERIQ-only and never initializes the legacy browser client.
+  const { createClient } = await import("../../lib/supabase/client");
+  const compatibilityClient = createClient();
+  return compatibilityClient.auth.verifyOtp({ phone, token, type: "sms" });
 }
 
 async function upgradeVerifiedCompatibilitySession() {
@@ -48,8 +67,6 @@ async function upgradeVerifiedCompatibilitySession() {
 function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Supabase remains only as the temporary WhatsApp/data-access compatibility bridge.
-  const supabase = useMemo(() => createClient(), []);
   const [method, setMethod] = useState("email");
   const [identifier, setIdentifier] = useState("");
   const [challengeId, setChallengeId] = useState("");
@@ -67,16 +84,28 @@ function AuthForm() {
 
   useEffect(() => {
     let active = true;
+    let redirecting = false;
+    const failOpenTimer = window.setTimeout(() => {
+      if (active && !redirecting) setChecking(false);
+    }, SESSION_CHECK_TIMEOUT_MS + 500);
+
     readLaneriqSession().then(({ response, data }) => {
       if (!active) return;
       if (response.ok && data?.authenticated === true && data?.sessionAuthority === "laneriq") {
+        redirecting = true;
         router.replace(next);
         router.refresh();
-      } else {
-        setChecking(false);
+        return;
       }
-    }).catch(() => { if (active) setChecking(false); });
-    return () => { active = false; };
+      setChecking(false);
+    }).catch(() => {
+      if (active) setChecking(false);
+    });
+
+    return () => {
+      active = false;
+      window.clearTimeout(failOpenTimer);
+    };
   }, [router, next]);
 
   useEffect(() => {
@@ -181,7 +210,7 @@ function AuthForm() {
         }
       } else {
         // Phone OTP remains an internal compatibility protocol name only. Customer delivery is WhatsApp and there is no SMS fallback.
-        const result = await supabase.auth.verifyOtp({ phone: normalizePhoneNumber(identifier), token, type: "sms" });
+        const result = await verifyWhatsAppCompatibility({ phone: normalizePhoneNumber(identifier), token });
         if (result.error) throw result.error;
         if (!result.data?.session) throw new Error("SESSION_NOT_CREATED");
         // Only a freshly verified WhatsApp compatibility session may explicitly upgrade
