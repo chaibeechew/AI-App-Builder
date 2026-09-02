@@ -49,7 +49,7 @@ assert.match(auth,/WHATSAPP_AUTH_ENABLED \? "READY" : "SETUP"/,'WhatsApp status 
 assert.match(auth,/Email Code/,'Email Code must remain available');
 assert.match(auth,/WhatsApp Code/,'WhatsApp Code must be the only phone verification option');
 assert.doesNotMatch(auth,/<strong>SMS Code<\/strong>/,'Paid SMS must not remain as a customer verification option');
-assert.doesNotMatch(auth,/NEXT_PUBLIC_SMS_AUTH_ENABLED/,'Retired SMS feature flag must be removed from Auth');
+assert.doesNotMatch(auth,/process\.env\.NEXT_PUBLIC_SMS_AUTH_ENABLED|const\s+SMS_AUTH_ENABLED\s*=/,'Retired SMS feature flag must never be active');
 assert.doesNotMatch(auth,/switchMethod\("sms"\)/,'Retired SMS method must not be selectable');
 assert.match(auth,/No paid SMS fallback is used/,'Auth UI must explicitly forbid paid SMS fallback');
 assert.match(auth,/supabase\.auth\.signInWithOtp\(\{ email, options \}\)/,'Email OTP send path must remain intact');
