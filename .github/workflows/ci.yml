@@ -107,6 +107,8 @@ jobs:
         run: node scripts/big-moon-valley-creator-services-contract-tests.mjs
       - name: Big Moon Valley project intelligence contract tests
         run: node scripts/big-moon-valley-project-intelligence-contract-tests.mjs
+      - name: Big Moon Valley creative identity contract tests
+        run: node scripts/big-moon-valley-creative-identity-contract-tests.mjs
       - name: AI Video Generator contract tests
         run: npm run test:video
       - name: AI Avatar Creator contract tests

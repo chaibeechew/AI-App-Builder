@@ -1,0 +1,510 @@
+/* LANERIQ AI Big Moon Valley creative + identity shell.
+   Visual-only layer for Video Studio, Avatar Studio, Brand Kit and Asset Library.
+   Product data, generation, consent, storage and account ownership contracts remain unchanged. */
+
+main.page:has(.modes.ratio),
+.avatarPage,
+.brandPage,
+.assetPage{
+  position:relative!important;
+  min-height:100svh!important;
+  overflow-x:hidden!important;
+  color:#f7fbf8!important;
+  background:
+    linear-gradient(180deg,rgba(0,7,6,.02) 0%,rgba(0,8,7,.10) 24%,rgba(0,9,7,.74) 56%,rgba(0,8,7,.99) 100%),
+    url('/big-moon-valley.svg') 66% top/cover fixed no-repeat!important;
+}
+main.page:has(.modes.ratio)::before,
+.avatarPage::before,
+.brandPage::before,
+.assetPage::before{
+  content:''!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 76% 9%,rgba(255,221,126,.11),transparent 28%),
+    linear-gradient(90deg,rgba(0,10,8,.54),rgba(0,10,8,.04) 52%,rgba(0,10,8,.20))!important;
+}
+main.page:has(.modes.ratio)>*,
+.avatarPage>*,
+.brandPage>*,
+.assetPage>*{
+  position:relative!important;
+  z-index:1!important;
+}
+
+/* Video Studio: uniquely scoped by the always-present aspect-ratio control. */
+main.page:has(.modes.ratio){
+  padding:max(24px,env(safe-area-inset-top)) 18px max(98px,calc(76px + env(safe-area-inset-bottom)))!important;
+}
+main.page:has(.modes.ratio) .wrap{
+  max-width:1080px!important;
+}
+main.page:has(.modes.ratio) header{
+  min-height:54px!important;
+  align-items:center!important;
+}
+main.page:has(.modes.ratio) header a{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  padding:9px 13px!important;
+  border:1px solid rgba(235,198,93,.24)!important;
+  border-radius:999px!important;
+  background:rgba(3,24,18,.64)!important;
+  color:#fff5db!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.modes.ratio) header span,
+main.page:has(.modes.ratio) .hero small,
+main.page:has(.modes.ratio) .editor small,
+main.page:has(.modes.ratio) .num{
+  color:#f0cc68!important;
+}
+main.page:has(.modes.ratio) .hero{
+  padding:clamp(165px,24svh,275px) 0 34px!important;
+}
+main.page:has(.modes.ratio) .hero h1{
+  color:#fff8df!important;
+  text-shadow:0 14px 50px rgba(0,0,0,.58)!important;
+}
+main.page:has(.modes.ratio) .hero em{
+  color:#f0cc68!important;
+}
+main.page:has(.modes.ratio) .hero p{
+  color:#c0d0c9!important;
+  text-shadow:0 2px 14px rgba(0,0,0,.38)!important;
+}
+main.page:has(.modes.ratio) .panel,
+main.page:has(.modes.ratio) .editor,
+main.page:has(.modes.ratio) .renderCard,
+main.page:has(.modes.ratio) .status,
+main.page:has(.modes.ratio) .error{
+  border:1px solid rgba(235,198,93,.23)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.80),rgba(2,15,12,.92))!important;
+  box-shadow:0 26px 70px rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(27px) saturate(1.07)!important;
+  -webkit-backdrop-filter:blur(27px) saturate(1.07)!important;
+}
+main.page:has(.modes.ratio) .panel,
+main.page:has(.modes.ratio) .editor{
+  border-radius:25px!important;
+}
+main.page:has(.modes.ratio) label{
+  color:#ead68e!important;
+}
+main.page:has(.modes.ratio) textarea,
+main.page:has(.modes.ratio) input,
+main.page:has(.modes.ratio) select{
+  min-height:46px!important;
+  border-color:rgba(255,255,255,.11)!important;
+  background:rgba(2,18,14,.84)!important;
+  color:#fff!important;
+  font-size:16px!important;
+}
+main.page:has(.modes.ratio) textarea{
+  min-height:116px!important;
+}
+main.page:has(.modes.ratio) .modes button,
+main.page:has(.modes.ratio) .editorHead>button,
+main.page:has(.modes.ratio) .actions button{
+  min-height:44px!important;
+  border-color:rgba(255,255,255,.11)!important;
+  background:rgba(5,33,25,.82)!important;
+  color:#e8f0ec!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.modes.ratio) .modes .active{
+  border-color:rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676,#c58a28)!important;
+  color:#132018!important;
+}
+main.page:has(.modes.ratio) .primary{
+  min-height:52px!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#132018!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.22)!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.modes.ratio) .editorHead h2{
+  color:#fff5d9!important;
+}
+main.page:has(.modes.ratio) .editorHead p,
+main.page:has(.modes.ratio) .clip>small{
+  color:#96aaa1!important;
+}
+main.page:has(.modes.ratio) .timeline article{
+  border-color:rgba(235,198,93,.14)!important;
+  background:rgba(255,255,255,.048)!important;
+}
+main.page:has(.modes.ratio) .features span{
+  border-color:rgba(235,198,93,.14)!important;
+  background:rgba(3,25,19,.72)!important;
+  color:#aebfb8!important;
+}
+main.page:has(.modes.ratio) .warn{
+  border-color:rgba(244,185,87,.24)!important;
+  background:rgba(93,62,15,.42)!important;
+  color:#f2d48e!important;
+}
+
+/* Avatar Studio keeps generation and likeness-consent behavior untouched. */
+.avatarPage{
+  padding:max(28px,env(safe-area-inset-top)) 6vw max(98px,calc(76px + env(safe-area-inset-bottom)))!important;
+}
+.avatarPage .glow{
+  opacity:.34!important;
+  filter:blur(46px)!important;
+}
+.avatarPage header{
+  padding-top:clamp(165px,24svh,275px)!important;
+  align-items:flex-start!important;
+}
+.avatarPage header small,
+.avatarPage header a,
+.avatarPage .status b,
+.avatarPage .empty,
+.avatarPage .foundation b{
+  color:#f0cc68!important;
+}
+.avatarPage h1{
+  color:#fff8df!important;
+  text-shadow:0 14px 50px rgba(0,0,0,.58)!important;
+}
+.avatarPage header p{
+  color:#c0d0c9!important;
+  text-shadow:0 2px 14px rgba(0,0,0,.38)!important;
+}
+.avatarPage header a{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(235,198,93,.27)!important;
+  background:rgba(3,24,18,.64)!important;
+  touch-action:manipulation!important;
+}
+.avatarPage .controls,
+.avatarPage .preview,
+.avatarPage .foundation{
+  border-color:rgba(235,198,93,.23)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.80),rgba(2,15,12,.92))!important;
+  box-shadow:0 27px 72px rgba(0,0,0,.33),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(27px) saturate(1.07)!important;
+  -webkit-backdrop-filter:blur(27px) saturate(1.07)!important;
+}
+.avatarPage .controls label{
+  color:#dfe9e4!important;
+}
+.avatarPage .chips button,
+.avatarPage .controls select,
+.avatarPage .status button{
+  min-height:44px!important;
+  border-color:rgba(255,255,255,.11)!important;
+  background:rgba(5,33,25,.82)!important;
+  color:#cbdad4!important;
+  touch-action:manipulation!important;
+}
+.avatarPage .controls select,
+.avatarPage .controls textarea{
+  font-size:16px!important;
+}
+.avatarPage .chips button.active{
+  border-color:rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676,#c58a28)!important;
+  color:#132018!important;
+}
+.avatarPage .controls textarea{
+  min-height:150px!important;
+  border-color:rgba(235,198,93,.22)!important;
+  background:rgba(2,18,14,.84)!important;
+}
+.avatarPage .consent{
+  border-color:rgba(235,198,93,.25)!important;
+  background:rgba(235,198,93,.055)!important;
+}
+.avatarPage .consent span{
+  color:#d1ddd7!important;
+}
+.avatarPage .generate{
+  min-height:52px!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#132018!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.22)!important;
+  touch-action:manipulation!important;
+}
+.avatarPage .truth,
+.avatarPage .status span,
+.avatarPage .foundation article span,
+.avatarPage .empty span{
+  color:#94a9a0!important;
+}
+.avatarPage .preview img{
+  border:1px solid rgba(235,198,93,.12)!important;
+  box-shadow:0 18px 50px rgba(0,0,0,.28)!important;
+}
+.avatarPage .foundation article{
+  border:1px solid rgba(255,255,255,.07)!important;
+  background:rgba(255,255,255,.045)!important;
+}
+
+/* Brand Kit retains server-authenticated, owner-scoped upsert behavior. */
+.brandPage{
+  padding:max(26px,env(safe-area-inset-top)) 18px max(98px,calc(76px + env(safe-area-inset-bottom)))!important;
+}
+.brandPage .topbar{
+  min-height:52px!important;
+  align-items:center!important;
+}
+.brandPage .topbar,
+.brandPage header small,
+.brandPage .panel label,
+.brandPage .principles b{
+  color:#f0cc68!important;
+}
+.brandPage .topbar a{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(235,198,93,.24)!important;
+  background:rgba(3,24,18,.64)!important;
+  color:#fff5db!important;
+  touch-action:manipulation!important;
+}
+.brandPage header{
+  padding:clamp(165px,24svh,275px) 0 30px!important;
+}
+.brandPage h1{
+  color:#fff8df!important;
+  text-shadow:0 14px 50px rgba(0,0,0,.58)!important;
+}
+.brandPage header p{
+  color:#c0d0c9!important;
+  text-shadow:0 2px 14px rgba(0,0,0,.38)!important;
+}
+.brandPage .panel,
+.brandPage .principles article{
+  border-color:rgba(235,198,93,.22)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.80),rgba(2,15,12,.92))!important;
+  box-shadow:0 25px 68px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(26px) saturate(1.07)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.07)!important;
+}
+.brandPage .panel{
+  border-radius:25px!important;
+}
+.brandPage .panel input,
+.brandPage .panel select,
+.brandPage .panel textarea{
+  min-height:48px!important;
+  border-color:rgba(255,255,255,.11)!important;
+  background:rgba(2,18,14,.84)!important;
+  color:#fff!important;
+  font-size:16px!important;
+}
+.brandPage .panel textarea{
+  min-height:118px!important;
+}
+.brandPage .panel small,
+.brandPage .principles p,
+.brandPage .colorRow code{
+  color:#98aba3!important;
+}
+.brandPage .actions button,
+.brandPage .actions a{
+  min-height:48px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  touch-action:manipulation!important;
+}
+.brandPage .actions button{
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#132018!important;
+}
+.brandPage .actions a{
+  border-color:rgba(235,198,93,.25)!important;
+  background:rgba(3,25,19,.70)!important;
+  color:#f0cc68!important;
+}
+.brandPage .success{
+  border:1px solid rgba(121,215,172,.20)!important;
+  background:rgba(70,190,140,.10)!important;
+  color:#a1e8c6!important;
+}
+.brandPage .error{
+  border:1px solid rgba(255,163,153,.18)!important;
+  background:rgba(92,36,33,.54)!important;
+  color:#ffc0ba!important;
+}
+
+/* Asset Library retains Supabase auth, RLS-oriented queries, signed previews and delete behavior. */
+.assetPage{
+  padding:max(26px,env(safe-area-inset-top)) 18px max(98px,calc(76px + env(safe-area-inset-bottom)))!important;
+}
+.assetPage .top{
+  min-height:52px!important;
+}
+.assetPage .top,
+.assetPage header small,
+.assetPage .info small{
+  color:#f0cc68!important;
+}
+.assetPage .top a{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(235,198,93,.24)!important;
+  background:rgba(3,24,18,.64)!important;
+  color:#fff5db!important;
+  touch-action:manipulation!important;
+}
+.assetPage header{
+  padding:clamp(165px,24svh,275px) 0 28px!important;
+}
+.assetPage h1{
+  color:#fff8df!important;
+  text-shadow:0 14px 50px rgba(0,0,0,.58)!important;
+}
+.assetPage header p{
+  color:#c0d0c9!important;
+  text-shadow:0 2px 14px rgba(0,0,0,.38)!important;
+}
+.assetPage .upload{
+  min-height:50px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#132018!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.22)!important;
+  touch-action:manipulation!important;
+}
+.assetPage .privacy{
+  border-color:rgba(121,215,172,.22)!important;
+  background:rgba(35,119,88,.18)!important;
+  color:#a8e9c9!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+}
+.assetPage .grid article,
+.assetPage .empty{
+  border-color:rgba(235,198,93,.18)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.80),rgba(2,15,12,.92))!important;
+  box-shadow:0 23px 62px rgba(0,0,0,.29),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(24px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(1.06)!important;
+}
+.assetPage .grid article{
+  border-radius:22px!important;
+}
+.assetPage .preview{
+  background:rgba(2,18,14,.90)!important;
+}
+.assetPage .fileIcon{
+  border:1px solid rgba(255,241,191,.40)!important;
+  background:linear-gradient(145deg,#f1d474,#aa7019)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.24)!important;
+}
+.assetPage .info h3{
+  color:#fff5d9!important;
+}
+.assetPage .info p,
+.assetPage .empty{
+  color:#98aba3!important;
+}
+.assetPage .actions a,
+.assetPage .actions button{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  touch-action:manipulation!important;
+}
+.assetPage .actions a{
+  border:1px solid rgba(255,241,191,.40)!important;
+  background:linear-gradient(135deg,#f3d676,#c58a28)!important;
+  color:#132018!important;
+}
+.assetPage .actions button{
+  border-color:rgba(255,169,160,.18)!important;
+  background:rgba(63,27,24,.34)!important;
+  color:#ffc0ba!important;
+}
+.assetPage .error{
+  border:1px solid rgba(255,163,153,.18)!important;
+  background:rgba(92,36,33,.54)!important;
+  color:#ffc0ba!important;
+}
+
+@media(max-width:850px){
+  main.page:has(.modes.ratio) .hero,
+  .avatarPage header,
+  .brandPage header,
+  .assetPage header{
+    padding-top:clamp(185px,30svh,270px)!important;
+  }
+  main.page:has(.modes.ratio) .settings{
+    grid-template-columns:1fr!important;
+  }
+}
+
+@media(max-width:560px){
+  main.page:has(.modes.ratio),
+  .avatarPage,
+  .brandPage,
+  .assetPage{
+    padding-inline:12px!important;
+  }
+  main.page:has(.modes.ratio) .hero,
+  .avatarPage header,
+  .brandPage header,
+  .assetPage header{
+    padding-top:clamp(210px,34svh,292px)!important;
+  }
+  main.page:has(.modes.ratio) .panel,
+  main.page:has(.modes.ratio) .editor,
+  .avatarPage .controls,
+  .avatarPage .preview,
+  .avatarPage .foundation,
+  .brandPage .panel,
+  .assetPage .grid article,
+  .assetPage .empty{
+    border-radius:21px!important;
+  }
+  main.page:has(.modes.ratio) .primary,
+  .avatarPage .generate,
+  .brandPage .actions button,
+  .brandPage .actions a,
+  .assetPage .upload{
+    min-height:54px!important;
+  }
+  .avatarPage header{
+    display:grid!important;
+  }
+  .brandPage .actions,
+  .assetPage header{
+    align-items:stretch!important;
+  }
+  .brandPage .actions button,
+  .brandPage .actions a,
+  .assetPage .upload{
+    width:100%!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  main.page:has(.modes.ratio) *,
+  .avatarPage *,
+  .brandPage *,
+  .assetPage *{
+    animation:none!important;
+    transition:none!important;
+    scroll-behavior:auto!important;
+  }
+}
