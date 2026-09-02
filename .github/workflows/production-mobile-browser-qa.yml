@@ -1,0 +1,68 @@
+name: LANERIQ AI Production Mobile Browser QA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laneriq-production-mobile-browser-qa
+  cancel-in-progress: true
+
+jobs:
+  production-mobile-browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LANERIQ_PRODUCTION_URL: https://laneriq-ai.vercel.app
+      LANERIQ_EXPECTED_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Install pinned Playwright library
+        run: npm install --no-save --ignore-scripts playwright@1.62.1
+
+      - name: Install Chromium and WebKit with system dependencies
+        run: npx playwright@1.62.1 install --with-deps chromium webkit
+
+      - name: Wait for exact Vercel Production commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            body="$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$LANERIQ_PRODUCTION_URL/api/build-info" || true)"
+            deployed_sha="$(printf '%s' "$body" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{try{process.stdout.write(String(JSON.parse(s).commitSha||""))}catch{}})')"
+            if [ "$deployed_sha" = "$LANERIQ_EXPECTED_SHA" ]; then
+              echo "Exact Production commit is READY: $deployed_sha"
+              exit 0
+            fi
+            echo "Production not on expected commit yet (attempt $attempt)."
+            sleep 10
+          done
+          echo "Production did not reach expected commit $LANERIQ_EXPECTED_SHA."
+          exit 1
+
+      - name: Run cross-engine Production mobile browser QA
+        run: node scripts/production-mobile-browser-qa.mjs
+
+      - name: Upload browser-emulation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-mobile-browser-qa-${{ github.run_id }}
+          path: artifacts/production-mobile-browser-qa
+          if-no-files-found: warn
+          retention-days: 14
