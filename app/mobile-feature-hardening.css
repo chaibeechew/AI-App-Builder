@@ -33,7 +33,11 @@
 }
 
 @media(max-width:600px){
+  /* Feature workspaces must sit above ordinary floating utility buttons such as
+     the language shortcut (z-index 120), while the dedicated language picker
+     backdrop remains the top-level utility modal at z-index 10000. */
   .sv-backdrop{
+    z-index:500!important;
     padding:0!important;
     overscroll-behavior:contain;
   }
@@ -68,6 +72,10 @@
     right:max(10px,env(safe-area-inset-right))!important;
     bottom:max(72px,calc(62px + env(safe-area-inset-bottom)))!important;
   }
+  /* The open full-screen reference workspace creates a stacking context above
+     floating language/voice utility controls. :has() is supported by the
+     WebKit/Chromium versions in the Production mobile evidence matrix. */
+  .referenceDock:has(.panel){z-index:500!important}
   .referenceDock>.trigger{
     min-width:44px!important;
     min-height:44px!important;
