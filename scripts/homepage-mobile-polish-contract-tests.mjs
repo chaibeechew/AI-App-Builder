@@ -1,0 +1,11 @@
+import fs from "node:fs";
+const runtime=fs.readFileSync("app/components/LanguageRuntime.js","utf8");
+const css=fs.readFileSync("app/home-signature-mobile-final.css","utf8");
+const assert=(v,m)=>{if(!v)throw new Error(m)};
+assert(runtime.includes('mounted && portalTarget ? createPortal'),"language must wait for mounted portal target");
+assert(runtime.includes('mounted && !inHome ? button : null'),"homepage must not render a floating language pill");
+assert(css.includes('grid-template-columns:repeat(6'),"bottom nav must include language slot");
+assert(css.includes("url('/laneriq-future-city-people.webp')"),"future-city artwork must remain active");
+assert(css.includes("content:'✦ 120 Credits'"),"credits must render once");
+assert(css.includes('white-space:nowrap!important'),"LANERIQ wordmark must stay on one line");
+console.log("LANERIQ homepage mobile polish: PASS");
