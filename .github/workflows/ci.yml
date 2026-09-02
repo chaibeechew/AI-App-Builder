@@ -99,6 +99,8 @@ jobs:
         run: npm run test:account
       - name: Email OTP contract tests
         run: npm run test:email-otp
+      - name: WhatsApp Auth contract tests
+        run: npm run test:whatsapp-auth
       - name: Upload Ref contract tests
         run: npm run test:upload-ref
       - name: Image Studio contract tests
@@ -151,8 +153,6 @@ jobs:
         run: npm run test:complete-game
 
       # Second 1000-point hardening pack.
-      - name: SMS Auth contract tests
-        run: npm run test:sms-auth
       - name: Mobile UI contract tests
         run: npm run test:mobile-ui
       - name: Mobile Performance contract tests
@@ -185,5 +185,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI core gates plus SoolenAI Secure-by-Default MAX, zero-cost safety/execution, mobile diagnostics, authenticated Production E2E evidence, public Web Publish runtime security, user-triggered Web Publish lifecycle evidence safety and two 1000-point hardening packs passed. External physical-device/provider/store/malware-scanner proof remains evidence-gated."
+        run: echo "LANERIQ AI core gates plus SoolenAI Secure-by-Default MAX, WhatsApp-only phone verification, zero-cost safety/execution, mobile diagnostics, authenticated Production E2E evidence, public Web Publish runtime security, user-triggered Web Publish lifecycle evidence safety and two 1000-point hardening packs passed. External physical-device/provider/store/malware-scanner proof remains evidence-gated."
       # This workflow validates code only. It never substitutes code for authenticated live, physical-device, provider, malware-scanner or store evidence.
