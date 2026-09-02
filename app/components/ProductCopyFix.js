@@ -19,7 +19,19 @@ function rewrite(value){let next=String(value||"");for(const [pattern,replacemen
 export default function ProductCopyFix(){
   useLayoutEffect(()=>{
     const fix=()=>{
-      const approvedHome=Boolean(document.querySelector(".premiumHome"));
+      const home=document.querySelector(".premiumHome");
+      const approvedHome=Boolean(home);
+
+      /* The homepage now has a dedicated final CSS authority. Do not rewrite its
+         React-owned DOM or re-enable the retired laneriqHomeV3 layer. On iPhone,
+         the old class plus the signature pseudo-copy produced duplicate hero text,
+         conflicting glass styles and repeated whole-body MutationObserver work. */
+      if(approvedHome){
+        home.classList.remove("laneriqHomeV3");
+        document.documentElement.dataset.productBrandReady="1";
+        return;
+      }
+
       const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
       for(const node of nodes){
         const parent=node.parentElement;
@@ -38,13 +50,11 @@ export default function ProductCopyFix(){
         heroCopy.innerHTML=`${PRODUCT_BRAND.descriptor}<br/>${PRODUCT_BRAND.tagline}`;
         heroCopy.dataset.productBrand="3";
       }
-      const powered=document.querySelector(".premiumHome .powered");
+      const powered=document.querySelector(".powered");
       if(powered&&powered.dataset.productBrand!=="3"){
         powered.innerHTML=`⌘ Powered by <b>${PRODUCT_BRAND.poweredBy}</b>`;
         powered.dataset.productBrand="3";
       }
-      const home=document.querySelector(".premiumHome");
-      if(home)home.classList.add("laneriqHomeV3");
 
       // The main one-click builder currently creates App + Website together.
       // Game remains a separate Pro creation path, so do not mislabel this CTA as a Game build action.
@@ -59,21 +69,28 @@ export default function ProductCopyFix(){
         if(/^Ṫ?\s*Text to (?:App|Product)$/i.test(t))el.textContent="Ṫ Text to App";
       });
 
-      // Do not move creative cards on the approved homepage. Its DOM order is intentional.
-      if(!approvedHome){
-        const featureCards=document.querySelector(".featureCards");
-        const templateCard=document.querySelector(".templateCard");
-        if(featureCards&&templateCard){
-          featureCards.classList.add("compactCreativeEntry");
-          if(templateCard.nextElementSibling!==featureCards)templateCard.insertAdjacentElement("afterend",featureCards);
-        }
+      const featureCards=document.querySelector(".featureCards");
+      const templateCard=document.querySelector(".templateCard");
+      if(featureCards&&templateCard){
+        featureCards.classList.add("compactCreativeEntry");
+        if(templateCard.nextElementSibling!==featureCards)templateCard.insertAdjacentElement("afterend",featureCards);
       }
 
       const title=rewrite(document.title);
       if(document.title!==title)document.title=title;
       document.documentElement.dataset.productBrandReady="1";
     };
-    fix();const o=new MutationObserver(fix);o.observe(document.body,{childList:true,subtree:true,characterData:true});return()=>o.disconnect();
+
+    fix();
+
+    /* The approved homepage is static enough that a whole-body observer is both
+       unnecessary and expensive on embedded iPhone browsers. Other routes retain
+       the migration observer because their legacy copy can still mount later. */
+    if(document.querySelector(".premiumHome")) return undefined;
+
+    const o=new MutationObserver(fix);
+    o.observe(document.body,{childList:true,subtree:true,characterData:true});
+    return()=>o.disconnect();
   },[]);
 
   return null;
