@@ -151,6 +151,8 @@ jobs:
         run: npm run test:website-e2e-code
       - name: App and Website combined internal E2E contract tests
         run: npm run test:combined-e2e-code
+      - name: Authenticated Production E2E evidence contract tests
+        run: npm run test:production-e2e-evidence
       - name: Upload Ref mobile contract tests
         run: npm run test:upload-ref-mobile
       - name: Production public-surface contract tests
@@ -165,5 +167,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI core gates plus zero-cost safety/execution, mobile real-device diagnostics and two 1000-point hardening packs passed. Final 1000-cycle Production stability test remains manual and evidence-gated."
-      # This workflow validates code only. It never triggers the final 1000-cycle Production test.
+        run: echo "LANERIQ AI core gates plus zero-cost safety/execution, mobile diagnostics, authenticated Production E2E evidence tooling and two 1000-point hardening packs passed. External physical-device/provider/store proof remains evidence-gated."
+      # This workflow validates code only. It never substitutes code for authenticated live, physical-device, provider or store evidence.
