@@ -12,6 +12,8 @@ import AdvancedGenreRuntimeClient from "./AdvancedGenreRuntimeClient";
 import RemainingGenreRuntimeClient from "./RemainingGenreRuntimeClient";
 import AnalyticsTracker from "../../components/AnalyticsTracker.js";
 
+const PROPERTY_CRM_GOLDEN_APP_ID = "bfc4b71f-e0a7-4e4c-bceb-59090eb74bd8";
+
 export async function generateMetadata({ params }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -38,6 +40,7 @@ export default async function GeneratedAppPage({ params }) {
   const media = await loadVisibleProjectMedia(admin, id);
   const experience = applyGeneratedExperienceStandard({ specification: version.specification, app });
   const specification = experience.specification;
+  const isGoldenPropertyReference = experience.industry === "property" && (id === PROPERTY_CRM_GOLDEN_APP_ID || /^LANERIQ Property CRM$/i.test(String(app?.name || "").trim()));
   const route = resolveGeneratedRuntime(specification);
   const routedSpecification = route.isGame && route.archetypeOverride
     ? { ...specification, game: { ...(specification.game || {}), archetype: route.archetypeOverride } }
@@ -54,5 +57,5 @@ export default async function GeneratedAppPage({ params }) {
     default: runtime = <GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
   }
 
-  return <div className={`generatedExperience generatedExperience--${experience.industry}`} data-laneriq-standard={experience.standardId} data-theme-mode={specification?.designSystem?.themeMode||"auto"}><AnalyticsTracker appId={id} channel={route.isGame ? "game" : "app"} eventName={route.eventName}/>{runtime}</div>;
+  return <div className={`generatedExperience generatedExperience--${experience.industry}`} data-laneriq-standard={experience.standardId} data-theme-mode={specification?.designSystem?.themeMode||"auto"} data-golden-reference={isGoldenPropertyReference?"true":"false"}><AnalyticsTracker appId={id} channel={route.isGame ? "game" : "app"} eventName={route.eventName}/>{runtime}</div>;
 }
