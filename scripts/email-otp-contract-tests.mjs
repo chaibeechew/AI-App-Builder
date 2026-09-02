@@ -21,7 +21,6 @@ assert.throws(() => normalizeEmailAddress(`${'a'.repeat(250)}@x.com`));
 assert.throws(() => normalizeEmailOtp('1234567'));
 assert.doesNotMatch(authErrorMessage({ message:'postgres internal auth stack secret detail' }, 'email'), /postgres|secret|stack/i);
 
-// Browser only talks to LANERIQ Verification for Email Code request + verify.
 assert.match(authPage, /normalizeReferralCode\(searchParams\.get\("ref"\)\)/);
 assert.match(authPage, /safeInternalNext\(searchParams\.get\("next"\)\)/);
 assert.match(authPage, /fetch\("\/api\/auth\/verification\/request"/);
@@ -39,7 +38,6 @@ assert.match(authPage, /autoComplete="one-time-code"/);
 assert.match(authPage, /router\.replace\(next\)/);
 assert.match(authPage, /<b>LANERIQ<\/b>/);
 
-// Email request is generated/delivered by LANERIQ, not Supabase Auth.
 assert.match(requestRoute, /requestLaneriqEmailVerification/);
 assert.match(requestRoute, /otpAuthority:"laneriq"/);
 assert.doesNotMatch(requestRoute, /signInWithOtp\(\{email:/);
@@ -48,7 +46,6 @@ assert.match(requestRoute, /sameOrigin\(request\)/);
 assert.match(requestRoute, /VERIFICATION_RATE_LIMIT/);
 assert.match(requestRoute, /Cache-Control","private, no-store, max-age=0/);
 
-// LANERIQ owns cryptographic OTP generation, hashing, expiry, delivery and verification.
 assert.match(engine, /crypto\.randomInt/);
 assert.match(engine, /createHmac\("sha256"/);
 assert.match(engine, /LANERIQ_VERIFICATION_SECRET\|\|process\.env\.LANERIQ_COMMUNICATION_PRIVACY_SECRET/);
@@ -63,7 +60,6 @@ assert.match(engine, /compatibilityBridge:"supabase_session_only"/);
 assert.ok(engine.indexOf('decision!=="verified"') < engine.indexOf('mintCompatibilitySession(email'), 'Compatibility session must only be minted after LANERIQ verifies the code.');
 assert.doesNotMatch(engine, /console\.(log|info|warn|error|debug)/);
 
-// Verify endpoint is exact, same-origin and delegates code validation to LANERIQ engine.
 assert.match(verifyRoute, /verifyLaneriqEmailVerification/);
 assert.match(verifyRoute, /normalizeEmailOtp/);
 assert.match(verifyRoute, /sameOrigin\(request\)/);
@@ -72,14 +68,15 @@ assert.match(verifyRoute, /VERIFICATION_ALREADY_USED/);
 assert.match(proxy, /"\/api\/auth\/verification\/verify"/);
 assert.doesNotMatch(proxy, /startsWith\("\/api\/auth"\)/);
 
-// Persistent store is hash-only, RLS-protected, service-role-only and atomically consumed.
-assert.match(migration, /create table if not exists public\.laneriq_verification_challenges/);
+assert.match(migration, /create schema if not exists private/);
+assert.match(migration, /revoke all on schema private from public, anon, authenticated/);
+assert.match(migration, /create table if not exists private\.laneriq_verification_challenges/);
 assert.match(migration, /recipient_hash text not null/);
 assert.match(migration, /code_hash text not null/);
 assert.doesNotMatch(migration, /\b(email|phone|otp|verification_code|code)\s+text\b/i);
 assert.match(migration, /enable row level security/);
-assert.match(migration, /revoke all on table public\.laneriq_verification_challenges from public, anon, authenticated/);
-assert.match(migration, /grant all on table public\.laneriq_verification_challenges to service_role/);
+assert.match(migration, /revoke all on table private\.laneriq_verification_challenges from public, anon, authenticated/);
+assert.match(migration, /grant all on table private\.laneriq_verification_challenges to service_role/);
 assert.match(migration, /pg_advisory_xact_lock/);
 assert.match(migration, /for update/);
 assert.match(migration, /status = 'superseded'/);
@@ -96,4 +93,4 @@ console.log('✓ Email OTP generation and validation are owned by LANERIQ Verifi
 console.log('✓ Email challenges are HMAC-only, 10-minute, one-use, superseding and 5-attempt locked');
 console.log('✓ Browser requests and verifies Email Code only through exact same-origin LANERIQ endpoints');
 console.log('✓ Existing Supabase session is now a post-verification compatibility bridge only');
-console.log('✓ Verification storage is RLS protected and service-role only');
+console.log('✓ Verification storage is private-schema, RLS protected and service-role only');
