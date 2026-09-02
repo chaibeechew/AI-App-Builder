@@ -36,8 +36,8 @@ export async function GET() {
         status: subscription?.status || "none",
         currentPeriodEnd: subscription?.currentPeriodEnd || null,
       },
-      security:securityCapability(),
       ...resolved,
+      security:securityCapability(),
     });
   } catch (error) {
     console.error("SOOLEN_CAPABILITIES_ERROR:", error?.code||error?.name||"unknown");
@@ -45,8 +45,8 @@ export async function GET() {
       success: true,
       authenticated: false,
       subscription: { tier: "free", planName: "Free", status: "unavailable", currentPeriodEnd: null },
-      security:securityCapability(),
       ...resolveSoolenCapabilities({ tier: "free" }),
+      security:securityCapability(),
     });
   }
 }
