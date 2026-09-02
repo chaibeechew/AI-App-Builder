@@ -17,13 +17,36 @@ const allResults = [];
 
 async function settle(page, url, label) {
   const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25_000 });
-  await page.locator("body").waitFor({ state: "visible", timeout: 15_000 });
-  await page.waitForTimeout(1200);
   assert.ok(response, `${label} must return a document response`);
+  await page.waitForTimeout(650);
   return response;
 }
 
-async function inspectDocument(page, route, { publicRoute = false, protectedRoute = false } = {}) {
+async function snapshotDocument(page, label) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      return await page.evaluate(() => ({
+        bodyText: String(document.body?.innerText || document.body?.textContent || "").trim(),
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        scrollWidth: document.documentElement?.scrollWidth || 0,
+        scrollHeight: document.documentElement?.scrollHeight || 0,
+        viewport: document.querySelector('meta[name="viewport"]')?.getAttribute("content") || "",
+        secureContext: window.isSecureContext,
+        maxTouchPoints: Number(navigator.maxTouchPoints || 0),
+        coarsePointer: window.matchMedia?.("(pointer: coarse)")?.matches === true,
+      }));
+    } catch (error) {
+      lastError = error;
+      if (attempt < 4) await page.waitForTimeout(250);
+    }
+  }
+  throw new Error(`${label} DOM snapshot failed after navigation settled: ${lastError?.message || lastError}`);
+}
+
+async function inspectDocument(page, route, engineLabel, { publicRoute = false, protectedRoute = false } = {}) {
+  console.log(`→ ${engineLabel} ${route}`);
   const consoleErrors = [];
   const pageErrors = [];
   page.on("console", (message) => {
@@ -32,51 +55,49 @@ async function inspectDocument(page, route, { publicRoute = false, protectedRout
   page.on("pageerror", (error) => pageErrors.push(String(error)));
 
   const startedAt = Date.now();
-  const response = await settle(page, `${baseUrl}${route}`, route);
+  const response = await settle(page, `${baseUrl}${route}`, `${engineLabel} ${route}`);
+  if (protectedRoute) {
+    await page.waitForURL((url) => url.origin === baseOrigin && url.pathname === "/auth", { timeout: 15_000 });
+    await page.waitForTimeout(250);
+  }
   const elapsedMs = Date.now() - startedAt;
   const finalUrl = new URL(page.url());
   const status = response.status();
   const title = await page.title();
-  const bodyText = (await page.locator("body").innerText()).trim();
-  const layout = await page.evaluate(() => ({
-    innerWidth: window.innerWidth,
-    innerHeight: window.innerHeight,
-    scrollWidth: document.documentElement.scrollWidth,
-    scrollHeight: document.documentElement.scrollHeight,
-    viewport: document.querySelector('meta[name="viewport"]')?.getAttribute("content") || "",
-    secureContext: window.isSecureContext,
-    maxTouchPoints: Number(navigator.maxTouchPoints || 0),
-    coarsePointer: window.matchMedia?.("(pointer: coarse)")?.matches === true,
-  }));
+  const snapshot = await snapshotDocument(page, `${engineLabel} ${route}`);
+  const { bodyText, ...layout } = snapshot;
   const overlayCount = await page.locator("[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay").count();
 
-  assert.equal(finalUrl.origin, baseOrigin, `${route} must remain on the LANERIQ AI origin`);
-  assert.ok(title.length > 0, `${route} must render a document title`);
-  assert.ok(bodyText.length > 20, `${route} must render meaningful content`);
-  assert.equal(overlayCount, 0, `${route} must not show a framework error overlay`);
-  assert.deepEqual(pageErrors, [], `${route} must not raise page errors: ${pageErrors.join(" | ")}`);
-  assert.deepEqual(consoleErrors, [], `${route} must not log console errors: ${consoleErrors.join(" | ")}`);
-  assert.ok(layout.viewport.includes("width=device-width"), `${route} must declare a mobile viewport`);
-  assert.ok(layout.scrollWidth <= layout.innerWidth + 1, `${route} must not horizontally overflow the emulated phone viewport`);
-  assert.equal(layout.secureContext, true, `${route} must run in a secure context`);
-  assert.ok(layout.maxTouchPoints > 0, `${route} must expose touch capability under the phone descriptor`);
-  assert.equal(layout.coarsePointer, true, `${route} must expose a coarse pointer under the phone descriptor`);
+  assert.equal(finalUrl.origin, baseOrigin, `${engineLabel} ${route} must remain on the LANERIQ AI origin`);
+  assert.ok(title.length > 0, `${engineLabel} ${route} must render a document title`);
+  assert.ok(bodyText.length > 20, `${engineLabel} ${route} must render meaningful content`);
+  assert.equal(overlayCount, 0, `${engineLabel} ${route} must not show a framework error overlay`);
+  assert.deepEqual(pageErrors, [], `${engineLabel} ${route} must not raise page errors: ${pageErrors.join(" | ")}`);
+  assert.deepEqual(consoleErrors, [], `${engineLabel} ${route} must not log console errors: ${consoleErrors.join(" | ")}`);
+  assert.ok(layout.viewport.includes("width=device-width"), `${engineLabel} ${route} must declare a mobile viewport`);
+  assert.ok(layout.scrollWidth <= layout.innerWidth + 1, `${engineLabel} ${route} must not horizontally overflow the emulated phone viewport`);
+  assert.equal(layout.secureContext, true, `${engineLabel} ${route} must run in a secure context`);
+  assert.ok(layout.maxTouchPoints > 0, `${engineLabel} ${route} must expose touch capability under the phone descriptor`);
+  assert.equal(layout.coarsePointer, true, `${engineLabel} ${route} must expose a coarse pointer under the phone descriptor`);
 
   if (publicRoute) {
-    assert.equal(finalUrl.pathname, route, `${route} must remain publicly reachable`);
-    assert.ok(status >= 200 && status < 400, `${route} must return a successful public response`);
+    assert.equal(finalUrl.pathname, route, `${engineLabel} ${route} must remain publicly reachable`);
+    assert.ok(status >= 200 && status < 400, `${engineLabel} ${route} must return a successful public response`);
   }
 
   if (protectedRoute) {
-    assert.equal(finalUrl.pathname, "/auth", `${route} must redirect signed-out users to /auth`);
-    assert.equal(finalUrl.searchParams.get("next"), route, `${route} must preserve its bounded internal return path`);
+    assert.equal(finalUrl.pathname, "/auth", `${engineLabel} ${route} must redirect signed-out users to /auth`);
+    assert.equal(finalUrl.searchParams.get("next"), route, `${engineLabel} ${route} must preserve its bounded internal return path`);
   }
 
+  console.log(`✓ ${engineLabel} ${route} → ${finalUrl.pathname}${finalUrl.search} (${elapsedMs}ms)`);
   return { route, finalUrl: finalUrl.href, status, elapsedMs, title, layout };
 }
 
-async function inspectAuth(page) {
-  await settle(page, `${baseUrl}/auth?next=https://evil.example/path`, "auth-safe-next");
+async function inspectAuth(page, engineLabel) {
+  console.log(`→ ${engineLabel} auth safe-next + input sizing`);
+  await settle(page, `${baseUrl}/auth?next=https://evil.example/path`, `${engineLabel} auth-safe-next`);
+  await page.waitForTimeout(250);
   const safeAuthUrl = new URL(page.url());
   assert.equal(safeAuthUrl.origin, baseOrigin, "External next must never leave LANERIQ AI origin");
   assert.equal(safeAuthUrl.pathname, "/auth", "External next must remain on /auth");
@@ -100,18 +121,18 @@ async function inspectAuth(page) {
     const height = await submit.evaluate((element) => element.getBoundingClientRect().height);
     assert.ok(height >= 44, `Auth submit touch target must be >=44px, got ${height}`);
   }
+  console.log(`✓ ${engineLabel} auth input ${Math.round(metrics.height)}px / ${metrics.fontSize}px font`);
   return metrics;
 }
 
-async function inspectMobileReadiness(page) {
-  await settle(page, `${baseUrl}/mobile-readiness`, "mobile-readiness-hydration");
+async function inspectMobileReadiness(page, engineLabel) {
+  console.log(`→ ${engineLabel} mobile-readiness hydration`);
+  await settle(page, `${baseUrl}/mobile-readiness`, `${engineLabel} mobile-readiness-hydration`);
   const report = page.locator('textarea[aria-label="Mobile readiness evidence report"]');
-  await assert.doesNotReject(async () => {
-    await page.waitForFunction(() => {
-      const node = document.querySelector('textarea[aria-label="Mobile readiness evidence report"]');
-      return node && node.value.trim().startsWith("{");
-    }, { timeout: 15_000 });
-  });
+  await page.waitForFunction(() => {
+    const node = document.querySelector('textarea[aria-label="Mobile readiness evidence report"]');
+    return Boolean(node && node.value.trim().startsWith("{"));
+  }, undefined, { timeout: 15_000 });
   const parsed = JSON.parse(await report.inputValue());
   assert.equal(parsed.product, "LANERIQ AI");
   assert.equal(parsed.permissionPromptsTriggered, false);
@@ -129,32 +150,35 @@ async function inspectMobileReadiness(page) {
   assert.ok(runAgainBox && runAgainBox.height >= 44 && runAgainBox.width >= 44, "Run again must be a >=44px touch target");
   await runAgain.click();
   await page.waitForTimeout(500);
+  console.log(`✓ ${engineLabel} mobile-readiness ${parsed.score}/100 (${parsed.passedRequiredChecks}/${parsed.requiredChecks})`);
   return { score: parsed.score, passedRequiredChecks: parsed.passedRequiredChecks, requiredChecks: parsed.requiredChecks };
 }
 
 for (const engine of engines) {
+  console.log(`\n=== ${engine.name} / ${engine.deviceName} ===`);
   const browser = await engine.browserType.launch({ headless: true });
   const context = await browser.newContext({ ...engine.device, locale: "en-US" });
+  const engineLabel = `${engine.name}/${engine.deviceName}`;
   const engineResults = { engine: engine.name, device: engine.deviceName, public: [], protected: [], auth: null, mobileReadiness: null };
 
   for (const route of publicRoutes) {
     const page = await context.newPage();
-    engineResults.public.push(await inspectDocument(page, route, { publicRoute: true }));
+    engineResults.public.push(await inspectDocument(page, route, engineLabel, { publicRoute: true }));
     await page.close();
   }
 
   for (const route of protectedRoutes) {
     const page = await context.newPage();
-    engineResults.protected.push(await inspectDocument(page, route, { protectedRoute: true }));
+    engineResults.protected.push(await inspectDocument(page, route, engineLabel, { protectedRoute: true }));
     await page.close();
   }
 
   const authPage = await context.newPage();
-  engineResults.auth = await inspectAuth(authPage);
+  engineResults.auth = await inspectAuth(authPage, engineLabel);
   await authPage.close();
 
   const readinessPage = await context.newPage();
-  engineResults.mobileReadiness = await inspectMobileReadiness(readinessPage);
+  engineResults.mobileReadiness = await inspectMobileReadiness(readinessPage, engineLabel);
   await readinessPage.close();
 
   allResults.push(engineResults);
