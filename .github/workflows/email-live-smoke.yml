@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Request one production LANERIQ email verification code
+      - name: Request one production LANERIQ email verification code after diagnostics deploy
         run: |
           set -euo pipefail
           recipient="$(jq -r '.head_commit.author.email // empty' "$GITHUB_EVENT_PATH")"
           test -n "$recipient"
-          request_id="smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          request_id="smoke-diagnostics-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           payload="$(jq -cn --arg email "$recipient" --arg requestId "$request_id" '{method:"email",identifier:$email,requestId:$requestId}')"
           code="$(curl --silent --show-error --output /tmp/laneriq-email-smoke.json --write-out '%{http_code}' \
             --request POST \
