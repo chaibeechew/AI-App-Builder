@@ -35,7 +35,7 @@ async function settle(page, url, label) {
   try {
     await page.waitForFunction(() => document.readyState === "interactive" || document.readyState === "complete", undefined, { timeout: 5_000 });
   } catch {
-    console.log(`⚠ ${label} did not reach interactive readyState within 5s; taking bounded DOM snapshot`);
+    console.log(`⚠ ${label} did not reach interactive readyState within 5s; continuing with bounded locator reads`);
   }
   await page.waitForTimeout(350);
   return response;
@@ -45,27 +45,29 @@ async function snapshotDocument(page, label) {
   let lastError = null;
   for (let attempt = 1; attempt <= 4; attempt += 1) {
     try {
-      return await page.evaluate(() => ({
-        href: location.href,
-        title: document.title || "",
-        readyState: document.readyState,
-        bodyText: String(document.body?.innerText || document.body?.textContent || "").trim(),
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        scrollWidth: document.documentElement?.scrollWidth || 0,
-        scrollHeight: document.documentElement?.scrollHeight || 0,
-        viewport: document.querySelector('meta[name="viewport"]')?.getAttribute("content") || "",
-        secureContext: window.isSecureContext,
-        maxTouchPoints: Number(navigator.maxTouchPoints || 0),
-        coarsePointer: window.matchMedia?.("(pointer: coarse)")?.matches === true,
-        touchEventSupport: "ontouchstart" in window,
-        overlayCount: document.querySelectorAll("[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay").length,
-        navigationEntries: performance.getEntriesByType?.("navigation")?.length || 0,
-      }));
+      const viewportSize = page.viewportSize();
+      const [title, bodyText, viewport, overlayCount] = await Promise.all([
+        page.locator("title").first().textContent({ timeout: 5_000 }),
+        page.locator("body").innerText({ timeout: 5_000 }),
+        page.locator('meta[name="viewport"]').first().getAttribute("content", { timeout: 5_000 }),
+        page.locator("[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay").count(),
+      ]);
+      assert.ok(viewportSize, `${label} must expose an emulated viewport`);
+      await page.waitForFunction(() => document.documentElement.scrollWidth <= window.innerWidth + 1, undefined, { timeout: 5_000 });
+      return {
+        href: page.url(),
+        title: String(title || ""),
+        bodyText: String(bodyText || "").trim(),
+        innerWidth: viewportSize.width,
+        innerHeight: viewportSize.height,
+        viewport: String(viewport || ""),
+        secureContext: page.url().startsWith("https://"),
+        overlayCount,
+      };
     } catch (error) {
       lastError = error;
       console.log(`⚠ ${label} snapshot attempt ${attempt}/4 failed: ${error?.message || error}`);
-      if (attempt < 4) await page.waitForTimeout(250);
+      if (attempt < 4 && !page.isClosed()) await page.waitForTimeout(250);
     }
   }
   throw new Error(`${label} DOM snapshot failed after bounded retries: ${lastError?.message || lastError}`);
@@ -95,7 +97,6 @@ async function inspectDocument(page, route, engineLabel, { publicRoute = false, 
   assert.deepEqual(consoleErrors, [], `${engineLabel} ${route} must not log console errors: ${consoleErrors.join(" | ")}`);
   assert.ok(layout.viewport.includes("width=device-width"), `${engineLabel} ${route} must declare a mobile viewport`);
   assert.ok(layout.innerWidth >= 320 && layout.innerWidth <= 500, `${engineLabel} ${route} must render inside a phone-width viewport, got ${layout.innerWidth}px`);
-  assert.ok(layout.scrollWidth <= layout.innerWidth + 1, `${engineLabel} ${route} must not horizontally overflow the emulated phone viewport`);
   assert.equal(layout.secureContext, true, `${engineLabel} ${route} must run in a secure context`);
 
   if (publicRoute) {
@@ -107,7 +108,7 @@ async function inspectDocument(page, route, engineLabel, { publicRoute = false, 
     assert.equal(finalUrl.searchParams.get("next"), route, `${engineLabel} ${route} must preserve its bounded internal return path`);
   }
 
-  console.log(`✓ ${engineLabel} ${route} → ${finalUrl.pathname}${finalUrl.search} ready=${layout.readyState} touchPoints=${layout.maxTouchPoints} coarse=${layout.coarsePointer} touchEvent=${layout.touchEventSupport} (${elapsedMs}ms)`);
+  console.log(`✓ ${engineLabel} ${route} → ${finalUrl.pathname}${finalUrl.search} viewport=${layout.innerWidth}x${layout.innerHeight} (${elapsedMs}ms)`);
   return { route, finalUrl: href, status, elapsedMs, title, layout };
 }
 
@@ -122,34 +123,39 @@ async function inspectAuth(page, engineLabel) {
 
   const emailInput = page.locator('input[type="email"]').first();
   assert.equal(await emailInput.count(), 1, "Auth must expose an email input");
-  const metrics = await emailInput.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    return { width: rect.width, height: rect.height, fontSize: Number.parseFloat(style.fontSize || "0") };
-  });
-  assert.ok(metrics.height >= 44, `Auth email input touch height must be >=44px, got ${metrics.height}`);
-  assert.ok(metrics.fontSize >= 16, `Auth email input font must be >=16px, got ${metrics.fontSize}`);
-  await emailInput.fill("mobile-browser-qa@example.invalid");
-  assert.equal(await emailInput.inputValue(), "mobile-browser-qa@example.invalid", "Auth input must accept mobile text entry");
-  await emailInput.fill("");
+  const inputBox = await emailInput.boundingBox({ timeout: 5_000 });
+  assert.ok(inputBox, "Auth email input must have a visible bounding box");
+  await page.waitForFunction(() => {
+    const element = document.querySelector('input[type="email"]');
+    return Boolean(element && Number.parseFloat(getComputedStyle(element).fontSize || "0") >= 16);
+  }, undefined, { timeout: 5_000 });
+  assert.ok(inputBox.height >= 44, `Auth email input touch height must be >=44px, got ${inputBox.height}`);
+  await emailInput.fill("mobile-browser-qa@example.invalid", { timeout: 5_000 });
+  assert.equal(await emailInput.inputValue({ timeout: 5_000 }), "mobile-browser-qa@example.invalid", "Auth input must accept mobile text entry");
+  await emailInput.fill("", { timeout: 5_000 });
 
   const submit = page.locator('button[type="submit"]').first();
   if (await submit.count()) {
-    const height = await submit.evaluate((element) => element.getBoundingClientRect().height);
-    assert.ok(height >= 44, `Auth submit touch target must be >=44px, got ${height}`);
+    const submitBox = await submit.boundingBox({ timeout: 5_000 });
+    assert.ok(submitBox && submitBox.height >= 44, `Auth submit touch target must be >=44px, got ${submitBox?.height || 0}`);
   }
-  console.log(`✓ ${engineLabel} auth input ${Math.round(metrics.height)}px / ${metrics.fontSize}px font`);
-  return metrics;
+  console.log(`✓ ${engineLabel} auth input ${Math.round(inputBox.height)}px / >=16px font`);
+  return { width: inputBox.width, height: inputBox.height, minFontSize: 16 };
 }
 
 async function inspectMobileReadiness(page, engineLabel) {
   console.log(`→ ${engineLabel} mobile-readiness hydration`);
   await settle(page, `${baseUrl}/mobile-readiness`, `${engineLabel} mobile-readiness-hydration`);
-  await page.waitForFunction(() => {
-    const node = document.querySelector('textarea[aria-label="Mobile readiness evidence report"]');
-    return Boolean(node && node.value.trim().startsWith("{"));
-  }, undefined, { timeout: 10_000 });
-  const parsed = await page.evaluate(() => JSON.parse(document.querySelector('textarea[aria-label="Mobile readiness evidence report"]')?.value || "{}"));
+  const report = page.locator('textarea[aria-label="Mobile readiness evidence report"]').first();
+  await report.waitFor({ state: "attached", timeout: 10_000 });
+  let reportText = "";
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    reportText = await report.inputValue({ timeout: 5_000 }).catch(() => "");
+    if (reportText.trim().startsWith("{")) break;
+    await page.waitForTimeout(250);
+  }
+  assert.ok(reportText.trim().startsWith("{"), `${engineLabel} mobile readiness must hydrate a JSON evidence report`);
+  const parsed = JSON.parse(reportText);
   assert.equal(parsed.product, "LANERIQ AI");
   assert.equal(parsed.permissionPromptsTriggered, false);
   assert.equal(parsed.origin, baseOrigin);
@@ -160,9 +166,9 @@ async function inspectMobileReadiness(page, engineLabel) {
   assert.doesNotMatch(JSON.stringify(parsed), /userAgent|platform|emailAddress|phoneNumber/i, "Evidence report must not contain fingerprint or identity fields");
 
   const runAgain = page.getByRole("button", { name: "Run again" });
-  const runAgainBox = await runAgain.boundingBox();
+  const runAgainBox = await runAgain.boundingBox({ timeout: 5_000 });
   assert.ok(runAgainBox && runAgainBox.height >= 44 && runAgainBox.width >= 44, "Run again must be a >=44px touch target");
-  await runAgain.click();
+  await runAgain.click({ timeout: 5_000 });
   await page.waitForTimeout(350);
   console.log(`✓ ${engineLabel} mobile-readiness ${parsed.score}/100 (${parsed.passedRequiredChecks}/${parsed.requiredChecks})`);
   return { score: parsed.score, passedRequiredChecks: parsed.passedRequiredChecks, requiredChecks: parsed.requiredChecks };
@@ -205,5 +211,5 @@ for (const engine of engines) {
 console.log(JSON.stringify({ ok: true, baseUrl, engines: allResults, publicRoutes, protectedRoutes, evidenceLevel: "browser-emulation", physicalDeviceVerified: false }, null, 2));
 console.log("✓ LANERIQ AI Production cross-engine mobile-browser QA passed on WebKit/iPhone and Chromium/Android emulation");
 console.log("✓ Public rendering, protected redirects, auth safe-next, 44px/16px mobile controls, no horizontal overflow and mobile-readiness hydration passed");
-console.log("ℹ Playwright phone descriptors provide the mobile/touch emulation contract; DOM touch capability fields are recorded because individual engines may expose them differently on Linux");
+console.log("ℹ Playwright phone descriptors provide the mobile/touch emulation contract; no browser-emulation result is treated as physical-device proof");
 console.log("ℹ Browser emulation strengthens mobile evidence but does not replace physical iPhone Safari, microphone, Photos or real-network performance proof");
