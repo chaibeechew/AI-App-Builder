@@ -10,6 +10,7 @@ const sessionRoute = read("app/api/auth/session/route.js");
 const policy = read("lib/ui/global-overlay-policy.js");
 const overlays = read("app/components/BuilderGlobalOverlays.js");
 const studio = read("app/components/StudioLauncher.js");
+const wallpaper = read("app/components/AdaptiveWallpaperEngine.js");
 const layout = read("app/layout.js");
 const homeInputSafety = read("app/home-mobile-input-safety.css");
 const homeMobileFinal = read("app/home-signature-mobile-final.css");
@@ -54,6 +55,7 @@ for (const pattern of [
   /permissionPromptsTriggered/,
   /noHorizontalOverflow/,
   /duplicateOverlayCount/,
+  /wallpaperControlCount/,
   /visibleInputs/,
   /undersizedInputs/,
   /page\.screenshot/,
@@ -66,6 +68,9 @@ for (const pattern of [
   /expectedSession401s/,
   /unexpectedHttpFailures/,
   /url\.pathname === "\/api\/auth\/session" && status === 401/,
+  /Failed to load resource:\.\*status of 401\\b/,
+  /Auth must not mount the Wallpaper control over login actions/,
+  /Mobile readiness evidence must not be obscured by the Wallpaper control/,
   /assert\.deepEqual\(unexpectedHttpFailures, \[\]/,
 ]) assert.match(runner, pattern);
 assert.doesNotMatch(runner, /getUserMedia\s*\(|grantPermissions|permissions\.query|signInWithOtp|verifyOtp/i, "Browser-emulation QA must stay permission-free and must not exercise Email/SMS Auth.");
@@ -99,12 +104,17 @@ assert.match(overlays, /<SoolenVoiceAssistant\s*\/>/);
 assert.match(studio, /shouldHideBuilderGlobalOverlay/);
 assert.match(layout, /BuilderGlobalOverlays/);
 assert.doesNotMatch(layout, /<StudioLauncher\s*\/>|<ReferenceUploader\s*\/>|<SoolenVoiceAssistant\s*\/>/, "Heavy global overlays must be mounted only through the route gate.");
+assert.match(wallpaper, /wallpaperControlHidden/);
+assert.match(wallpaper, /path==="\/auth"/);
+assert.match(wallpaper, /path==="\/mobile-readiness"/);
 
 console.log("✓ Public build identity is privacy-safe, exact-commit aware, no-store and GET/HEAD-only before sign-in");
 console.log("✓ Session protection keeps the build identity bypass exact-path only and preserves signed-out SESSION_REQUIRED 401 semantics");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
+console.log("✓ Mobile QA recognizes both WebKit and Chromium generic 401 console wording while exact response-level URL/status checks remain authoritative");
 console.log("✓ Mobile QA classifies only exact signed-out GET /api/auth/session 401 responses as expected and fails all unexpected HTTP errors");
 console.log("✓ Final mobile visual authority and safety layer both force homepage editable controls to >=16px");
+console.log("✓ Auth/home/readiness browser evidence fails if the floating Wallpaper control overlaps primary mobile surfaces");
 console.log("✓ Browser QA preserves failure screenshots/report details, including undersized editable-control diagnostics");
 console.log("✓ Browser QA stays permission-free and labels evidence as browser emulation, never physical-device proof");
 console.log("✓ Homepage/auth/evidence/customer-preview surfaces do not mount duplicate heavy global builder overlays");
