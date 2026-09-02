@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { normalizeEmailAddress, normalizeEmailOtp } from "../../../../../../lib/auth/otp-policy.js";
-import { verifyLaneriqEmailVerification } from "../../../../../../lib/verification/server.js";
+import { normalizeEmailAddress, normalizeEmailOtp } from "../../../../../lib/auth/otp-policy.js";
+import { verifyLaneriqEmailVerification } from "../../../../../lib/verification/server.js";
 
 function json(payload,status=200,retryAfter=0){const response=NextResponse.json(payload,{status});response.headers.set("Cache-Control","private, no-store, max-age=0");response.headers.set("Pragma","no-cache");response.headers.set("X-Content-Type-Options","nosniff");if(retryAfter>0)response.headers.set("Retry-After",String(Math.ceil(retryAfter)));return response;}
 function sameOrigin(request){try{const origin=request.headers.get("origin");if(!origin)return false;const originHost=new URL(origin).host;const expectedHost=request.headers.get("x-forwarded-host")||request.headers.get("host")||request.nextUrl.host;const fetchSite=String(request.headers.get("sec-fetch-site")||"").toLowerCase();return originHost===expectedHost&&fetchSite!=="cross-site";}catch{return false;}}
