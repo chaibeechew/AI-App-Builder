@@ -12,7 +12,7 @@ LANERIQ AI is an AI creation platform for planning, creating, modifying, testing
 ## Core platform foundation
 
 - Email OTP authentication
-- Phone/SMS OTP integration path (requires a configured live SMS provider)
+- Phone/SMS OTP code path retained for future activation; **live SMS is intentionally ON HOLD** until provider testing is explicitly resumed
 - Verified-user gate before App generation and modification
 - Persistent My Creations / project dashboard
 - Continue editing saved Apps and Websites
@@ -72,7 +72,7 @@ Run the repository's Supabase migrations in order. Historical migration filename
 Then enable/configure the required services, including:
 
 1. Email OTP in Supabase Auth.
-2. Phone Auth plus a live SMS provider before claiming SMS OTP as operational.
+2. Phone Auth plus a live SMS provider **only when SMS work is resumed**; do not claim SMS OTP as operational before a real received/verified OTP is proven.
 3. The email OTP template used by LANERIQ AI.
 4. Production Site URL and redirect URLs.
 
@@ -85,6 +85,10 @@ Referral flow:
 Referral code → new user → verification → first qualifying App created → qualification → reward ledger entry.
 
 Reward amounts remain server-controlled and configurable rather than hard-coded into the client.
+
+## Production evidence
+
+Live Production, browser-emulation and external-evidence results are recorded in [`docs/PRODUCTION-EVIDENCE.md`](docs/PRODUCTION-EVIDENCE.md). The evidence ledger intentionally separates code proof, automated browser proof and physical-device/provider/store proof.
 
 ---
 
