@@ -115,6 +115,8 @@ jobs:
         run: node scripts/big-moon-valley-game-pro-commerce-contract-tests.mjs
       - name: Big Moon Valley discovery and community contract tests
         run: node scripts/big-moon-valley-discovery-community-contract-tests.mjs
+      - name: Big Moon Valley media intelligence contract tests
+        run: node scripts/big-moon-valley-media-intelligence-contract-tests.mjs
       - name: AI Video Generator contract tests
         run: npm run test:video
       - name: AI Avatar Creator contract tests
