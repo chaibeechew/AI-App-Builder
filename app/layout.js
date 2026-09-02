@@ -30,6 +30,7 @@ import "./property-crm-golden-reference.css";
 import "./generated-industry-visual-v2.css";
 import "./home-canonical-v4.css";
 import "./home-mobile-input-safety.css";
+import "./mobile-feature-hardening.css";
 import AccountNav from "./components/AccountNav";
 import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
 import ProductCopyFix from "./components/ProductCopyFix";
