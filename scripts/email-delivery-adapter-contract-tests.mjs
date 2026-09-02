@@ -4,6 +4,7 @@ import path from 'node:path';
 
 const root=process.cwd();
 const integrations=fs.readFileSync(path.join(root,'lib/integrations/server.js'),'utf8');
+const provider=fs.readFileSync(path.join(root,'lib/email-provider/server.js'),'utf8');
 const productionSync=fs.readFileSync(path.join(root,'.github/workflows/email-delivery-production-sync.yml'),'utf8');
 
 assert.match(integrations,/import net from "node:net"/,'Managed SMTP must support STARTTLS transports.');
@@ -24,6 +25,14 @@ assert.match(integrations,/pass\.replace\(\/\\s\+\/g,""\)/,'Gmail App Password d
 assert.match(integrations,/function safeHeader/,'SMTP header sanitizer must exist.');
 assert.ok(integrations.includes('replace(/[\\r\\n]+/g," ")'),'SMTP headers must strip CR/LF before protocol framing.');
 assert.match(integrations,/function mailbox/,'SMTP envelope addresses must be validated.');
+assert.match(integrations,/function smtpFailure\(code\)/,'SMTP stage failures must be classified without provider text.');
+assert.match(integrations,/"smtp_auth_failed"/,'SMTP authentication failures must have a safe diagnostic code.');
+assert.match(integrations,/"smtp_starttls_failed"/,'STARTTLS failures must have a safe diagnostic code.');
+assert.match(integrations,/"smtp_sender_rejected"/,'Sender rejection must be distinguishable without exposing SMTP responses.');
+assert.match(integrations,/"smtp_recipient_rejected"/,'Recipient rejection must be distinguishable without exposing SMTP responses.');
+assert.match(provider,/SAFE_TRANSPORT_ERROR_CODES/,'LANERIQ Email Provider must explicitly allow safe transport diagnostics.');
+assert.match(provider,/function safeTransportErrorCode\(error\)/,'LANERIQ Email Provider must sanitize transport errors before persistence.');
+assert.doesNotMatch(provider,/error\?\.message.*last_error|provider_response|smtp_response/i,'Provider response text must not be persisted with email queue state.');
 assert.match(integrations,/if\(smtpReady\(\)\)return sendManagedSmtpEmail\(payload\)/);
 assert.match(integrations,/if\(resendReady\(\)\)return sendManagedResendEmail\(payload\)/);
 assert.doesNotMatch(integrations,/console\.(log|info|warn|error|debug)/,'Email credentials and OTP payloads must never be logged by the adapter.');
@@ -47,6 +56,7 @@ assert.doesNotMatch(productionSync,/echo\s+"?\$\{?(?:SMTP_PASS|GMAIL_APP_PASSWOR
 
 console.log('✓ LANERIQ Email Delivery supports implicit TLS, STARTTLS SMTP, or Resend transports');
 console.log('✓ Gmail SMTP compatibility handles port 587 and display-spaced App Passwords safely');
+console.log('✓ SMTP failure stages remain privacy-safe while preserving useful production diagnostics');
 console.log('✓ Gmail/SMTP secrets can be synchronized into existing Vercel Production without exposing values');
 console.log('✓ Production email env synchronization is followed by a fresh Vercel Production deployment');
 console.log('✓ SMTP envelope/header hardening prevents CRLF injection and validates TLS certificates');
