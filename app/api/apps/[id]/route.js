@@ -13,7 +13,7 @@ export async function GET(_request, { params }) {
 
     const { data: app, error: appError } = await supabase
       .from("apps")
-      .select("id, name, description, source_prompt, current_version_id, created_at, updated_at")
+      .select("id, name, description, source_prompt, current_version_id, visibility, publish_status, created_at, updated_at")
       .eq("id", id)
       .eq("owner_id", user.id)
       .single();
@@ -33,7 +33,7 @@ export async function GET(_request, { params }) {
       return NextResponse.json({ error: "Unable to load app versions." }, { status: 500 });
     }
 
-    return NextResponse.json({ app, versions: versions || [] });
+    return NextResponse.json({ app, versions: versions || [] }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
     console.error("APP_DETAIL_API_ERROR:", error);
     return NextResponse.json({ error: "Unable to load app." }, { status: 500 });
