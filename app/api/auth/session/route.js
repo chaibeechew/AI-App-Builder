@@ -13,6 +13,8 @@ import {
 } from "../../../../lib/auth/laneriq-session.js";
 import { createClient as createCompatibilityClient } from "../../../../lib/supabase/server.js";
 
+const FRESH_COMPATIBILITY_SIGN_IN_MS=5*60*1000;
+
 function responseJson(payload,status=200){
   const response=NextResponse.json(payload,{status});
   response.headers.set("Cache-Control","private, no-store, max-age=0");
@@ -39,11 +41,16 @@ function setPrimaryCookies(response,token){
   return response;
 }
 
-async function mintFromCompatibilityIdentity(){
+async function mintFromCompatibilityIdentity({requireFreshSignIn=false}={}){
   const compatibilityClient=await createCompatibilityClient();
   const {data,error}=await compatibilityClient.auth.getUser();
   const user=data?.user;
   if(error||!user?.id)return null;
+  if(requireFreshSignIn){
+    const signedInAt=Date.parse(String(user.last_sign_in_at||""));
+    const age=Date.now()-signedInAt;
+    if(!Number.isFinite(signedInAt)||age<0||age>FRESH_COMPATIBILITY_SIGN_IN_MS)return null;
+  }
   const migrated=await createLaneriqSession(user.id);
   return {userId:user.id,token:migrated.token,expiresAt:migrated.expiresAt};
 }
@@ -102,8 +109,8 @@ export async function POST(request){
   // The primary-mode marker still blocks all passive/stale compatibility fallback.
   if(action==="upgrade_verified_compatibility"){
     try{
-      const upgraded=await mintFromCompatibilityIdentity();
-      if(!upgraded)return responseJson({success:false,authenticated:false,sessionAuthority:"laneriq",code:"SESSION_REQUIRED"},401);
+      const upgraded=await mintFromCompatibilityIdentity({requireFreshSignIn:true});
+      if(!upgraded)return responseJson({success:false,authenticated:false,sessionAuthority:"laneriq",code:"FRESH_VERIFICATION_REQUIRED"},401);
       const response=responseJson({
         success:true,
         authenticated:true,
