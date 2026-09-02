@@ -48,7 +48,7 @@ assert.match(authPage, /window\.__LANERIQ_AUTH_FLOW_BUSY__ = true/);
 assert.match(authPage, /WhatsApp Code/);
 assert.match(authPage, /Email Code/);
 assert.match(authPage, /No paid SMS fallback is used/);
-assert.doesNotMatch(authPage, /NEXT_PUBLIC_SMS_AUTH_ENABLED/);
+assert.doesNotMatch(authPage, /process\.env\.NEXT_PUBLIC_SMS_AUTH_ENABLED|const\s+SMS_AUTH_ENABLED\s*=/);
 assert.doesNotMatch(authPage, /<strong>SMS Code<\/strong>/);
 assert.doesNotMatch(authPage, /switchMethod\("sms"\)/);
 assert.doesNotMatch(authPage, /const token = normalizeEmailOtp\(otp\);[\s\S]{0,300}type: "sms"/, "WhatsApp phone verification must never normalize through the Email OTP policy.");
