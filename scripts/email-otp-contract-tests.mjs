@@ -7,6 +7,7 @@ const requestRoute = await readFile(new URL('../app/api/auth/verification/reques
 const verifyRoute = await readFile(new URL('../app/api/auth/verification/verify/route.js', import.meta.url), 'utf8');
 const sessionRoute = await readFile(new URL('../app/api/auth/session/route.js', import.meta.url), 'utf8');
 const engine = await readFile(new URL('../lib/verification/server.js', import.meta.url), 'utf8');
+const communicationsGuard = await readFile(new URL('../lib/communications/guard.js', import.meta.url), 'utf8');
 const sessionEngine = await readFile(new URL('../lib/auth/laneriq-session.js', import.meta.url), 'utf8');
 const migration = await readFile(new URL('../supabase/migrations/20260902061000_laneriq_owned_email_verification.sql', import.meta.url), 'utf8');
 const repairMigration = await readFile(new URL('../supabase/migrations/20260902065500_fix_laneriq_verification_rpc_ambiguity.sql', import.meta.url), 'utf8');
@@ -52,7 +53,8 @@ assert.match(requestRoute, /Cache-Control","private, no-store, max-age=0/);
 
 assert.match(engine, /crypto\.randomInt/);
 assert.match(engine, /createHmac\("sha256"/);
-assert.match(engine, /LANERIQ_VERIFICATION_SECRET\|\|process\.env\.LANERIQ_COMMUNICATION_PRIVACY_SECRET/);
+assert.match(engine, /LANERIQ_VERIFICATION_SECRET\|\|process\.env\.LANERIQ_COMMUNICATIONS_HASH_SECRET\|\|process\.env\.LANERIQ_COMMUNICATION_PRIVACY_SECRET/);
+assert.match(communicationsGuard, /LANERIQ_COMMUNICATIONS_HASH_SECRET\|\|process\.env\.LANERIQ_COMMUNICATION_PRIVACY_SECRET/);
 assert.match(engine, /EMAIL_TTL_SECONDS=600/);
 assert.match(engine, /codeHash\(id,email,code\)/);
 assert.match(engine, /recipientHash\(email\)/);
@@ -125,3 +127,4 @@ console.log('✓ Email challenges are HMAC-only, 10-minute, one-use, superseding
 console.log('✓ Browser requests/verifies Email Code through exact same-origin LANERIQ endpoints and trusts LANERIQ Session');
 console.log('✓ LANERIQ Session is primary; the legacy identity exists only for transitional data access');
 console.log('✓ Verification storage is private-schema, RLS protected, service-role only and RPC ambiguity regression-gated');
+console.log('✓ Verification and Communications share a backward-compatible server-only privacy secret chain');
