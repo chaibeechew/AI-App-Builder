@@ -24,21 +24,24 @@ assert.match(route, /Cache-Control.*no-store/);
 assert.match(route, /X-Content-Type-Options.*nosniff/);
 
 // Existing outbound WhatsApp Cloud API path stays managed and readiness-gated.
-assert.match(integrations, /whatsapp:\{ready:Boolean\(process\.env\.WHATSAPP_ACCESS_TOKEN&&process\.env\.WHATSAPP_PHONE_NUMBER_ID\),managed:true\}/);
-assert.match(integrations, /https:\/\/graph\.facebook\.com\/v23\.0\/\$\{phoneId\}\/messages/);
+assert.match(integrations, /whatsapp:\{ready:Boolean\(process\.env\.WHATSAPP_ACCESS_TOKEN&&process\.env\.WHATSAPP_PHONE_NUMBER_ID\),managed:true,provider:"meta_cloud_api"\}/);
+assert.match(integrations, /function whatsappGraphVersion\(\)/);
+assert.match(integrations, /https:\/\/graph\.facebook\.com\/\$\{whatsappGraphVersion\(\)\}\/\$\{phoneId\}\/messages/);
 assert.match(integrations, /messaging_product:"whatsapp"/);
 assert.match(integrations, /replace\(\/\[\^0-9\]\/g,""\)/);
 assert.match(integrations, /preview_url:false/);
+assert.doesNotMatch(integrations, /TWILIO_|sendManagedSms|channel:"sms"/);
 
-// Server-to-server Meta webhook requests are allowed without weakening browser mutation protection.
+// Server-to-server Meta and Supabase webhook requests are allowed without weakening browser mutation protection.
 assert.match(edgeProxy, /Server-to-server\/webhook requests commonly have no browser Origin\/Sec-Fetch-Site headers/);
 assert.match(edgeProxy, /if\(fetchSite==="cross-site"\)return true/);
-assert.match(sessionProxy, /const PUBLIC_SERVER_WEBHOOKS = new Set\(\["\/api\/whatsapp\/webhook"\]\)/);
+assert.match(sessionProxy, /"\/api\/whatsapp\/webhook"/);
+assert.match(sessionProxy, /"\/api\/auth\/whatsapp-otp-hook"/);
 assert.match(sessionProxy, /if \(PUBLIC_SERVER_WEBHOOKS\.has\(pathname\)\)/);
-assert.match(sessionProxy, /route itself performs verify-token checks for GET and HMAC signature checks for POST/);
+assert.match(sessionProxy, /cryptographic signature or verify-token checks/);
 assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/whatsapp"\)/);
 
 console.log('✓ WhatsApp Cloud webhook verification and HMAC signature checks are present');
-console.log('✓ Exact WhatsApp webhook path bypasses user session auth without opening other API routes');
-console.log('✓ Outbound WhatsApp Cloud API delivery remains managed and readiness-gated');
+console.log('✓ Exact Meta + Supabase WhatsApp webhook paths bypass user session auth without opening other APIs');
+console.log('✓ Outbound WhatsApp delivery remains managed and readiness-gated; paid SMS/Twilio is absent');
 console.log('✓ Webhook payloads are acknowledged without logging customer message content');
