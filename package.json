@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/prepare-home-background.mjs",
     "build": "next build",
     "start": "next start",
     "quality:100": "node scripts/release-readiness-100.mjs && npm run test:session-authority && npm run test:auth-mobile-entry && npm run test:email-provider",
