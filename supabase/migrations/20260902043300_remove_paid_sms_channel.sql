@@ -3,8 +3,7 @@
 -- New workflow and integration records cannot use SMS after this migration.
 
 update public.app_workflows w
-set actions = migrated.actions
-from lateral (
+set actions = (
   select jsonb_agg(
     case
       when action.value->>'type' = 'send_sms' then
@@ -23,9 +22,9 @@ from lateral (
       else action.value
     end
     order by action.ordinality
-  ) as actions
+  )
   from jsonb_array_elements(coalesce(w.actions, '[]'::jsonb)) with ordinality as action(value, ordinality)
-) migrated
+)
 where exists (
   select 1
   from jsonb_array_elements(coalesce(w.actions, '[]'::jsonb)) action
