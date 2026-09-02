@@ -1,0 +1,441 @@
+/* LANERIQ AI Big Moon Valley account shell.
+   Scope is intentionally limited to Auth and the authenticated My Projects surface.
+   Authentication methods, OTP policy, sessions, ownership queries and generated customer routes are not changed here. */
+
+.authPage,
+.loadingScreen,
+main.page:has(>header .owner){
+  position:relative!important;
+  min-height:100svh!important;
+  overflow-x:hidden!important;
+  color:#f7fbf8!important;
+  background:
+    linear-gradient(180deg,rgba(0,7,6,.02) 0%,rgba(0,8,7,.10) 23%,rgba(0,9,7,.70) 52%,rgba(0,8,7,.98) 100%),
+    url('/big-moon-valley.svg') 67% top/cover fixed no-repeat!important;
+}
+.authPage::before,
+.loadingScreen::before,
+main.page:has(>header .owner)::before{
+  content:''!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 77% 10%,rgba(255,221,126,.10),transparent 28%),
+    linear-gradient(90deg,rgba(0,9,7,.55),rgba(0,9,7,.03) 52%,rgba(0,9,7,.14))!important;
+}
+
+/* Auth keeps the existing OTP/session component intact while upgrading the shell. */
+.authPage .aurora{
+  opacity:.18!important;
+  filter:blur(100px)!important;
+}
+.authPage .brandBar{
+  z-index:5!important;
+  min-height:58px!important;
+  padding:7px 9px!important;
+  border:1px solid rgba(231,195,96,.20)!important;
+  border-radius:18px!important;
+  background:rgba(3,22,17,.48)!important;
+  box-shadow:0 16px 42px rgba(0,0,0,.18)!important;
+  backdrop-filter:blur(20px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(1.06)!important;
+}
+.authPage .brandMark{
+  border-color:rgba(255,236,171,.68)!important;
+  background:linear-gradient(145deg,#f2d978,#b47a1d)!important;
+  box-shadow:0 8px 30px rgba(216,179,79,.20),0 0 22px rgba(226,190,87,.10)!important;
+}
+.authPage .securePill{
+  min-height:40px!important;
+  border-color:rgba(255,255,255,.11)!important;
+  background:rgba(3,20,15,.66)!important;
+}
+.authPage .authShell{
+  z-index:3!important;
+  width:min(1240px,100%)!important;
+  padding-top:clamp(145px,20svh,235px)!important;
+  gap:clamp(38px,7vw,104px)!important;
+}
+.authPage .heroCopy>small,
+.authPage .cardTop>small{
+  color:#f0cb68!important;
+  text-shadow:0 4px 18px rgba(0,0,0,.42)!important;
+}
+.authPage .heroCopy h1{
+  color:#fff9df!important;
+  text-shadow:0 10px 42px rgba(0,0,0,.52)!important;
+}
+.authPage .heroCopy h1 em{
+  color:#f0cc68!important;
+}
+.authPage .heroCopy p{
+  color:#c0d0c9!important;
+  text-shadow:0 2px 16px rgba(0,0,0,.45)!important;
+}
+.authPage .capabilityRow span,
+.authPage .trustLine{
+  border-color:rgba(235,198,93,.28)!important;
+  color:#e7ce7c!important;
+}
+.authPage .authCard{
+  border-color:rgba(235,198,93,.31)!important;
+  background:linear-gradient(155deg,rgba(6,34,26,.79),rgba(2,15,12,.92))!important;
+  box-shadow:0 34px 92px rgba(0,0,0,.46),inset 0 1px rgba(255,255,255,.045)!important;
+  backdrop-filter:blur(30px) saturate(1.09)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(1.09)!important;
+}
+.authPage .authCard h2{
+  color:#fff8df!important;
+}
+.authPage .tabs button{
+  min-height:56px!important;
+  border-color:rgba(255,255,255,.10)!important;
+  background:rgba(3,25,19,.77)!important;
+  touch-action:manipulation!important;
+}
+.authPage .tabs button.active{
+  border-color:rgba(237,199,94,.52)!important;
+  background:linear-gradient(145deg,rgba(236,197,91,.14),rgba(6,35,26,.78))!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.15)!important;
+}
+.authPage .tabs button:disabled{
+  opacity:.42!important;
+}
+.authPage .inputWrap{
+  min-height:56px!important;
+  border-color:rgba(255,255,255,.11)!important;
+  background:rgba(2,17,13,.84)!important;
+}
+.authPage .inputWrap input{
+  font-size:16px!important;
+}
+.authPage .inputWrap:focus-within{
+  border-color:rgba(239,201,96,.62)!important;
+  box-shadow:0 0 0 3px rgba(239,201,96,.08)!important;
+}
+.authPage .primary{
+  min-height:54px!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#132018!important;
+  box-shadow:0 13px 31px rgba(0,0,0,.26),0 0 24px rgba(225,176,53,.12)!important;
+  touch-action:manipulation!important;
+}
+.authPage .secondary{
+  min-height:48px!important;
+  border-color:rgba(235,198,93,.25)!important;
+  background:rgba(3,25,19,.72)!important;
+  color:#dcc978!important;
+  touch-action:manipulation!important;
+}
+.authPage .message,
+.authPage .error,
+.authPage .notice,
+.authPage .sentTo{
+  backdrop-filter:blur(14px)!important;
+  -webkit-backdrop-filter:blur(14px)!important;
+}
+.authPage .bottomBrand{
+  color:#879a91!important;
+}
+.loadingScreen{
+  z-index:0!important;
+  place-items:end center!important;
+  padding:0 20px max(110px,calc(80px + env(safe-area-inset-bottom)))!important;
+  color:#f0cc68!important;
+  text-shadow:0 4px 22px rgba(0,0,0,.62)!important;
+}
+.loadingScreen::after{
+  content:'LANERIQ AI · SECURE ACCOUNT'!important;
+  position:relative!important;
+  z-index:1!important;
+  display:block!important;
+  margin-top:12px!important;
+  font-size:9px!important;
+  letter-spacing:.18em!important;
+  color:#a9b9b2!important;
+}
+
+/* Authenticated My Projects becomes the same premium product cockpit. */
+main.page:has(>header .owner){
+  padding:max(26px,env(safe-area-inset-top)) 18px max(94px,calc(74px + env(safe-area-inset-bottom)))!important;
+}
+main.page:has(>header .owner)>header,
+main.page:has(>header .owner)>.grid,
+main.page:has(>header .owner)>.notice{
+  position:relative!important;
+  z-index:1!important;
+}
+main.page:has(>header .owner)>header{
+  max-width:1180px!important;
+  padding-top:clamp(150px,22svh,250px)!important;
+  margin-bottom:26px!important;
+  align-items:flex-end!important;
+}
+main.page:has(>header .owner) .eyebrow{
+  color:#f0cc68!important;
+  text-shadow:0 4px 18px rgba(0,0,0,.46)!important;
+}
+main.page:has(>header .owner) h1{
+  color:#fff8dc!important;
+  font-size:clamp(44px,6vw,68px)!important;
+  line-height:.96!important;
+  letter-spacing:-.04em!important;
+  text-shadow:0 9px 36px rgba(0,0,0,.52)!important;
+}
+main.page:has(>header .owner)>header p{
+  color:#c3d2cc!important;
+  max-width:620px!important;
+  text-shadow:0 2px 14px rgba(0,0,0,.44)!important;
+}
+main.page:has(>header .owner) .owner{
+  display:inline-flex!important;
+  min-height:36px!important;
+  align-items:center!important;
+  margin-top:6px!important;
+  padding:7px 11px!important;
+  border:1px solid rgba(235,198,93,.21)!important;
+  border-radius:999px!important;
+  background:rgba(3,24,18,.58)!important;
+  color:#d4dfda!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+}
+main.page:has(>header .owner) nav{
+  padding:8px!important;
+  border:1px solid rgba(235,198,93,.20)!important;
+  border-radius:18px!important;
+  background:rgba(3,23,17,.58)!important;
+  box-shadow:0 16px 42px rgba(0,0,0,.18)!important;
+  backdrop-filter:blur(20px) saturate(1.05)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(1.05)!important;
+}
+main.page:has(>header .owner) nav .primary,
+main.page:has(>header .owner) nav .secondary,
+main.page:has(>header .owner) nav button{
+  min-height:44px!important;
+  touch-action:manipulation!important;
+}
+main.page:has(>header .owner) nav .primary{
+  min-height:48px!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#132018!important;
+  box-shadow:0 11px 28px rgba(0,0,0,.22)!important;
+}
+main.page:has(>header .owner) nav .secondary{
+  border-color:rgba(235,198,93,.26)!important;
+  background:rgba(3,25,19,.69)!important;
+  color:#e5ce79!important;
+}
+main.page:has(>header .owner)>.grid{
+  max-width:1180px!important;
+  gap:18px!important;
+}
+main.page:has(>header .owner) .card,
+main.page:has(>header .owner) .empty,
+main.page:has(>header .owner)>.notice{
+  border-color:rgba(235,198,93,.23)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.78),rgba(2,15,12,.90))!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(27px) saturate(1.07)!important;
+  -webkit-backdrop-filter:blur(27px) saturate(1.07)!important;
+}
+main.page:has(>header .owner) .card{
+  min-height:350px!important;
+  padding:23px!important;
+  border-radius:24px!important;
+}
+main.page:has(>header .owner) .card .icon{
+  border:1px solid rgba(255,241,191,.42)!important;
+  background:linear-gradient(145deg,#f0d370,#a86e19)!important;
+  box-shadow:0 9px 25px rgba(0,0,0,.20)!important;
+}
+main.page:has(>header .owner) .card h2{
+  color:#fff7dd!important;
+  font-size:24px!important;
+}
+main.page:has(>header .owner) .card p{
+  color:#9fb3aa!important;
+}
+main.page:has(>header .owner) .deliverables span{
+  min-height:34px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border:1px solid rgba(255,255,255,.06)!important;
+  background:rgba(7,42,31,.67)!important;
+}
+main.page:has(>header .owner) .actions .primary,
+main.page:has(>header .owner) .actions .secondary,
+main.page:has(>header .owner) .empty .primary{
+  min-height:44px!important;
+  touch-action:manipulation!important;
+}
+main.page:has(>header .owner) .actions>.primary,
+main.page:has(>header .owner) .empty .primary{
+  min-height:48px!important;
+  border:1px solid rgba(255,241,191,.43)!important;
+  background:linear-gradient(135deg,#f1d573,#d2a439 52%,#a86a15 100%)!important;
+  color:#132018!important;
+}
+main.page:has(>header .owner) .actions .secondary{
+  border-color:rgba(235,198,93,.24)!important;
+  background:rgba(3,25,19,.66)!important;
+  color:#ddca78!important;
+}
+main.page:has(>header .owner) .empty{
+  min-height:330px!important;
+  display:grid!important;
+  place-items:center!important;
+  align-content:center!important;
+  text-align:center!important;
+}
+main.page:has(>header .owner) .empty p{
+  max-width:590px!important;
+}
+
+@media(max-width:860px){
+  .authPage{
+    overflow:auto!important;
+  }
+  .authPage .authShell{
+    grid-template-columns:1fr!important;
+    gap:18px!important;
+    padding-top:clamp(132px,20svh,178px)!important;
+  }
+  .authPage .heroCopy{
+    display:block!important;
+    max-width:560px!important;
+    margin:0 auto!important;
+    text-align:center!important;
+  }
+  .authPage .heroCopy h1{
+    margin:8px 0 0!important;
+    font-size:clamp(38px,9vw,54px)!important;
+  }
+  .authPage .heroCopy p,
+  .authPage .capabilityRow,
+  .authPage .trustLine{
+    display:none!important;
+  }
+  .authPage .authCard{
+    max-width:560px!important;
+  }
+  .authPage .bottomBrand{
+    position:relative!important;
+  }
+  main.page:has(>header .owner)>header{
+    flex-direction:column!important;
+    align-items:stretch!important;
+  }
+  main.page:has(>header .owner) nav{
+    width:100%!important;
+    justify-content:flex-start!important;
+  }
+}
+
+@media(max-width:520px){
+  .authPage,
+  .loadingScreen,
+  main.page:has(>header .owner){
+    background:
+      linear-gradient(180deg,rgba(0,7,6,0) 0%,rgba(0,8,7,.05) 24%,rgba(0,9,7,.72) 47%,rgba(0,8,7,.98) 100%),
+      url('/big-moon-valley.svg') 67% top/cover scroll no-repeat!important;
+  }
+  .authPage .brandBar{
+    top:max(9px,env(safe-area-inset-top))!important;
+    left:10px!important;
+    right:10px!important;
+  }
+  .authPage .securePill{
+    min-height:38px!important;
+  }
+  .authPage .authShell{
+    padding:clamp(122px,19svh,158px) 10px max(48px,calc(28px + env(safe-area-inset-bottom)))!important;
+  }
+  .authPage .heroCopy h1{
+    font-size:clamp(34px,10vw,44px)!important;
+  }
+  .authPage .authCard{
+    border-radius:24px!important;
+    padding:20px 16px!important;
+  }
+  .authPage .tabs{
+    grid-template-columns:1fr 1fr!important;
+  }
+  .authPage .tabs button{
+    min-height:54px!important;
+  }
+  .authPage .secondaryRow{
+    grid-template-columns:1fr!important;
+  }
+  .authPage .secondary{
+    width:100%!important;
+  }
+  main.page:has(>header .owner){
+    padding:max(12px,env(safe-area-inset-top)) 10px max(96px,calc(76px + env(safe-area-inset-bottom)))!important;
+  }
+  main.page:has(>header .owner)>header{
+    padding-top:clamp(205px,33svh,285px)!important;
+  }
+  main.page:has(>header .owner) h1{
+    font-size:clamp(40px,13vw,54px)!important;
+  }
+  main.page:has(>header .owner) nav{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:8px!important;
+  }
+  main.page:has(>header .owner) nav .primary{
+    grid-column:1/-1!important;
+  }
+  main.page:has(>header .owner) nav form,
+  main.page:has(>header .owner) nav button,
+  main.page:has(>header .owner) nav a{
+    width:100%!important;
+  }
+  main.page:has(>header .owner)>.grid{
+    grid-template-columns:1fr!important;
+  }
+  main.page:has(>header .owner) .card{
+    min-height:0!important;
+  }
+  main.page:has(>header .owner) .actions>div{
+    grid-template-columns:1fr 1fr!important;
+  }
+}
+
+@media(max-width:380px){
+  .authPage .brandWords span{
+    display:none!important;
+  }
+  .authPage .securePill{
+    font-size:9px!important;
+    padding:7px 8px!important;
+  }
+  .authPage .tabs{
+    grid-template-columns:1fr!important;
+  }
+  main.page:has(>header .owner)>header{
+    padding-top:200px!important;
+  }
+  main.page:has(>header .owner) nav,
+  main.page:has(>header .owner) .actions>div{
+    grid-template-columns:1fr!important;
+  }
+  main.page:has(>header .owner) nav .primary{
+    grid-column:auto!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .authPage *,
+  .loadingScreen *,
+  main.page:has(>header .owner) *{
+    scroll-behavior:auto!important;
+    transition:none!important;
+    animation:none!important;
+  }
+}
