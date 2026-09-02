@@ -7,18 +7,18 @@ import { createClient } from "../../lib/supabase/client";
 import { PRODUCT_BRAND } from "../../lib/product-brand.js";
 import {
   EMAIL_OTP_POLICY,
-  SMS_OTP_POLICY,
+  WHATSAPP_OTP_POLICY,
   authErrorMessage,
   normalizeEmailAddress,
   normalizeEmailOtp,
   normalizePhoneNumber,
-  normalizeSmsOtp,
+  normalizeWhatsAppOtp,
   otpPolicyForMethod,
 } from "../../lib/auth/otp-policy.js";
 import { normalizeReferralCode, safeInternalNext } from "../../lib/auth/session-safety.js";
 
 export const dynamic = "force-dynamic";
-const SMS_AUTH_ENABLED = process.env.NEXT_PUBLIC_SMS_AUTH_ENABLED === "true";
+const WHATSAPP_AUTH_ENABLED = process.env.NEXT_PUBLIC_WHATSAPP_AUTH_ENABLED !== "false";
 
 function safeFlowError(error, method) {
   const message = String(error?.message || "");
@@ -76,7 +76,8 @@ function AuthForm() {
   }
 
   function switchMethod(value) {
-    if (value === "sms" && !SMS_AUTH_ENABLED) return;
+    if (!new Set(["email", "whatsapp"]).has(value)) return;
+    if (value === "whatsapp" && !WHATSAPP_AUTH_ENABLED) return;
     setMethod(value);
     resetFlow();
   }
@@ -84,8 +85,8 @@ function AuthForm() {
   async function sendCode(event) {
     event?.preventDefault?.();
     if (loading || (sent && resendIn > 0)) return;
-    if (method === "sms" && !SMS_AUTH_ENABLED) {
-      setError("SMS verification is not enabled yet. Use Email Code for now.");
+    if (method === "whatsapp" && !WHATSAPP_AUTH_ENABLED) {
+      setError("WhatsApp verification is not enabled yet. Use Email Code for now.");
       return;
     }
     setLoading(true);
@@ -93,12 +94,13 @@ function AuthForm() {
     setMessage("");
     try {
       const options = { shouldCreateUser: true, data: referral ? { referral_code: referral } : undefined };
-      if (method === "sms") {
+      if (method === "whatsapp") {
         const phone = normalizePhoneNumber(identifier);
+        // Supabase generates and verifies the phone OTP. Its Send SMS Hook delivers the code through Meta WhatsApp Cloud API.
         const result = await supabase.auth.signInWithOtp({ phone, options });
         if (result.error) throw result.error;
         setIdentifier(phone);
-        setMessage(`SMS verification code sent to ${phone}.`);
+        setMessage(`WhatsApp verification code sent to ${phone}.`);
       } else {
         const email = normalizeEmailAddress(identifier);
         const result = await supabase.auth.signInWithOtp({ email, options });
@@ -119,7 +121,7 @@ function AuthForm() {
 
   async function verify(event) {
     event.preventDefault();
-    const maxAttempts = method === "sms" ? SMS_OTP_POLICY.maxVerifyAttemptsPerCode : EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode;
+    const maxAttempts = method === "whatsapp" ? WHATSAPP_OTP_POLICY.maxVerifyAttemptsPerCode : EMAIL_OTP_POLICY.maxVerifyAttemptsPerCode;
     if (verifyAttempts >= maxAttempts) {
       setError("Too many incorrect attempts. Request a new verification code.");
       return;
@@ -130,9 +132,9 @@ function AuthForm() {
     let attemptedRemoteVerify = false;
     if (typeof window !== "undefined") window.__LANERIQ_AUTH_FLOW_BUSY__ = true;
     try {
-      const token = method === "sms" ? normalizeSmsOtp(otp) : normalizeEmailOtp(otp);
+      const token = method === "whatsapp" ? normalizeWhatsAppOtp(otp) : normalizeEmailOtp(otp);
       attemptedRemoteVerify = true;
-      const result = method === "sms"
+      const result = method === "whatsapp"
         ? await supabase.auth.verifyOtp({ phone: normalizePhoneNumber(identifier), token, type: "sms" })
         : await supabase.auth.verifyOtp({ email: normalizeEmailAddress(identifier), token, type: "email" });
       if (result.error) throw result.error;
@@ -165,9 +167,9 @@ function AuthForm() {
 
   if (checking) return <main className="loadingScreen">Checking your session…</main>;
 
-  const identifierLabel = method === "email" ? "Email address" : "Mobile number";
-  const methodLabel = method === "email" ? "Email" : "SMS";
-  const codePlaceholder = method === "email" ? "1".repeat(EMAIL_OTP_POLICY.codeLength) : "1".repeat(SMS_OTP_POLICY.codeLength);
+  const identifierLabel = method === "email" ? "Email address" : "WhatsApp number";
+  const methodLabel = method === "email" ? "Email" : "WhatsApp";
+  const codePlaceholder = method === "email" ? "1".repeat(EMAIL_OTP_POLICY.codeLength) : "1".repeat(WHATSAPP_OTP_POLICY.codeLength);
 
   return (
     <main className="authPage">
@@ -180,7 +182,7 @@ function AuthForm() {
       </header>
 
       <div className="authShell">
-        <section className="heroCopy" aria-label="AI BUILD APP & WEB welcome">
+        <section className="heroCopy" aria-label="LANERIQ AI welcome">
           <small>CREATE WITHOUT LIMITS</small>
           <h1>One code.<br /><em>Your whole studio.</em></h1>
           <p>Sign in once, then continue creating apps, websites and mobile games in the same premium workspace.</p>
@@ -191,11 +193,11 @@ function AuthForm() {
         <section className="authCard" aria-live="polite">
           <div className="cardTop"><small>SECURE VERIFICATION</small><span>{sent ? "02" : "01"}</span></div>
           <h2>{sent ? "Enter your code" : "Welcome back"}</h2>
-          <p>{sent ? `We sent a ${policy.codeLength}-digit ${methodLabel} verification code.` : "Choose Email or SMS. Each method uses its own secure one-time-code policy."}</p>
+          <p>{sent ? `We sent a ${policy.codeLength}-digit ${methodLabel} verification code.` : "Choose Email Code or WhatsApp Code. No traditional SMS or social login is used for verification."}</p>
 
           <div className="tabs" role="tablist" aria-label="Verification method">
             <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}><span>✉</span><strong>Email Code</strong><b>READY</b></button>
-            <button type="button" role="tab" aria-selected={method === "sms"} className={method === "sms" ? "active" : ""} disabled={!SMS_AUTH_ENABLED} onClick={() => switchMethod("sms")}><span>◉</span><strong>SMS Code</strong><b>{SMS_AUTH_ENABLED ? "READY" : "SOON"}</b></button>
+            <button type="button" role="tab" aria-selected={method === "whatsapp"} className={method === "whatsapp" ? "active" : ""} disabled={!WHATSAPP_AUTH_ENABLED} onClick={() => switchMethod("whatsapp")}><span>◉</span><strong>WhatsApp Code</strong><b>{WHATSAPP_AUTH_ENABLED ? "META" : "OFF"}</b></button>
           </div>
 
           {!sent ? (
@@ -203,7 +205,7 @@ function AuthForm() {
               <label htmlFor="auth-identifier">{identifierLabel}</label>
               <div className="inputWrap">
                 <span>{method === "email" ? "@" : "+"}</span>
-                <input id="auth-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={method === "email" ? "you@example.com" : "+60123456789"} inputMode={method === "email" ? "email" : "tel"} autoComplete={method === "email" ? "email" : "tel"} autoCapitalize="none" maxLength={method === "email" ? EMAIL_OTP_POLICY.maxEmailLength : SMS_OTP_POLICY.maxPhoneLength + 8} required />
+                <input id="auth-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={method === "email" ? "you@example.com" : "+60123456789"} inputMode={method === "email" ? "email" : "tel"} autoComplete={method === "email" ? "email" : "tel"} autoCapitalize="none" maxLength={method === "email" ? EMAIL_OTP_POLICY.maxEmailLength : WHATSAPP_OTP_POLICY.maxPhoneLength + 8} required />
               </div>
               {referral && <div className="notice">Referral code · {referral}</div>}
               <button className="primary" disabled={loading}><span>{loading ? "Sending…" : `Send ${methodLabel} Code`}</span><i>→</i></button>
@@ -226,7 +228,7 @@ function AuthForm() {
 
           {message && <div className="message">✓ {message}</div>}
           {error && <div className="error" role="alert">{error}</div>}
-          <footer><span>Encrypted session</span><i>•</i><span>One-time code</span><i>•</i><span>Rate-limit aware</span></footer>
+          <footer><span>Encrypted session</span><i>•</i><span>Email or WhatsApp OTP</span><i>•</i><span>Rate-limit aware</span></footer>
         </section>
       </div>
 
