@@ -1,11 +1,34 @@
-/* LANERIQ AI — final iPhone composition refinements.
-   Keeps language control inside the main bottom navigation and gives the
-   future-city artwork enough breathing room on narrow screens. */
+/* LANERIQ AI — production homepage finishing layer.
+   Final authority for future-city artwork, iPhone proportions, credits and
+   language placement. Language is a real bottom-nav item, never a detached pill. */
 
-/* The language control is a real nav item now, never a detached floating pill. */
-body:has(.premiumHome) .laneriqLangButton,
-body:has(.premiumHome) .laneriqLangButton.inline,
-body:has(.premiumHome) .laneriqLangButton.floating{
+/* Clean Credits pill: suppress duplicated legacy copy. */
+.premiumHome .credits{
+  font-size:0!important;
+  white-space:nowrap!important;
+}
+.premiumHome .credits::before{
+  content:"✦ 120 Credits"!important;
+  font-size:13px!important;
+  font-weight:850!important;
+  color:#f8fbff!important;
+}
+.premiumHome .credits b{
+  display:inline!important;
+  margin-left:8px!important;
+  font-size:18px!important;
+  line-height:1!important;
+  color:#f1bd4b!important;
+}
+
+/* Language is item six in the main navigation. */
+.premiumHome .bottomNav{
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  bottom:max(10px,env(safe-area-inset-bottom))!important;
+}
+.premiumHome .bottomNav .laneriqLangButton,
+.premiumHome .bottomNav .laneriqLangButton.inline,
+.premiumHome .bottomNav .laneriqLangButton.floating{
   position:static!important;
   inset:auto!important;
   transform:none!important;
@@ -14,6 +37,7 @@ body:has(.premiumHome) .laneriqLangButton.floating{
   width:100%!important;
   height:auto!important;
   min-height:52px!important;
+  margin:0!important;
   padding:5px 3px!important;
   border:0!important;
   border-radius:14px!important;
@@ -29,59 +53,81 @@ body:has(.premiumHome) .laneriqLangButton.floating{
   gap:4px!important;
   font-size:9px!important;
 }
-body:has(.premiumHome) .laneriqLangButton span{font-size:17px!important;line-height:1!important}
-body:has(.premiumHome) .laneriqLangButton b{font-size:9px!important;color:#aebdcb!important;line-height:1!important}
-
-.premiumHome .bottomNav{
-  grid-template-columns:repeat(6,minmax(0,1fr))!important;
-  bottom:max(10px,env(safe-area-inset-bottom))!important;
+.premiumHome .bottomNav .laneriqLangButton span{
+  font-size:17px!important;
+  line-height:1!important;
+}
+.premiumHome .bottomNav .laneriqLangButton b{
+  margin:0!important;
+  font-size:9px!important;
+  line-height:1!important;
+  color:#aebdcb!important;
 }
 
-/* Future city / people artwork as the actual homepage background. */
+/* Future city + people + koi is the real first-page artwork. */
 .premiumHome .bg,
 .premiumHome.laneriqHomeV3 .bg{
+  background-color:#03101f!important;
   background-image:
-    linear-gradient(180deg,rgba(0,7,18,.03) 0%,rgba(0,8,18,.00) 30%,rgba(0,8,20,.14) 52%,rgba(0,8,19,.58) 76%,rgba(0,7,16,.94) 100%),
+    linear-gradient(180deg,rgba(0,7,18,.02) 0%,rgba(0,8,18,0) 34%,rgba(0,8,20,.10) 56%,rgba(0,8,19,.56) 77%,rgba(0,7,16,.96) 100%),
     url('/laneriq-future-city-people.webp')!important;
   background-position:center top,center top!important;
-  background-repeat:no-repeat!important;
-  background-size:cover,cover!important;
+  background-repeat:no-repeat,no-repeat!important;
+  background-size:cover,min(1100px,100vw) auto!important;
+}
+
+/* Brand reads as a single elegant signature, not an oversized two-line block. */
+.premiumHome .heroCopy h1 span::after{
+  white-space:nowrap!important;
+  font-size:clamp(38px,7vw,62px)!important;
+  line-height:.98!important;
+  letter-spacing:.025em!important;
+}
+.premiumHome .heroCopy h1 strong::after{
+  white-space:nowrap!important;
 }
 
 @media(max-width:520px){
-  .premiumHome{padding-bottom:116px!important}
+  .premiumHome{padding-bottom:108px!important}
   .premiumHome .frame{width:calc(100% - 16px)!important}
-  .premiumHome .topbar{min-height:80px!important;padding:10px 0 2px!important}
-  .premiumHome .spark{top:54px!important;width:34px!important;height:34px!important;font-size:28px!important}
-  .premiumHome .credits{min-height:42px!important;padding:7px 12px!important;font-size:11px!important}
+  .premiumHome .topbar{min-height:76px!important;padding:max(8px,env(safe-area-inset-top)) 0 2px!important}
+  .premiumHome .spark{top:48px!important;width:32px!important;height:32px!important;font-size:26px!important}
+
+  .premiumHome .credits{min-height:40px!important;padding:7px 11px!important}
+  .premiumHome .credits::before{font-size:11px!important}
+  .premiumHome .credits b{font-size:16px!important;margin-left:5px!important}
+
+  /* Full-width portrait artwork keeps moon, city, people and koi in frame. */
+  .premiumHome .bg,
+  .premiumHome.laneriqHomeV3 .bg{
+    background-position:center top,center top!important;
+    background-size:cover,100% auto!important;
+  }
 
   .premiumHome .heroCopy{
-    min-height:585px!important;
-    padding:82px 2px 20px!important;
+    min-height:500px!important;
+    padding:60px 2px 18px!important;
   }
   .premiumHome .heroCopy h1 span::after{
-    font-size:clamp(42px,12.2vw,54px)!important;
-    line-height:.98!important;
-    letter-spacing:.02em!important;
+    font-size:clamp(34px,10.3vw,42px)!important;
+    line-height:1!important;
+    letter-spacing:.018em!important;
   }
-  .premiumHome .heroCopy h1 strong{margin-top:13px!important}
-  .premiumHome .heroCopy h1 strong::after{
-    font-size:11px!important;
-    letter-spacing:.16em!important;
-  }
-  .premiumHome .heroCopy p{margin-top:14px!important}
-  .premiumHome .heroCopy p::before{font-size:27px!important}
-  .premiumHome .powered{margin-top:7px!important}
+  .premiumHome .heroCopy h1 strong{margin-top:11px!important}
+  .premiumHome .heroCopy h1 strong::after{font-size:10px!important;letter-spacing:.14em!important}
+  .premiumHome .heroCopy p{margin-top:12px!important}
+  .premiumHome .heroCopy p::before{font-size:25px!important}
+  .premiumHome .powered{margin-top:5px!important}
   .premiumHome .powered::after{font-size:12px!important}
 
   .premiumHome .featureCards{
-    grid-template-columns:repeat(2,minmax(0,96px))!important;
-    gap:10px!important;
-    margin:-4px 0 12px!important;
+    grid-template-columns:repeat(2,minmax(0,92px))!important;
+    gap:9px!important;
+    margin:-2px 0 12px!important;
   }
-  .premiumHome .feature{min-height:105px!important;padding:10px 7px!important;border-radius:17px!important}
-  .premiumHome .feature>i,.premiumHome .feature>i.green{width:39px!important;height:39px!important;font-size:23px!important}
-  .premiumHome .feature b::after{font-size:11px!important}
+  .premiumHome .feature{min-height:98px!important;padding:9px 7px!important;border-radius:16px!important}
+  .premiumHome .feature>i,.premiumHome .feature>i.green{width:37px!important;height:37px!important;font-size:22px!important}
+  .premiumHome .feature b::after{font-size:10.5px!important}
 
   .premiumHome .promptCard,.premiumHome .choiceCard{border-radius:18px!important}
   .premiumHome .promptHead label::after{font-size:14px!important}
@@ -96,40 +142,27 @@ body:has(.premiumHome) .laneriqLangButton b{font-size:9px!important;color:#aebdc
     min-height:64px!important;
     padding:6px!important;
     border-radius:19px!important;
-    grid-template-columns:repeat(6,minmax(0,1fr))!important;
   }
   .premiumHome .bottomNav a,
-  .premiumHome .bottomNav button,
-  body:has(.premiumHome) .laneriqLangButton{
+  .premiumHome .bottomNav>button,
+  .premiumHome .bottomNav .laneriqLangButton{
     min-width:0!important;
     min-height:50px!important;
     padding:4px 1px!important;
   }
   .premiumHome .bottomNav span,
-  body:has(.premiumHome) .laneriqLangButton b{font-size:7px!important}
+  .premiumHome .bottomNav .laneriqLangButton b{font-size:7px!important}
   .premiumHome .bottomNav i,
-  body:has(.premiumHome) .laneriqLangButton span{font-size:16px!important}
-  .premiumHome .bottomNav .active i{
-    width:38px!important;
-    height:38px!important;
-    margin-top:-17px!important;
-  }
-
-  /* Portrait crop: moon/city stay high; people and koi remain visible. */
-  .premiumHome .bg,
-  .premiumHome.laneriqHomeV3 .bg{
-    background-position:center top,52% top!important;
-    background-size:cover,auto 820px!important;
-    background-color:#03101f!important;
-  }
+  .premiumHome .bottomNav .laneriqLangButton span{font-size:16px!important}
+  .premiumHome .bottomNav .active i{width:38px!important;height:38px!important;margin-top:-17px!important}
 }
 
 @media(max-width:380px){
-  .premiumHome .heroCopy{min-height:555px!important}
-  .premiumHome .heroCopy h1 span::after{font-size:40px!important}
-  .premiumHome .heroCopy h1 strong::after{font-size:9.5px!important;letter-spacing:.13em!important}
-  .premiumHome .heroCopy p::before{font-size:24px!important}
-  .premiumHome .featureCards{grid-template-columns:repeat(2,minmax(0,88px))!important}
+  .premiumHome .heroCopy{min-height:470px!important}
+  .premiumHome .heroCopy h1 span::after{font-size:34px!important}
+  .premiumHome .heroCopy h1 strong::after{font-size:8.8px!important;letter-spacing:.11em!important}
+  .premiumHome .heroCopy p::before{font-size:22px!important}
+  .premiumHome .featureCards{grid-template-columns:repeat(2,minmax(0,86px))!important}
   .premiumHome .bottomNav span,
-  body:has(.premiumHome) .laneriqLangButton b{font-size:6.4px!important}
+  .premiumHome .bottomNav .laneriqLangButton b{font-size:6.2px!important}
 }
