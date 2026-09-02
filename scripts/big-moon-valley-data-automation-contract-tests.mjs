@@ -34,18 +34,20 @@ assert.match(database,/PRIVATE BY DEFAULT/);
 assert.match(workflows,/dryRun:true/);
 assert.match(workflows,/idempotencyKey:`safe-test-\$\{workflow\.id\}-\$\{Date\.now\(\)\}`/);
 assert.match(workflows,/Safe Test passed\. No customer data was saved and no messages were sent/);
-assert.match(workflows,/without saving customer data, sending email\/SMS\/WhatsApp, creating calendar events or notifying your team/);
-assert.match(workflows,/send_sms/);
+assert.match(workflows,/without saving customer data, sending Email or WhatsApp, creating calendar events or notifying your team/);
 assert.match(workflows,/send_whatsapp/);
+assert.doesNotMatch(workflows,/send_sms|Send SMS/);
 
-// Connections never expose secrets and cannot enable a provider until server-reported readiness is true.
+// Connections present LANERIQ as the backend and never expose provider secrets.
 assert.match(integrations,/const platformReady=managed\?\.\[type\]\?\.ready===true/);
 assert.match(integrations,/const operational=platformReady&&enabled/);
 assert.match(integrations,/disabled=\{busy===type\|\|!platformReady\}/);
-assert.match(integrations,/SoolenAI platform setup is still needed/);
+assert.match(integrations,/LANERIQ backend delivery rail is not ready yet/);
 assert.match(integrations,/project never stores visible API keys, passwords or provider secrets/);
-assert.match(integrations,/\["sms","SMS","Send verification, reminders and alerts\."\]/);
+assert.match(integrations,/LANERIQ · BACKEND CONNECTIONS/);
+assert.match(integrations,/One backend\. Replaceable delivery rails\./);
+assert.doesNotMatch(integrations,/\["sms","SMS"|Send verification, reminders and alerts/);
 
-console.log('✓ Big Moon Valley data/automation shell is scoped to Customer Data, Automations and Connections');
+console.log('✓ Big Moon Valley data/automation shell is scoped to Customer Data, Automations and LANERIQ Connections');
 console.log('✓ Reversible data versions, Safe Test no-side-effects and server-owned connection readiness remain intact');
-console.log('✓ SMS remains present only as a readiness-gated connection and stays on hold');
+console.log('✓ Email and WhatsApp are exposed through LANERIQ backend while paid SMS is absent');
