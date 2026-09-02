@@ -1,13 +1,48 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  LANERIQ_SESSION_COOKIE,
+  LANERIQ_SESSION_MODE_COOKIE,
+  LANERIQ_SESSION_MODE_VALUE,
+  laneriqSessionClearCookieOptions,
+  laneriqSessionModeCookieOptions,
+  revokeLaneriqSessionToken,
+} from "../../lib/auth/laneriq-session.js";
 import { createClient } from "../../lib/supabase/server.js";
 
 export default async function MyAppsPage() {
+  // Existing project tables still use the temporary compatibility identity for RLS/data access.
+  // The protected proxy has already validated LANERIQ Session as the primary authentication truth.
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth");
   const { data: apps, error } = await supabase.from("apps").select("id,name,description,created_at,updated_at,visibility,publish_status").eq("owner_id", user.id).order("updated_at", { ascending: false });
-  async function signOut() { "use server"; const client = await createClient(); await client.auth.signOut(); redirect("/auth"); }
+
+  async function signOut() {
+    "use server";
+    const cookieStore = await cookies();
+    const token = String(cookieStore.get(LANERIQ_SESSION_COOKIE)?.value || "");
+    if (token) {
+      try {
+        await revokeLaneriqSessionToken(token);
+      } catch {
+        // Fail closed: if authoritative LANERIQ revocation is unavailable, keep the
+        // browser token intact rather than pretending logout succeeded.
+        redirect("/my-apps?logout_error=session_revoke_unavailable");
+      }
+    }
+
+    try {
+      const client = await createClient();
+      await client.auth.signOut({ scope: "local" });
+    } catch {}
+
+    cookieStore.set(LANERIQ_SESSION_COOKIE, "", laneriqSessionClearCookieOptions());
+    cookieStore.set(LANERIQ_SESSION_MODE_COOKIE, LANERIQ_SESSION_MODE_VALUE, laneriqSessionModeCookieOptions());
+    redirect("/auth");
+  }
+
   const ownerName = user.user_metadata?.full_name || user.user_metadata?.name || user.email || "Account";
   return <main className="page">
     <header><div><div className="eyebrow">LANERIQ AI</div><h1>My Projects</h1><p>Every customer App and Website is saved here automatically.</p><strong className="owner">Owner: {ownerName}</strong></div><nav><Link href="/create" className="primary">+ One-Click App + Website</Link><Link href="/studio" className="secondary">Studio</Link><form action={signOut}><button className="secondary">Sign out</button></form></nav></header>
