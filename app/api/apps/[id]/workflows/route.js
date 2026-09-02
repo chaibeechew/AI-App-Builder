@@ -3,7 +3,7 @@ import { createClient } from "../../../../../lib/supabase/server.js";
 
 const SECRET_KEY_PATTERN=/(token|secret|password|api.?key|credential|authorization|auth)/i;
 const SAFE_TRIGGERS=new Set(["form_submitted","appointment_created","order_created"]);
-const SAFE_ACTIONS=new Set(["save_crm","save_order","notify_team","send_email","send_sms","send_whatsapp","calendar"]);
+const SAFE_ACTIONS=new Set(["save_crm","save_order","notify_team","send_email","send_whatsapp","calendar"]);
 
 function sanitizeObject(value,depth=0){
   if(depth>4)return null;
