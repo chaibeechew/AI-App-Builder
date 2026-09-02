@@ -74,27 +74,29 @@ for(const entry of matrix){
     await voiceTrigger.waitFor({state:"visible",timeout:15000});
     atLeast44(await box(page,".sv-fab"),`${entry.label} Voice Idea trigger`);
     await voiceTrigger.click();
-    await page.locator(".sv-panel").waitFor({state:"visible",timeout:10000});
+    const voicePanel=page.locator(".sv-panel");
+    await voicePanel.waitFor({state:"visible",timeout:10000});
     for(const [selector,label] of [[".sv-close","Voice close"],[".sv-mic","Voice microphone"],[".sv-play","Voice playback"],[".sv-build","Voice build"]])atLeast44(await box(page,selector),`${entry.label} ${label}`);
     const voiceTextarea=await box(page,".sv-panel textarea");
     assert(voiceTextarea.fontSize>=16,`${entry.label} Voice transcript font ${voiceTextarea.fontSize}px risks iOS zoom`);
     const voiceViewport=await page.evaluate(()=>({innerWidth,scrollWidth:document.documentElement.scrollWidth,captureCalls:window.__laneriqQaCaptureCalls||0}));
     assert(voiceViewport.scrollWidth<=voiceViewport.innerWidth+1,`${entry.label} Voice dialog creates horizontal overflow`);
     assert.equal(voiceViewport.captureCalls,0,`${entry.label} opening Voice Idea must not request microphone capture`);
-    await page.screenshot({path:path.join(artifactDir,`${entry.id}-voice-idea-open.png`),fullPage:true});
+    await voicePanel.screenshot({path:path.join(artifactDir,`${entry.id}-voice-idea-open.png`)});
     await page.locator(".sv-close").click();
 
     const refTrigger=page.locator(".referenceDock>.trigger");
     await refTrigger.waitFor({state:"visible",timeout:10000});
     atLeast44(await box(page,".referenceDock>.trigger"),`${entry.label} Upload Ref trigger`);
     await refTrigger.click();
-    await page.locator(".referenceDock .panel").waitFor({state:"visible",timeout:10000});
+    const refPanelLocator=page.locator(".referenceDock .panel");
+    await refPanelLocator.waitFor({state:"visible",timeout:10000});
     for(const [selector,label] of [[".referenceDock .panel header>button","Reference close"],[".referenceDock .panel .upload","Reference upload"]])atLeast44(await box(page,selector),`${entry.label} ${label}`);
-    const refPanel=await page.locator(".referenceDock .panel").evaluate(el=>{const r=el.getBoundingClientRect();return{height:Math.round(r.height),viewport:window.innerHeight,scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth};});
+    const refPanel=await refPanelLocator.evaluate(el=>{const r=el.getBoundingClientRect();return{height:Math.round(r.height),viewport:window.innerHeight,scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth};});
     assert(refPanel.height>=refPanel.viewport*.95,`${entry.label} Upload Ref mobile panel must use the viewport instead of a cramped floating sheet`);
     assert(refPanel.scrollWidth<=refPanel.innerWidth+1,`${entry.label} Upload Ref panel creates horizontal overflow`);
     assert.equal(await page.evaluate(()=>window.__laneriqQaCaptureCalls||0),0,`${entry.label} opening Upload Ref must not request media capture`);
-    await page.screenshot({path:path.join(artifactDir,`${entry.id}-upload-ref-open.png`),fullPage:true});
+    await refPanelLocator.screenshot({path:path.join(artifactDir,`${entry.id}-upload-ref-open.png`)});
 
     results.push({id:entry.id,label:entry.label,evidenceLevel:"BROWSER_EMULATION",account:{signedOutChromeHidden:true,touchTargetsAtLeast44:true},voiceIdea:{openedWithoutCapture:true,touchTargetsAtLeast44:true,inputFontAtLeast16:true,noHorizontalOverflow:true},uploadRef:{openedWithoutCapture:true,viewportPanel:true,touchTargetsAtLeast44:true,noHorizontalOverflow:true},passed:true});
     console.log(`✓ ${entry.label}: Account/Logout, Voice Idea and Upload Ref mobile surface checks passed`);
