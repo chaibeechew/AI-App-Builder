@@ -39,7 +39,7 @@ create or replace function public.server_claim_communication_dispatch(
   p_daily_limit integer,
   p_cooldown_seconds integer
 )
-returns table(dispatch_id uuid,decision text,retry_after_seconds integer)
+returns table(dispatch_id uuid,decision text,retry_after_seconds integer,dispatch_status text)
 language plpgsql
 security definer
 set search_path=''
@@ -63,7 +63,7 @@ begin
   select * into v_existing from public.communication_dispatches
     where scope_hash=p_scope_hash and idempotency_key=p_idempotency_key limit 1;
   if found then
-    return query select v_existing.id,'replay'::text,0;
+    return query select v_existing.id,'replay'::text,0,v_existing.status;
     return;
   end if;
 
@@ -72,7 +72,7 @@ begin
       and status in ('claimed','completed');
   if v_last is not null and extract(epoch from (now()-v_last)) < p_cooldown_seconds then
     v_retry:=greatest(1,p_cooldown_seconds-floor(extract(epoch from (now()-v_last)))::integer);
-    return query select gen_random_uuid(),'cooldown'::text,v_retry;
+    return query select null::uuid,'cooldown'::text,v_retry,null::text;
     return;
   end if;
 
@@ -80,7 +80,7 @@ begin
     where scope_hash=p_scope_hash and channel=p_channel and purpose=p_purpose
       and created_at>=now()-interval '1 hour' and status in ('claimed','completed');
   if v_hourly>=p_hourly_limit then
-    return query select gen_random_uuid(),'hourly_limit'::text,3600;
+    return query select null::uuid,'hourly_limit'::text,3600,null::text;
     return;
   end if;
 
@@ -88,14 +88,14 @@ begin
     where scope_hash=p_scope_hash and channel=p_channel and purpose=p_purpose
       and created_at>=now()-interval '24 hours' and status in ('claimed','completed');
   if v_daily>=p_daily_limit then
-    return query select gen_random_uuid(),'daily_limit'::text,86400;
+    return query select null::uuid,'daily_limit'::text,86400,null::text;
     return;
   end if;
 
   insert into public.communication_dispatches(scope_hash,recipient_hash,channel,purpose,idempotency_key,status)
   values(p_scope_hash,p_recipient_hash,p_channel,p_purpose,p_idempotency_key,'claimed')
   returning id into v_id;
-  return query select v_id,'claimed'::text,0;
+  return query select v_id,'claimed'::text,0,'claimed'::text;
 end;
 $$;
 
