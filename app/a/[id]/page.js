@@ -13,7 +13,17 @@ import AnalyticsTracker from "../../components/AnalyticsTracker.js";
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
-  return { title: "Generated App", manifest: `/a/${id}/manifest.webmanifest`, appleWebApp: { capable: true, statusBarStyle: "default", title: "Generated App" } };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const visible = await loadVisibleProject({ id, userId: user?.id || null });
+  const name = visible?.app?.name || "Generated App";
+  const description = visible?.app?.description || "Created with LANERIQ AI";
+  return {
+    title: `${name} — LANERIQ AI`,
+    description,
+    manifest: `/a/${id}/manifest.webmanifest`,
+    appleWebApp: { capable: true, statusBarStyle: "default", title: name },
+  };
 }
 
 export default async function GeneratedAppPage({ params }) {
