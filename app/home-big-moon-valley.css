@@ -1,5 +1,10 @@
-/* LANERIQ AI signature first paint — final homepage background authority.
-   Imported last so legacy home themes cannot flash or restore the retired cinematic PNG. */
+/* LANERIQ AI Big Moon Valley — final homepage visual authority.
+   This layer owns the signature first paint and the cinematic homepage composition. */
+
+.premiumHome{
+  padding-top:0!important;
+  background:#020b09!important;
+}
 
 .premiumHome .bg,
 .premiumHome.laneriqHomeV3 .bg{
@@ -8,16 +13,118 @@
   z-index:0!important;
   background:
     radial-gradient(circle at 76% 14%,rgba(246,202,91,.12),transparent 29%),
-    linear-gradient(180deg,rgba(0,5,4,.01) 0%,rgba(0,7,6,.08) 28%,rgba(0,10,8,.60) 62%,rgba(0,8,7,.96) 100%),
+    linear-gradient(180deg,rgba(0,5,4,.01) 0%,rgba(0,7,6,.045) 30%,rgba(0,10,8,.44) 61%,rgba(0,8,7,.95) 100%),
     url('/big-moon-valley.svg') 62% top/cover no-repeat!important;
-  filter:saturate(1.12) contrast(1.04)!important;
+  filter:saturate(1.13) contrast(1.045)!important;
 }
 
 .premiumHome .veil,
 .premiumHome.laneriqHomeV3 .veil{
   background:
-    linear-gradient(90deg,rgba(0,9,7,.56),rgba(0,9,7,.035) 58%,rgba(0,9,7,.20)),
+    linear-gradient(180deg,rgba(0,7,6,.01) 0%,rgba(0,7,6,.03) 44%,rgba(0,9,7,.36) 66%,rgba(0,8,7,.82) 100%),
+    linear-gradient(90deg,rgba(0,9,7,.62) 0%,rgba(0,9,7,.12) 42%,rgba(0,9,7,.025) 71%,rgba(0,9,7,.14) 100%),
     radial-gradient(circle at 76% 12%,rgba(255,216,111,.10),transparent 31%)!important;
+}
+
+/* Let the landscape lead: brand copy sits below the moon instead of covering it. */
+.premiumHome .frame{
+  width:min(1080px,calc(100% - 28px))!important;
+}
+
+.premiumHome .topbar{
+  min-height:64px!important;
+  padding:max(10px,env(safe-area-inset-top)) 0 12px!important;
+}
+
+.premiumHome .heroCopy{
+  min-height:clamp(500px,62svh,720px)!important;
+  width:min(610px,64vw)!important;
+  max-width:610px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-end!important;
+  align-items:flex-start!important;
+  padding:clamp(170px,26vh,300px) 0 42px!important;
+  margin:0!important;
+}
+
+.premiumHome .heroCopy::before{
+  margin-bottom:12px!important;
+  text-shadow:0 2px 20px rgba(0,0,0,.62)!important;
+}
+
+.premiumHome .heroCopy h1{
+  max-width:590px!important;
+  text-shadow:0 7px 34px rgba(0,0,0,.55)!important;
+}
+
+.premiumHome .heroCopy h1>span{
+  font-size:clamp(66px,8.4vw,112px)!important;
+  line-height:.84!important;
+}
+
+.premiumHome .heroCopy h1>strong{
+  margin-top:10px!important;
+  font-size:clamp(48px,6.2vw,82px)!important;
+  line-height:.92!important;
+  letter-spacing:-.05em!important;
+}
+
+.premiumHome .heroCopy>p{
+  max-width:430px!important;
+  margin:18px 0 11px!important;
+  color:#f2f5f3!important;
+  text-shadow:0 2px 18px rgba(0,0,0,.78)!important;
+}
+
+.premiumHome .powered{
+  background:rgba(2,18,14,.58)!important;
+  border-color:rgba(242,199,91,.58)!important;
+  box-shadow:0 12px 34px rgba(0,0,0,.25)!important;
+  backdrop-filter:blur(20px) saturate(1.08)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(1.08)!important;
+}
+
+/* The creator console starts after the cinematic cover and stays a narrower glass column on wide screens. */
+.premiumHome .featureCards,
+.premiumHome .promptCard,
+.premiumHome .choiceCard,
+.premiumHome .buildCta,
+.premiumHome .buildProgress,
+.premiumHome .errorBox{
+  width:min(760px,100%)!important;
+  margin-left:0!important;
+  margin-right:auto!important;
+}
+
+.premiumHome .featureCards{
+  position:relative!important;
+  z-index:3!important;
+  margin-top:-18px!important;
+  margin-bottom:13px!important;
+}
+
+.premiumHome .feature,
+.premiumHome .promptCard,
+.premiumHome .choiceCard{
+  background:linear-gradient(145deg,rgba(5,30,23,.74),rgba(2,14,11,.82))!important;
+  border-color:rgba(226,184,75,.43)!important;
+  box-shadow:0 22px 56px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(26px) saturate(1.08)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.08)!important;
+}
+
+.premiumHome .feature.primary{
+  background:linear-gradient(145deg,rgba(45,45,21,.68),rgba(4,24,18,.82))!important;
+  border-color:rgba(244,204,98,.70)!important;
+  box-shadow:0 22px 52px rgba(0,0,0,.31),inset 0 0 34px rgba(227,177,52,.10)!important;
+}
+
+.premiumHome .promptCard textarea{
+  background:rgba(1,14,11,.72)!important;
+  border-color:rgba(255,255,255,.08)!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
 }
 
 /* Keep the selected Cinematic style visually consistent with the LANERIQ signature scene. */
@@ -27,10 +134,119 @@
   background-size:cover!important;
 }
 
+@media(max-width:760px){
+  .premiumHome .frame{width:calc(100% - 20px)!important}
+  .premiumHome .heroCopy{width:min(560px,78vw)!important}
+  .premiumHome .heroCopy h1>span{font-size:clamp(56px,12vw,76px)!important}
+  .premiumHome .heroCopy h1>strong{font-size:clamp(42px,9.2vw,60px)!important}
+}
+
 @media(max-width:520px){
+  .premiumHome{
+    padding-bottom:max(104px,calc(82px + env(safe-area-inset-bottom)))!important;
+  }
+
   .premiumHome .bg,
   .premiumHome.laneriqHomeV3 .bg{
     background-position:66% top!important;
   }
+
+  .premiumHome .veil,
+  .premiumHome.laneriqHomeV3 .veil{
+    background:
+      linear-gradient(180deg,rgba(0,7,6,0) 0%,rgba(0,7,6,.015) 37%,rgba(0,9,7,.34) 61%,rgba(0,8,7,.90) 100%),
+      linear-gradient(90deg,rgba(0,9,7,.39) 0%,rgba(0,9,7,.06) 47%,rgba(0,9,7,.015) 77%,rgba(0,9,7,.08) 100%)!important;
+  }
+
+  .premiumHome .frame{width:calc(100% - 16px)!important}
+
+  .premiumHome .topbar{
+    min-height:58px!important;
+    padding:max(7px,env(safe-area-inset-top)) 0 8px!important;
+  }
+
+  .premiumHome .heroCopy{
+    min-height:clamp(455px,64svh,590px)!important;
+    width:100%!important;
+    max-width:none!important;
+    padding:clamp(260px,42svh,355px) 2px 26px!important;
+    justify-content:flex-end!important;
+  }
+
+  .premiumHome .heroCopy::before{
+    font-size:9px!important;
+    letter-spacing:.075em!important;
+    margin-bottom:8px!important;
+  }
+
+  .premiumHome .heroCopy h1{
+    width:min(78%,305px)!important;
+    max-width:305px!important;
+  }
+
+  .premiumHome .heroCopy h1>span{
+    font-size:clamp(47px,13.6vw,58px)!important;
+    line-height:.84!important;
+  }
+
+  .premiumHome .heroCopy h1>strong{
+    margin-top:7px!important;
+    font-size:clamp(35px,10.4vw,45px)!important;
+    line-height:.94!important;
+  }
+
+  .premiumHome .heroCopy>p{
+    max-width:76%!important;
+    font-size:12.5px!important;
+    line-height:1.42!important;
+    margin:12px 0 9px!important;
+  }
+
+  .premiumHome .powered{
+    font-size:10px!important;
+    padding:7px 10px!important;
+  }
+
+  .premiumHome .featureCards,
+  .premiumHome .promptCard,
+  .premiumHome .choiceCard,
+  .premiumHome .buildCta,
+  .premiumHome .buildProgress,
+  .premiumHome .errorBox{
+    width:100%!important;
+  }
+
+  .premiumHome .featureCards{
+    margin-top:-10px!important;
+  }
+
+  .premiumHome .feature,
+  .premiumHome .promptCard,
+  .premiumHome .choiceCard{
+    border-color:rgba(226,184,75,.38)!important;
+    background:linear-gradient(145deg,rgba(4,27,21,.80),rgba(2,13,10,.87))!important;
+    box-shadow:0 18px 44px rgba(0,0,0,.30)!important;
+    backdrop-filter:blur(22px) saturate(1.08)!important;
+    -webkit-backdrop-filter:blur(22px) saturate(1.08)!important;
+  }
+
   .premiumHome .styleRail button:first-child i{background-position:66% top!important}
+}
+
+@media(max-width:380px){
+  .premiumHome .heroCopy{
+    min-height:470px!important;
+    padding-top:clamp(245px,40svh,310px)!important;
+  }
+  .premiumHome .heroCopy h1{width:82%!important}
+  .premiumHome .heroCopy h1>span{font-size:46px!important}
+  .premiumHome .heroCopy h1>strong{font-size:34px!important}
+  .premiumHome .heroCopy>p{max-width:82%!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .premiumHome .feature,
+  .premiumHome .promptCard,
+  .premiumHome .choiceCard,
+  .premiumHome .buildCta{scroll-behavior:auto!important}
 }
