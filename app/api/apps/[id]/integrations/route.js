@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
 import { integrationStatus } from "../../../../../lib/integrations/server.js";
+import { laneriqCommunicationStatus } from "../../../../../lib/communications/server.js";
 
 const SECRET_KEY_PATTERN=/(token|secret|password|api.?key|credential|authorization|auth)/i;
 function sanitizeConfig(value,depth=0){
@@ -15,9 +16,10 @@ function sanitizeConfig(value,depth=0){
   if(typeof value==="number"||typeof value==="boolean"||value===null)return value;
   return undefined;
 }
+function managedStatus(){const external=integrationStatus(),communications=laneriqCommunicationStatus();return {...external,email:{...communications.channels.email,guarded:communications.persistentGuard},whatsapp:{...communications.channels.whatsapp,guarded:communications.persistentGuard},communications:{ready:communications.privacyHashReady,managed:true,providerOpaque:true,policy:communications.policy}};}
 
 export async function GET(_request,{params}){
-  try{const {id}=await params;const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});const {data:app}=await supabase.from("apps").select("id,name,owner_id").eq("id",id).eq("owner_id",user.id).single();if(!app)return NextResponse.json({error:"Project not found."},{status:404});const {data:saved}=await supabase.from("project_integrations").select("id,integration_type,display_name,enabled,config,updated_at").eq("app_id",id).eq("owner_id",user.id).neq("integration_type","sms");return NextResponse.json({success:true,app:{id:app.id,name:app.name},managed:integrationStatus(),project:saved||[]});}catch(error){console.error("INTEGRATIONS_GET_ERROR",error);return NextResponse.json({error:"Unable to load integrations."},{status:500});}
+  try{const {id}=await params;const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});const {data:app}=await supabase.from("apps").select("id,name,owner_id").eq("id",id).eq("owner_id",user.id).single();if(!app)return NextResponse.json({error:"Project not found."},{status:404});const {data:saved}=await supabase.from("project_integrations").select("id,integration_type,display_name,enabled,config,updated_at").eq("app_id",id).eq("owner_id",user.id).neq("integration_type","sms");return NextResponse.json({success:true,app:{id:app.id,name:app.name},managed:managedStatus(),project:saved||[]});}catch(error){console.error("INTEGRATIONS_GET_ERROR",error);return NextResponse.json({error:"Unable to load integrations."},{status:500});}
 }
 
 export async function POST(request,{params}){
