@@ -3,7 +3,7 @@ import { createClient } from "../../../../../lib/supabase/server.js";
 
 const SECRET_KEY_PATTERN=/(token|secret|password|api.?key|credential|authorization|auth)/i;
 const SAFE_TRIGGERS=new Set(["form_submitted","appointment_created","order_created"]);
-const SAFE_ACTIONS=new Set(["save_crm","save_order","notify_team","send_email","send_sms","send_whatsapp","calendar"]);
+const SAFE_ACTIONS=new Set(["save_crm","save_order","notify_team","send_email","send_whatsapp","calendar"]);
 
 function sanitizeObject(value,depth=0){
   if(depth>4)return null;
@@ -48,6 +48,6 @@ export async function POST(request,{params}){
     const triggerConfig=sanitizeObject(body?.triggerConfig&&typeof body.triggerConfig==="object"?body.triggerConfig:{})||{};
     const {data,error}=await supabase.from("app_workflows").insert({app_id:id,owner_id:user.id,name,trigger_type:triggerType,trigger_config:triggerConfig,actions:safeActions,enabled:body?.enabled!==false}).select("id,name,trigger_type,trigger_config,actions,enabled,created_at,updated_at").single();
     if(error)throw error;
-    return json({success:true,workflow:data,note:"Only supported triggers/actions are saved. Credential-like fields are removed from workflow configuration."});
+    return json({success:true,workflow:data,note:"Only LANERIQ-supported actions are saved. Credential-like fields are removed and paid SMS is not an available channel."});
   }catch(error){console.error("WORKFLOWS_POST_ERROR",error);return json({error:"Unable to save workflow."},500);}
 }
