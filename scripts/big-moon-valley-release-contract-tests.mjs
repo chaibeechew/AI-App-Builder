@@ -32,17 +32,19 @@ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/,'Release shell must r
 const clean=css.replace(/\/\*[\s\S]*?\*\//g,'');
 assert.ok(!clean.includes('/a/'),'Release visual CSS must never target generated App routes');
 assert.ok(!clean.includes('/website/'),'Release visual CSS must never target generated Website routes');
-assert.ok(!/\bbody\s*\{|\bhtml\s*\{|(^|[}\s])button\s*\{|(^|[}\s])input\s*\{/m.test(clean),'Release visual CSS must not introduce unscoped global element rules');
 
 const allowedRoots=['.releasePage','.publishPage','.storeReadinessDock'];
+let selectorCount=0;
 for(const match of clean.matchAll(/([^{}]+)\{/g)){
   const header=match[1].trim();
   if(!header||header.startsWith('@'))continue;
   for(const selector of header.split(',')){
     const s=selector.trim();
+    selectorCount+=1;
     assert.ok(allowedRoots.some(root=>s.startsWith(root)),`Unscoped selector is forbidden in release shell: ${s}`);
   }
 }
+assert.ok(selectorCount>=40,'Release shell selector scope check must cover the complete visual layer');
 
 assert.match(release,/`\/website\/\$\{appId\}`/,'Release Center must keep customer Website navigation separate from LANERIQ shell styling');
 assert.match(release,/`\/a\/\$\{appId\}\?install=1`/,'Release Center must keep customer App navigation separate from LANERIQ shell styling');
@@ -51,5 +53,5 @@ assert.match(readiness,/Official App Store \/ Google Play submission remains/,'R
 
 console.log('✓ Big Moon Valley now carries through LANERIQ Release Center, Store Publish and Store Readiness shells');
 console.log('✓ Release controls preserve premium glass, 44/48px mobile targets, 16px inputs and iPhone safe areas');
-console.log('✓ Every release CSS selector remains scoped to LANERIQ tooling; generated /a and /website customer surfaces are untouched');
+console.log(`✓ ${selectorCount} release-shell selectors are scoped to LANERIQ tooling; generated /a and /website customer surfaces are untouched`);
 console.log('✓ Store submission truth boundaries remain intact; visual continuity does not imply external store completion');
