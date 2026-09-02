@@ -1,0 +1,379 @@
+/* LANERIQ AI iPhone / embedded-browser homepage rescue.
+   This file is intentionally imported last. It makes the homepage composition
+   self-contained so it does not depend on legacy global selectors or CSS load order. */
+
+.premiumHome,
+.premiumHome *{
+  -webkit-tap-highlight-color:transparent;
+}
+
+.premiumHome a{
+  color:inherit!important;
+  text-decoration:none!important;
+}
+
+.premiumHome button,
+.premiumHome textarea,
+.premiumHome input{
+  font:inherit;
+}
+
+.premiumHome .topbar{
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+}
+
+.premiumHome .spark{
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 auto!important;
+  color:#f1c65d!important;
+  cursor:pointer!important;
+}
+
+.premiumHome .topActions{
+  margin-left:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:7px!important;
+  min-width:0!important;
+}
+
+.premiumHome .credits,
+.premiumHome .profile{
+  color:#f6f7f6!important;
+  text-decoration:none!important;
+  border:1px solid rgba(226,184,75,.34)!important;
+  background:rgba(2,18,14,.82)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.24)!important;
+}
+
+.premiumHome .credits{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+}
+
+.premiumHome .credits b{color:#efc65d!important}
+
+.premiumHome .profile{
+  place-items:center!important;
+  border-radius:50%!important;
+  font-weight:900!important;
+  color:#efc65d!important;
+}
+
+.premiumHome .featureCards{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+  align-items:stretch!important;
+}
+
+.premiumHome .feature{
+  display:grid!important;
+  grid-template-columns:44px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:9px!important;
+  min-width:0!important;
+  color:#f6f7f6!important;
+  text-decoration:none!important;
+  border:1px solid rgba(226,184,75,.42)!important;
+  overflow:hidden!important;
+}
+
+.premiumHome .feature>i{
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 auto!important;
+  border-radius:12px!important;
+  background:rgba(239,198,93,.08)!important;
+  color:#efc65d!important;
+  font-style:normal!important;
+}
+
+.premiumHome .feature>div{
+  min-width:0!important;
+  display:grid!important;
+  gap:3px!important;
+}
+
+.premiumHome .feature b,
+.premiumHome .feature span{
+  color:#f6f7f6!important;
+  text-decoration:none!important;
+}
+
+.premiumHome .feature span{color:#b9c8c2!important}
+
+.premiumHome .promptCard,
+.premiumHome .choiceCard{
+  display:block!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  visibility:visible!important;
+  opacity:1!important;
+  color:#f6f7f6!important;
+}
+
+.premiumHome .promptCard>* ,
+.premiumHome .choiceCard>*{
+  visibility:visible!important;
+  opacity:1!important;
+}
+
+.premiumHome .promptHead,
+.premiumHome .choiceHead{
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  color:#f6f7f6!important;
+}
+
+.premiumHome .promptHead label,
+.premiumHome .choiceHead b{
+  color:#f6f7f6!important;
+  font-weight:850!important;
+}
+
+.premiumHome .promptHead button,
+.premiumHome .choiceHead a,
+.premiumHome .choiceHead span{
+  color:#efc65d!important;
+}
+
+.premiumHome .promptHead button{
+  border:0!important;
+  background:transparent!important;
+  padding:5px 0!important;
+  cursor:pointer!important;
+}
+
+.premiumHome .promptCard textarea{
+  width:100%!important;
+  display:block!important;
+  color:#f7faf8!important;
+  -webkit-text-fill-color:#f7faf8!important;
+  caret-color:#efc65d!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  outline:none!important;
+  resize:vertical!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+}
+
+.premiumHome .promptCard textarea::placeholder{
+  color:#8ea39b!important;
+  -webkit-text-fill-color:#8ea39b!important;
+  opacity:1!important;
+}
+
+.premiumHome .count{
+  display:block!important;
+  text-align:right!important;
+  color:#8ea39b!important;
+}
+
+.premiumHome .inputTools{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:6px!important;
+  width:100%!important;
+}
+
+.premiumHome .inputTools button{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:0!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  background:rgba(4,28,22,.78)!important;
+  color:#dce7e2!important;
+  cursor:pointer!important;
+}
+
+.premiumHome .inputTools button.selected{
+  border-color:rgba(239,198,93,.72)!important;
+  background:rgba(239,198,93,.12)!important;
+  color:#f5d679!important;
+}
+
+.premiumHome .styleRail,
+.premiumHome .templateRail{
+  width:100%!important;
+}
+
+.premiumHome .styleRail button,
+.premiumHome .templateRail button{
+  min-width:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:#f6f7f6!important;
+  cursor:pointer!important;
+  padding:0!important;
+}
+
+.premiumHome .styleRail button{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+}
+
+.premiumHome .styleRail i,
+.premiumHome .templateRail i{
+  display:block!important;
+  width:100%!important;
+  background-repeat:no-repeat!important;
+  background-position:center!important;
+  background-size:cover!important;
+  overflow:hidden!important;
+}
+
+.premiumHome .styleRail i{
+  aspect-ratio:1.05/1!important;
+  min-height:42px!important;
+}
+
+.premiumHome .styleRail span,
+.premiumHome .templateRail b,
+.premiumHome .templateRail span{
+  color:#dfe9e5!important;
+  text-decoration:none!important;
+}
+
+.premiumHome .templateRail button{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  text-align:left!important;
+  overflow:hidden!important;
+}
+
+.premiumHome .templateRail i{
+  min-height:58px!important;
+}
+
+.premiumHome .buildCta{
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:9px!important;
+  min-height:56px!important;
+  border:1px solid rgba(255,255,255,.40)!important;
+  background:linear-gradient(135deg,#f8df8f 0%,#e4b84f 48%,#b97718 100%)!important;
+  color:#122018!important;
+  font-weight:950!important;
+  cursor:pointer!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+}
+
+.premiumHome .bottomNav{
+  position:fixed!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  bottom:max(8px,env(safe-area-inset-bottom))!important;
+  z-index:80!important;
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  align-items:stretch!important;
+  gap:3px!important;
+  margin:0!important;
+  color:#f6f7f6!important;
+}
+
+.premiumHome .bottomNav a,
+.premiumHome .bottomNav button{
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+  border:0!important;
+  background:transparent!important;
+  color:#c9d5d0!important;
+  text-decoration:none!important;
+  cursor:pointer!important;
+}
+
+.premiumHome .bottomNav i{
+  color:inherit!important;
+  font-style:normal!important;
+}
+
+.premiumHome .bottomNav .active{
+  border-radius:12px!important;
+  background:#f6f7f6!important;
+  color:#112019!important;
+}
+
+body:has(.premiumHome) .studioLauncher,
+body:has(.premiumHome) .referenceDock,
+body:has(.premiumHome) .sv-fab{
+  display:none!important;
+}
+
+@media(max-width:520px){
+  .premiumHome .topbar{
+    min-height:56px!important;
+  }
+
+  .premiumHome .topActions{
+    gap:5px!important;
+  }
+
+  .premiumHome .credits{
+    max-width:150px!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  .premiumHome .feature{
+    grid-template-columns:36px minmax(0,1fr)!important;
+  }
+
+  .premiumHome .promptCard,
+  .premiumHome .choiceCard{
+    overflow:hidden!important;
+  }
+
+  .premiumHome .inputTools button{
+    min-height:38px!important;
+    white-space:normal!important;
+    line-height:1.12!important;
+  }
+
+  .premiumHome .styleRail i{
+    min-height:40px!important;
+  }
+
+  .premiumHome .bottomNav{
+    width:calc(100% - 18px)!important;
+    padding:7px!important;
+  }
+
+  .premiumHome .bottomNav a,
+  .premiumHome .bottomNav button{
+    min-height:48px!important;
+  }
+}
+
+@media(max-width:380px){
+  .premiumHome .credits{
+    max-width:126px!important;
+  }
+  .premiumHome .inputTools{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
