@@ -2,16 +2,22 @@ name: LANERIQ Email Delivery Production Sync
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/email-delivery-production-sync.yml'
+    inputs:
+      resume_email_live_work:
+        description: 'Email live work is ON HOLD. Choose yes only after the owner explicitly resumes Email work.'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'no'
+          - 'yes'
 
 permissions:
   contents: read
 
 jobs:
   sync-email-delivery:
+    if: ${{ inputs.resume_email_live_work == 'yes' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
