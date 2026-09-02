@@ -10,6 +10,7 @@ import "./home-reference-layout.css";
 import "./home-approved-v2.css";
 import "./home-laneriq-v3.css";
 import "./mobile-quality.css";
+import "./home-big-moon-valley.css";
 import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 import ProductCopyFix from "./components/ProductCopyFix";
@@ -67,7 +68,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <link rel="preload" as="image" href="/02ACE732-9849-4674-8901-E264BCA5C02D.png" fetchPriority="high" />
+        <link rel="preload" as="image" href="/big-moon-valley.svg" fetchPriority="high" />
       </head>
       <body>
         <script dangerouslySetInnerHTML={{ __html: earlyHomeLoadGuard }} />

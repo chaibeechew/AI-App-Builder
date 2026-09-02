@@ -1,0 +1,28 @@
+/* LANERIQ AI signature first paint — final homepage background authority.
+   Imported last so legacy home themes cannot flash or restore the retired cinematic PNG. */
+
+.premiumHome .bg,
+.premiumHome.laneriqHomeV3 .bg{
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  background:
+    radial-gradient(circle at 76% 14%,rgba(246,202,91,.12),transparent 29%),
+    linear-gradient(180deg,rgba(0,5,4,.01) 0%,rgba(0,7,6,.08) 28%,rgba(0,10,8,.60) 62%,rgba(0,8,7,.96) 100%),
+    url('/big-moon-valley.svg') 62% top/cover no-repeat!important;
+  filter:saturate(1.12) contrast(1.04)!important;
+}
+
+.premiumHome .veil,
+.premiumHome.laneriqHomeV3 .veil{
+  background:
+    linear-gradient(90deg,rgba(0,9,7,.56),rgba(0,9,7,.035) 58%,rgba(0,9,7,.20)),
+    radial-gradient(circle at 76% 12%,rgba(255,216,111,.10),transparent 31%)!important;
+}
+
+@media(max-width:520px){
+  .premiumHome .bg,
+  .premiumHome.laneriqHomeV3 .bg{
+    background-position:66% top!important;
+  }
+}
