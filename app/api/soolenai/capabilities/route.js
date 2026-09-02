@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../lib/supabase/server.js";
 import { resolveSoolenCapabilities } from "../../../../lib/soolen/capability-registry.js";
+import { publicPlatformStatus } from "../../../../lib/soolen/platform-operator.js";
 import { getSoolenSubscription } from "../../../../lib/soolen/user-tier.js";
 import { SOOLENAI_SECURITY_PROFILE, SOOLENAI_SECURITY_BASELINE_VERSION, SOOLENAI_MAX_SECURITY_CONTROLS } from "../../../../lib/ai/soolenai-max-security.js";
 
@@ -18,6 +19,18 @@ function securityCapability(){return{
   antivirusClaim:"A real malware scanner clean result is only claimed when hash-bound scanner evidence exists; this profile is not an absolute no-malware/no-vulnerability guarantee.",
   controls:SOOLENAI_MAX_SECURITY_CONTROLS,
 };}
+function publicResolved(resolved){
+  const {providers={}, ...safe}=resolved||{};
+  return {
+    ...safe,
+    providers:{
+      count:Number(providers.count||0),
+      premiumRouting:Boolean(providers.premiumRouting),
+      costMode:String(providers.costMode||"zero"),
+      providerNamesHidden:true,
+    },
+  };
+}
 
 export async function GET() {
   try {
@@ -25,7 +38,7 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
     const subscription = user ? await getSoolenSubscription(supabase, user.id) : { tier:"free", planName:"Free", status:"none", currentPeriodEnd:null };
     const tier = subscription.tier;
-    const resolved = resolveSoolenCapabilities({ tier });
+    const resolved = publicResolved(resolveSoolenCapabilities({ tier }));
 
     return reply({
       success: true,
@@ -37,6 +50,7 @@ export async function GET() {
         currentPeriodEnd: subscription?.currentPeriodEnd || null,
       },
       ...resolved,
+      platform:publicPlatformStatus(),
       security:securityCapability(),
     });
   } catch (error) {
@@ -45,7 +59,8 @@ export async function GET() {
       success: true,
       authenticated: false,
       subscription: { tier: "free", planName: "Free", status: "unavailable", currentPeriodEnd: null },
-      ...resolveSoolenCapabilities({ tier: "free" }),
+      ...publicResolved(resolveSoolenCapabilities({ tier: "free" })),
+      platform:publicPlatformStatus(),
       security:securityCapability(),
     });
   }
