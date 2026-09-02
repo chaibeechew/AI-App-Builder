@@ -141,6 +141,8 @@ jobs:
         run: npm run test:mobile-performance
       - name: Mobile Readiness diagnostics contract tests
         run: npm run test:mobile-readiness
+      - name: Mobile browser QA contract tests
+        run: npm run test:mobile-browser-qa
       - name: Voice Idea contract tests
         run: npm run test:voice
       - name: Google Play preparation contract tests
@@ -165,5 +167,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI core gates plus zero-cost safety/execution, mobile real-device diagnostics and two 1000-point hardening packs passed. Final 1000-cycle Production stability test remains manual and evidence-gated."
-      # This workflow validates code only. It never triggers the final 1000-cycle Production test.
+        run: echo "LANERIQ AI core gates plus zero-cost safety/execution, mobile diagnostics/browser-QA contracts and two 1000-point hardening packs passed. Final physical-device and authenticated provider evidence remain externally gated."
+      # This workflow validates code only. It never substitutes browser emulation for physical-device evidence.
