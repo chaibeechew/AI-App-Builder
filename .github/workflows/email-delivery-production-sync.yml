@@ -1,0 +1,54 @@
+name: LANERIQ Email Delivery Production Sync
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync-email-delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require deployment secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in VERCEL_TOKEN RESEND_API_KEY EMAIL_FROM; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing GitHub secret: ${name}"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then exit 2; fi
+          echo "Required production email delivery secrets are present."
+
+      - name: Upsert Vercel Production email delivery configuration
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -cn \
+            --arg resend "$RESEND_API_KEY" \
+            --arg from "$EMAIL_FROM" \
+            '[
+              {key:"RESEND_API_KEY",value:$resend,type:"sensitive",target:["production"],comment:"LANERIQ managed Email Verification delivery"},
+              {key:"EMAIL_FROM",value:$from,type:"sensitive",target:["production"],comment:"LANERIQ managed Email Verification sender"}
+            ]')"
+
+          response="$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url 'https://api.vercel.com/v10/projects/prj_Q6mR7lmYGGKCW0ARu2Fgm9Pyzfcl/env?upsert=true&teamId=team_r2xREQWKQzVw1bdswbpW5j8Y' \
+            --header "Authorization: Bearer ${VERCEL_TOKEN}" \
+            --header 'Content-Type: application/json' \
+            --data "$payload")"
+
+          printf '%s' "$response" | jq -e '((.failed // []) | length) == 0' >/dev/null
+          echo "Vercel Production email delivery configuration synced without exposing secret values."
