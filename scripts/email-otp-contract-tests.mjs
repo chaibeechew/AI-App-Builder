@@ -10,6 +10,7 @@ const sessionRoute = await readFile(new URL('../app/api/auth/session/route.js', 
 const engine = await readFile(new URL('../lib/verification/server.js', import.meta.url), 'utf8');
 const communicationsGuard = await readFile(new URL('../lib/communications/guard.js', import.meta.url), 'utf8');
 const sessionEngine = await readFile(new URL('../lib/auth/laneriq-session.js', import.meta.url), 'utf8');
+const emailRuntimeDiagnostics = await readFile(new URL('../lib/integrations/email-runtime-diagnostics.js', import.meta.url), 'utf8');
 const migration = await readFile(new URL('../supabase/migrations/20260902061000_laneriq_owned_email_verification.sql', import.meta.url), 'utf8');
 const repairMigration = await readFile(new URL('../supabase/migrations/20260902065500_fix_laneriq_verification_rpc_ambiguity.sql', import.meta.url), 'utf8');
 const proxy = await readFile(new URL('../lib/supabase/proxy.js', import.meta.url), 'utf8');
@@ -65,6 +66,7 @@ assert.match(requestRoute, /Cache-Control","private, no-store, max-age=0/);
 
 assert.match(statusRoute, /communicationGuardStatus/);
 assert.match(statusRoute, /deliveryAdapterStatus/);
+assert.match(statusRoute, /emailTransportRuntimeDiagnostics/);
 assert.match(statusRoute, /communication_dispatches/);
 assert.match(statusRoute, /service:"LANERIQ Verification"/);
 assert.match(statusRoute, /channel:"email"/);
@@ -72,10 +74,22 @@ assert.match(statusRoute, /stages=\{/);
 assert.match(statusRoute, /guard:Boolean\(guard\.ready\)/);
 assert.match(statusRoute, /storage:Boolean\(storage\)/);
 assert.match(statusRoute, /delivery:Boolean\(delivery\.email\?\.ready\)/);
+assert.match(statusRoute, /transportHealth:\{/);
+assert.match(statusRoute, /credentialShapeValid:runtime\.credentialShapeValid/);
+assert.match(statusRoute, /senderAligned:runtime\.senderAligned/);
+assert.match(statusRoute, /gmail_credentials_rejected/);
 assert.match(statusRoute, /otpAuthority:"laneriq"/);
 assert.match(statusRoute, /sessionAuthority:"laneriq"/);
 assert.match(statusRoute, /private, no-store/);
-assert.doesNotMatch(statusRoute, /RESEND_API_KEY|EMAIL_FROM|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY/);
+assert.doesNotMatch(statusRoute, /RESEND_API_KEY|EMAIL_FROM|SMTP_PASS|SMTP_USER|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY/);
+
+assert.match(emailRuntimeDiagnostics, /emailTransportRuntimeDiagnostics/);
+assert.match(emailRuntimeDiagnostics, /credentialShapeValid/);
+assert.match(emailRuntimeDiagnostics, /senderAligned/);
+assert.match(emailRuntimeDiagnostics, /gmail_credential_shape/);
+assert.match(emailRuntimeDiagnostics, /gmail_sender_mismatch/);
+assert.match(emailRuntimeDiagnostics, /replace\(\/\[\\s\\u200B-\\u200D\\uFEFF\]\+\/g,""\)/);
+assert.doesNotMatch(emailRuntimeDiagnostics, /console\.(log|info|warn|error|debug)/);
 
 assert.match(engine, /crypto\.randomInt/);
 assert.match(engine, /createHmac\("sha256"/);
@@ -155,5 +169,6 @@ console.log('✓ Browser requests/verifies Email Code through exact same-origin 
 console.log('✓ LANERIQ Session is primary; the legacy identity exists only for transitional data access');
 console.log('✓ Verification storage is private-schema, RLS protected, service-role only and RPC ambiguity regression-gated');
 console.log('✓ Verification and Communications share a backward-compatible server-only privacy secret chain');
-console.log('✓ Verification health exposes only provider-opaque guard/storage/delivery readiness');
+console.log('✓ Verification health exposes only provider-opaque delivery state plus privacy-safe configuration booleans');
+console.log('✓ Gmail diagnostics identify credential shape, port and sender alignment without exposing credentials');
 console.log('✓ Auth UI fails closed on live Email Verification readiness and auto-refreshes until delivery is ready');
