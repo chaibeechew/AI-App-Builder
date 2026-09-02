@@ -6,6 +6,7 @@ const buildInfo = read("app/api/build-info/route.js");
 const workflow = read(".github/workflows/production-mobile-browser-qa.yml");
 const runner = read("scripts/production-mobile-browser-qa.mjs");
 const sessionProxy = read("lib/supabase/proxy.js");
+const sessionRoute = read("app/api/auth/session/route.js");
 const policy = read("lib/ui/global-overlay-policy.js");
 const overlays = read("app/components/BuilderGlobalOverlays.js");
 const studio = read("app/components/StudioLauncher.js");
@@ -31,6 +32,7 @@ for (const pattern of [
   /no broad \/api prefix bypass/,
 ]) assert.match(sessionProxy, pattern);
 assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/build-info"\)/, "Build identity access must remain exact-path only.");
+assert.match(sessionRoute, /SESSION_REQUIRED[\s\S]*401/);
 
 for (const pattern of [
   /playwright@1\.62\.1/,
@@ -59,8 +61,15 @@ for (const pattern of [
   /writeEvidence/,
   /consoleErrors/,
   /pageErrors/,
+  /page\.on\("response"/,
+  /classifyHttpFailure/,
+  /expectedSession401s/,
+  /unexpectedHttpFailures/,
+  /url\.pathname === "\/api\/auth\/session" && status === 401/,
+  /assert\.deepEqual\(unexpectedHttpFailures, \[\]/,
 ]) assert.match(runner, pattern);
 assert.doesNotMatch(runner, /getUserMedia\s*\(|grantPermissions|permissions\.query|signInWithOtp|verifyOtp/i, "Browser-emulation QA must stay permission-free and must not exercise Email/SMS Auth.");
+assert.doesNotMatch(runner, /status === 401\)\s*return null|status >= 400\)\s*return null/, "QA must never blanket-ignore 401 or 4xx/5xx responses.");
 
 assert.match(layout, /home-mobile-input-safety\.css/);
 assert.match(homeInputSafety, /@media\s*\(max-width:\s*820px\)/);
@@ -92,8 +101,9 @@ assert.match(layout, /BuilderGlobalOverlays/);
 assert.doesNotMatch(layout, /<StudioLauncher\s*\/>|<ReferenceUploader\s*\/>|<SoolenVoiceAssistant\s*\/>/, "Heavy global overlays must be mounted only through the route gate.");
 
 console.log("✓ Public build identity is privacy-safe, exact-commit aware, no-store and GET/HEAD-only before sign-in");
-console.log("✓ Session protection keeps the build identity bypass exact-path only with no broad /api prefix bypass");
+console.log("✓ Session protection keeps the build identity bypass exact-path only and preserves signed-out SESSION_REQUIRED 401 semantics");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
+console.log("✓ Mobile QA classifies only exact signed-out GET /api/auth/session 401 responses as expected and fails all unexpected HTTP errors");
 console.log("✓ Final mobile visual authority and safety layer both force homepage editable controls to >=16px");
 console.log("✓ Browser QA preserves failure screenshots/report details, including undersized editable-control diagnostics");
 console.log("✓ Browser QA stays permission-free and labels evidence as browser emulation, never physical-device proof");
