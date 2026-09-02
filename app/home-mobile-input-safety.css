@@ -1,0 +1,11 @@
+/* LANERIQ AI homepage mobile input safety.
+   iOS Safari zooms the page when a focused editable control renders below 16px.
+   Keep this final override after the visual theme so mobile editing never changes page scale. */
+
+@media (max-width: 820px) {
+  .premiumHome textarea,
+  .premiumHome input:not([type="hidden"]),
+  .premiumHome select {
+    font-size: 16px !important;
+  }
+}
