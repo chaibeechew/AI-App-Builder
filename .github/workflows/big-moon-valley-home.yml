@@ -24,3 +24,5 @@ jobs:
         run: node scripts/big-moon-valley-home-contract-tests.mjs
       - name: Verify Big Moon Valley release shell contract
         run: node scripts/big-moon-valley-release-contract-tests.mjs
+      - name: Verify Big Moon Valley Editor and Dashboard contract
+        run: node scripts/big-moon-valley-workspace-contract-tests.mjs
