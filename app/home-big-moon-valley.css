@@ -20,9 +20,17 @@
     radial-gradient(circle at 76% 12%,rgba(255,216,111,.10),transparent 31%)!important;
 }
 
+/* Keep the selected Cinematic style visually consistent with the LANERIQ signature scene. */
+.premiumHome .styleRail button:first-child i{
+  background-image:linear-gradient(180deg,rgba(0,9,7,.02),rgba(0,9,7,.34)),url('/big-moon-valley.svg')!important;
+  background-position:62% top!important;
+  background-size:cover!important;
+}
+
 @media(max-width:520px){
   .premiumHome .bg,
   .premiumHome.laneriqHomeV3 .bg{
     background-position:66% top!important;
   }
+  .premiumHome .styleRail button:first-child i{background-position:66% top!important}
 }
