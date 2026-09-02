@@ -27,6 +27,7 @@ import "./home-signature-v3.css";
 import "./home-signature-mobile-final.css";
 import "./generated-app-premium.css";
 import "./property-crm-golden-reference.css";
+import "./generated-industry-visual-v2.css";
 import "./home-canonical-v4.css";
 import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
