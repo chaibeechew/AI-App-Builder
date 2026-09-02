@@ -12,6 +12,7 @@ import "./home-laneriq-v3.css";
 import "./mobile-quality.css";
 import "./home-big-moon-valley.css";
 import "./big-moon-valley-journey.css";
+import "./big-moon-valley-release.css";
 import AccountNav from "./components/AccountNav";
 import SoolenVoiceAssistant from "./components/SoolenVoiceAssistant";
 import ProductCopyFix from "./components/ProductCopyFix";
