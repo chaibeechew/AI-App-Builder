@@ -1,7 +1,7 @@
 /* First generated Property CRM golden reference.
-   This deliberately upgrades the first showcase App to the approved LANERIQ
-   future-city / water quality level without making that composition mandatory
-   for future customers who choose their own identity. */
+   The first screen must read as real estate first: recognizable property/city
+   imagery, service people and devices stay visible while LANERIQ quality remains
+   the premium craft benchmark. */
 
 .generatedExperience[data-golden-reference="true"] .generatedApp{
   --primary:#55c8ff!important;
@@ -11,7 +11,7 @@
   --foreground:#f8fbff!important;
   background-color:#03101f!important;
   background-image:
-    linear-gradient(180deg,rgba(0,8,20,.04) 0%,rgba(0,8,20,.18) 32%,rgba(0,7,18,.70) 70%,rgba(0,6,15,.98) 100%),
+    linear-gradient(180deg,rgba(0,8,20,.02) 0%,rgba(0,8,20,.10) 30%,rgba(0,7,18,.52) 66%,rgba(0,6,15,.96) 100%),
     url('/laneriq-future-city-people.webp')!important;
   background-position:center top!important;
   background-repeat:no-repeat!important;
@@ -20,48 +20,145 @@
   color:#f8fbff!important;
 }
 .generatedExperience[data-golden-reference="true"] .generatedApp:before{
-  background:radial-gradient(circle at 18% 10%,rgba(241,189,75,.12),transparent 26%),linear-gradient(180deg,transparent 0%,rgba(1,10,22,.14) 42%,rgba(1,9,20,.76) 100%)!important
+  background:radial-gradient(circle at 18% 10%,rgba(241,189,75,.10),transparent 26%),linear-gradient(180deg,transparent 0%,rgba(1,10,22,.08) 42%,rgba(1,9,20,.66) 100%)!important
 }
+
+/* Keep panels transparent enough that the real-estate scene remains visible. */
 .generatedExperience[data-golden-reference="true"] .appHeader,
 .generatedExperience[data-golden-reference="true"] .card,
 .generatedExperience[data-golden-reference="true"] .panel,
 .generatedExperience[data-golden-reference="true"] .mediaGallery article{
-  background:linear-gradient(145deg,rgba(6,35,56,.87),rgba(2,17,31,.94))!important;
+  background:linear-gradient(145deg,rgba(6,35,56,.76),rgba(2,17,31,.88))!important;
   color:#f8fbff!important;
-  border-color:rgba(92,181,235,.30)!important
+  border-color:rgba(92,181,235,.30)!important;
+  backdrop-filter:blur(17px) saturate(1.05)!important;
+  -webkit-backdrop-filter:blur(17px) saturate(1.05)!important
 }
+
+/* Image-led first card: show the city/property/service scene before the copy. */
 .generatedExperience[data-golden-reference="true"] .appHeader{
+  position:relative!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
   margin-top:8px!important;
-  border-color:rgba(241,189,75,.34)!important
+  padding:190px 20px 20px!important;
+  border-color:rgba(241,189,75,.40)!important;
+  background:linear-gradient(165deg,rgba(4,34,55,.78),rgba(1,14,27,.94))!important
+}
+.generatedExperience[data-golden-reference="true"] .appHeader::before{
+  content:""!important;
+  position:absolute!important;
+  z-index:0!important;
+  left:0!important;right:0!important;top:0!important;height:174px!important;
+  background-image:
+    linear-gradient(180deg,rgba(1,10,20,.03) 0%,rgba(1,12,24,.10) 56%,rgba(2,17,31,.90) 100%),
+    url('/laneriq-future-city-people.webp')!important;
+  background-size:cover!important;
+  background-position:center 48%!important;
+  background-repeat:no-repeat!important;
+  filter:saturate(1.02) contrast(1.02)!important;
+  pointer-events:none!important
+}
+.generatedExperience[data-golden-reference="true"] .appHeader>div{
+  position:relative!important;z-index:1!important
 }
 .generatedExperience[data-golden-reference="true"] .appHeader small::after{
   content:"PROPERTY COMMAND CENTER"!important;
-  color:#f1bd4b!important
+  color:#f1bd4b!important;
+  font-size:9px!important;
+  letter-spacing:.15em!important
 }
 .generatedExperience[data-golden-reference="true"] .appHeader h1{
-  background:linear-gradient(180deg,#fff 0%,#dff7ff 50%,#f1bd4b 120%)!important;
+  margin:7px 0 8px!important;
+  font-size:clamp(28px,4.8vw,44px)!important;
+  line-height:1.02!important;
+  letter-spacing:-.035em!important;
+  background:linear-gradient(180deg,#fff 0%,#e6f8ff 58%,#f1bd4b 125%)!important;
   -webkit-background-clip:text!important;background-clip:text!important;color:transparent!important
 }
-.generatedExperience[data-golden-reference="true"] .appHeader p{color:#d9eaf5!important;opacity:.88!important}
+.generatedExperience[data-golden-reference="true"] .appHeader p{
+  color:#d9eaf5!important;
+  opacity:.90!important;
+  max-width:620px!important;
+  font-size:13px!important;
+  line-height:1.48!important;
+  margin:0 0 14px!important
+}
+.generatedExperience[data-golden-reference="true"] .headerActions{
+  gap:9px!important
+}
+.generatedExperience[data-golden-reference="true"] .headerActions button{
+  min-height:46px!important;
+  font-size:13px!important;
+  border-radius:13px!important
+}
+
+/* Dashboard copy becomes compact so imagery and KPI content share the first viewport. */
 .generatedExperience[data-golden-reference="true"] .heroCard{
-  min-height:220px!important;
-  background:linear-gradient(135deg,rgba(5,46,77,.88),rgba(2,18,35,.94))!important;
-  border-color:rgba(241,189,75,.46)!important;
+  min-height:156px!important;
+  padding:20px!important;
+  background:linear-gradient(135deg,rgba(5,46,77,.74),rgba(2,18,35,.88))!important;
+  border-color:rgba(241,189,75,.40)!important;
   color:#f8fbff!important;
-  box-shadow:0 24px 64px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.045)!important
+  box-shadow:0 18px 50px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.04)!important
 }
 .generatedExperience[data-golden-reference="true"] .heroCard small{font-size:0!important}
 .generatedExperience[data-golden-reference="true"] .heroCard small::after{
   content:"YOUR PROPERTIES • YOUR CLIENTS • ONE INTELLIGENT WORKSPACE";
-  font-size:9px!important;line-height:1.35!important;letter-spacing:.13em!important;color:#f1bd4b!important;font-weight:900!important
+  font-size:8px!important;line-height:1.35!important;letter-spacing:.11em!important;color:#f1bd4b!important;font-weight:900!important
 }
-.generatedExperience[data-golden-reference="true"] .heroCard h2{color:#fff!important}
-.generatedExperience[data-golden-reference="true"] .heroCard p{color:#d8e7f0!important;opacity:.92!important}
-.generatedExperience[data-golden-reference="true"] .card span{color:#f1bd4b!important}
+.generatedExperience[data-golden-reference="true"] .heroCard h2{
+  color:#fff!important;
+  font-size:clamp(24px,4vw,30px)!important;
+  line-height:1!important;
+  margin:8px 0 10px!important
+}
+.generatedExperience[data-golden-reference="true"] .heroCard p{
+  color:#d8e7f0!important;
+  opacity:.90!important;
+  font-size:12px!important;
+  line-height:1.48!important;
+  max-width:650px!important
+}
+
+/* Property-oriented visual cues instead of identical generic stars. */
+.generatedExperience[data-golden-reference="true"] .grid>.card>span{
+  display:inline-grid!important;
+  place-items:center!important;
+  width:31px!important;height:31px!important;
+  border-radius:10px!important;
+  background:rgba(85,200,255,.08)!important;
+  border:1px solid rgba(85,200,255,.20)!important;
+  color:transparent!important;
+  font-size:0!important
+}
+.generatedExperience[data-golden-reference="true"] .grid>.card>span::after{font-size:16px!important;color:#f1bd4b!important}
+.generatedExperience[data-golden-reference="true"] .grid>.card:nth-child(1)>span::after{content:"🏙️"}
+.generatedExperience[data-golden-reference="true"] .grid>.card:nth-child(2)>span::after{content:"🏠"}
+.generatedExperience[data-golden-reference="true"] .grid>.card:nth-child(3)>span::after{content:"👥"}
+.generatedExperience[data-golden-reference="true"] .grid>.card:nth-child(4)>span::after{content:"📅"}
+.generatedExperience[data-golden-reference="true"] .grid>.card:nth-child(5)>span::after{content:"🔔"}
+.generatedExperience[data-golden-reference="true"] .grid>.card:nth-child(6)>span::after{content:"🔥"}
+.generatedExperience[data-golden-reference="true"] .grid>.card:nth-child(7)>span::after{content:"📍"}
+.generatedExperience[data-golden-reference="true"] .grid>.card:nth-child(8)>span::after{content:"✨"}
+.generatedExperience[data-golden-reference="true"] .card{
+  min-height:132px!important;
+  padding:15px!important
+}
 .generatedExperience[data-golden-reference="true"] .card h3,
 .generatedExperience[data-golden-reference="true"] .panel h2,
 .generatedExperience[data-golden-reference="true"] .panel label{color:#f8fbff!important}
-.generatedExperience[data-golden-reference="true"] .card p{color:#bcd0dc!important;opacity:.86!important}
+.generatedExperience[data-golden-reference="true"] .card h3{
+  font-size:14px!important;
+  line-height:1.16!important;
+  margin:9px 0 6px!important
+}
+.generatedExperience[data-golden-reference="true"] .card p{
+  color:#bcd0dc!important;
+  opacity:.84!important;
+  font-size:10.5px!important;
+  line-height:1.42!important
+}
 .generatedExperience[data-golden-reference="true"] .panel input,
 .generatedExperience[data-golden-reference="true"] .panel textarea,
 .generatedExperience[data-golden-reference="true"] .panel select{
@@ -70,7 +167,7 @@
 .generatedExperience[data-golden-reference="true"] .headerActions button,
 .generatedExperience[data-golden-reference="true"] .actionBar button,
 .generatedExperience[data-golden-reference="true"] .panel form button{
-  border-color:rgba(241,189,75,.44)!important;
+  border-color:rgba(241,189,75,.40)!important;
   background:linear-gradient(135deg,#55c8ff,#257da5)!important;
   color:#061725!important
 }
@@ -86,9 +183,62 @@
 .generatedExperience ~ .sv-fab{display:none!important}
 
 @media(max-width:700px){
-  .generatedExperience[data-golden-reference="true"] .generatedApp{background-size:100% auto!important;background-position:center top!important}
-  .generatedExperience[data-golden-reference="true"] .appHeader{margin-top:4px!important}
-  .generatedExperience[data-golden-reference="true"] .appHeader h1{font-size:clamp(29px,9vw,38px)!important}
-  .generatedExperience[data-golden-reference="true"] .heroCard{min-height:205px!important}
-  .generatedExperience[data-golden-reference="true"] .heroCard small::after{font-size:7.5px!important;letter-spacing:.10em!important}
+  .generatedExperience[data-golden-reference="true"] .generatedApp{
+    background-size:100% auto!important;
+    background-position:center top!important;
+    padding-top:8px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .appHeader{
+    margin-top:3px!important;
+    padding:166px 14px 15px!important;
+    border-radius:18px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .appHeader::before{
+    height:151px!important;
+    background-position:center 50%!important
+  }
+  .generatedExperience[data-golden-reference="true"] .appHeader h1{
+    font-size:clamp(27px,7.7vw,32px)!important;
+    line-height:1.01!important;
+    margin:6px 0 7px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .appHeader p{
+    font-size:11.5px!important;
+    line-height:1.45!important;
+    margin-bottom:12px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .headerActions button{
+    min-height:43px!important;
+    font-size:12px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .heroCard{
+    min-height:142px!important;
+    padding:16px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .heroCard small::after{
+    font-size:6.9px!important;
+    letter-spacing:.085em!important
+  }
+  .generatedExperience[data-golden-reference="true"] .heroCard h2{
+    font-size:24px!important;
+    margin:7px 0 9px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .heroCard p{
+    font-size:11px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .card{
+    min-height:122px!important;
+    padding:12px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .card h3{font-size:12px!important}
+  .generatedExperience[data-golden-reference="true"] .card p{font-size:9.6px!important}
+}
+
+@media(max-width:390px){
+  .generatedExperience[data-golden-reference="true"] .appHeader{
+    padding-top:154px!important
+  }
+  .generatedExperience[data-golden-reference="true"] .appHeader::before{height:140px!important}
+  .generatedExperience[data-golden-reference="true"] .appHeader h1{font-size:26px!important}
+  .generatedExperience[data-golden-reference="true"] .heroCard h2{font-size:22px!important}
 }
