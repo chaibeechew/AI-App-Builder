@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
-import { LANERIQ_SESSION_COOKIE, laneriqSessionCookieOptions } from "../../../../../lib/auth/laneriq-session.js";
+import {
+  LANERIQ_SESSION_COOKIE,
+  LANERIQ_SESSION_MODE_COOKIE,
+  LANERIQ_SESSION_MODE_VALUE,
+  laneriqSessionCookieOptions,
+  laneriqSessionModeCookieOptions,
+} from "../../../../../lib/auth/laneriq-session.js";
 import { normalizeEmailAddress, normalizeEmailOtp } from "../../../../../lib/auth/otp-policy.js";
 import { verifyLaneriqEmailVerification } from "../../../../../lib/verification/server.js";
 
-function json(payload,status=200,retryAfter=0){const response=NextResponse.json(payload,{status});response.headers.set("Cache-Control","private, no-store, max-age=0");response.headers.set("Pragma","no-cache");response.headers.set("X-Content-Type-Options","nosniff");if(retryAfter>0)response.headers.set("Retry-After",String(Math.ceil(retryAfter)));return response;}
+function json(payload,status=200,retryAfter=0){const response=NextResponse.json(payload,{status});response.headers.set("Cache-Control","private, no-store, max-age=0");response.headers.set("Pragma","no-cache");response.headers.set("X-Content-Type-Options","nosniff");response.headers.set("Vary","Cookie");if(retryAfter>0)response.headers.set("Retry-After",String(Math.ceil(retryAfter)));return response;}
 function sameOrigin(request){try{const origin=request.headers.get("origin");if(!origin)return false;const originHost=new URL(origin).host;const expectedHost=request.headers.get("x-forwarded-host")||request.headers.get("host")||request.nextUrl.host;const fetchSite=String(request.headers.get("sec-fetch-site")||"").toLowerCase();return originHost===expectedHost&&fetchSite!=="cross-site";}catch{return false;}}
 
 export async function POST(request){
@@ -32,6 +38,7 @@ export async function POST(request){
     if(!result.sessionToken)return json({success:false,error:"The secure LANERIQ session could not be completed.",code:"SESSION_AUTHORITY_FAILED"},503);
     const response=json({success:true,service:"LANERIQ Verification",otpAuthority:"laneriq",sessionAuthority:"laneriq",sessionCreated:true});
     response.cookies.set(LANERIQ_SESSION_COOKIE,result.sessionToken,laneriqSessionCookieOptions());
+    response.cookies.set(LANERIQ_SESSION_MODE_COOKIE,LANERIQ_SESSION_MODE_VALUE,laneriqSessionModeCookieOptions());
     return response;
   }catch{
     return json({success:false,error:"Unable to complete email verification right now.",code:"VERIFICATION_FAILED"},503);
