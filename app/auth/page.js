@@ -256,7 +256,7 @@ function AuthForm() {
 
           {message && <div className="message">✓ {message}</div>}
           {error && <div className="error" role="alert">{error}</div>}
-          <footer><span>Encrypted session</span><i>•</i><span>LANERIQ one-time code</span><i>•</i><span>Rate-limit aware</span></footer>
+          <footer><span>Encrypted session</span><i>•</i><span>One-time code</span><i>•</i><span>Rate-limit aware</span></footer>
         </section>
       </div>
 
