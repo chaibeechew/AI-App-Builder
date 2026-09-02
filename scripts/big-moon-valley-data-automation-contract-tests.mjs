@@ -23,29 +23,27 @@ assert.match(css,/prefers-reduced-motion:reduce/);
 assert.doesNotMatch(css,/(^|\n)\s*(html|body|\*)\s*[{,]/m);
 assert.doesNotMatch(css,/GeneratedAppClient|websiteShell|generatedApp|customerSurface/);
 
-// Customer Data keeps no-store reads and reversible, non-destructive version recovery.
 assert.match(database,/\/api\/apps\/\$\{appId\}\/database`, \{ cache: "no-store" \}/);
 assert.match(database,/\/database\/rollback/);
 assert.match(database,/Restored Customer Data v\$\{data\.restoredFrom\} safely as new version v\$\{data\.newVersion\}/);
 assert.match(database,/Restoring never deletes the current version/);
 assert.match(database,/PRIVATE BY DEFAULT/);
 
-// Automation Safe Test remains dry-run only with an idempotency key and explicit no-side-effect messaging.
 assert.match(workflows,/dryRun:true/);
 assert.match(workflows,/idempotencyKey:`safe-test-\$\{workflow\.id\}-\$\{Date\.now\(\)\}`/);
 assert.match(workflows,/Safe Test passed\. No customer data was saved and no messages were sent/);
-assert.match(workflows,/without saving customer data, sending email\/SMS\/WhatsApp, creating calendar events or notifying your team/);
-assert.match(workflows,/send_sms/);
+assert.match(workflows,/without saving customer data, sending email or WhatsApp, creating calendar events or notifying your team/);
 assert.match(workflows,/send_whatsapp/);
+assert.doesNotMatch(workflows,/send_sms|Send SMS|email\/SMS\/WhatsApp/);
 
-// Connections never expose secrets and cannot enable a provider until server-reported readiness is true.
 assert.match(integrations,/const platformReady=managed\?\.\[type\]\?\.ready===true/);
 assert.match(integrations,/const operational=platformReady&&enabled/);
 assert.match(integrations,/disabled=\{busy===type\|\|!platformReady\}/);
 assert.match(integrations,/SoolenAI platform setup is still needed/);
 assert.match(integrations,/project never stores visible API keys, passwords or provider secrets/);
-assert.match(integrations,/\["sms","SMS","Send verification, reminders and alerts\."\]/);
+assert.match(integrations,/\["whatsapp","WhatsApp","Send verification and business messages through Meta WhatsApp Cloud API\."\]/);
+assert.doesNotMatch(integrations,/\["sms","SMS"/);
 
 console.log('✓ Big Moon Valley data/automation shell is scoped to Customer Data, Automations and Connections');
-console.log('✓ Reversible data versions, Safe Test no-side-effects and server-owned connection readiness remain intact');
-console.log('✓ SMS remains present only as a readiness-gated connection and stays on hold');
+console.log('✓ Safe Test and server-owned readiness remain intact with WhatsApp replacing paid SMS');
+console.log('✓ Traditional SMS is absent from current automation and connection UI');
