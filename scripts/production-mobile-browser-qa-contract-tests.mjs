@@ -11,6 +11,7 @@ const overlays = read("app/components/BuilderGlobalOverlays.js");
 const studio = read("app/components/StudioLauncher.js");
 const layout = read("app/layout.js");
 const homeInputSafety = read("app/home-mobile-input-safety.css");
+const homeApproved = read("app/home-approved-v2.css");
 
 for (const pattern of [
   /VERCEL_GIT_COMMIT_SHA/,
@@ -66,6 +67,8 @@ assert.match(homeInputSafety, /@media\s*\(max-width:\s*820px\)/);
 assert.match(homeInputSafety, /\.premiumHome textarea/);
 assert.match(homeInputSafety, /\.premiumHome input:not\(\[type="hidden"\]\)/);
 assert.match(homeInputSafety, /font-size:\s*16px\s*!important/);
+assert.match(homeApproved, /\.premiumHome \.promptCard textarea\{[^}]*font-size:\s*16px\s*!important/s);
+assert.doesNotMatch(homeApproved, /\.premiumHome \.promptCard textarea\{[^}]*font-size:\s*(?:[0-9]|1[0-5])(?:\.\d+)?px\s*!important/s, "Approved homepage prompt authority must never force editable text below 16px.");
 
 for (const pattern of [
   /"\/"/,
@@ -89,7 +92,7 @@ assert.doesNotMatch(layout, /<StudioLauncher\s*\/>|<ReferenceUploader\s*\/>|<Soo
 console.log("✓ Public build identity is privacy-safe, exact-commit aware, no-store and GET/HEAD-only before sign-in");
 console.log("✓ Session protection keeps the build identity bypass exact-path only with no broad /api prefix bypass");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
-console.log("✓ Homepage editable controls are forced to >=16px on mobile to prevent iOS Safari focus auto-zoom");
+console.log("✓ Approved homepage prompt authority and final mobile safety both keep editable controls at >=16px");
 console.log("✓ Browser QA preserves failure screenshots/report details, including undersized editable-control diagnostics");
 console.log("✓ Browser QA stays permission-free and labels evidence as browser emulation, never physical-device proof");
 console.log("✓ Homepage/auth/evidence/customer-preview surfaces do not mount duplicate heavy global builder overlays");
