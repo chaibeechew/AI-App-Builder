@@ -39,6 +39,7 @@
     "test:mobile-ui": "node scripts/mobile-ui-contract-tests.mjs",
     "test:mobile-performance": "node scripts/mobile-performance-contract-tests.mjs",
     "test:mobile-readiness": "node scripts/mobile-readiness-diagnostics-contract-tests.mjs",
+    "test:production-mobile-browser-qa": "node scripts/production-mobile-browser-qa-contract-tests.mjs",
     "test:voice": "node scripts/voice-idea-contract-tests.mjs",
     "test:upload-ref": "node scripts/upload-ref-contract-tests.mjs",
     "test:upload-ref-mobile": "node scripts/upload-ref-mobile-contract-tests.mjs",
@@ -68,7 +69,7 @@
     "test:content-pipeline": "node scripts/content-production-pipeline-tests.mjs",
     "test:complete-game": "node scripts/complete-game-creation-tests.mjs",
     "test:hardening-1000": "npm run test:publishing-readiness && npm run test:seo && npm run test:vercel-budget && npm run test:project-readiness && npm run test:mobile-game && npm run test:aaa-mobile && npm run test:advanced-3d && npm run test:advanced-genres && npm run test:content-pipeline && npm run test:complete-game",
-    "test:next-hardening-1000": "npm run test:soolenai-security-max && npm run test:session-authority && npm run test:auth-mobile-entry && npm run test:email-provider && npm run test:whatsapp-auth && npm run test:communications-100 && npm run test:mobile-ui && npm run test:mobile-performance && npm run test:mobile-readiness && npm run test:voice && npm run test:google-play && npm run test:app-e2e-code && npm run test:website-e2e-code && npm run test:combined-e2e-code && npm run test:production-e2e-evidence && npm run test:web-publish-public && npm run test:web-publish-evidence && npm run test:upload-ref-mobile && npm run test:production-public",
+    "test:next-hardening-1000": "npm run test:soolenai-security-max && npm run test:session-authority && npm run test:auth-mobile-entry && npm run test:email-provider && npm run test:whatsapp-auth && npm run test:communications-100 && npm run test:mobile-ui && npm run test:mobile-performance && npm run test:mobile-readiness && npm run test:production-mobile-browser-qa && npm run test:voice && npm run test:google-play && npm run test:app-e2e-code && npm run test:website-e2e-code && npm run test:combined-e2e-code && npm run test:production-e2e-evidence && npm run test:web-publish-public && npm run test:web-publish-evidence && npm run test:upload-ref-mobile && npm run test:production-public",
     "test:hardening-2000": "npm run test:hardening-1000 && npm run test:next-hardening-1000"
   },
   "dependencies": {
