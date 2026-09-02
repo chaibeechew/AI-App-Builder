@@ -9,6 +9,7 @@ const workflow = fs.readFileSync(".github/workflows/production-mobile-browser-qa
 const layout = fs.readFileSync("app/layout.js", "utf8");
 const auth = fs.readFileSync("app/auth/page.js", "utf8");
 const authCss = fs.readFileSync("app/auth/auth.css", "utf8");
+const languageCss = fs.readFileSync("app/language-runtime.css", "utf8");
 
 assert.equal(MOBILE_QUALITY_POLICY.minimumTouchTargetPx, 44);
 assert.equal(MOBILE_QUALITY_POLICY.minimumInputFontPx, 16);
@@ -50,16 +51,20 @@ for (const pattern of [
   /min-height:44px!important/,
   /safe-area-inset-top/,
   /70svh/,
+  /\.sv-backdrop\{[\s\S]*z-index:500!important/,
   /\.sv-panel \.sv-close/,
   /\.sv-panel \.sv-mic/,
   /\.sv-panel \.sv-build/,
   /\.sv-panel textarea\{font-size:16px!important\}/,
+  /\.referenceDock:has\(\.panel\)\{z-index:500!important\}/,
   /\.referenceDock>\.trigger/,
   /\.referenceDock \.panel/,
   /height:100svh!important/,
   /\.referenceDock \.panel \.upload/,
   /-webkit-overflow-scrolling:touch/,
 ]) assert.match(featureCss, pattern);
+assert.match(languageCss, /\.laneriqLangButton\.floating\{position:fixed;z-index:120/);
+assert.match(languageCss, /\.laneriqLangBackdrop\{[\s\S]*z-index:10000/);
 
 for (const pattern of [
   /devices\["iPhone 13"\]/,
@@ -70,14 +75,23 @@ for (const pattern of [
   /\.sv-fab/,
   /\.sv-panel textarea/,
   /opening Voice Idea must not request microphone capture/,
+  /layerOrder\(page,"\.sv-backdrop"\)/,
+  /Voice modal z-index/,
+  /\.sv-close"\)\.click\(\)/,
   /\.referenceDock>\.trigger/,
   /Upload Ref mobile panel must use the viewport/,
+  /layerOrder\(page,"\.referenceDock"\)/,
+  /Upload Ref modal z-index/,
+  /\.referenceDock \.panel header>button"\)\.click\(\)/,
   /voicePanel\.screenshot/,
   /refPanelLocator\.screenshot/,
+  /modalAboveFloatingUtilities:true/,
+  /closeInteractionPassed:true/,
   /permissionActionsExercised:false/,
   /physicalDeviceVerified:false/,
 ]) assert.match(featureQa, pattern);
 assert.doesNotMatch(featureQa, /fullPage\s*:\s*true/, "Three-feature evidence must screenshot bounded feature panels, not potentially unbounded full pages.");
+assert.doesNotMatch(featureQa, /force\s*:\s*true/, "Pointer accessibility must pass naturally; QA must never force clicks through overlay conflicts.");
 assert.doesNotMatch(featureQa, /\.sv-mic"\)\.click|input\[type=['"]file['"]\].*click|getUserMedia\([^)]*\)\s*;/i, "Production three-feature QA must not exercise microphone/camera/file-picker permissions.");
 assert.match(workflow, /Verify Account Voice and Upload Ref mobile surfaces/);
 assert.match(workflow, /production-mobile-feature-surfaces-qa\.mjs/);
@@ -98,8 +112,9 @@ assert.equal(result.realDeviceVerified, false);
 
 console.log("✓ Mobile UI code contract enforces iPhone safe areas, 44px touch targets and 16px form inputs");
 console.log("✓ Account/Logout mobile chrome has 44px+ controls, bounded menus and iPhone safe-area placement");
-console.log("✓ Voice Idea mobile dialog keeps 44px controls and 16px transcript input without auto-exercising microphone capture");
-console.log("✓ Upload Ref becomes a full-viewport mobile panel with 44px controls and safe-area scrolling");
+console.log("✓ Voice Idea mobile modal sits above floating utility controls while the dedicated Language modal remains top-level");
+console.log("✓ Upload Ref open workspace raises its stacking context above floating Language/Voice controls");
+console.log("✓ Production feature QA must naturally click both modal close controls; force-click bypasses are forbidden");
 console.log("✓ Three-feature Production evidence captures bounded panels, avoiding browser screenshot dimension limits without relaxing assertions");
 console.log("✓ Exact-Production WebKit/iPhone and Chromium/Pixel feature-surface QA is wired without relabeling browser emulation as physical-device proof");
 console.log("✓ Code can score 100 while real-device visual/touch/permission evidence remains separately required");
