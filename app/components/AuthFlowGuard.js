@@ -44,23 +44,17 @@ export default function AuthFlowGuard() {
       };
     }
 
-    const refreshBrandMark = () => {
-      const mark = document.querySelector(".authPage .brandMark");
-      if (!mark) return;
-      mark.textContent = "✦";
-      mark.setAttribute("aria-label", "LANERIQ AI");
-      mark.style.fontSize = "24px";
-      mark.style.lineHeight = "1";
-    };
-
-    refreshBrandMark();
-    const observer = new MutationObserver(refreshBrandMark);
-    observer.observe(document.documentElement, { childList: true, subtree: true });
-
+    // Never mutate auth DOM from a MutationObserver. The previous brand-mark observer
+    // wrote textContent inside its own observer callback, creating a self-triggering
+    // mutation loop that could pin the mobile main thread as soon as the auth form rendered.
     const checkLaneriqSession = async () => {
       if (redirected || disposed || window.__LANERIQ_AUTH_FLOW_BUSY__ === true) return;
       try {
-        const response = await originalFetch("/api/auth/session", { method: "GET", cache: "no-store", credentials: "same-origin" });
+        const response = await originalFetch("/api/auth/session", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "same-origin",
+        });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data?.authenticated !== true || data?.sessionAuthority !== "laneriq") return;
         if (redirected || disposed || window.__LANERIQ_AUTH_FLOW_BUSY__ === true) return;
@@ -71,13 +65,14 @@ export default function AuthFlowGuard() {
 
     void checkLaneriqSession();
     const onPageShow = () => { void checkLaneriqSession(); };
-    const onVisibility = () => { if (document.visibilityState === "visible") void checkLaneriqSession(); };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void checkLaneriqSession();
+    };
     window.addEventListener("pageshow", onPageShow);
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       disposed = true;
-      observer.disconnect();
       window.removeEventListener("pageshow", onPageShow);
       document.removeEventListener("visibilitychange", onVisibility);
       if (!referral) window.fetch = originalFetch;
