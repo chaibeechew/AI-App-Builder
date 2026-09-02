@@ -12,6 +12,7 @@ const adapter=read('lib/communications/delivery-adapter.js');
 const store=read('lib/communications/store.js');
 const migration=read('supabase/migrations/20260902052500_harden_laneriq_communications.sql');
 const verificationMigration=read('supabase/migrations/20260902061000_laneriq_owned_email_verification.sql');
+const verificationRepairMigration=read('supabase/migrations/20260902065500_fix_laneriq_verification_rpc_ambiguity.sql');
 const verificationEngine=read('lib/verification/server.js');
 const workflow=read('app/api/apps/[id]/workflows/[workflowId]/run/route.js');
 const verificationRequest=read('app/api/auth/verification/request/route.js');
@@ -104,6 +105,20 @@ assert.doesNotMatch(verificationMigration,/\b(email|phone|otp|verification_code|
 assert.match(verificationMigration,/revoke all on schema private from public, anon, authenticated/);
 assert.match(verificationMigration,/for update/);
 assert.match(verificationMigration,/consumed_at = now\(\)/);
+
+// PL/pgSQL RETURNS TABLE output names (expires_at/attempts/max_attempts) also become
+// variables. Table aliases are required so production RPC execution cannot fail with
+// "column reference is ambiguous" even when static SQL creation succeeds.
+assert.match(verificationMigration,/existing\.expires_at > now\(\)/);
+assert.match(verificationMigration,/attempts = challenge\.attempts \+ 1/);
+assert.match(verificationMigration,/challenge\.attempts \+ 1 >= challenge\.max_attempts/);
+assert.doesNotMatch(verificationMigration,/\n\s+and expires_at > now\(\)/);
+assert.doesNotMatch(verificationMigration,/set attempts = attempts \+ 1/);
+assert.match(verificationRepairMigration,/existing\.expires_at > now\(\)/);
+assert.match(verificationRepairMigration,/attempts = challenge\.attempts \+ 1/);
+assert.match(verificationRepairMigration,/revoke all on function public\.laneriq_create_verification_challenge/);
+assert.match(verificationRepairMigration,/grant execute on function public\.laneriq_consume_verification_challenge.*to service_role/);
+
 assert.match(proxy,/PUBLIC_SERVER_ENDPOINTS/);
 assert.match(proxy,/"\/api\/auth\/verification\/request"/);
 assert.match(proxy,/"\/api\/auth\/verification\/verify"/);
@@ -124,4 +139,5 @@ console.log('✓ LANERIQ Communications core is provider-opaque with replaceable
 console.log('✓ Persistent atomic source/recipient cooldown-hour-day limits and idempotency run before delivery');
 console.log('✓ Communication and verification history store hashes/status only and are service-role protected');
 console.log('✓ Email OTP generation + verification are LANERIQ-owned with atomic one-use private-schema challenges');
+console.log('✓ Verification RPC output-column ambiguity is regression-gated and repair-migrated');
 console.log('✓ One-sentence Verification auto-setup remains Email + WhatsApp only with no paid SMS fallback');
