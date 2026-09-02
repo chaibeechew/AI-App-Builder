@@ -1,0 +1,365 @@
+/* LANERIQ AI Big Moon Valley data + automation shell.
+   Scope: Customer Data, Automations and Connections project-management surfaces only.
+   Database/versioning, dry-run semantics, provider readiness and SMS on-hold behavior are unchanged. */
+
+main.page:has(.heroCard):has(.badge),
+main.page:has(.safe):has(.presets),
+main.page:has(.explain):has(.security){
+  position:relative!important;
+  min-height:100svh!important;
+  padding:max(32px,env(safe-area-inset-top)) 18px max(98px,calc(76px + env(safe-area-inset-bottom)))!important;
+  overflow-x:hidden!important;
+  color:#f6fff9!important;
+  background:
+    linear-gradient(180deg,rgba(0,7,6,.02) 0%,rgba(0,8,7,.10) 24%,rgba(0,9,7,.73) 53%,rgba(0,8,7,.99) 100%),
+    url('/big-moon-valley.svg') 66% top/cover fixed no-repeat!important;
+}
+main.page:has(.heroCard):has(.badge)::before,
+main.page:has(.safe):has(.presets)::before,
+main.page:has(.explain):has(.security)::before{
+  content:''!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 77% 9%,rgba(255,221,122,.11),transparent 29%),
+    linear-gradient(90deg,rgba(0,10,8,.58),rgba(0,10,8,.03) 53%,rgba(0,10,8,.16))!important;
+}
+main.page:has(.heroCard):has(.badge)>.wrap,
+main.page:has(.safe):has(.presets)>.wrap,
+main.page:has(.explain):has(.security)>.wrap{
+  position:relative!important;
+  z-index:1!important;
+  width:min(1120px,100%)!important;
+  max-width:1120px!important;
+  margin:0 auto!important;
+  padding-top:clamp(145px,21svh,240px)!important;
+}
+
+/* Shared project navigation and typography. */
+main.page:has(.heroCard):has(.badge) .back,
+main.page:has(.safe):has(.presets) .back,
+main.page:has(.explain):has(.security) .back{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:1px solid rgba(235,198,93,.30)!important;
+  border-radius:999px!important;
+  padding:9px 13px!important;
+  background:rgba(3,24,18,.64)!important;
+  color:#f0cc68!important;
+  text-decoration:none!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.20)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.heroCard):has(.badge) .eyebrow,
+main.page:has(.safe):has(.presets) .eyebrow,
+main.page:has(.explain):has(.security) .eyebrow{
+  color:#f0cc68!important;
+  text-shadow:0 3px 16px rgba(0,0,0,.48)!important;
+}
+main.page:has(.heroCard):has(.badge) h1,
+main.page:has(.safe):has(.presets) h1,
+main.page:has(.explain):has(.security) h1{
+  color:#fff8df!important;
+  font-size:clamp(44px,6vw,70px)!important;
+  line-height:.98!important;
+  letter-spacing:-.045em!important;
+  text-shadow:0 13px 46px rgba(0,0,0,.56)!important;
+}
+main.page:has(.heroCard):has(.badge) p,
+main.page:has(.safe):has(.presets) .intro,
+main.page:has(.explain):has(.security) .intro{
+  color:#bdcec6!important;
+}
+
+/* Customer Data: familiar concepts, private schema and reversible versions. */
+main.page:has(.heroCard):has(.badge) header{
+  margin:22px 0 28px!important;
+  align-items:flex-start!important;
+}
+main.page:has(.heroCard):has(.badge) .badge{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(126,221,181,.27)!important;
+  background:rgba(16,67,48,.56)!important;
+  color:#a7e9c9!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+main.page:has(.heroCard):has(.badge) .heroCard,
+main.page:has(.heroCard):has(.badge) .panel,
+main.page:has(.heroCard):has(.badge) .empty,
+main.page:has(.heroCard):has(.badge) .summary article,
+main.page:has(.heroCard):has(.badge) .success,
+main.page:has(.heroCard):has(.badge) .error,
+main.page:has(.heroCard):has(.badge) .next{
+  border-color:rgba(235,198,93,.21)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.79),rgba(2,15,12,.91))!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.03)!important;
+  backdrop-filter:blur(25px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(25px) saturate(1.06)!important;
+}
+main.page:has(.heroCard):has(.badge) .heroCard{
+  border-radius:25px!important;
+}
+main.page:has(.heroCard):has(.badge) .heroCard h2,
+main.page:has(.heroCard):has(.badge) .panel h2,
+main.page:has(.heroCard):has(.badge) .entity h3,
+main.page:has(.heroCard):has(.badge) .summary strong{
+  color:#fff5da!important;
+}
+main.page:has(.heroCard):has(.badge) .heroCard small,
+main.page:has(.heroCard):has(.badge) .number,
+main.page:has(.heroCard):has(.badge) .summary strong{
+  color:#f0cc68!important;
+}
+main.page:has(.heroCard):has(.badge) .heroCard button,
+main.page:has(.heroCard):has(.badge) .history button{
+  min-height:48px!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676,#c58a28)!important;
+  color:#132018!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.24)!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.heroCard):has(.badge) .entity,
+main.page:has(.heroCard):has(.badge) .history>div{
+  border:1px solid rgba(255,255,255,.065)!important;
+  background:rgba(255,255,255,.043)!important;
+}
+main.page:has(.heroCard):has(.badge) .fields span{
+  border:1px solid rgba(255,255,255,.055)!important;
+  background:rgba(14,56,41,.72)!important;
+  color:#d0ded8!important;
+}
+main.page:has(.heroCard):has(.badge) .entity small,
+main.page:has(.heroCard):has(.badge) .sectionHead>span{
+  color:#a4e6c6!important;
+}
+main.page:has(.heroCard):has(.badge) .summary small,
+main.page:has(.heroCard):has(.badge) .rule,
+main.page:has(.heroCard):has(.badge) .history small,
+main.page:has(.heroCard):has(.badge) .next{
+  color:#9fb1aa!important;
+}
+main.page:has(.heroCard):has(.badge) .success{
+  border-color:rgba(126,221,181,.22)!important;
+  color:#abe9cc!important;
+}
+main.page:has(.heroCard):has(.badge) .error{
+  border-color:rgba(255,157,148,.20)!important;
+  color:#ffc0ba!important;
+}
+
+/* Automations: Safe Test remains a no-side-effect dry run. */
+main.page:has(.safe):has(.presets) .eyebrow{
+  margin-top:24px!important;
+}
+main.page:has(.safe):has(.presets) .safe,
+main.page:has(.safe):has(.presets) .grid article,
+main.page:has(.safe):has(.presets) .saved article,
+main.page:has(.safe):has(.presets) .run,
+main.page:has(.safe):has(.presets) .msg,
+main.page:has(.safe):has(.presets) .err{
+  border-color:rgba(235,198,93,.21)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.79),rgba(2,15,12,.91))!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.03)!important;
+  backdrop-filter:blur(25px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(25px) saturate(1.06)!important;
+}
+main.page:has(.safe):has(.presets) .safe{
+  border-color:rgba(126,221,181,.27)!important;
+  background:linear-gradient(145deg,rgba(14,64,46,.65),rgba(3,27,20,.88))!important;
+}
+main.page:has(.safe):has(.presets) .safe small,
+main.page:has(.safe):has(.presets) .safe>span,
+main.page:has(.safe):has(.presets) .saved span{
+  color:#a9eccb!important;
+}
+main.page:has(.safe):has(.presets) .safe>span{
+  min-height:40px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(126,221,181,.34)!important;
+  background:rgba(2,25,18,.44)!important;
+}
+main.page:has(.safe):has(.presets) .safe h2,
+main.page:has(.safe):has(.presets) .presets h2,
+main.page:has(.safe):has(.presets) .saved h2,
+main.page:has(.safe):has(.presets) .run h2,
+main.page:has(.safe):has(.presets) .grid h3{
+  color:#fff5da!important;
+}
+main.page:has(.safe):has(.presets) .safe p,
+main.page:has(.safe):has(.presets) .grid p,
+main.page:has(.safe):has(.presets) .grid article>div,
+main.page:has(.safe):has(.presets) .saved small,
+main.page:has(.safe):has(.presets) .run small{
+  color:#9fb1aa!important;
+}
+main.page:has(.safe):has(.presets) .grid button,
+main.page:has(.safe):has(.presets) .saved button{
+  min-height:46px!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676,#c58a28)!important;
+  color:#132018!important;
+  box-shadow:0 10px 26px rgba(0,0,0,.21)!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.safe):has(.presets) .run>div{
+  border-color:rgba(255,255,255,.075)!important;
+}
+main.page:has(.safe):has(.presets) .run .completed,
+main.page:has(.safe):has(.presets) .run .simulated{
+  color:#a7e9c9!important;
+}
+main.page:has(.safe):has(.presets) .run .integration_required{
+  color:#f0d486!important;
+}
+main.page:has(.safe):has(.presets) .msg{
+  border-color:rgba(126,221,181,.20)!important;
+  color:#abe9cc!important;
+}
+main.page:has(.safe):has(.presets) .err{
+  border-color:rgba(255,157,148,.20)!important;
+  color:#ffc0ba!important;
+}
+
+/* Connections: readiness truth stays server-owned; unavailable providers cannot be enabled. */
+main.page:has(.explain):has(.security) .project{
+  color:#f0cc68!important;
+}
+main.page:has(.explain):has(.security) .explain,
+main.page:has(.explain):has(.security) .grid article,
+main.page:has(.explain):has(.security) .security,
+main.page:has(.explain):has(.security) .msg,
+main.page:has(.explain):has(.security) .err{
+  border-color:rgba(235,198,93,.21)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.79),rgba(2,15,12,.91))!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.03)!important;
+  backdrop-filter:blur(25px) saturate(1.06)!important;
+  -webkit-backdrop-filter:blur(25px) saturate(1.06)!important;
+}
+main.page:has(.explain):has(.security) .explain{
+  border-color:rgba(126,221,181,.26)!important;
+  background:linear-gradient(145deg,rgba(14,64,46,.63),rgba(3,27,20,.88))!important;
+}
+main.page:has(.explain):has(.security) .explain small,
+main.page:has(.explain):has(.security) .explain>span,
+main.page:has(.explain):has(.security) .ready{
+  color:#a9eccb!important;
+}
+main.page:has(.explain):has(.security) .explain>span{
+  min-height:40px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(126,221,181,.32)!important;
+  background:rgba(2,25,18,.44)!important;
+}
+main.page:has(.explain):has(.security) .explain h2,
+main.page:has(.explain):has(.security) .top span{
+  color:#fff5da!important;
+}
+main.page:has(.explain):has(.security) .grid p,
+main.page:has(.explain):has(.security) .grid small{
+  color:#9fb1aa!important;
+}
+main.page:has(.explain):has(.security) .paused{
+  color:#f0d486!important;
+}
+main.page:has(.explain):has(.security) .waiting{
+  color:#a9b8b2!important;
+}
+main.page:has(.explain):has(.security) .grid button{
+  min-height:46px!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676,#c58a28)!important;
+  color:#132018!important;
+  box-shadow:0 10px 26px rgba(0,0,0,.21)!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.explain):has(.security) .grid button:disabled{
+  border-color:rgba(255,255,255,.08)!important;
+  background:rgba(255,255,255,.055)!important;
+  color:#83958d!important;
+  box-shadow:none!important;
+  opacity:1!important;
+}
+main.page:has(.explain):has(.security) .security,
+main.page:has(.explain):has(.security) .msg{
+  border-color:rgba(126,221,181,.20)!important;
+  color:#abe9cc!important;
+}
+main.page:has(.explain):has(.security) .err{
+  border-color:rgba(255,157,148,.20)!important;
+  color:#ffc0ba!important;
+}
+
+@media(max-width:800px){
+  main.page:has(.heroCard):has(.badge),
+  main.page:has(.safe):has(.presets),
+  main.page:has(.explain):has(.security){
+    background-position:64% top!important;
+    background-attachment:scroll!important;
+  }
+  main.page:has(.heroCard):has(.badge)>.wrap,
+  main.page:has(.safe):has(.presets)>.wrap,
+  main.page:has(.explain):has(.security)>.wrap{
+    padding-top:clamp(125px,18svh,185px)!important;
+  }
+  main.page:has(.heroCard):has(.badge) header,
+  main.page:has(.heroCard):has(.badge) .heroCard,
+  main.page:has(.safe):has(.presets) .safe,
+  main.page:has(.explain):has(.security) .explain{
+    flex-direction:column!important;
+    align-items:flex-start!important;
+  }
+  main.page:has(.heroCard):has(.badge) .grid,
+  main.page:has(.heroCard):has(.badge) .twoCol,
+  main.page:has(.safe):has(.presets) .grid{
+    grid-template-columns:1fr!important;
+  }
+  main.page:has(.heroCard):has(.badge) .heroCard button{
+    width:100%!important;
+  }
+}
+
+@media(max-width:560px){
+  main.page:has(.heroCard):has(.badge),
+  main.page:has(.safe):has(.presets),
+  main.page:has(.explain):has(.security){
+    padding-left:14px!important;
+    padding-right:14px!important;
+  }
+  main.page:has(.heroCard):has(.badge) .summary,
+  main.page:has(.explain):has(.security) .grid{
+    grid-template-columns:1fr!important;
+  }
+  main.page:has(.heroCard):has(.badge) .history>div,
+  main.page:has(.safe):has(.presets) .saved article{
+    flex-direction:column!important;
+    align-items:flex-start!important;
+  }
+  main.page:has(.heroCard):has(.badge) .history button,
+  main.page:has(.safe):has(.presets) .right,
+  main.page:has(.safe):has(.presets) .saved button{
+    width:100%!important;
+  }
+  main.page:has(.safe):has(.presets) .right{
+    justify-content:space-between!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  main.page:has(.heroCard):has(.badge) *,
+  main.page:has(.safe):has(.presets) *,
+  main.page:has(.explain):has(.security) *{
+    scroll-behavior:auto!important;
+  }
+}
