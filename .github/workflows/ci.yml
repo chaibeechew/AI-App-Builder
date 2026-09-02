@@ -99,6 +99,8 @@ jobs:
         run: npm run test:i18n
       - name: Account and Session Safety contract tests
         run: npm run test:account
+      - name: LANERIQ Session Authority 100 contract tests
+        run: npm run test:session-authority
       - name: Email OTP contract tests
         run: npm run test:email-otp
       - name: WhatsApp Auth contract tests
@@ -189,5 +191,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI one-app Soolen Platform Operator, Pro Edit-on-demand, Communications 100, secure verification, provider-opaque infrastructure, runtime, structural readiness and production build gates passed. External live-provider delivery/store evidence remains evidence-gated."
+        run: echo "LANERIQ AI one-app Soolen Platform Operator, LANERIQ-owned Email Verification + primary Session Authority, Pro Edit-on-demand, Communications 100, provider-opaque infrastructure, runtime, structural readiness and production build gates passed. External live-provider delivery/store evidence remains evidence-gated."
       # This workflow validates code only. It never substitutes code for authenticated live, physical-device, provider, malware-scanner or store evidence.

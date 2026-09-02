@@ -13,35 +13,43 @@ import {
 export default function AccountNav() {
   const router = useRouter();
   const rootRef = useRef(null);
-  const [supabase, setSupabase] = useState(null);
   const [user, setUser] = useState(null);
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState("");
 
   useEffect(() => {
-    const client = createClient();
-    setSupabase(client);
+    const compatibilityClient = createClient();
     let mounted = true;
     let redirecting = false;
 
     const redirectSignedOutProtectedPage = () => {
       if (redirecting || isPublicAccountPath(window.location.pathname)) return;
       redirecting = true;
+      try { clearPrivateSessionStorage(window.sessionStorage); } catch {}
       const next = protectedReturnPath(window.location.pathname, window.location.search);
       window.location.replace(`/auth?next=${encodeURIComponent(next)}`);
     };
 
     const refreshUser = async () => {
       try {
-        const { data, error } = await client.auth.getUser();
+        const response = await fetch("/api/auth/session", { method: "GET", cache: "no-store", credentials: "same-origin" });
+        const session = await response.json().catch(() => ({}));
         if (!mounted) return;
-        if (error || !data?.user) {
+        if (!response.ok || session?.authenticated !== true || session?.sessionAuthority !== "laneriq" || !session?.user?.id) {
           setUser(null);
           redirectSignedOutProtectedPage();
           return;
         }
-        setUser(data.user);
+
+        // LANERIQ is the authentication truth. The old provider may temporarily enrich
+        // the display name while existing profile/data access is being migrated.
+        let nextUser = { id: session.user.id };
+        try {
+          const { data, error } = await compatibilityClient.auth.getUser();
+          if (!error && data?.user?.id === session.user.id) nextUser = data.user;
+        } catch {}
+        if (mounted) setUser(nextUser);
       } catch {
         if (mounted) {
           setUser(null);
@@ -50,21 +58,12 @@ export default function AccountNav() {
       }
     };
 
-    refreshUser();
-    const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return;
-      setUser(session?.user || null);
-      if (event === "SIGNED_OUT" || !session) {
-        try { clearPrivateSessionStorage(window.sessionStorage); } catch {}
-        redirectSignedOutProtectedPage();
-      }
-    });
-
+    void refreshUser();
     const close = (event) => {
       if (rootRef.current && !rootRef.current.contains(event.target)) setOpen(false);
     };
-    const revalidate = () => refreshUser();
-    const onVisibility = () => { if (document.visibilityState === "visible") refreshUser(); };
+    const revalidate = () => { void refreshUser(); };
+    const onVisibility = () => { if (document.visibilityState === "visible") void refreshUser(); };
 
     document.addEventListener("pointerdown", close);
     window.addEventListener("pageshow", revalidate);
@@ -75,18 +74,24 @@ export default function AccountNav() {
       document.removeEventListener("pointerdown", close);
       window.removeEventListener("pageshow", revalidate);
       document.removeEventListener("visibilitychange", onVisibility);
-      authListener?.subscription?.unsubscribe?.();
     };
   }, []);
 
   async function signOut() {
-    if (!supabase || signingOut) return;
+    if (signingOut) return;
     setSigningOut(true);
     setSignOutError("");
     setOpen(false);
     try {
-      const { error } = await supabase.auth.signOut({ scope: "local" });
-      if (error) throw error;
+      const response = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        credentials: "same-origin",
+        body: JSON.stringify({ action: "logout" }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success !== true || data?.sessionAuthority !== "laneriq") throw new Error("LANERIQ logout failed");
       try { clearPrivateSessionStorage(window.sessionStorage); } catch {}
       window.location.replace("/auth");
     } catch {

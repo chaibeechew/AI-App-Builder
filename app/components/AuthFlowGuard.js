@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { createClient } from "../../lib/supabase/client";
 import { normalizeReferralCode, safeInternalNext } from "../../lib/auth/session-safety.js";
 
 export default function AuthFlowGuard() {
@@ -58,22 +57,29 @@ export default function AuthFlowGuard() {
     const observer = new MutationObserver(refreshBrandMark);
     observer.observe(document.documentElement, { childList: true, subtree: true });
 
-    const supabase = createClient();
-    const goNext = async (session) => {
-      if (!session || redirected || disposed || window.__LANERIQ_AUTH_FLOW_BUSY__ === true) return;
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data?.user || redirected || disposed || window.__LANERIQ_AUTH_FLOW_BUSY__ === true) return;
-      redirected = true;
-      window.location.replace(next);
+    const checkLaneriqSession = async () => {
+      if (redirected || disposed || window.__LANERIQ_AUTH_FLOW_BUSY__ === true) return;
+      try {
+        const response = await originalFetch("/api/auth/session", { method: "GET", cache: "no-store", credentials: "same-origin" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data?.authenticated !== true || data?.sessionAuthority !== "laneriq") return;
+        if (redirected || disposed || window.__LANERIQ_AUTH_FLOW_BUSY__ === true) return;
+        redirected = true;
+        window.location.replace(next);
+      } catch {}
     };
 
-    supabase.auth.getSession().then(({ data }) => { void goNext(data?.session); }).catch(() => {});
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => { void goNext(session); });
+    void checkLaneriqSession();
+    const onPageShow = () => { void checkLaneriqSession(); };
+    const onVisibility = () => { if (document.visibilityState === "visible") void checkLaneriqSession(); };
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       disposed = true;
       observer.disconnect();
-      authListener?.subscription?.unsubscribe?.();
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisibility);
       if (!referral) window.fetch = originalFetch;
     };
   }, []);
