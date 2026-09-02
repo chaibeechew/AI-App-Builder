@@ -11,6 +11,7 @@
     "test:brand": "node scripts/product-brand-tests.mjs",
     "test:release": "node scripts/release-policy-tests.mjs",
     "test:security": "node scripts/security-contract-tests.mjs",
+    "test:soolenai-security-max": "node scripts/soolenai-max-security-contract-tests.mjs",
     "test:credits": "node scripts/credits-contract-tests.mjs",
     "test:pro": "node scripts/pro-mode-contract-tests.mjs",
     "test:zero-cost": "node scripts/zero-cost-readiness-contract-tests.mjs",
@@ -62,7 +63,7 @@
     "test:content-pipeline": "node scripts/content-production-pipeline-tests.mjs",
     "test:complete-game": "node scripts/complete-game-creation-tests.mjs",
     "test:hardening-1000": "npm run test:publishing-readiness && npm run test:seo && npm run test:vercel-budget && npm run test:project-readiness && npm run test:mobile-game && npm run test:aaa-mobile && npm run test:advanced-3d && npm run test:advanced-genres && npm run test:content-pipeline && npm run test:complete-game",
-    "test:next-hardening-1000": "npm run test:sms-auth && npm run test:mobile-ui && npm run test:mobile-performance && npm run test:mobile-readiness && npm run test:voice && npm run test:google-play && npm run test:app-e2e-code && npm run test:website-e2e-code && npm run test:combined-e2e-code && npm run test:production-e2e-evidence && npm run test:web-publish-public && npm run test:web-publish-evidence && npm run test:upload-ref-mobile && npm run test:production-public",
+    "test:next-hardening-1000": "npm run test:soolenai-security-max && npm run test:sms-auth && npm run test:mobile-ui && npm run test:mobile-performance && npm run test:mobile-readiness && npm run test:voice && npm run test:google-play && npm run test:app-e2e-code && npm run test:website-e2e-code && npm run test:combined-e2e-code && npm run test:production-e2e-evidence && npm run test:web-publish-public && npm run test:web-publish-evidence && npm run test:upload-ref-mobile && npm run test:production-public",
     "test:hardening-2000": "npm run test:hardening-1000 && npm run test:next-hardening-1000"
   },
   "dependencies": {

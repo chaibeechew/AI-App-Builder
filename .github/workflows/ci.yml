@@ -59,6 +59,8 @@ jobs:
         run: npm run test:release
       - name: Security and ownership contract tests
         run: npm run test:security
+      - name: SoolenAI Secure-by-Default MAX contract tests
+        run: npm run test:soolenai-security-max
       - name: Credits and entitlement contract tests
         run: npm run test:credits
       - name: Pro Mode contract tests
@@ -171,5 +173,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI core gates plus zero-cost safety/execution, mobile diagnostics, authenticated Production E2E evidence, public Web Publish runtime security, user-triggered Web Publish lifecycle evidence safety and two 1000-point hardening packs passed. External physical-device/provider/store proof remains evidence-gated."
-      # This workflow validates code only. It never substitutes code for authenticated live, physical-device, provider or store evidence.
+        run: echo "LANERIQ AI core gates plus SoolenAI Secure-by-Default MAX, zero-cost safety/execution, mobile diagnostics, authenticated Production E2E evidence, public Web Publish runtime security, user-triggered Web Publish lifecycle evidence safety and two 1000-point hardening packs passed. External physical-device/provider/store/malware-scanner proof remains evidence-gated."
+      # This workflow validates code only. It never substitutes code for authenticated live, physical-device, provider, malware-scanner or store evidence.
