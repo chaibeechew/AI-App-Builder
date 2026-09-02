@@ -12,6 +12,7 @@ import {
 
 const authPage = await readFile(new URL("../app/auth/page.js", import.meta.url), "utf8");
 const requestRoute = await readFile(new URL("../app/api/auth/verification/request/route.js", import.meta.url), "utf8");
+const sessionRoute = await readFile(new URL("../app/api/auth/session/route.js", import.meta.url), "utf8");
 const proxy = await readFile(new URL("../lib/supabase/proxy.js", import.meta.url), "utf8");
 
 assert.equal(EMAIL_OTP_POLICY.codeLength, 8, "Email OTP must stay at the configured 8-digit contract.");
@@ -47,7 +48,14 @@ assert.match(authPage, /otp\.length !== policy\.codeLength/);
 assert.match(authPage, /slice\(0, policy\.codeLength\)/);
 assert.match(authPage, /autoComplete="one-time-code"/);
 assert.match(authPage, /inputMode="numeric"/);
-assert.match(authPage, /supabase\.auth\.getUser\(\)/);
+assert.match(authPage, /readLaneriqSession\(\)/);
+assert.match(authPage, /upgradeVerifiedCompatibilitySession\(\)/);
+assert.match(authPage, /action:\s*"upgrade_verified_compatibility"/);
+assert.match(authPage, /sessionData\?\.sessionAuthority !== "laneriq"/);
+assert.doesNotMatch(authPage, /supabase\.auth\.getUser\(\)/);
+const whatsappVerifyIndex=authPage.indexOf('supabase.auth.verifyOtp({ phone:');
+const upgradeIndex=authPage.indexOf('await upgradeVerifiedCompatibilitySession()');
+assert.ok(whatsappVerifyIndex>=0&&upgradeIndex>whatsappVerifyIndex,"WhatsApp compatibility OTP must succeed before LANERIQ primary session upgrade.");
 assert.match(authPage, /safeInternalNext\(searchParams\.get\("next"\)\)/);
 assert.match(authPage, /window\.__LANERIQ_AUTH_FLOW_BUSY__ = true/);
 assert.match(authPage, /WhatsApp Code/);
@@ -67,12 +75,29 @@ assert.match(requestRoute, /requestLaneriqEmailVerification/);
 assert.match(requestRoute, /shouldCreateUser:true/);
 assert.match(requestRoute, /VERIFICATION_RATE_LIMIT/);
 assert.match(requestRoute, /platformFee:0/);
+
+assert.match(sessionRoute, /FRESH_COMPATIBILITY_SIGN_IN_MS=5\*60\*1000/);
+assert.match(sessionRoute, /action==="upgrade_verified_compatibility"/);
+assert.match(sessionRoute, /requireFreshSignIn:true/);
+assert.match(sessionRoute, /user\.last_sign_in_at/);
+assert.match(sessionRoute, /FRESH_VERIFICATION_REQUIRED/);
+assert.match(sessionRoute, /sessionAuthority:"laneriq"/);
+assert.match(sessionRoute, /compatibilityBridge:"legacy_data_access_transition"/);
+assert.doesNotMatch(sessionRoute, /compatibilityBridge:"supabase/i);
+const primaryModeGate=sessionRoute.indexOf('if(isLaneriqPrimarySessionMode(mode))');
+const passiveLegacyFallback=sessionRoute.indexOf('const migrated=await mintFromCompatibilityIdentity();');
+assert.ok(primaryModeGate>=0&&passiveLegacyFallback>primaryModeGate,"A LANERIQ-primary browser must reject passive stale compatibility fallback.");
+
 assert.match(proxy, /"\/api\/auth\/verification\/request"/);
 assert.match(proxy, /"\/api\/auth\/verification\/verify"/);
+assert.match(proxy, /"\/api\/auth\/session"/);
+assert.match(proxy, /validateLaneriqSessionToken\(laneriqToken\)/);
+assert.match(proxy, /isLaneriqPrimarySessionMode\(laneriqMode\)/);
 assert.doesNotMatch(proxy, /pathname\.startsWith\("\/api\/auth/);
 
 console.log("✓ Email Code and Meta WhatsApp Code remain the only customer verification choices");
-console.log("✓ Email OTP generation/verification is LANERIQ-owned while WhatsApp keeps the current compatibility authority");
+console.log("✓ Email OTP is LANERIQ-owned; WhatsApp keeps the current internal compatibility OTP authority then upgrades to LANERIQ Session");
 console.log("✓ WhatsApp phone numbers are E.164-normalized and unsafe/local-only formats fail closed");
+console.log("✓ Fresh WhatsApp verification is required before explicit LANERIQ primary-session upgrade; stale compatibility cookies cannot passively resurrect auth");
 console.log("✓ Verification requests pass through LANERIQ persistent fair-use/idempotency guard before delivery");
 console.log("✓ Customer SMS fallback remains disabled");
