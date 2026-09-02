@@ -80,7 +80,7 @@ assert.match(orchestrator,/service:"LANERIQ Verification"/);
 assert.match(orchestrator,/autoSetup:true/);
 assert.match(orchestrator,/providerOpaque:true/);
 assert.match(orchestrator,/paidSmsFallback:false/);
-assert.match(orchestrator,/launchYearPlatformFee:0/);
+assert.match(orchestrator,/pricing:\{launchYearMonths:12,customerPlatformFee:0,currency:"MYR",autoChargeCustomer:false,fairUse:true\}/);
 assert.match(auth,/Email Code/);
 assert.match(auth,/WhatsApp Code/);
 assert.match(auth,/No paid SMS fallback is used/);
