@@ -16,6 +16,15 @@ assert.match(layout,/import "\.\/home-big-moon-valley\.css";/,'Big Moon Valley f
 assert.match(layout,/href="\/big-moon-valley\.svg"/,'Big Moon Valley must remain the first-paint preload');
 assert.match(homeCss,/url\('\/big-moon-valley\.svg'\)/,'Homepage final background must use Big Moon Valley');
 assert.match(homeCss,/styleRail button:first-child i/,'Cinematic thumbnail must be aligned with Big Moon Valley');
+assert.match(homeCss,/min-height:clamp\(500px,62svh,720px\)/,'Wide-screen hero must reserve cinematic landscape space');
+assert.match(homeCss,/padding:clamp\(170px,26vh,300px\) 0 42px/,'Wide-screen copy must sit below the moon visual zone');
+assert.match(homeCss,/width:min\(760px,100%\)/,'Creator controls must stay in a narrower glass column');
+assert.match(homeCss,/backdrop-filter:blur\(26px\) saturate\(1\.08\)/,'Desktop creator surfaces must retain premium glass depth');
+assert.match(homeCss,/@media\(max-width:520px\)/,'Dedicated phone composition is required');
+assert.match(homeCss,/min-height:clamp\(455px,64svh,590px\)/,'Phone hero must preserve a large landscape cover zone');
+assert.match(homeCss,/padding:clamp\(260px,42svh,355px\) 2px 26px/,'Phone title must start beneath the moon instead of covering it');
+assert.match(homeCss,/env\(safe-area-inset-top\)/,'Phone composition must respect the top safe area');
+assert.match(homeCss,/env\(safe-area-inset-bottom\)/,'Phone composition must respect the bottom safe area');
 assert.match(engine,/HOME_SIGNATURE_PRESET="moon-city"/,'Compatibility preset id must stay stable');
 assert.match(engine,/function homeSignatureSurface\(/,'Homepage must explicitly identify its signature surface');
 assert.match(engine,/!homeSignatureSurface\(\)&&saved/,'A saved wallpaper must not override a fresh homepage visit');
@@ -30,3 +39,5 @@ assert.match(asset,/<path d="M680 1100 C710 1015/,'Signature asset must retain t
 console.log('✓ Big Moon Valley is locked as LANERIQ AI homepage first paint and fresh-session signature scene');
 console.log('✓ Saved wallpaper preferences cannot silently replace the homepage signature on reload');
 console.log('✓ Cinematic style preview, runtime preset and static first paint remain visually aligned');
+console.log('✓ Homepage composition protects the moon/valley visual zone and moves the glass creator console below it');
+console.log('✓ Phone composition preserves safe areas and keeps the hero title beneath the oversized moon');
