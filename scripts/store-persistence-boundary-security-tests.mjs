@@ -73,7 +73,7 @@ assert.match(save,/readBoundedStoreJson/,"Store save must parse through bounded 
 assert.match(save,/STORE_METADATA_SAVE_MAX_BYTES/,"Store save must preserve its explicit request-size budget.");
 assert.match(save,/private, no-store, max-age=0/,"Store save must return private no-store responses.");
 assert.doesNotMatch(save,/lib\/supabase\/|@supabase\/|createAdminClient/,"Store save route must not directly import or receive provider admin access.");
-assert.ok(save.indexOf("getBuilderPrincipal({requireVerified:true})")<save.indexOf("readBoundedStoreJson"),"Store save must authenticate before parsing/mutation work.");
+assert.ok(save.indexOf("getBuilderPrincipal({requireVerified:true})")<save.indexOf("const parsed=await readBoundedStoreJson"),"Store save must authenticate before parsing/mutation work.");
 
 assert.match(draft,/sanitizeStoreDraftInput/);
 assert.match(draft,/customerAnsweredFields: Object\.keys\(customerAnswers\)/);
