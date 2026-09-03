@@ -34,6 +34,8 @@ jobs:
         run: node scripts/outcome-intelligence-release-gate-tests.mjs
       - name: Batch 36b executable quality loop contract
         run: node scripts/batch36b-executable-quality-loop-tests.mjs
+      - name: Batch 37 replan reduction contract
+        run: node scripts/batch37-replan-reduction-tests.mjs
       - name: Execute 50-industry zero-cost full-pipeline generation sample
         run: node scripts/release-quality-generation-sample.mjs
       - name: Build runtime integration
