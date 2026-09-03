@@ -34,7 +34,7 @@ assert.equal(Object.keys(answers).some(key=>key.startsWith("junk_")),false);
 const listing=sanitizeStoreListingPayload({
   apple:{name:"Demo",description:"A".repeat(9000),unknown:{nested:"drop"}},
   googlePlay:{title:"Demo",fullDescription:"B".repeat(9000),dataSafety:{collectsData:true,sharesData:false,unknown:{deep:"drop"}}},
-  checklist:Array.from({length:100},(_,i)=>({field:`Field ${i}`,required:true,value:"v".repeat(900),unknown:"drop"})),
+  checklist:Array.from({length:100},(_,i)=>({field:`Field ${i}`,required:true,value:i===0?"v".repeat(900):"ok",unknown:"drop"})),
 });
 assert.equal(listing.apple.description.length,4000);
 assert.equal(listing.googlePlay.fullDescription.length,4000);
@@ -43,6 +43,11 @@ assert.equal(listing.checklist[0].value.length,600);
 assert.equal("unknown" in listing.apple,false);
 assert.equal("unknown" in listing.googlePlay.dataSafety,false);
 assert.equal("unknown" in listing.checklist[0],false);
+assert.throws(()=>sanitizeStoreListingPayload({
+  apple:{description:"A".repeat(9000)},
+  googlePlay:{fullDescription:"B".repeat(9000)},
+  checklist:Array.from({length:40},(_,i)=>({field:`Field ${i}`,required:true,value:"v".repeat(900)})),
+}),/STORE_LISTING_TOO_LARGE/,"Normalized listing must fail closed when the persisted JSON still exceeds the 24 KB storage budget.");
 
 const oversized=new Request("https://laneriq.invalid/api/store-metadata",{method:"POST",headers:{"content-type":"application/json","content-length":String(STORE_METADATA_DRAFT_MAX_BYTES+1)},body:"{}"});
 const oversizedResult=await readBoundedStoreJson(oversized,STORE_METADATA_DRAFT_MAX_BYTES);
@@ -98,7 +103,6 @@ for(const pattern of [
 ])assert.match(agent,pattern);
 assert.doesNotMatch(agent,/memory_json:\{\.\.\.memory,storePublishingDeclarations:declarations\}/,"Publishing declarations must re-sanitize the full memory object before persistence.");
 
-// Production workflow must keep exact-SHA store-boundary HTTP proof chained before browser emulation.
 for(const pattern of [/LANERIQ_EXPECTED_SHA:/,/production-store-boundary-qa\.mjs/,/production-mobile-browser-qa\.mjs/])assert.match(productionWorkflow,pattern);
 assert.ok(productionWorkflow.indexOf("production-store-boundary-qa.mjs")<productionWorkflow.indexOf("production-mobile-browser-qa.mjs"),"Store-boundary Production proof must run before browser-emulation QA.");
 
