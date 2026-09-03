@@ -1,6 +1,6 @@
 const crypto=require("node:crypto");
 
-const ROUTE_PATH="/api/dispatch";
+const ROUTE_PATH="/api/communications/v1/dispatch";
 const MAX_BODY_BYTES=65536;
 const MAX_CLOCK_SKEW_SECONDS=300;
 const ID_PATTERN=/^[A-Za-z0-9._:-]{1,180}$/;
