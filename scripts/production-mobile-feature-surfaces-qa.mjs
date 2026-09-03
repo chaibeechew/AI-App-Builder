@@ -21,6 +21,18 @@ function assertAtLeast44(value,label){
   assert(Number(value)>=44,`${label} ${value}px is below 44px`);
 }
 
+async function verifyProtectedDesignEntry(page,entryUrl,label){
+  await page.goto(entryUrl,{waitUntil:"domcontentloaded",timeout:45000});
+  await page.waitForURL(url=>url.pathname==="/auth",{timeout:20000});
+  await page.waitForLoadState("networkidle",{timeout:20000}).catch(()=>{});
+  const finalUrl=new URL(page.url());
+  assert.equal(finalUrl.pathname,"/auth",`${label} must finish at protected /auth`);
+  const next=String(finalUrl.searchParams.get("next")||"");
+  assert(next.startsWith("/design-studio"),`${label} must preserve /design-studio as the protected return path, got ${next||"empty"}`);
+  assert.equal(await page.getByText("LIUI · DESIGN STUDIO",{exact:false}).count(),0,`${label} must not expose protected Design Studio content before authentication`);
+  return{finalPath:finalUrl.pathname,next,protectedContentHidden:true};
+}
+
 const buildInfo=await verifyBuild();
 const matrix=[
   {id:"webkit-iphone13",label:"WebKit · iPhone 13",browserType:webkit,device:devices["iPhone 13"]},
@@ -33,6 +45,9 @@ for(const entry of matrix){
   const context=await browser.newContext({...entry.device,locale:"en-MY",timezoneId:"Asia/Kuala_Lumpur",colorScheme:"dark"});
   const page=await context.newPage();
   try{
+    const directDesignIsolation=await verifyProtectedDesignEntry(page,`${baseUrl}/design-studio`,`${entry.label} direct Design UI entry`);
+    const legacyDesignIsolation=await verifyProtectedDesignEntry(page,`${baseUrl}/image-studio?mode=design`,`${entry.label} legacy Design UI entry`);
+
     const response=await page.goto(`${baseUrl}/templates`,{waitUntil:"domcontentloaded",timeout:45000});
     assert.equal(response?.status(),200,`${entry.label} /templates must return 200`);
     await page.waitForLoadState("networkidle",{timeout:20000}).catch(()=>{});
@@ -101,7 +116,8 @@ for(const entry of matrix){
       id:entry.id,
       label:entry.label,
       evidenceLevel:"BROWSER_EMULATION",
-      publicIsolation:{accountHidden:true,voiceHidden:true,uploadRefHidden:true,studioHidden:true},
+      designUi:{directEntry:directDesignIsolation,legacyEntry:legacyDesignIsolation,authenticatedDesignStudioVerified:false},
+      publicIsolation:{accountHidden:true,voiceHidden:true,uploadRefHidden:true,studioHidden:true,designUiHiddenBeforeAuth:true},
       cssProbe:{touchTargetsAtLeast44:true,voiceInputFontAtLeast16:true,uploadRefViewportRuleActive:true,noHorizontalOverflow:true},
       account:{authenticatedAccountSurfaceVerified:false,logoutInteractionExercised:false},
       voiceIdea:{componentRendered:false,openInteractionExercised:false,microphoneCaptureExercised:false,speechRecognitionResultVerified:false},
@@ -110,13 +126,13 @@ for(const entry of matrix){
       permissionActionsExercised:false,
       passed:true,
     });
-    console.log(`✓ ${entry.label}: public Account/Voice/Upload Ref/Studio isolation and deployed mobile CSS probes passed`);
+    console.log(`✓ ${entry.label}: Design UI protected-route isolation, public feature isolation and deployed mobile CSS probes passed`);
   }finally{
     await context.close();
     await browser.close();
   }
 }
 
-await fs.writeFile(path.join(artifactDir,"feature-surfaces-report.json"),`${JSON.stringify({featureEvidenceVersion:3,evidenceLevel:"BROWSER_EMULATION",physicalDeviceVerified:false,authenticatedFeatureSurfacesVerified:false,authenticatedActionsExercised:false,permissionActionsExercised:false,productionUrl:baseUrl,buildInfo,generatedAt:new Date().toISOString(),results},null,2)}\n`,"utf8");
-console.log("✓ Production browser evidence proves signed-out public isolation plus deployed CSS constraints; it does not pretend protected feature controls were rendered or clicked");
-console.log("✓ Authenticated Account/Logout, protected Voice/Upload Ref rendering, physical iPhone microphone capture and Photos/Camera picker behavior remain separate LIVE/device-evidence gates");
+await fs.writeFile(path.join(artifactDir,"feature-surfaces-report.json"),`${JSON.stringify({featureEvidenceVersion:4,evidenceLevel:"BROWSER_EMULATION",physicalDeviceVerified:false,authenticatedFeatureSurfacesVerified:false,authenticatedDesignStudioVerified:false,authenticatedActionsExercised:false,permissionActionsExercised:false,productionUrl:baseUrl,buildInfo,generatedAt:new Date().toISOString(),results},null,2)}\n`,"utf8");
+console.log("✓ Production browser evidence proves signed-out Design UI protection, public isolation plus deployed CSS constraints; it does not pretend protected feature controls were rendered or clicked");
+console.log("✓ Authenticated Design Studio interaction, Account/Logout, protected Voice/Upload Ref rendering, physical iPhone microphone capture and Photos/Camera picker behavior remain separate LIVE/device-evidence gates");

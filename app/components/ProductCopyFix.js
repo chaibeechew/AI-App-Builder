@@ -16,18 +16,31 @@ const REPLACEMENTS=[
 ];
 function rewrite(value){let next=String(value||"");for(const [pattern,replacement] of REPLACEMENTS)next=next.replace(pattern,replacement);return next;}
 
+function upgradeApprovedHomeCreativeEntries(home){
+  const designLink=home.querySelector('.featureCards a[href="/image-studio?mode=design"],.featureCards a[href="/design-studio"]');
+  if(!designLink)return;
+  designLink.setAttribute("href","/design-studio");
+  designLink.setAttribute("aria-label","Design App and Website UI concepts");
+  const title=designLink.querySelector("b");
+  const description=designLink.querySelector("span");
+  if(title)title.textContent="Design UI";
+  if(description)description.textContent="Explore App & Website interface directions";
+  designLink.dataset.laneriqDesignUiEntry="1";
+}
+
 export default function ProductCopyFix(){
   useLayoutEffect(()=>{
     const fix=()=>{
       const home=document.querySelector(".premiumHome");
       const approvedHome=Boolean(home);
 
-      /* The homepage now has a dedicated final CSS authority. Do not rewrite its
-         React-owned DOM or re-enable the retired laneriqHomeV3 layer. On iPhone,
-         the old class plus the signature pseudo-copy produced duplicate hero text,
-         conflicting glass styles and repeated whole-body MutationObserver work. */
+      /* The homepage now has a dedicated final CSS authority. Do not broadly rewrite its
+         React-owned DOM or re-enable the retired laneriqHomeV3 layer. We only normalize
+         the Design UI creative entry here so its accessible text and direct route match
+         the LIUI product behavior instead of relying on a visual pseudo-element override. */
       if(approvedHome){
         home.classList.remove("laneriqHomeV3");
+        upgradeApprovedHomeCreativeEntries(home);
         document.documentElement.dataset.productBrandReady="1";
         return;
       }
