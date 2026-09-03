@@ -1,0 +1,7 @@
+{
+  "name":"@laneriq/memory-service",
+  "version":"1.0.0",
+  "private":true,
+  "engines":{"node":">=22"},
+  "scripts":{"test":"node test/contract.mjs"}
+}
