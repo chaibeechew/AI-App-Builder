@@ -10,6 +10,8 @@ const root=process.cwd();
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const generate=read('app/api/generate/route.js');
 const modify=read('app/api/modify/route.js');
+const builderDomain=read('lib/cloud/builder-projects.js');
+const builderAdapter=read('lib/cloud-adapters/builder-project-data.js');
 const policy=read('lib/ai/project-self-heal-policy.js');
 
 const qualityPlan={
@@ -39,8 +41,6 @@ assert.equal(badData.checkResults.data_contracts.passed,false);
 const secretField=inspectProjectSpecification({...base,data:{Customer:{fields:['name','api_key']}}});
 assert.equal(secretField.checkResults.ownership_permissions.passed,false);
 
-// Canonical LANERIQ metadata may contain secret-like words without carrying credential material.
-// Those exact labels must survive Self-Heal, while arbitrary nested credential-like fields remain fail-closed.
 const securedBase=applySoolenMaxSecurity(base);
 const securedReport=inspectProjectSpecification(securedBase);
 assert.equal(securedReport.checkResults.ownership_permissions.passed,true,`Canonical MAX metadata must not self-block: ${JSON.stringify(securedReport.issues)}`);
@@ -85,10 +85,12 @@ assert.match(generate,/sandboxVerified:status==="verified"/);
 assert.match(generate,/requiredForGeneration:false/);
 assert.match(generate,/requiredBeforeSourceRelease:true/);
 assert.doesNotMatch(generate,/if\(adult\.status!=="verified"\)throw new Error/,'External source sandbox availability must not replace deterministic specification verification.');
-assert.match(generate,/server_persist_generated_project/);
-assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('server_persist_generated_project'),'Create must finish final verification before atomic App + Website persistence.');
+assert.match(generate,/persistBuilderGeneratedProject/);
+assert.match(builderDomain,/persistBuilderGeneratedProject/);
+assert.match(builderAdapter,/server_persist_generated_project/);
+assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('persistBuilderGeneratedProject'),'Create must finish final verification before LANERIQ Cloud App + Website persistence.');
 
-// Modify path: quality regression repair + self-heal revalidation happen before atomic version persistence.
+// Modify path: quality regression repair + self-heal revalidation happen before Cloud atomic version persistence.
 assert.match(modify,/function qualityRegressed/);
 assert.match(modify,/AI quality repair/);
 assert.match(modify,/if\(qualityRegressed\(currentQuality,repaired\.quality\)\)throw new Error/);
@@ -96,10 +98,11 @@ assert.match(modify,/if\(!candidate\.selfHeal\.passed\)/);
 assert.match(modify,/AI self-heal/);
 assert.match(modify,/if\(!healed\.selfHeal\.passed\)throw new Error/);
 assert.match(modify,/if\(qualityRegressed\(currentQuality,healed\.quality\)\)throw new Error/);
-assert.ok(modify.indexOf('if(!candidate.selfHeal.passed)') < modify.indexOf('server_save_app_modification'),'Self-heal must complete before version persistence.');
+assert.match(modify,/saveBuilderModification/);
+assert.match(builderAdapter,/server_save_app_modification/);
+assert.ok(modify.indexOf('if(!candidate.selfHeal.passed)') < modify.indexOf('saveBuilderModification'),'Self-heal must complete before Cloud version persistence.');
 assert.match(modify,/PREVIOUS KNOWN-GOOD SPECIFICATION/);
 
-// Policy must visibly implement every declared category rather than only listing names.
 for(const id of required)assert.match(policy,new RegExp(`add\\("${id}"|checkResults\\[check\\]|${id}`));
 assert.match(policy,/assessBuildQuality/);
 assert.match(policy,/Explicit min-width|Explicit \$\{key\}/i);
@@ -113,7 +116,7 @@ assert.match(policy,/Accessibility is explicitly disabled/i);
 console.log('✓ All 10 declared Self-Heal categories have executable deterministic checks');
 console.log('✓ Raw missing-page output is detected before normalization can hide the structural failure');
 console.log('✓ Canonical MAX/design metadata survives Self-Heal while nested credential-like fields remain fail-closed');
-console.log('✓ Create performs autonomous repair plus final deterministic verification before atomic App + Website persistence');
+console.log('✓ Create performs autonomous repair plus final deterministic verification before LANERIQ Cloud App + Website persistence');
 console.log('✓ Source sandbox evidence remains truthful and separate from verified specification persistence');
 console.log('✓ Modify blocks quality regression, re-verifies self-heal output and saves only after the candidate passes');
 console.log('✓ Unsafe routes, overflow, data contracts, credential fields, media and explicit accessibility failures are fail-closed');
