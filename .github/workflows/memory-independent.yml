@@ -24,6 +24,6 @@ jobs:
       - name: Verify standalone memory service
         run: node services/memory/test/contract.mjs
       - name: Verify existing Project Memory contracts
-        run: npm run test:project-memory
+        run: npm run test:memory
       - name: Build Next.js host
         run: npm run build
