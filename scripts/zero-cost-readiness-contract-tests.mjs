@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 
 import {
   assertZeroCostProvider,
@@ -9,6 +10,7 @@ import {
 } from "../lib/soolen/cost-policy.js";
 import { resolveSoolenCapabilities } from "../lib/soolen/capability-registry.js";
 
+const capabilityRoute=fs.readFileSync("app/api/soolenai/capabilities/route.js","utf8");
 const hostileZeroEnv = {
   SOOLEN_COST_MODE: "zero",
   SOOLEN_ZERO_COST_PROVIDERS: "mystery-cloud,openai,gemini,ollama,soolen-local,ollama",
@@ -104,7 +106,28 @@ for (const id of ["premium-image-studio", "premium-video-studio", "live-web-rese
   assert.notEqual(capability.status, "ready", `${id} must not claim live paid-cloud readiness while zero-cost mode blocks it`);
 }
 
+// Public creator-runtime readiness reports safe booleans only and never promotes CODE/provider-ready state into LIVE evidence.
+for(const pattern of [
+  /function creatorRuntimeReadiness\(\)/,
+  /avatar:\{externalProviderConnected:/,
+  /durablePrivateCapture:true/,
+  /idempotentReplay:true/,
+  /video:\{externalRendererConnected:/,
+  /durablePrivateMp4Required:true/,
+  /idempotentRendererSubmission:true/,
+  /gameRuntime:\{localPlayableRuntime:/,
+  /generatedProductionProjectVerified:false/,
+  /realDeviceEvidenceVerified:false/,
+  /multiplayer:\{externalProviderConnected:/,
+  /replaySafeMatchmaking:true/,
+  /authoritativeRuntimeReady:true/,
+  /liveProviderEvidenceVerified:false/,
+  /providerNamesHidden:true/,
+])assert.match(capabilityRoute,pattern);
+assert.doesNotMatch(capabilityRoute,/IMAGE_GENERATION_ENDPOINT|VIDEO_RENDER_ENDPOINT|MULTIPLAYER_MATCHMAKING_ENDPOINT|PROVIDER_TOKEN|API_KEY|SERVICE_ROLE/);
+
 console.log("✓ Zero-cost mode now uses an explicit provider allowlist and rejects unknown/metered providers");
 console.log("✓ Only configured zero-cost providers are selected; allowed but unconfigured local providers are not falsely advertised as ready");
 console.log("✓ Free LANERIQ AI App/Website, local image, browser voice, storyboard and memory paths remain ready at zero external spend");
 console.log("✓ Paid cloud image/video/web capabilities remain fail-closed and cannot be promoted to ready by stray provider URLs in zero-cost mode");
+console.log("✓ Avatar, Video, Game Runtime and Multiplayer readiness stay provider-opaque and explicitly separate provider-ready CODE from real LIVE evidence");
