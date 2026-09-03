@@ -1,0 +1,334 @@
+/* LANERIQ AI Big Moon Valley media-intelligence shell.
+   Scope: Device Media Studio + Soolen Vision only.
+   Local/remote compute policy, upload consent, raw-media privacy and image-analysis behavior stay unchanged. */
+
+main:has(> header + section .device):has(.flow),
+main.page:has(.card .drop){
+  position:relative!important;
+  min-height:100svh!important;
+  overflow-x:hidden!important;
+  color:#f7fff9!important;
+  background:
+    linear-gradient(180deg,rgba(0,7,6,.02) 0%,rgba(0,8,7,.10) 24%,rgba(0,9,7,.74) 54%,rgba(0,8,7,.99) 100%),
+    url('/big-moon-valley.svg') 66% top/cover fixed no-repeat!important;
+}
+main:has(> header + section .device):has(.flow)::before,
+main.page:has(.card .drop)::before{
+  content:''!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 77% 9%,rgba(255,221,126,.12),transparent 28%),
+    linear-gradient(90deg,rgba(0,10,8,.56),rgba(0,10,8,.035) 54%,rgba(0,10,8,.18))!important;
+}
+main:has(> header + section .device):has(.flow)>*,
+main.page:has(.card .drop)>*{
+  position:relative!important;
+  z-index:1!important;
+}
+
+/* Device Media Studio: device-first controls stay truthful and consent-gated. */
+main:has(> header + section .device):has(.flow){
+  padding-bottom:max(104px,calc(78px + env(safe-area-inset-bottom)))!important;
+}
+main:has(> header + section .device):has(.flow)>header{
+  width:min(1120px,calc(100% - 30px))!important;
+  margin:0 auto!important;
+  min-height:68px!important;
+  padding:max(16px,env(safe-area-inset-top)) 0 10px!important;
+}
+main:has(> header + section .device):has(.flow)>header a{
+  min-height:44px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  padding:9px 13px!important;
+  border:1px solid rgba(235,198,93,.30)!important;
+  border-radius:999px!important;
+  background:rgba(3,24,18,.64)!important;
+  color:#fff5db!important;
+  text-decoration:none!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.20)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+  touch-action:manipulation!important;
+}
+main:has(> header + section .device):has(.flow)>header span{
+  color:#f0cc68!important;
+  text-shadow:0 3px 16px rgba(0,0,0,.45)!important;
+}
+main:has(> header + section .device):has(.flow)>section{
+  width:min(980px,calc(100% - 30px))!important;
+  max-width:980px!important;
+  margin:0 auto!important;
+  padding:clamp(145px,21svh,235px) 0 0!important;
+}
+main:has(> header + section .device):has(.flow) .intro small,
+main:has(> header + section .device):has(.flow) .device small,
+main:has(> header + section .device):has(.flow) .intro em,
+main:has(> header + section .device):has(.flow) .plan strong{
+  color:#f0cc68!important;
+}
+main:has(> header + section .device):has(.flow) .intro h1{
+  color:#fff8df!important;
+  font-size:clamp(46px,7vw,78px)!important;
+  line-height:.99!important;
+  letter-spacing:-.045em!important;
+  text-shadow:0 14px 52px rgba(0,0,0,.58)!important;
+}
+main:has(> header + section .device):has(.flow) .intro p{
+  color:#bfd0c8!important;
+  text-shadow:0 2px 14px rgba(0,0,0,.38)!important;
+}
+main:has(> header + section .device):has(.flow) .device,
+main:has(> header + section .device):has(.flow) .card,
+main:has(> header + section .device):has(.flow) .flow{
+  border:1px solid rgba(235,198,93,.22)!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.82),rgba(2,15,12,.93))!important;
+  box-shadow:0 27px 72px rgba(0,0,0,.33),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(27px) saturate(1.07)!important;
+  -webkit-backdrop-filter:blur(27px) saturate(1.07)!important;
+}
+main:has(> header + section .device):has(.flow) .device{
+  border-radius:24px!important;
+  padding:22px!important;
+}
+main:has(> header + section .device):has(.flow) .device h2,
+main:has(> header + section .device):has(.flow) .card>label,
+main:has(> header + section .device):has(.flow) .field label{
+  color:#fff5da!important;
+}
+main:has(> header + section .device):has(.flow) .device p,
+main:has(> header + section .device):has(.flow) .device label,
+main:has(> header + section .device):has(.flow) .device label small{
+  color:#b5c8bf!important;
+}
+main:has(> header + section .device):has(.flow) .badges b{
+  min-height:36px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-color:rgba(235,198,93,.16)!important;
+  background:rgba(255,255,255,.045)!important;
+  color:#d9e5df!important;
+}
+main:has(> header + section .device):has(.flow) .privacy{
+  border:1px solid rgba(126,221,181,.20)!important;
+  background:rgba(13,58,42,.54)!important;
+  color:#b9ecd2!important;
+}
+main:has(> header + section .device):has(.flow) .card{
+  color:#edf6f1!important;
+  border-radius:28px!important;
+  padding:26px!important;
+}
+main:has(> header + section .device):has(.flow) .tasks,
+main:has(> header + section .device):has(.flow) .seg{
+  background:rgba(2,18,14,.66)!important;
+}
+main:has(> header + section .device):has(.flow) .tasks button,
+main:has(> header + section .device):has(.flow) .seg button{
+  min-height:44px!important;
+  background:transparent!important;
+  color:#a9bbb3!important;
+  touch-action:manipulation!important;
+}
+main:has(> header + section .device):has(.flow) .tasks .on,
+main:has(> header + section .device):has(.flow) .seg .on{
+  border:1px solid rgba(240,204,104,.32)!important;
+  background:rgba(76,61,20,.48)!important;
+  color:#f0cc68!important;
+  box-shadow:none!important;
+}
+main:has(> header + section .device):has(.flow) textarea,
+main:has(> header + section .device):has(.flow) select,
+main:has(> header + section .device):has(.flow) .number{
+  min-height:48px!important;
+  border-color:rgba(255,255,255,.10)!important;
+  background:rgba(2,18,14,.88)!important;
+  color:#f5fbf8!important;
+  font-size:16px!important;
+}
+main:has(> header + section .device):has(.flow) textarea{
+  min-height:150px!important;
+}
+main:has(> header + section .device):has(.flow) textarea:focus,
+main:has(> header + section .device):has(.flow) select:focus,
+main:has(> header + section .device):has(.flow) .number:focus{
+  border-color:rgba(237,196,91,.58)!important;
+  outline:none!important;
+  box-shadow:0 0 0 3px rgba(237,196,91,.08)!important;
+}
+main:has(> header + section .device):has(.flow) .upload{
+  border-color:rgba(235,198,93,.28)!important;
+  background:rgba(4,29,22,.66)!important;
+  color:#f0cc68!important;
+}
+main:has(> header + section .device):has(.flow) .upload small{
+  color:#9fb1aa!important;
+}
+main:has(> header + section .device):has(.flow) .plan{
+  border-color:rgba(126,221,181,.20)!important;
+  background:rgba(13,58,42,.52)!important;
+  color:#dbe9e2!important;
+}
+main:has(> header + section .device):has(.flow) .plan small{
+  color:#9fb1aa!important;
+}
+main:has(> header + section .device):has(.flow) .consent{
+  border-color:rgba(240,204,104,.28)!important;
+  background:rgba(76,61,20,.34)!important;
+  color:#f3e6b9!important;
+}
+main:has(> header + section .device):has(.flow) .generate{
+  min-height:56px!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676 0%,#d6a838 52%,#aa6d16 100%)!important;
+  color:#132018!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.24)!important;
+  touch-action:manipulation!important;
+}
+main:has(> header + section .device):has(.flow) .status{
+  border:1px solid rgba(126,221,181,.20)!important;
+  background:rgba(13,58,42,.54)!important;
+  color:#b9ecd2!important;
+}
+main:has(> header + section .device):has(.flow) .card video{
+  border:1px solid rgba(255,255,255,.07)!important;
+  box-shadow:0 20px 56px rgba(0,0,0,.30)!important;
+}
+main:has(> header + section .device):has(.flow) .flow{
+  border-radius:20px!important;
+  color:#c7d6cf!important;
+}
+main:has(> header + section .device):has(.flow) .flow span{
+  color:#e6efe9!important;
+}
+main:has(> header + section .device):has(.flow) .flow b{
+  color:#f0cc68!important;
+}
+
+/* Vision: request processing stays explicit; nothing is automatically published. */
+main.page:has(.card .drop){
+  padding:max(30px,env(safe-area-inset-top)) 18px max(104px,calc(78px + env(safe-area-inset-bottom)))!important;
+}
+main.page:has(.card .drop)>.card{
+  width:min(820px,100%)!important;
+  max-width:820px!important;
+  margin:0 auto!important;
+  padding:clamp(155px,22svh,245px) 28px 30px!important;
+  border:1px solid rgba(235,198,93,.23)!important;
+  border-radius:28px!important;
+  background:linear-gradient(145deg,rgba(6,34,26,.82),rgba(2,15,12,.93))!important;
+  box-shadow:0 28px 76px rgba(0,0,0,.34),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(27px) saturate(1.07)!important;
+  -webkit-backdrop-filter:blur(27px) saturate(1.07)!important;
+}
+main.page:has(.card .drop) .eyebrow{
+  color:#f0cc68!important;
+  text-shadow:0 3px 16px rgba(0,0,0,.45)!important;
+}
+main.page:has(.card .drop) .card h1{
+  color:#fff8df!important;
+  font-size:clamp(42px,6vw,66px)!important;
+  line-height:1!important;
+  letter-spacing:-.04em!important;
+  text-shadow:0 14px 50px rgba(0,0,0,.56)!important;
+}
+main.page:has(.card .drop) .card p{
+  color:#b9cbc3!important;
+}
+main.page:has(.card .drop) .drop{
+  min-height:94px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-color:rgba(240,204,104,.42)!important;
+  background:rgba(4,29,22,.68)!important;
+  color:#f0cc68!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.card .drop) .preview{
+  border:1px solid rgba(255,255,255,.07)!important;
+  background:rgba(1,13,10,.80)!important;
+  box-shadow:0 22px 58px rgba(0,0,0,.30)!important;
+}
+main.page:has(.card .drop) .card>button{
+  min-height:50px!important;
+  border:1px solid rgba(255,241,191,.45)!important;
+  background:linear-gradient(135deg,#f3d676,#c58a28)!important;
+  color:#132018!important;
+  box-shadow:0 11px 28px rgba(0,0,0,.22)!important;
+  touch-action:manipulation!important;
+}
+main.page:has(.card .drop) .card pre{
+  border:1px solid rgba(235,198,93,.18)!important;
+  background:rgba(2,18,14,.84)!important;
+  color:#dce9e3!important;
+}
+main.page:has(.card .drop) .status{
+  color:#9fb1aa!important;
+}
+
+@media(max-width:760px){
+  main:has(> header + section .device):has(.flow),
+  main.page:has(.card .drop){
+    background-position:64% top!important;
+    background-attachment:scroll!important;
+  }
+  main:has(> header + section .device):has(.flow)>section{
+    padding-top:clamp(125px,18svh,190px)!important;
+  }
+  main:has(> header + section .device):has(.flow) .grid{
+    grid-template-columns:1fr!important;
+  }
+  main:has(> header + section .device):has(.flow) .flow{
+    flex-wrap:wrap!important;
+  }
+}
+@media(max-width:520px){
+  main:has(> header + section .device):has(.flow)>header,
+  main:has(> header + section .device):has(.flow)>section{
+    width:calc(100% - 24px)!important;
+  }
+  main:has(> header + section .device):has(.flow)>header span{
+    display:none!important;
+  }
+  main:has(> header + section .device):has(.flow)>section{
+    padding-top:clamp(135px,20svh,195px)!important;
+  }
+  main:has(> header + section .device):has(.flow) .tasks,
+  main:has(> header + section .device):has(.flow) .seg{
+    grid-template-columns:1fr!important;
+  }
+  main:has(> header + section .device):has(.flow) .card,
+  main:has(> header + section .device):has(.flow) .device{
+    padding:18px!important;
+    border-radius:22px!important;
+  }
+  main:has(> header + section .device):has(.flow) .toggles{
+    flex-direction:column!important;
+    gap:12px!important;
+  }
+  main.page:has(.card .drop){
+    padding-left:14px!important;
+    padding-right:14px!important;
+  }
+  main.page:has(.card .drop)>.card{
+    padding:clamp(130px,19svh,185px) 18px 22px!important;
+    border-radius:22px!important;
+  }
+  main.page:has(.card .drop) .card>button{
+    width:100%!important;
+    min-height:54px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  main:has(> header + section .device):has(.flow) *,
+  main.page:has(.card .drop) *{
+    animation:none!important;
+    transition:none!important;
+    scroll-behavior:auto!important;
+  }
+}
