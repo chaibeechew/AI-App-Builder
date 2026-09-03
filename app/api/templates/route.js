@@ -25,12 +25,14 @@ export async function GET(request) {
     const url = new URL(request.url);
     const mode = bounded(url.searchParams.get("mode"), 20).toLowerCase();
     const id = bounded(url.searchParams.get("id"), 140);
+    const market = bounded(url.searchParams.get("market"), 12).toUpperCase();
+    const trendOptions = market ? { market } : {};
 
     if (mode === "meta") {
       return json({
         success: true,
         stats: TEMPLATE_CATALOG_STATS,
-        trendLearning: getTrendLearningStatus(),
+        trendLearning: getTrendLearningStatus(trendOptions),
         industries: INDUSTRIES,
         archetypes: ARCHETYPES.map(({ id: archetypeId, name }) => ({ id: archetypeId, name })),
         styles: STYLES,
@@ -46,7 +48,7 @@ export async function GET(request) {
     const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit")) || 24, 100));
     if (mode === "trending") {
       const templates = getTrendingTemplates(limit);
-      return json({ success: true, templates, total: templates.length, limit, offset: 0, trendLearning: getTrendLearningStatus() });
+      return json({ success: true, templates, total: templates.length, limit, offset: 0, trendLearning: getTrendLearningStatus(trendOptions) });
     }
 
     const result = searchTemplates({
