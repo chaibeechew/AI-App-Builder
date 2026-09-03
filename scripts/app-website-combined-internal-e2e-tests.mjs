@@ -73,8 +73,8 @@ assert.match(appSurface,/versionId: requestedVersionId/);
 assert.match(appSurface,/data-project-version=\{version\.id\}/);
 assert.match(websiteSurface,/versionId:requestedVersionId/);
 assert.match(websiteSurface,/data-project-version=\{version\.id\}/);
-assert.match(websiteSurface,/const enquiryEnabled=isPublished&&!isPinnedPreview/);
-assert.match(websiteSurface,/isOwner&&!isPinnedPreview&&<WebsiteEnquiryInbox/);
+assert.match(websiteSurface,/const enquiryEnabled=isPublished&&isPublishedVersion&&!isPinnedPreview/);
+assert.match(websiteSurface,/isOwner&&isPublishedVersion&&!isPinnedPreview&&<WebsiteEnquiryInbox/);
 
 // Owner snapshot frames are review surfaces, not customer traffic.
 assert.match(analyticsTracker,/function isEmbeddedPinnedPreview\(\)/);
@@ -94,4 +94,5 @@ console.log("✓ App + Website simultaneous E2E uses one Planning decision, one 
 console.log("✓ Dynamic zero-cost provider execution is wired to prove deterministic 100/100 and Release-Gate readiness across multilingual industry cases");
 console.log("✓ Preview Both locks App and Website to the same owner-authorized working version with no shadow Website record");
 console.log("✓ Anonymous App + Website production traffic stays pinned to published_version_id until an explicit new Publish");
+console.log("✓ Customer enquiries and the live owner inbox stay bound to the exact published Website snapshot, never the newer working draft");
 console.log("✓ Pinned owner snapshots do not inflate customer analytics; real authenticated Production generation remains a separate LIVE evidence gate");
