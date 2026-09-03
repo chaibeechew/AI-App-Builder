@@ -66,7 +66,7 @@ assert.match(route,/Cache-Control","private, no-store/);assert.match(route,/X-LA
 assert.match(route,/ordinaryFeaturesRemainAvailable:true/);assert.match(route,/automaticallyResumes:true/);assert.match(route,/priceUsd:199/);
 assert.doesNotMatch(route,/\.from\("apps"\)\.select\("id",\{count:"exact",head:true\}\)/);
 
-assert.match(mainGenerate,/if\(isMobileGameIdea\(combinedInput\)\)/);assert.match(mainGenerate,/trustedGameGateway/);assert.match(mainGenerate,/professional\.active/);assert.ok(mainGenerate.indexOf('if(isMobileGameIdea(combinedInput))')<mainGenerate.indexOf('consumeAppBuilderEntitlement(user.id'));
+assert.match(mainGenerate,/if\(isMobileGameIdea\(combinedInput\)\)/);assert.match(mainGenerate,/trustedGameGateway/);assert.match(mainGenerate,/access\?\.professional\?\.active/);assert.ok(mainGenerate.indexOf('if(isMobileGameIdea(combinedInput))')<mainGenerate.indexOf('consumeAppBuilderEntitlement(userId'));
 
 assert.match(builder,/useRef/);assert.match(builder,/requestIdRef\.current\|\|crypto\.randomUUID\(\)/);assert.match(builder,/requestIdRef\.current=requestId/);assert.match(builder,/function changeIdea\(value\)\{setIdea\(value\);requestIdRef\.current=""/);
 assert.match(builder,/credentials:"same-origin"/);assert.match(builder,/cache:"no-store"/);assert.match(builder,/response\.status===409/);assert.match(builder,/← LANERIQ AI/);assert.doesNotMatch(builder,/AI BUILD APP&WEB/);
