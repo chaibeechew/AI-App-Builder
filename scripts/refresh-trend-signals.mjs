@@ -2,65 +2,137 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TRENDING_APP_REFERENCE_PATTERNS } from '../lib/trendingAppReferences.js';
-import { TREND_SIGNAL_SNAPSHOT } from '../lib/trendSignalSnapshot.js';
+import { TREND_FUSION_SNAPSHOT } from '../lib/trendFusionSnapshot.js';
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
-const OUT=path.resolve(__dirname,'../lib/trendSignalSnapshot.js');
-const SOURCE=process.env.LANERIQ_TREND_SOURCE_URL||'https://rss.marketingtools.apple.com/api/v2/my/apps/top-free/100/apps.json';
-const REGION='MY';
-const MIN_PATTERN_COVERAGE=8;
+const OUT_PRIMARY=path.resolve(__dirname,'../lib/trendSignalSnapshot.js');
+const OUT_FUSION=path.resolve(__dirname,'../lib/trendFusionSnapshot.js');
+const PRIMARY_MARKET='MY';
+const DEFAULT_MARKETS=['MY','ID','US'];
+const MARKETS=(process.env.LANERIQ_TREND_MARKETS||DEFAULT_MARKETS.join(','))
+  .split(',').map(value=>value.trim().toUpperCase()).filter(Boolean).slice(0,8);
+const MIN_PATTERN_COVERAGE=6;
+const MIN_VALID_MARKETS=2;
+const MARKET_GROUP={MY:'SEA',ID:'SEA',SG:'SEA',TH:'SEA',PH:'SEA',VN:'SEA',BN:'SEA',KH:'SEA',LA:'SEA',MM:'SEA',US:'GLOBAL',GB:'GLOBAL',JP:'GLOBAL',AU:'GLOBAL'};
 
 function norm(value){return String(value||'').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g,' ').trim()}
+function sourceUrl(market){return `https://rss.marketingtools.apple.com/api/v2/${market.toLowerCase()}/apps/top-free/100/apps.json`}
 function matchPattern(item){
-  const haystack=norm([item?.name,item?.artistName,...(item?.genres||[])].filter(Boolean).join(' '));
+  const haystack=norm([item?.name,item?.artistName,...(item?.genres||[]).map(genre=>genre?.name||genre)].filter(Boolean).join(' '));
   let best=null,bestScore=0;
   for(const ref of TRENDING_APP_REFERENCE_PATTERNS){
     let score=0;
-    for(const signal of ref.signals){const s=norm(signal);if(s.length>=3&&haystack.includes(s))score+=Math.max(1,s.length/4)}
+    for(const signal of ref.signals){const s=norm(signal);if(s.length>=2&&haystack.includes(s))score+=Math.max(1,s.length/4)}
     if(score>bestScore){best=ref;bestScore=score}
   }
   return bestScore>0?best:null;
 }
-function previousRank(patternId){return TREND_SIGNAL_SNAPSHOT.signals.find(x=>x.patternId===patternId&&x.chart==='all')?.rank||null}
-function jsString(value){return JSON.stringify(value)}
+function previousRank(market,patternId){
+  const snapshot=(TREND_FUSION_SNAPSHOT.markets||[]).find(item=>item.market===market);
+  return snapshot?.signals?.find(item=>item.patternId===patternId&&item.chart==='all')?.rank||null;
+}
+function js(value){return JSON.stringify(value)}
+function isoFromFeed(value){const ms=Date.parse(value);return Number.isFinite(ms)?new Date(ms).toISOString():new Date().toISOString()}
 
-async function main(){
-  const response=await fetch(SOURCE,{headers:{'User-Agent':'LANERIQ-AI-Trend-Learning/1.0','Accept':'application/json'},signal:AbortSignal.timeout(15000)});
-  if(!response.ok)throw new Error(`Trend source returned ${response.status}`);
+async function fetchMarket(market){
+  const url=sourceUrl(market);
+  const response=await fetch(url,{headers:{'User-Agent':'LANERIQ-AI-Trend-Fusion/1.0','Accept':'application/json'},signal:AbortSignal.timeout(15000)});
+  if(!response.ok)throw new Error(`${market} trend source returned ${response.status}`);
   const payload=await response.json();
   const results=Array.isArray(payload?.feed?.results)?payload.feed.results:[];
-  if(results.length<25)throw new Error(`Trend source returned too few apps: ${results.length}`);
-
+  if(results.length<25)throw new Error(`${market} trend source returned too few apps: ${results.length}`);
   const strongest=new Map();
   results.slice(0,100).forEach((item,index)=>{
     const ref=matchPattern(item);if(!ref)return;
-    const rank=index+1, current=strongest.get(ref.id);
-    if(!current||rank<current.rank)strongest.set(ref.id,{patternId:ref.id,rank,chart:'all',previousRank:previousRank(ref.id)});
+    const rank=index+1,current=strongest.get(ref.id);
+    if(!current||rank<current.rank)strongest.set(ref.id,{patternId:ref.id,rank,chart:'all',previousRank:previousRank(market,ref.id)});
   });
-  if(strongest.size<MIN_PATTERN_COVERAGE)throw new Error(`Trend classifier coverage too low: ${strongest.size} pattern families`);
+  if(strongest.size<MIN_PATTERN_COVERAGE)throw new Error(`${market} classifier coverage too low: ${strongest.size} pattern families`);
+  return {
+    market,
+    marketGroup:MARKET_GROUP[market]||'GLOBAL',
+    observedAt:isoFromFeed(payload?.feed?.updated),
+    sourceId:'apple-app-store-rss',
+    sourceKind:'official-store-chart',
+    sourceUrl:url,
+    chartSize:Math.min(100,results.length),
+    trust:1,
+    signals:[...strongest.values()].sort((a,b)=>a.rank-b.rank),
+  };
+}
 
-  const observedAt=new Date().toISOString();
-  const signals=[...strongest.values()].sort((a,b)=>a.rank-b.rank);
-  const lines=[
+function renderPrimary(snapshot){
+  return [
     '// AUTO-GENERATED by scripts/refresh-trend-signals.mjs',
-    '// Pattern-only trend evidence. Third-party app names/assets are intentionally discarded after classification.',
+    '// Pattern-only primary-market evidence. Raw third-party app identities are discarded after classification.',
     '',
     'export const TREND_SIGNAL_SNAPSHOT = Object.freeze({',
-    '  schemaVersion: 1,',
-    `  region: ${jsString(REGION)},`,
-    `  observedAt: ${jsString(observedAt)},`,
+    '  schemaVersion: 2,',
+    `  region: ${js(snapshot.market)},`,
+    `  observedAt: ${js(snapshot.observedAt)},`,
     "  source: 'apple-app-store-top-free',",
-    "  sourceKind: 'official-store-chart',",
-    `  sourceUrl: ${jsString(SOURCE)},`,
-    `  chartSize: ${Math.min(100,results.length)},`,
+    `  sourceKind: ${js(snapshot.sourceKind)},`,
+    `  sourceUrl: ${js(snapshot.sourceUrl)},`,
+    `  chartSize: ${snapshot.chartSize},`,
     '  signals: Object.freeze([',
-    ...signals.map(s=>`    { patternId:${jsString(s.patternId)}, rank:${s.rank}, chart:'all', previousRank:${s.previousRank??'null'} },`),
+    ...snapshot.signals.map(signal=>`    { patternId:${js(signal.patternId)}, rank:${signal.rank}, chart:'all', previousRank:${signal.previousRank??'null'} },`),
     '  ]),',
     '});',
     '',
-  ];
-  await fs.writeFile(OUT,lines.join('\n'),'utf8');
-  console.log(`Trend refresh ready: ${signals.length} pattern families from ${Math.min(100,results.length)} official chart entries; raw third-party app data discarded.`);
+  ].join('\n');
+}
+
+function renderFusion(markets){
+  return [
+    '// AUTO-GENERATED by scripts/refresh-trend-signals.mjs',
+    '// Multi-market pattern-only evidence. Third-party app identities/assets are intentionally discarded after classification.',
+    '',
+    'const freezeSignals=signals=>Object.freeze(signals.map(signal=>Object.freeze(signal)));',
+    'const market=value=>Object.freeze({...value,signals:freezeSignals(value.signals||[])});',
+    '',
+    'export const TREND_FUSION_SNAPSHOT=Object.freeze({',
+    '  schemaVersion:1,',
+    `  primaryMarket:${js(PRIMARY_MARKET)},`,
+    '  markets:Object.freeze([',
+    ...markets.flatMap(snapshot=>[
+      '    market({',
+      `      market:${js(snapshot.market)},`,
+      `      marketGroup:${js(snapshot.marketGroup)},`,
+      `      observedAt:${js(snapshot.observedAt)},`,
+      `      sourceId:${js(snapshot.sourceId)},`,
+      `      sourceKind:${js(snapshot.sourceKind)},`,
+      `      sourceUrl:${js(snapshot.sourceUrl)},`,
+      `      chartSize:${snapshot.chartSize},`,
+      '      trust:1,',
+      '      signals:[',
+      ...snapshot.signals.map(signal=>`        {patternId:${js(signal.patternId)},rank:${signal.rank},chart:'all',previousRank:${signal.previousRank??'null'}},`),
+      '      ],',
+      '    }),',
+    ]),
+    '  ]),',
+    '});',
+    '',
+  ].join('\n');
+}
+
+async function main(){
+  if(!MARKETS.includes(PRIMARY_MARKET))MARKETS.unshift(PRIMARY_MARKET);
+  const settled=await Promise.allSettled([...new Set(MARKETS)].map(fetchMarket));
+  const valid=[];
+  settled.forEach((result,index)=>{
+    if(result.status==='fulfilled')valid.push(result.value);
+    else console.warn('TREND_MARKET_SKIPPED',MARKETS[index],result.reason?.message||result.reason);
+  });
+  const primary=valid.find(item=>item.market===PRIMARY_MARKET);
+  if(!primary)throw new Error(`Primary market ${PRIMARY_MARKET} did not return valid evidence.`);
+  if(valid.length<MIN_VALID_MARKETS)throw new Error(`Only ${valid.length} valid trend markets; need at least ${MIN_VALID_MARKETS}.`);
+  valid.sort((a,b)=>a.market===PRIMARY_MARKET?-1:b.market===PRIMARY_MARKET?1:MARKETS.indexOf(a.market)-MARKETS.indexOf(b.market));
+  await Promise.all([
+    fs.writeFile(OUT_PRIMARY,renderPrimary(primary),'utf8'),
+    fs.writeFile(OUT_FUSION,renderFusion(valid),'utf8'),
+  ]);
+  const totalPatterns=new Set(valid.flatMap(item=>item.signals.map(signal=>signal.patternId))).size;
+  console.log(`Trend fusion refresh ready: ${valid.length} markets, ${totalPatterns} unique pattern families; raw third-party app data discarded.`);
 }
 
 main().catch(error=>{console.error('TREND_REFRESH_FAILED',error?.message||error);process.exit(1)});
