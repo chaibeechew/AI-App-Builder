@@ -32,6 +32,8 @@ jobs:
         run: node scripts/communications-service-gateway-contract-tests.mjs
       - name: Verify standalone service host
         run: npm test --prefix services/communications
+      - name: Verify standalone LIVE canary gate semantics
+        run: node scripts/communications-standalone-canary-contract-tests.mjs
       - name: Verify zero-cost omnichannel policy remains authoritative
         run: npm run test:zero-cost-communications
       - name: Verify full communications safety contract
