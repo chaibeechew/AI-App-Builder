@@ -4,13 +4,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
+// Route-aware presentation only. These names never replace the underlying generation,
+// project, workflow, database, quality or publish engines.
 const SURFACES = [
   [/^\/$/, "creation"],
+  [/^\/create\/?$/, "creation"],
+  [/^\/preview\//, "preview"],
+  [/^\/release\//, "launch"],
+  [/^\/app-dashboard\//, "manage"],
+  [/^\/my-apps\/?$/, "creations"],
+  [/^\/templates\/?$/, "templates"],
+  [/^\/templates\//, "template-detail"],
+  [/^\/soolen-ai\/?$/, "assistant"],
+  [/^\/workflows\//, "workflow"],
+  [/^\/analytics\//, "analytics"],
+  [/^\/studio\/?$/, "more"],
   [/^\/editor\//, "editor"],
+  [/^\/database\//, "database"],
   [/^\/operations\//, "quality"],
   [/^\/publish\//, "publish"],
-  [/^\/release\//, "launch"],
-  [/^\/preview\//, "preview"],
 ];
 
 const NAV = [
@@ -28,10 +40,17 @@ function resolveSurface(pathname){
 
 function selectedLabel(pathname){
   if(pathname === "/") return "Home";
-  if(pathname === "/create") return "Create";
-  if(pathname?.startsWith("/my-apps") || pathname?.startsWith("/editor/") || pathname?.startsWith("/operations/") || pathname?.startsWith("/publish/") || pathname?.startsWith("/release/") || pathname?.startsWith("/preview/")) return "Creations";
-  if(pathname?.startsWith("/templates")) return "Templates";
-  if(pathname?.startsWith("/studio")) return "More";
+  if(pathname === "/create" || pathname === "/create/") return "Create";
+  if(pathname === "/templates" || pathname === "/templates/" || pathname?.startsWith("/templates/")) return "Templates";
+  if(pathname === "/studio" || pathname === "/studio/" || pathname === "/soolen-ai" || pathname === "/soolen-ai/") return "More";
+  if(
+    pathname === "/my-apps" || pathname === "/my-apps/" ||
+    pathname?.startsWith("/app-dashboard/") || pathname?.startsWith("/preview/") ||
+    pathname?.startsWith("/release/") || pathname?.startsWith("/workflows/") ||
+    pathname?.startsWith("/analytics/") || pathname?.startsWith("/editor/") ||
+    pathname?.startsWith("/database/") || pathname?.startsWith("/operations/") ||
+    pathname?.startsWith("/publish/")
+  ) return "Creations";
   return "";
 }
 
@@ -49,7 +68,7 @@ export default function LIUIRealProductSurface(){
 
   if(!surface) return null;
 
-  return <nav className="liuiRealBottomNav" aria-label="LANERIQ AI primary navigation">
+  return <nav className="liuiRealBottomNav" aria-label="LANERIQ AI primary navigation" data-liui-nav="canonical">
     {NAV.map(item=><Link key={item.label} href={item.href} className={active===item.label?"active":""} aria-current={active===item.label?"page":undefined}>
       <span aria-hidden="true">{item.icon}</span><small>{item.label}</small>
     </Link>)}
