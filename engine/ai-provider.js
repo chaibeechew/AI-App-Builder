@@ -1,6 +1,7 @@
 import { getProviderConfig } from "./model-router.js";
 import { filterProvidersByCost, getSoolenCostMode } from "../lib/soolen/cost-policy.js";
 import { generateWithZeroCostRules } from "./zero-cost-provider.js";
+import { enrichGenerationPrompt } from "../lib/ai/provider-prompt-intelligence.js";
 
 const REQUEST_TIMEOUT_MS = Number(process.env.AI_REQUEST_TIMEOUT_MS || 30000);
 const LOCAL_PROVIDERS = new Set(["ollama", "soolen-local"]);
@@ -204,8 +205,9 @@ export async function generateWithAI(prompt) {
 }
 
 export async function generateWithFallback(prompt, options = {}) {
-  const value = String(prompt || "").trim();
-  if (!value) throw providerError("router", "AI prompt is empty.", 400);
+  const raw = String(prompt || "").trim();
+  if (!raw) throw providerError("router", "AI prompt is empty.", 400);
+  const value = enrichGenerationPrompt(raw);
   const allowed = Array.isArray(options.providers) && options.providers.length
     ? new Set(options.providers.map((provider) => String(provider).toLowerCase()))
     : null;
