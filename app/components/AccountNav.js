@@ -120,7 +120,7 @@ export default function AccountNav() {
       <small>{PRODUCT_BRAND.name} · {PRODUCT_BRAND.capabilities}</small>
       <button type="button" role="menuitem" onClick={() => go("/my-apps")}>📁 My Projects</button>
       <button type="button" role="menuitem" onClick={() => go("/account/device-compute")}>🎮 Device &amp; Compute</button>
-      <button type="button" role="menuitem" onClick={() => go("/account/security")}>🔐 Security &amp; Email</button>
+      <button type="button" role="menuitem" onClick={() => go("/account/security")}>🔐 Security & Email</button>
       <button type="button" role="menuitem" onClick={() => go("/studio")}>✦ Studio</button>
       <button type="button" role="menuitem" onClick={() => go("/community-chat")}>Community</button>
       <button className="signout" type="button" role="menuitem" onClick={signOut} disabled={signingOut}>Sign out</button>
