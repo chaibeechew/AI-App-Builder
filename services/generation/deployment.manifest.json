@@ -1,0 +1,10 @@
+{
+  "service":"laneriq-generation",
+  "contract":"gsvc1",
+  "root":"services/generation",
+  "deploymentModes":["embedded","remote"],
+  "requiredEnvironment":["LANERIQ_GENERATION_SERVICE_SECRET","LANERIQ_GENERATION_ENGINE_ADAPTER_URL","LANERIQ_GENERATION_ENGINE_ADAPTER_SECRET"],
+  "security":{"httpsOnly":true,"signedInbound":true,"rawCustomerSecretsForbidden":true,"silentEmbeddedFallback":false},
+  "cost":{"fixedInfrastructureRequired":false,"automaticPaidEscalation":false},
+  "evidence":{"codeReady":true,"standaloneLive":false,"signedCanaryRequired":true}
+}
