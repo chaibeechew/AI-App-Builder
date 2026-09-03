@@ -15,6 +15,9 @@ const { evaluateReleaseReadiness } = await import("../lib/release-readiness.js")
 function buildPrompt(idea,language){
   return `Build a real mobile-first App and customer Website from the user's idea.\nUSER IDEA:\n"${idea}"\n\nREQUESTED LANGUAGE:\n"${language}"\n\nVOICE INPUT:\n""\n\nREFERENCE IMAGE REFERENCES:\n[]`;
 }
+function selfHealSummary(report){
+  return (report?.issues||[]).map(issue=>`[${issue.severity||"unknown"}] ${issue.code||"issue"}${issue.path?` @ ${issue.path}`:""}: ${issue.message||""}`).join(" | ")||"no issues reported";
+}
 
 const cases=[
   {label:"property-zh",idea:"制作一个房地产 CRM App 和客户 Website，管理房源、客户、预约、跟进和销售报告，手机优先，高级深绿金色",language:"zh-CN"},
@@ -51,7 +54,7 @@ for(const testCase of cases){
   assert.equal(execution.ok,true,`${testCase.label}: execution verification failed: ${(execution.errors||[]).join("; ")}`);
   assert.equal(execution.checks?.runtimeRoutesValid,true,`${testCase.label}: every primary-navigation route must resolve safely`);
   const selfHeal=inspectProjectSpecification(execution.normalizedSpec);
-  assert.equal(selfHeal.passed,true,`${testCase.label}: self-heal inspection failed`);
+  assert.equal(selfHeal.passed,true,`${testCase.label}: self-heal inspection failed: ${selfHealSummary(selfHeal)}`);
 
   const quality=assessBuildQuality(execution.normalizedSpec);
   const readiness=evaluateReleaseReadiness(quality);
