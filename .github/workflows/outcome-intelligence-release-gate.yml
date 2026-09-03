@@ -9,14 +9,14 @@ on:
 jobs:
   outcome-intelligence-release-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     permissions:
       contents: read
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
       NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
-      GEMINI_API_KEY: ci-placeholder
+      SOOLEN_COST_MODE: zero
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@v7
@@ -32,7 +32,17 @@ jobs:
         run: npm run test:benchmark-factory
       - name: Outcome Intelligence and Release Quality contracts
         run: node scripts/outcome-intelligence-release-gate-tests.mjs
+      - name: Execute 50-industry zero-cost full-pipeline generation sample
+        run: node scripts/release-quality-generation-sample.mjs
       - name: Build runtime integration
         run: npm run build
+      - name: Upload executable quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-quality-generation-sample-${{ github.run_id }}
+          path: artifacts/quality/release-quality-generation-sample.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Evidence boundary
-        run: echo "This gate proves deterministic CODE/CI quality-control behavior only; external-provider LIVE, Production runtime, browser, physical-device and store evidence remain independent."
+        run: echo "This gate proves deterministic CODE/CI zero-cost full-pipeline quality-control behavior only; external-provider LIVE, Production runtime, browser, physical-device and store evidence remain independent."
