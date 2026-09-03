@@ -10,6 +10,7 @@ import { inferIndustryCapabilities } from "../../../lib/ai/industry-capability-p
 import { isMobileGameIdea } from "../../../lib/ai/mobile-game-knowledge.js";
 import { getAppBuilderAccess } from "../../../lib/app-builder-access.js";
 import { createClient } from "../../../lib/supabase/server.js";
+import { createAdminClient } from "../../../lib/supabase/admin.js";
 import { resolveWallpaperId } from "../../../lib/design/wallpaper-presets.js";
 import { mergeProjectMemory } from "../../../lib/project-memory.js";
 import { consumeAppBuilderEntitlement,bindAppBuilderProjectAccess,restoreFailedAppBuilderCreate,consumeAiCredits,refundAiCredits } from "../../../lib/app-builder-finance.js";
@@ -119,7 +120,8 @@ export async function POST(request){
   const specification={...verified.normalized,name:requestedName||verified.normalized.name};
   const changeSummary=brandBrief?"Initial verified + self-healed build with saved Brand Kit":"Initial Soolen Super Brain generated, repaired, self-healed and verified application";
 
-  const{data:persisted,error:persistError}=await supabase.rpc("server_persist_generated_project",{p_user_id:user.id,p_request_id:chargeRequestId,p_name:String(specification.name||"Untitled App").trim(),p_description:String(specification.description||"").trim(),p_source_prompt:combinedInput,p_specification:specification,p_change_summary:changeSummary});
+  const persistenceAdmin=createAdminClient();
+  const{data:persisted,error:persistError}=await persistenceAdmin.rpc("server_persist_generated_project",{p_user_id:user.id,p_request_id:chargeRequestId,p_name:String(specification.name||"Untitled App").trim(),p_description:String(specification.description||"").trim(),p_source_prompt:combinedInput,p_specification:specification,p_change_summary:changeSummary});
   if(persistError||!persisted?.success)throw new Error(`Atomic App + Website save failed: ${persistError?.message||"unknown persistence failure"}`);
   createdAppId=persisted.app_id;
   const app={id:persisted.app_id,name:persisted.app_name||String(specification.name||"Untitled App").trim(),visibility:persisted.visibility||"private",publish_status:persisted.publish_status||"draft"};
