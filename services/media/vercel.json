@@ -1,0 +1,1 @@
+{"version":2,"rewrites":[{"source":"/api/media/v1/status","destination":"/api/status.js"},{"source":"/api/media/v1/operate","destination":"/api/operate.js"}]}
