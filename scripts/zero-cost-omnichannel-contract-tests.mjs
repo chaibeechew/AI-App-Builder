@@ -4,11 +4,13 @@ import path from 'node:path';
 import { OMNICHANNELS, ADAPTER_METHODS, adapterContractStatus } from '../lib/communications/channel-contract.js';
 import { COST_CLASS, ZERO_COST_COMMUNICATION_POLICY, zeroCostEligibility } from '../lib/communications/zero-cost-policy.js';
 import { planZeroCostCommunication, deliverZeroCostCommunication } from '../lib/communications/omnichannel-router.js';
+import { omnichannelAdapterStatus } from '../lib/communications/omnichannel-adapters.js';
 
 const root=process.cwd();
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const servicePolicy=read('lib/communications/service-policy.js');
 const adaptersSource=read('lib/communications/omnichannel-adapters.js');
+const providerSendersSource=read('lib/communications/provider-senders.js');
 const deliverySource=read('lib/communications/zero-cost-delivery.js');
 
 assert.deepEqual(OMNICHANNELS,[
@@ -110,6 +112,39 @@ assert.equal(noFreeRoute.status,'zero_cost_route_unavailable');
 assert.equal(noFreeRoute.externalSpend,0);
 assert.equal(noFreeRoute.attempts.length,0);
 
+const oldEnv={...process.env};
+try{
+  delete process.env.LANERIQ_TELEGRAM_BOT_TOKEN;
+  delete process.env.LANERIQ_LINE_CHANNEL_ACCESS_TOKEN;
+  delete process.env.LANERIQ_WECHAT_APP_ID;
+  delete process.env.LANERIQ_WECHAT_APP_SECRET;
+  process.env.LANERIQ_TELEGRAM_COST_CLASS='free';
+  process.env.LANERIQ_LINE_COST_CLASS='free';
+  process.env.LANERIQ_WECHAT_COST_CLASS='free';
+  const unconfigured=omnichannelAdapterStatus();
+  assert.equal(unconfigured.telegram.sendImplemented,true);
+  assert.equal(unconfigured.line.sendImplemented,true);
+  assert.equal(unconfigured.wechat.sendImplemented,true);
+  assert.equal(unconfigured.telegram.runtimeReady,false);
+  assert.equal(unconfigured.line.runtimeReady,false);
+  assert.equal(unconfigured.wechat.runtimeReady,false);
+
+  process.env.LANERIQ_TELEGRAM_BOT_TOKEN='test-token';
+  process.env.LANERIQ_LINE_CHANNEL_ACCESS_TOKEN='test-token';
+  process.env.LANERIQ_WECHAT_APP_ID='test-app';
+  process.env.LANERIQ_WECHAT_APP_SECRET='test-secret';
+  const configured=omnichannelAdapterStatus();
+  assert.equal(configured.telegram.runtimeReady,true);
+  assert.equal(configured.line.runtimeReady,true);
+  assert.equal(configured.wechat.runtimeReady,true);
+  assert.equal(configured.telegram.liveVerified,false);
+  assert.equal(configured.line.liveVerified,false);
+  assert.equal(configured.wechat.liveVerified,false);
+}finally{
+  for(const key of Object.keys(process.env))if(!(key in oldEnv))delete process.env[key];
+  Object.assign(process.env,oldEnv);
+}
+
 assert.match(servicePolicy,/defaultMode:"zero"/);
 assert.match(servicePolicy,/externalSpendCap:0/);
 assert.match(servicePolicy,/channels:Object\.freeze\(\["in_app","push","email","telegram","line","wechat","whatsapp","sms"\]\)/);
@@ -138,12 +173,18 @@ assert.match(adaptersSource,/in_app:descriptor/);
 assert.match(adaptersSource,/liveVerified:false/);
 assert.match(adaptersSource,/evidenceLevel:"CODE"/);
 assert.match(adaptersSource,/sms.*sendImplemented:false/s);
-assert.match(adaptersSource,/wechat.*sendImplemented:false/s);
-assert.match(adaptersSource,/line.*sendImplemented:false/s);
-assert.match(adaptersSource,/telegram.*sendImplemented:false/s);
+assert.match(adaptersSource,/wechat.*sendImplemented:true/s);
+assert.match(adaptersSource,/line.*sendImplemented:true/s);
+assert.match(adaptersSource,/telegram.*sendImplemented:true/s);
 assert.match(adaptersSource,/whatsapp[\s\S]*COST_CLASS\.PAID/);
 assert.match(adaptersSource,/sms[\s\S]*COST_CLASS\.PAID/);
 assert.match(adaptersSource,/LANERIQ_EMAIL_FREE_QUOTA_REMAINING/);
+assert.match(providerSendersSource,/LANERIQ_TELEGRAM_BOT_TOKEN/);
+assert.match(providerSendersSource,/LANERIQ_LINE_CHANNEL_ACCESS_TOKEN/);
+assert.match(providerSendersSource,/LANERIQ_WECHAT_APP_ID/);
+assert.match(providerSendersSource,/LANERIQ_WECHAT_APP_SECRET/);
+assert.match(providerSendersSource,/REQUEST_TIMEOUT_MS=8000/);
+assert.doesNotMatch(providerSendersSource,/console\.(log|error|warn)/);
 assert.match(deliverySource,/deliverWithZeroExternalSpend/);
 assert.match(deliverySource,/externalSpendCap/);
 assert.match(deliverySource,/evidenceLevel:"CODE"/);
@@ -154,5 +195,5 @@ console.log('✓ ZERO mode is fail-closed with RM0 external spend cap and blocks
 console.log('✓ FREE_QUOTA routes require explicit remaining quota and cannot overrun into paid usage');
 console.log('✓ Paid SMS and paid WhatsApp cannot be invoked by ZERO-mode fallback');
 console.log('✓ Customer-billed/BYOP routes require explicit consent and are never auto-selected');
-console.log('✓ Multi-channel failover can continue across eligible free routes without touching blocked providers');
+console.log('✓ Telegram, LINE and WeChat have guarded provider send implementations but remain runtime-not-ready without credentials');
 console.log('✓ Provider-ready/LIVE/DEVICE evidence remains explicitly separated from CODE');
