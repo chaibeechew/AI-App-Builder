@@ -1,7 +1,6 @@
 import { createServerClient } from "../../../lib/supabase/server.js";
 import { runAutonomousEngine } from "../../../engine/autonomous-engine.js";
-import { buildGenerationCandidateBudget, evaluateGenerationCandidatePool } from "../../../lib/ai/generation-candidate-orchestrator.js";
-import { expandZeroCostIndustrySpecification } from "../../../lib/ai/zero-cost-industry-expander.js";
+import { applyRuntimeOutcomeIntelligence } from "../../../lib/ai/runtime-outcome-selector.js";
 import {
   HIGH_RISK_API_LIMITS,
   boundaryResponse,
@@ -9,39 +8,6 @@ import {
   privateJson,
   readBoundedJson,
 } from "../../../lib/security/high-risk-api-boundary.js";
-
-function applyOutcomeIntelligence(result,prompt){
-  if(!result?.specification||result?.specification?.productType==="mobile_game"||result?.specification?.game?.enabled===true)return result;
-  const budget=buildGenerationCandidateBudget({costMode:"free",requestedCandidates:3});
-  const primary=result.specification;
-  const candidates=[
-    {id:"primary",provider:result.aiProvider||"unknown",sourceKind:"primary-provider",specification:primary},
-    {id:"local-structural-shadow-1",provider:"laneriq-local-transform",sourceKind:"zero-cost-structural-shadow",specification:expandZeroCostIndustrySpecification(primary,prompt,{variationIndex:1})},
-    {id:"local-structural-shadow-2",provider:"laneriq-local-transform",sourceKind:"zero-cost-structural-shadow",specification:expandZeroCostIndustrySpecification(primary,prompt,{variationIndex:2})},
-  ].slice(0,budget.targetCandidates);
-  const pool=evaluateGenerationCandidatePool(candidates);
-  return {
-    ...result,
-    specification:pool.selectedSpecification,
-    intelligence:{
-      ...(result.intelligence||{}),
-      qualityCandidates:{
-        enabled:true,
-        mode:"primary-plus-zero-cost-local-structural-shadows",
-        candidateCount:pool.candidateCount,
-        uniqueCandidateCount:pool.uniqueCandidateCount,
-        selectedCandidateId:pool.selectedCandidateId,
-        selectedQualityScore:pool.selectedQualityScore,
-        selectedDecision:pool.selectedDecision,
-        requiresSelfHeal:pool.requiresSelfHeal,
-        maxMeteredRemoteCalls:budget.maxMeteredRemoteCalls,
-        paidShadowCalls:0,
-        ranking:pool.ranking.map(item=>({id:item.id,sourceKind:item.sourceKind,qualityScore:item.qualityScore,decision:item.decision,rankingScore:item.rankingScore,duplicatePenalty:item.duplicatePenalty,hardBlockers:item.hardBlockers})),
-        evidenceBoundary:"Runtime generation outcome ranking only. External-provider LIVE, Production deployment, browser, physical-device and store evidence remain separate.",
-      },
-    },
-  };
-}
 
 export async function POST(request) {
   try {
@@ -66,7 +32,7 @@ export async function POST(request) {
     }
 
     const generated = await runAutonomousEngine(prompt);
-    const result = applyOutcomeIntelligence(generated,prompt);
+    const result = applyRuntimeOutcomeIntelligence(generated,prompt);
 
     return privateJson({
       success: true,
