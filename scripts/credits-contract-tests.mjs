@@ -85,16 +85,18 @@ for(const signature of [
   'refund_ai_credits\\(text,numeric,text,jsonb\\)',
 ]) assert.match(revokeLegacy,new RegExp(`revoke all on function public\\.${signature} from public,anon,authenticated`));
 
-// Create and Modify must use the server finance layer, not direct customer RPC mutations.
+// Create and Modify must use the same server finance layer. Identity may now come from LANERIQ Cloud, but every charge/bind/refund uses the resolved userId.
 for(const [name,source] of [['generate',generate],['modify',modify]]){
   assert.match(source,/app-builder-finance/);
-  assert.match(source,/consumeAppBuilderEntitlement\(user\.id/);
-  assert.match(source,/consumeAiCredits\(user\.id/);
+  assert.match(source,/consumeAppBuilderEntitlement\(userId/);
+  assert.match(source,/consumeAiCredits\(userId/);
   assert.doesNotMatch(source,/\.rpc\(\s*["']consume_ai_credits["']/);
   assert.doesNotMatch(source,/\.rpc\(\s*["']refund_ai_credits["']/);
   assert.doesNotMatch(source,/\.rpc\(\s*["']consume_app_builder_entitlement["']/);
 }
-assert.match(generate,/bindAppBuilderProjectAccess\(user\.id/);
+assert.match(generate,/userId=principal\.principal\.principalId/,'Generate finance identity must come from the verified LANERIQ Cloud principal.');
+assert.match(modify,/userId=principal\.principal\.principalId/,'Modify finance identity must come from the verified LANERIQ Cloud principal.');
+assert.match(generate,/bindAppBuilderProjectAccess\(userId/);
 assert.match(generate,/restoreFailedAppBuilderCreate\(userId/);
 assert.match(modify,/refundAiCredits\(userId/);
 
@@ -103,4 +105,4 @@ console.log('✓ AI credit charges are bounded, row-locked, idempotent and fail 
 console.log('✓ Refunds require the original matching charge and are replay safe');
 console.log('✓ Create entitlement reservations are concurrency-safe, exact-request bound and recoverable');
 console.log('✓ Modify entitlement is exact-project owner-bound across promotion, standard and professional tiers');
-console.log('✓ Generate/Modify use the server finance layer with create recovery and modify refund paths');
+console.log('✓ Generate/Modify resolve identity through LANERIQ Cloud but preserve the same server finance, recovery and refund paths');
