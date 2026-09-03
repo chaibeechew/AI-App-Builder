@@ -1,0 +1,42 @@
+name: Sovereign Core Services Extraction Contract
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      GEMINI_API_KEY: ci-placeholder
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify sovereign manifests and service boundaries
+        run: node tests/sovereign-core-services-tests.mjs
+      - name: Verify Identity service
+        run: node services/identity/test/contract.mjs
+      - name: Verify Workflow service
+        run: node services/workflow/test/contract.mjs
+      - name: Verify Media service
+        run: node services/media/test/contract.mjs
+      - name: Verify Game service
+        run: node services/game/test/contract.mjs
+      - name: Verify existing sovereign fabric
+        run: node tests/sovereign-modular-intelligence-tests.mjs
+      - name: Build Next.js host
+        run: npm run build
