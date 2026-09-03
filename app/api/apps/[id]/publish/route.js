@@ -22,7 +22,7 @@ export async function POST(request,{params}) {
     if(!REQUEST_ID.test(requestId))return json({error:"A stable Web Publish request ID is required."},400);
     if(!UUID.test(expectedVersionId))return json({error:"The exact reviewed version is required for Web Publish."},400);
 
-    const { data: app } = await supabase.from("apps").select("id,owner_id,current_version_id,name,visibility,publish_status").eq("id", id).eq("owner_id", user.id).maybeSingle();
+    const { data: app } = await supabase.from("apps").select("id,owner_id,current_version_id,published_version_id,name,visibility,publish_status").eq("id", id).eq("owner_id", user.id).maybeSingle();
     if (!app?.current_version_id) return json({ error: "App and Website are not ready to publish." },409);
     if(app.current_version_id!==expectedVersionId)return json({error:"The project changed since this publish screen was loaded. Review the current version before publishing.",code:"STALE_PUBLISH_VERSION"},409);
     const { data: version, error: versionError } = await supabase.from("app_versions").select("id,version_no,specification").eq("id",expectedVersionId).eq("app_id",id).maybeSingle();
@@ -38,7 +38,10 @@ export async function POST(request,{params}) {
     const admin=createAdminClient();
     const{data:result,error:publishError}=await admin.rpc("server_publish_web_project",{p_user_id:user.id,p_app_id:id,p_expected_version_id:expectedVersionId,p_request_id:requestId,p_action:action});
     if(publishError){const message=String(publishError?.message||"");if(message.includes("STALE_PUBLISH_VERSION"))return json({error:"The project changed during publishing. Nothing was published; review the newest version and retry.",code:"STALE_PUBLISH_VERSION"},409);console.error("PROJECT_PUBLISH_RPC_ERROR",publishError?.code||"unknown");return json({error:action==="publish"?"Unable to publish the App and Website.":"Unable to unpublish the App and Website."},500);}
-    return json({success:true,replayed:Boolean(result?.replayed),app:{id,name:app.name,visibility:result?.visibility||app.visibility,publish_status:result?.publish_status||app.publish_status},version:{id:version.id,version_no:version.version_no},quality,target:readiness?.requiredScore??null,releaseReady:action==="publish",note:action==="publish"?RELEASE_POLICY_NOTE:"The public App and Website routes were disabled for this project.",path:`/a/${id}`,appPath:`/a/${id}`,websitePath:`/website/${id}`,action});
+    const publishedVersionId=result?.published_version_id||null;
+    if(action==="publish"&&publishedVersionId!==expectedVersionId)return json({error:"Publish completed without an exact version pin. Public access remains unverified.",code:"PUBLISHED_VERSION_PIN_MISMATCH"},500);
+    if(action==="unpublish"&&publishedVersionId)return json({error:"Unpublish completed without clearing the public version pin.",code:"PUBLISHED_VERSION_PIN_NOT_CLEARED"},500);
+    return json({success:true,replayed:Boolean(result?.replayed),app:{id,name:app.name,visibility:result?.visibility||app.visibility,publish_status:result?.publish_status||app.publish_status,published_version_id:publishedVersionId},version:{id:version.id,version_no:version.version_no,published:action==="publish"&&publishedVersionId===version.id},quality,target:readiness?.requiredScore??null,releaseReady:action==="publish",note:action==="publish"?RELEASE_POLICY_NOTE:"The public App and Website routes were disabled for this project.",path:`/a/${id}`,appPath:`/a/${id}`,websitePath:`/website/${id}`,action});
   } catch (error) {
     console.error("PROJECT_PUBLISH_API_ERROR",error?.code||error?.name||"unknown");
     return json({ error: "Unable to update Web Publish status right now." },500);
