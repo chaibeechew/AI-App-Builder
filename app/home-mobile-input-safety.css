@@ -3,6 +3,11 @@
    keep the character count outside the editable text and preserve a light
    transparent-white glass surface instead of an opaque dark input. */
 
+/* The second creator shortcut is product UI design, not another image generator. */
+.premiumHome .frame .feature:not(.primary) b::after {
+  content: 'Design UI' !important;
+}
+
 .premiumHome .frame .promptCard > textarea {
   width: 100% !important;
   box-sizing: border-box !important;
