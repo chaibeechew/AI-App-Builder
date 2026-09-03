@@ -128,6 +128,15 @@ for (const pattern of [
 ]) assert.match(realDeviceEntry, pattern);
 assert.doesNotMatch(realDeviceEntry, /\.click\(|getUserMedia\s*\(|grantPermissions|permissions\.query|signInWithOtp|verifyOtp/i, "Production real-device entry QA must verify entry readiness without triggering private permissions or Auth.");
 
+for (const pattern of [
+  /__laneriqPrivateLinkIOGuard/,
+  /NativeIO=window\.IntersectionObserver/,
+  /target instanceof HTMLAnchorElement/,
+  /blocked\.has\(u\.pathname\)/,
+  /window\.IntersectionObserver=GuardedIO/,
+  /location\.pathname==="\/"/,
+]) assert.match(layout, pattern);
+assert.match(layout, /new Set\(\["\/credits","\/my-apps","\/templates","\/studio","\/image-studio"\]\)/);
 assert.match(layout, /home-mobile-input-safety\.css/);
 assert.match(homeInputSafety, /@media\s*\(max-width:\s*820px\)/);
 assert.match(homeInputSafety, /\.premiumHome \.promptCard textarea/);
@@ -170,6 +179,7 @@ console.log("✓ Public build identity, Image Studio readiness and Video Rendere
 console.log("✓ Session protection preserves signed-out SESSION_REQUIRED 401 semantics for every mutable/protected API");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
 console.log("✓ New Production iPhone entry QA proves microphone/Photos/camera test controls are deployed at 44px+ without clicking permission surfaces");
+console.log("✓ Home pre-hydration guard prevents viewport prefetch of protected Credits, Projects, Templates, Studio and Image Studio links without weakening route protection");
 console.log("✓ Mobile QA recognizes both WebKit and Chromium generic 401 console wording while exact response-level URL/status checks remain authoritative");
 console.log("✓ Mobile QA classifies only exact signed-out GET /api/auth/session 401 responses as expected and fails all unexpected HTTP errors");
 console.log("✓ Final mobile visual authority and safety layer both force homepage editable controls to >=16px");
