@@ -12,7 +12,7 @@ import {
   publicEncryptionEnvelopePolicy,
 } from "../lib/cloud/encryption-envelope.js";
 
-const PROJECT_PROVIDER_IMPORT_BUDGET = 77;
+const PROJECT_PROVIDER_IMPORT_BUDGET = 73;
 const RUNTIME_EXTENSIONS = new Set([".js", ".mjs", ".ts", ".tsx"]);
 
 function runtimeFiles(root) {
@@ -27,13 +27,19 @@ function runtimeFiles(root) {
 
 const listRoute = fs.readFileSync("app/api/apps/route.js", "utf8");
 const detailRoute = fs.readFileSync("app/api/apps/[id]/route.js", "utf8");
+const previewRoute = fs.readFileSync("app/api/preview/route.js", "utf8");
+const securityRoute = fs.readFileSync("app/api/security/route.js", "utf8");
+const shareRoute = fs.readFileSync("app/api/share/route.js", "utf8");
+const demoRoute = fs.readFileSync("app/api/demo/route.js", "utf8");
 const projectDomain = fs.readFileSync("lib/cloud/projects.js", "utf8");
 const compatibilityAdapter = fs.readFileSync("lib/cloud-adapters/project-data.js", "utf8");
+const creatorDomain = fs.readFileSync("lib/cloud/creator-operations.js", "utf8");
+const creatorAdapter = fs.readFileSync("lib/cloud-adapters/creator-operations-data.js", "utf8");
 const envelopeSource = fs.readFileSync("lib/cloud/encryption-envelope.js", "utf8");
 const cloudPolicyRoute = fs.readFileSync("app/api/cloud/policy/route.js", "utf8");
 const cloudPage = fs.readFileSync("app/account/cloud/page.js", "utf8");
 
-// Core Project reads now cross the LANERIQ Cloud boundary rather than importing a provider in route code.
+// Core Project reads cross the LANERIQ Cloud boundary rather than importing a provider in route code.
 for (const [name, source] of [["project list", listRoute], ["project detail", detailRoute]]) {
   assert.match(source, /lib\/cloud\/projects\.js/, `${name} route must use LANERIQ Cloud project domain`);
   assert.doesNotMatch(source, /lib\/supabase\/|@supabase\//, `${name} route must not directly import the current database provider`);
@@ -45,14 +51,40 @@ assert.match(compatibilityAdapter, /\.\.\/supabase\/server\.js/, "Compatibility 
 assert.doesNotMatch(compatibilityAdapter, /createAdminClient|SERVICE_ROLE|SECRET_KEY/, "Project reads must preserve user-scoped/RLS access rather than use an admin bypass client");
 assert.match(compatibilityAdapter, /\.eq\("owner_id", principal\.principalId\)/, "Project ownership filter must remain explicit at the compatibility boundary");
 
+// Preview / Security / Share / Demo creator lifecycle routes now cross the same Cloud boundary.
+for (const [name, source] of [
+  ["preview", previewRoute],
+  ["security", securityRoute],
+  ["share", shareRoute],
+  ["demo", demoRoute],
+]) {
+  assert.match(source, /lib\/cloud\/creator-operations\.js/, `${name} route must use LANERIQ Cloud creator operations`);
+  assert.doesNotMatch(source, /lib\/supabase\/|@supabase\//, `${name} route must not directly import the current provider`);
+  assert.doesNotMatch(source, /SERVICE_ROLE|SECRET_KEY|API_KEY/, `${name} route must not contain provider secrets`);
+}
+assert.match(creatorDomain, /cloud-adapters\/creator-operations-data\.js/);
+assert.doesNotMatch(creatorDomain, /lib\/supabase\/|@supabase\//, "Creator operations domain must remain provider opaque");
+assert.match(creatorAdapter, /\.\.\/supabase\/server\.js/, "Creator provider dependency belongs only behind the adapter boundary");
+assert.match(creatorAdapter, /auth\.getUser\(\)/, "Creator adapter must server-validate current identity");
+assert.match(creatorAdapter, /\.eq\("owner_id", principal\.principal\.principalId\)/, "Creator ownership filter must remain explicit at the adapter boundary");
+assert.match(creatorAdapter, /version_id:\s*project\.current_version_id/, "Share must pin the current owned version");
+assert.match(creatorAdapter, /create_app_demo/, "Demo RPC coupling must be isolated to the adapter");
+assert.doesNotMatch(creatorAdapter, /createAdminClient|SERVICE_ROLE|SECRET_KEY/, "Creator operations must remain user/RLS scoped");
+
 // Ratchet: legacy route coupling may shrink but must never grow again.
 const directProviderRoutes = runtimeFiles("app").filter((file) => fs.readFileSync(file, "utf8").includes("lib/supabase/server.js"));
 assert.ok(
   directProviderRoutes.length <= PROJECT_PROVIDER_IMPORT_BUDGET,
   `Direct provider route budget regressed: ${directProviderRoutes.length} > ${PROJECT_PROVIDER_IMPORT_BUDGET}`,
 );
-assert.ok(!directProviderRoutes.includes(path.normalize("app/api/apps/route.js")));
-assert.ok(!directProviderRoutes.includes(path.normalize("app/api/apps/[id]/route.js")));
+for (const route of [
+  "app/api/apps/route.js",
+  "app/api/apps/[id]/route.js",
+  "app/api/preview/route.js",
+  "app/api/security/route.js",
+  "app/api/share/route.js",
+  "app/api/demo/route.js",
+]) assert.ok(!directProviderRoutes.includes(path.normalize(route)), `${route} must stay outside the direct-provider budget`);
 
 // Versioned authenticated encryption envelope: AES-256-GCM, random 96-bit nonce and context-bound AAD.
 const rawKey = generateProjectKeyMaterial();
@@ -90,18 +122,20 @@ assert.doesNotMatch(envelopeSource, /localStorage|sessionStorage|SERVICE_ROLE|SU
 
 // Public status stays truthful: migration/envelope CODE is visible, full migration/E2EE/native custody/server remain not LIVE.
 assert.match(cloudPolicyRoute, /projectReadAdapterMigrated:\s*true/);
-assert.match(cloudPolicyRoute, /legacyDirectProviderRouteBudget:\s*77/);
+assert.match(cloudPolicyRoute, /creatorLifecycleAdapterMigrated:\s*true/);
+assert.match(cloudPolicyRoute, /legacyDirectProviderRouteBudget:\s*73/);
 assert.match(cloudPolicyRoute, /clientSideEncryptionEnvelopeInCode:\s*true/);
 assert.match(cloudPolicyRoute, /providerAdaptersFullyMigrated:\s*false/);
 assert.match(cloudPolicyRoute, /clientSideEncryptionFullyLive:\s*false/);
 assert.match(cloudPolicyRoute, /zeroKnowledgeNativeKeyCustodyLive:\s*false/);
 assert.match(cloudPolicyRoute, /dedicatedLaneriqServerLive:\s*false/);
 assert.doesNotMatch(cloudPolicyRoute, /SUPABASE|VERCEL|SERVICE_ROLE|API_KEY/);
-for (const pattern of [/Project read routes migrated behind adapter/, /Private encryption envelope in code/, /clientSideEncryptionFullyLive/, /zeroKnowledgeNativeKeyCustodyLive/]) {
+for (const pattern of [/Project read routes migrated behind adapter/, /Creator lifecycle routes migrated behind adapter/, /Private encryption envelope in code/, /clientSideEncryptionFullyLive/, /zeroKnowledgeNativeKeyCustodyLive/]) {
   assert.match(cloudPage, pattern);
 }
 
-console.log(`✓ Core Project list/detail reads now use LANERIQ Cloud with explicit owner isolation and no route-level provider import`);
+console.log("✓ Project list/detail plus Preview/Security/Share/Demo now use provider-opaque LANERIQ Cloud domains");
+console.log("✓ Creator adapter preserves server identity validation, owner isolation, current-version pinning and DB-authorized demo RPCs");
 console.log(`✓ Direct provider route coupling is ratcheted at <= ${PROJECT_PROVIDER_IMPORT_BUDGET} and cannot grow silently`);
 console.log("✓ LANERIQ private envelope uses non-extractable AES-256-GCM keys, authenticated context and tamper detection");
 console.log("✓ Encryption envelope is CODE foundation only; encrypted sync/native zero-knowledge custody remain truthfully NOT LIVE");
