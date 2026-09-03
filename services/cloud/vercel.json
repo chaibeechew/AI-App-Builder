@@ -1,0 +1,8 @@
+{
+  "version":2,
+  "functions":{"api/*.js":{"maxDuration":30}},
+  "rewrites":[
+    {"source":"/api/cloud/v1/status","destination":"/api/status.js"},
+    {"source":"/api/cloud/v1/operate","destination":"/api/operate.js"}
+  ]
+}
