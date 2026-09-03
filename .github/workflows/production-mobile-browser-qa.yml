@@ -61,6 +61,9 @@ jobs:
       - name: Verify signed-out Production store persistence boundaries
         run: node scripts/production-store-boundary-qa.mjs
 
+      - name: Verify signed-out Production high-risk API boundaries
+        run: node scripts/production-high-risk-api-boundary-qa.mjs
+
       - name: Run cross-engine Production mobile browser QA
         run: node scripts/production-mobile-browser-qa.mjs
 
