@@ -36,7 +36,7 @@
     "test:templates": "node scripts/template-contract-tests.mjs",
     "test:i18n": "node scripts/multilingual-contract-tests.mjs",
     "test:account": "node scripts/account-session-contract-tests.mjs",
-    "test:session-authority": "node scripts/laneriq-session-authority-contract-tests.mjs",
+    "test:session-authority": "node scripts/laneriq-session-authority-contract-tests.mjs && node scripts/session-secret-fallback-contract-tests.mjs",
     "test:auth-mobile-entry": "node scripts/auth-mobile-entry-contract-tests.mjs",
     "test:email-otp": "node scripts/email-otp-contract-tests.mjs",
     "test:email-provider": "node scripts/laneriq-email-provider-contract-tests.mjs",
