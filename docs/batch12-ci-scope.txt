@@ -1,0 +1,1 @@
+Batch 12 scope: Account mobile touch/safe-area, Voice iPhone permission path, Upload Ref Photos/Camera split, Mobile Readiness real-device self-test entries, exact Production browser-emulation readiness gate. Physical-device verification remains separate. SMS remains ON HOLD.
