@@ -1,0 +1,1 @@
+export default function handler(_req,res){res.setHeader("Cache-Control","no-store");return res.status(200).json({service:"laneriq-identity",contract:"isvc1",evidenceLevel:"CODE_READY",capabilities:["resolve_session","authorize","revoke_session","capabilities"],remoteAuthorityRequiredForLive:true});}
