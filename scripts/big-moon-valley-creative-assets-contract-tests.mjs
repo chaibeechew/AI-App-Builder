@@ -25,14 +25,19 @@ assert.match(css,/prefers-reduced-motion:reduce/);
 assert.doesNotMatch(css,/(^|\n)\s*(html|body|\*)\s*[{,]/m);
 assert.doesNotMatch(css,/GeneratedAppClient|websiteShell|generatedApp|customerSurface/);
 
-// Video keeps stable request IDs, same-origin/no-store calls and honest renderer claims.
+// Video keeps stable request IDs, same-origin/no-store calls and honest replay-safe renderer claims.
 assert.match(video,/LANERIQ AI · VIDEO STUDIO/);
 assert.match(video,/newRequestId\("video-storyboard"\)/);
+assert.match(video,/newRequestId\("video-project"\)/);
 assert.match(video,/newRequestId\("video-compile"\)/);
+assert.match(video,/storyboardRequestId\.current\|\|newRequestId/);
+assert.match(video,/projectRequestId\.current\|\|newRequestId/);
+assert.match(video,/compileRequestId\.current\|\|newRequestId/);
 assert.match(video,/credentials:"same-origin"/);
 assert.match(video,/cache:"no-store"/);
-assert.match(video,/authorized server renderer accepted a real job/);
+assert.match(video,/authorized server renderer accepted or already owns this replay-safe submission/);
 assert.match(video,/Final MP4 rendering is not connected yet; no render has been claimed/);
+assert.match(video,/Private Asset Library/);
 
 // Avatar keeps explicit likeness permission, source truthfulness and private-library save semantics.
 assert.match(avatar,/needsConsent&&!consentConfirmed/);
@@ -65,5 +70,5 @@ assert.match(assets,/upsert:false/);
 assert.match(assets,/\.delete\(\)\.eq\("id",item\.id\)\.eq\("user_id",user\.id\)/);
 
 console.log('✓ Big Moon Valley creative-assets shell is scoped to Video, Avatar, Brand Kit and Asset Library');
-console.log('✓ Renderer truthfulness, likeness consent, brand ownership and signed private asset contracts remain intact');
+console.log('✓ Renderer truthfulness and replay safety, likeness consent, brand ownership and signed private asset contracts remain intact');
 console.log('✓ Generated App/Website customer surfaces remain separated and SMS stays on hold');
