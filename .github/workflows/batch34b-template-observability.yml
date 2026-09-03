@@ -1,0 +1,45 @@
+name: LANERIQ Template Intelligence & Service Observability Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  template-observability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-publishable-key
+      SUPABASE_SECRET_KEY: placeholder-service-secret-at-least-32-characters
+      LANERIQ_SESSION_SECRET: placeholder-session-secret-at-least-32-characters
+      LANERIQ_VERIFICATION_SECRET: placeholder-verification-secret-at-least-32-characters
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Batch 34b contracts
+        run: node scripts/batch34b-template-observability-contract-tests.mjs
+      - name: Industry intelligence regression
+        run: npm run test:industry-intelligence
+      - name: Outcome intelligence regression
+        run: npm run test:generation-outcome
+      - name: Benchmark Factory regression
+        run: npm run test:benchmark-factory
+      - name: Sovereign Service Fabric regression
+        run: node services/fabric/test/registry.mjs
+      - name: Communications zero-cost regression
+        run: npm run test:zero-cost-communications
+      - name: Production build
+        run: npm run build
+      - name: Evidence boundary
+        run: echo "Batch 34b proves CODE/CI template fusion, service observability/recovery and communications cutover policy only. Standalone LIVE, physical device and external provider evidence remain separate."
