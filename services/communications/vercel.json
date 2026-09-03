@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": { "api/*.js": { "maxDuration": 10 } },
+  "headers": [
+    { "source": "/api/(.*)", "headers": [
+      { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
+      { "key": "X-Content-Type-Options", "value": "nosniff" }
+    ] }
+  ]
+}
