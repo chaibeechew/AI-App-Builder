@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getImageGenerationConfig } from "../../../../../lib/ai/image-generation-gateway.js";
+import { getImageGenerationConfig } from "../../../../lib/ai/image-generation-gateway.js";
 
 export async function GET(){
   const config=getImageGenerationConfig();
