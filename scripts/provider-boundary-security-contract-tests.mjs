@@ -8,6 +8,8 @@ const community = read("app/api/community-chat/route.js");
 const transcription = read("app/api/voice/transcribe/route.js");
 const voice = read("app/api/soolenai/voice/route.js");
 const clone = read("app/api/admin/soolenai-voice/clone/route.js");
+const productionWorkflow = read(".github/workflows/production-mobile-browser-qa.yml");
+const productionRuntime = read("scripts/production-provider-boundary-qa.mjs");
 
 // Community Chat must use the same cost-filtered Soolen router as the rest of the product.
 assert.match(community, /generateWithFallback/);
@@ -88,6 +90,34 @@ assert.deepEqual(elevenDirect, [
   path.join("app", "api", "soolenai", "voice", "route.js"),
 ].sort(), "Only the two explicitly cost-gated voice adapters may contain ElevenLabs endpoints.");
 
+// Exact-SHA Production access-control proof is mandatory before the existing WebKit/Chromium browser-emulation gate.
+for (const pattern of [
+  /LANERIQ_EXPECTED_SHA:\s*\$\{\{ github\.sha \}\}/,
+  /Wait for exact Vercel Production commit/,
+  /production-provider-boundary-qa\.mjs/,
+  /production-mobile-browser-qa\.mjs/,
+  /actions\/upload-artifact@v4/,
+]) assert.match(productionWorkflow, pattern);
+assert.ok(productionWorkflow.indexOf("production-provider-boundary-qa.mjs") < productionWorkflow.indexOf("production-mobile-browser-qa.mjs"), "Provider-boundary Production HTTP proof must run before cross-engine browser QA.");
+
+for (const pattern of [
+  /\/api\/build-info/,
+  /LANERIQ_EXPECTED_SHA/,
+  /\/api\/community-chat/,
+  /\/api\/voice\/transcribe/,
+  /\/api\/soolenai\/voice/,
+  /\/api\/admin\/soolenai-voice\/clone/,
+  /response\.status, 401/,
+  /application\\\/json/,
+  /no-store/i,
+  /evidenceLevel:\s*"PRODUCTION_HTTP"/,
+  /authenticatedProviderExecutionExercised:\s*false/,
+  /liveProviderVerified:\s*false/,
+  /physicalDeviceVerified:\s*false/,
+  /officialStoreVerified:\s*false/,
+]) assert.match(productionRuntime, pattern);
+assert.doesNotMatch(productionRuntime, /Authorization:\s*`Bearer|GEMINI_API_KEY|OPENAI_API_KEY|ELEVENLABS_API_KEY/, "Production access-control QA must not possess provider credentials or execute authenticated provider calls.");
+
 const hostile = { SOOLEN_COST_MODE: "zero", SOOLEN_ZERO_COST_PROVIDERS: "openai,gemini,ollama,soolen-local" };
 assert.equal(getSoolenCostMode(hostile), "zero");
 assert.deepEqual(filterProvidersByCost(["openai", "gemini", "ollama", "soolen-local"], hostile), ["ollama", "soolen-local"]);
@@ -97,3 +127,4 @@ console.log("✓ Voice transcription requires auth + Professional access, bounds
 console.log("✓ Neural voice requires Professional access and blocks metered TTS unless paid/balanced mode is explicit");
 console.log("✓ Admin voice cloning trusts app_metadata only and needs explicit operator enablement plus paid/balanced mode");
 console.log("✓ App API provider scan prevents future direct Gemini/OpenAI/ElevenLabs bypasses outside approved guarded adapters");
+console.log("✓ Exact-SHA Production HTTP provider-boundary proof is permanently chained before browser-emulation QA and cannot be mislabeled LIVE_PROVIDER");
