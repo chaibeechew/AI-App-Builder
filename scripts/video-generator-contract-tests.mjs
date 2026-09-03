@@ -153,11 +153,11 @@ assert.match(outputPersistence,/rawPrivateAssetsReusableAcrossCustomers:false/);
 assert.match(outputPersistence,/stablePath:`\/api\/video\/assets\/\$\{asset\.id\}`/);
 assert.match(outputPersistence,/trusted\.has\(url\.hostname\.toLowerCase\(\)\)/);
 
-// Stable private output route must re-check owner/type/purpose and only emit short signed URLs.
+// Stable private output route authorizes by account ownership + MP4 type and only emits short signed URLs.
 assert.match(assetRoute,/auth\.getUser\(\)/);
 assert.match(assetRoute,/\.eq\("id",id\)\.eq\("user_id",user\.id\)/);
 assert.match(assetRoute,/asset\.mime_type!=="video\/mp4"/);
-assert.match(assetRoute,/asset\.intelligence\?\.purpose!=="video_render_output"/);
+assert.doesNotMatch(assetRoute,/intelligence\?\.purpose/);
 assert.match(assetRoute,/createSignedUrl\(asset\.storage_path,600/);
 assert.match(assetRoute,/download:asset\.file_name/);
 assert.match(assetRoute,/NextResponse\.redirect\(signed\.signedUrl,307\)/);
