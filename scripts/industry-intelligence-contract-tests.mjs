@@ -26,7 +26,7 @@ assert.ok(property.templates.length>=3);
 assert.ok(property.archetypeIds.includes('crm'));
 assert.ok(property.entities.includes('properties'));
 assert.ok(property.workflow.includes('viewing'));
-assert.match(buildIndustryIntelligenceContext('房地产中介管理房源、顾客、预约看房、佣金'),'Real Estate');
+assert.match(buildIndustryIntelligenceContext('房地产中介管理房源、顾客、预约看房、佣金'),/Real Estate/);
 
 const food=selectIndustryTemplateBlend('Create a restaurant booking, menu ordering and loyalty app');
 assert.equal(food.industry,'Restaurant');
