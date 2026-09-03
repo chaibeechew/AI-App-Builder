@@ -121,9 +121,14 @@ for (const pattern of [
   /"\/studio"/,
   /"\/production-e2e"/,
   /"\/mobile-readiness"/,
+  /"\/landing"/,
+  /"\/templates"/,
+  /PUBLIC_DISCOVERY_PATHS/,
   /"\/a\/"/,
   /"\/website\/"/,
   /"\/release\/"/,
+  /"\/landing\/"/,
+  /"\/templates\/"/,
 ]) assert.match(policy, pattern);
 
 assert.match(overlays, /shouldHideBuilderGlobalOverlay/);
@@ -131,6 +136,7 @@ assert.match(overlays, /<StudioLauncher\s*\/>/);
 assert.match(overlays, /<ReferenceUploader\s*\/>/);
 assert.match(overlays, /<SoolenVoiceAssistant\s*\/>/);
 assert.match(studio, /shouldHideBuilderGlobalOverlay/);
+assert.match(studio, /href="\/studio"\s+prefetch=\{false\}/, "Private Studio launcher must not eagerly prefetch protected RSC payloads.");
 assert.match(layout, /BuilderGlobalOverlays/);
 assert.doesNotMatch(layout, /<StudioLauncher\s*\/>|<ReferenceUploader\s*\/>|<SoolenVoiceAssistant\s*\/>/, "Heavy global overlays must be mounted only through the route gate.");
 assert.match(wallpaper, /wallpaperControlHidden/);
@@ -146,4 +152,4 @@ console.log("✓ Final mobile visual authority and safety layer both force homep
 console.log("✓ Auth/home/readiness browser evidence fails if the floating Wallpaper control overlaps primary mobile surfaces");
 console.log("✓ Browser QA preserves failure screenshots/report details, including undersized editable-control diagnostics");
 console.log("✓ Browser QA stays permission-free and labels evidence as browser emulation, never physical-device proof");
-console.log("✓ Homepage/auth/evidence/customer-preview surfaces do not mount duplicate heavy global builder overlays");
+console.log("✓ Public discovery, landing and Templates surfaces do not mount private builder overlays; Studio eager prefetch is disabled");
