@@ -1,0 +1,1 @@
+{"version":2,"rewrites":[{"source":"/api/workflow/v1/status","destination":"/api/status.js"},{"source":"/api/workflow/v1/operate","destination":"/api/operate.js"}]}
