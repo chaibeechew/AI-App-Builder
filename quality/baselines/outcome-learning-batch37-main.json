@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "batch37-main-golden-outcome-learning",
+  "source": {
+    "commitSha": "b365e9552ca307cc93ccb1c958997e596da71258",
+    "workflowRunId": 33790568048,
+    "artifactId": 9907158345,
+    "evidenceLevel": "CODE_CI_EXECUTABLE_GENERATION_SAMPLE"
+  },
+  "sample": {
+    "caseCount": 50,
+    "industryCoverage": 50,
+    "archetypeCoverage": 12,
+    "averageScore": 97.94,
+    "minimumScore": 90,
+    "averageOriginality": 91.66,
+    "averageCoverage": 93.16,
+    "averageLiui": 99.96,
+    "averageReleaseReadiness": 100,
+    "runtimeReplanRate": 0,
+    "benchmarkReplanRate": 0,
+    "averageCandidateCount": 3,
+    "averageUniqueCandidateCount": 3,
+    "winnerFamilies": {"primary": 2, "zeroCostStructuralShadow": 48},
+    "blockers": {},
+    "uniqueOutcomeFingerprintCount": 50
+  },
+  "byArchetype": {
+    "analytics": {"caseCount":4,"averageScore":98,"minimumScore":98,"averageOriginality":93.25,"averageCoverage":91,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":4}},
+    "booking": {"caseCount":5,"averageScore":98.2,"minimumScore":98,"averageOriginality":93.4,"averageCoverage":92.8,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":5}},
+    "community": {"caseCount":4,"averageScore":98,"minimumScore":98,"averageOriginality":93,"averageCoverage":91,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":4}},
+    "crm": {"caseCount":5,"averageScore":94.8,"minimumScore":90,"averageOriginality":87.2,"averageCoverage":80.2,"replanRate":0,"winnerFamilies":{"primary":1,"zeroCostStructuralShadow":4}},
+    "directory": {"caseCount":4,"averageScore":99,"minimumScore":99,"averageOriginality":93,"averageCoverage":100,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":4}},
+    "inventory": {"caseCount":4,"averageScore":98,"minimumScore":98,"averageOriginality":93,"averageCoverage":91,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":4}},
+    "learning": {"caseCount":4,"averageScore":99,"minimumScore":99,"averageOriginality":91,"averageCoverage":100,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":4}},
+    "marketplace": {"caseCount":4,"averageScore":98,"minimumScore":98,"averageOriginality":93,"averageCoverage":91,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":4}},
+    "membership": {"caseCount":4,"averageScore":99,"minimumScore":99,"averageOriginality":93,"averageCoverage":100,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":4}},
+    "operations": {"caseCount":4,"averageScore":97.75,"minimumScore":97,"averageOriginality":92.5,"averageCoverage":91,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":4}},
+    "service": {"caseCount":4,"averageScore":97.25,"minimumScore":94,"averageOriginality":87.25,"averageCoverage":93.25,"replanRate":0,"winnerFamilies":{"primary":1,"zeroCostStructuralShadow":3}},
+    "store": {"caseCount":4,"averageScore":99,"minimumScore":99,"averageOriginality":91,"averageCoverage":100,"replanRate":0,"winnerFamilies":{"primary":0,"zeroCostStructuralShadow":4}}
+  },
+  "byIndustry": {
+    "AI Services":{"averageScore":96,"replanRate":0},"Accounting":{"averageScore":99,"replanRate":0},"Agriculture":{"averageScore":99,"replanRate":0},"Architecture":{"averageScore":98,"replanRate":0},"Automotive":{"averageScore":99,"replanRate":0},"Beauty & Spa":{"averageScore":98,"replanRate":0},"Childcare":{"averageScore":98,"replanRate":0},"Cleaning Services":{"averageScore":99,"replanRate":0},"Community":{"averageScore":98,"replanRate":0},"Construction":{"averageScore":98,"replanRate":0},"Consulting":{"averageScore":99,"replanRate":0},"Creator Economy":{"averageScore":99,"replanRate":0},"Cybersecurity":{"averageScore":99,"replanRate":0},"E-commerce":{"averageScore":99,"replanRate":0},"Education":{"averageScore":97,"replanRate":0},"Energy":{"averageScore":98,"replanRate":0},"Entertainment":{"averageScore":96,"replanRate":0},"Events":{"averageScore":98,"replanRate":0},"Finance":{"averageScore":98,"replanRate":0},"Fitness":{"averageScore":98,"replanRate":0},"Food Delivery":{"averageScore":99,"replanRate":0},"Government Services":{"averageScore":98,"replanRate":0},"Grocery":{"averageScore":98,"replanRate":0},"Healthcare":{"averageScore":99,"replanRate":0},"Home Services":{"averageScore":98,"replanRate":0},"Hotel & Hospitality":{"averageScore":99,"replanRate":0},"Human Resources":{"averageScore":98,"replanRate":0},"IT Services":{"averageScore":98,"replanRate":0},"Insurance":{"averageScore":98,"replanRate":0},"Interior Design":{"averageScore":98,"replanRate":0},"Legal":{"averageScore":96,"replanRate":0},"Logistics":{"averageScore":99,"replanRate":0},"Manufacturing":{"averageScore":98,"replanRate":0},"Media":{"averageScore":98,"replanRate":0},"Nonprofit":{"averageScore":99,"replanRate":0},"Pet Services":{"averageScore":98,"replanRate":0},"Photography":{"averageScore":99,"replanRate":0},"Property Management":{"averageScore":94,"replanRate":0},"Real Estate":{"averageScore":98,"replanRate":0},"Recruitment":{"averageScore":98,"replanRate":0},"Restaurant":{"averageScore":90,"replanRate":0},"Retail":{"averageScore":98,"replanRate":0},"SaaS":{"averageScore":98,"replanRate":0},"Security":{"averageScore":96,"replanRate":0},"Senior Care":{"averageScore":98,"replanRate":0},"Solar":{"averageScore":99,"replanRate":0},"Sports":{"averageScore":98,"replanRate":0},"Telecommunications":{"averageScore":99,"replanRate":0},"Travel":{"averageScore":99,"replanRate":0},"Wedding":{"averageScore":99,"replanRate":0}
+  },
+  "privacy": {"syntheticBenchmarkOnly":true,"rawPromptStored":false,"rawSpecificationStored":false,"userIdStored":false,"customerNameStored":false,"freeFormUserTextStored":false,"outcomeFingerprintRowsStored":false},
+  "governance": {"automaticBaselineMutation":false,"reviewedPullRequestRequired":true,"learningMayRankStrategiesButCannotLowerQualityGates":true},
+  "fingerprint": "olb1-2ff42a69373b7bc7"
+}
