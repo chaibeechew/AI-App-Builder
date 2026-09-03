@@ -56,17 +56,22 @@ function mergeAviationSpecification(specification,gamePlan){
 async function buildCostSafeCandidatePool({primarySpecification,provider,combinedIdea,patterns,promptOptions,gamePlan}){
   if(gamePlan?.matched)return null;
   const budget=buildGenerationCandidateBudget({costMode:"free",requestedCandidates:3});
-  const candidates=[{id:"primary",provider,sourceKind:provider==="soolen-local"?"zero-cost-local-primary":"primary-provider",specification:provider==="soolen-local"?expandZeroCostIndustrySpecification(primarySpecification,combinedIdea,{variationIndex:0}):primarySpecification}];
+  const industryHint=promptOptions?.industry||"";
+  const candidates=[{id:"primary",provider,sourceKind:provider==="soolen-local"?"zero-cost-local-primary":"primary-provider",specification:provider==="soolen-local"?expandZeroCostIndustrySpecification(primarySpecification,combinedIdea,{variationIndex:0,industryHint:promptOptions.industry}):primarySpecification}];
+  let pool=evaluateGenerationCandidatePool(candidates);
+  if(budget.stopWhenAccepted&&pool.selectedDecision==="accept")return pool;
   for(let index=0;index<budget.localShadowCandidates;index++){
     try{
       const shadowIdea=`${combinedIdea}\n\n${buildShadowCandidateInstruction(index+2)}`;
       const generated=await generateWithFallback(buildPrompt(shadowIdea,patterns,promptOptions),{providers:["soolen-local"]});
       const raw=extractJson(generated.result);
-      const expanded=expandZeroCostIndustrySpecification(raw,combinedIdea,{variationIndex:index+1});
+      const expanded=expandZeroCostIndustrySpecification(raw,combinedIdea,{variationIndex:index+1,industryHint});
       candidates.push({id:`zero-cost-shadow-${index+1}`,provider:"soolen-local",sourceKind:"zero-cost-local-shadow",specification:expanded});
+      pool=evaluateGenerationCandidatePool(candidates);
+      if(budget.stopWhenAccepted&&pool.selectedDecision==="accept")break;
     }catch(error){console.warn("LANERIQ zero-cost shadow candidate unavailable:",error?.message);}
   }
-  return evaluateGenerationCandidatePool(candidates);
+  return pool;
 }
 export async function runAutonomousEngine(userIdea,options={}) {
   if(!userIdea||!userIdea.trim()) throw new Error("Please describe the app you want to build.");
