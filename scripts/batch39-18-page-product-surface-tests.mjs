@@ -33,8 +33,11 @@ assert.equal(resolveMasterProductPage('publish-deployment-center')?.id,18);
 assert.equal(resolveMasterProductPage('missing'),null);
 
 const root=fs.readFileSync('app/page.js','utf8');
-for(const marker of ['/api/orchestrate','/api/generate']) assert.match(root,new RegExp(marker.replaceAll('/','\\/')),'Pages 1-3 must remain wired to the real generation engine');
-assert.match(root,/idempot/i,'Build flow must preserve idempotent/recovery behavior');
+for(const marker of ['/api/orchestrate','/api/generate']) assert.ok(root.includes(marker),`Pages 1-3 must remain wired to ${marker}`);
+assert.match(root,/stableCreateRequestId/,'Build flow must reuse a stable create request ID for recovery');
+assert.match(root,/CREATE_REQUEST_KEY/,'Build flow must persist the pending create request key');
+assert.match(root,/GENERATION_REQUEST_IN_PROGRESS|generation_request_in_progress/i,'Build flow must explicitly recover an in-progress generation request');
+assert.match(root,/without creating a duplicate/i,'Recovery UX must preserve the no-duplicate contract');
 
 const page8=resolveMasterProductPage(8);
 assert.match(page8.aiActions.join(' '),/3000\+/i);
@@ -102,7 +105,7 @@ assert.match(statusRoute,/storeVerified:false/);
 
 console.log('✓ LANERIQ 18-page master surface contains exactly 18 ordered, unique pages');
 console.log('✓ Every master page resolves to an existing real LANERIQ route file');
-console.log('✓ Pages 1-3 remain connected to the real orchestrate/generate path and recovery contract');
+console.log('✓ Pages 1-3 remain connected to the real orchestrate/generate path and stable recovery contract');
 console.log('✓ Critical Database, Self-Heal and Publish surfaces remain human-approved and recoverable');
 console.log('✓ Templates keep 3000+ LANERIQ structures primary and popular apps secondary/anti-clone');
 console.log('✓ Public product-surface status is privacy-safe and carries CODE/CI-only evidence labels');
