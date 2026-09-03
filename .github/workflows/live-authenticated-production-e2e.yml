@@ -1,0 +1,161 @@
+name: LANERIQ AI One-Shot Authenticated Production E2E
+
+on:
+  push:
+    branches:
+      - qa/batch12-auth-prod-e2e-cf52caa8
+
+permissions:
+  contents: read
+
+jobs:
+  authenticated-production-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PROD_ORIGIN: https://laneriq-ai.vercel.app
+      EXPECTED_SHA: cf52caa8f9e36029f5548ba068c42d8de6767e0d
+      MAIL_API: https://api.mail.tm
+    steps:
+      - name: Assert stable Production exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          build="$(curl --silent --show-error --fail --max-time 30 "$PROD_ORIGIN/api/build-info")"
+          printf '%s\n' "$build" | jq .
+          printf '%s\n' "$build" | jq -e --arg sha "$EXPECTED_SHA" '.commitSha == $sha and .commitRef == "main" and .environment == "production"' >/dev/null
+
+      - name: Provision isolated one-time mailbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          domain="$(curl --silent --show-error --fail --max-time 20 "$MAIL_API/domains?page=1" | jq -r '."hydra:member"[] | select(.isActive == true) | .domain' | head -n1)"
+          test -n "$domain"
+          local_part="laneriq-e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${RANDOM}"
+          address="${local_part}@${domain}"
+          password="$(openssl rand -hex 24)"
+          account_body="$(jq -nc --arg address "$address" --arg password "$password" '{address:$address,password:$password}')"
+          account="$(curl --silent --show-error --fail --max-time 20 -X POST "$MAIL_API/accounts" -H 'Content-Type: application/json' --data "$account_body")"
+          account_id="$(printf '%s' "$account" | jq -r '.id')"
+          test -n "$account_id" && test "$account_id" != "null"
+          token_body="$(jq -nc --arg address "$address" --arg password "$password" '{address:$address,password:$password}')"
+          token_response="$(curl --silent --show-error --fail --max-time 20 -X POST "$MAIL_API/token" -H 'Content-Type: application/json' --data "$token_body")"
+          token="$(printf '%s' "$token_response" | jq -r '.token')"
+          test -n "$token" && test "$token" != "null"
+          echo "::add-mask::$password"
+          echo "::add-mask::$token"
+          echo "MAIL_ADDRESS=$address" >> "$GITHUB_ENV"
+          echo "MAIL_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "MAIL_ACCOUNT_ID=$account_id" >> "$GITHUB_ENV"
+
+      - name: Request real LANERIQ Production Email Code
+        shell: bash
+        run: |
+          set -euo pipefail
+          request_id="live-auth-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          body="$(jq -nc --arg email "$MAIL_ADDRESS" --arg rid "$request_id" '{method:"email",identifier:$email,requestId:$rid}')"
+          raw="$(curl --silent --show-error --max-time 45 -X POST "$PROD_ORIGIN/api/auth/verification/request" -H "Origin: $PROD_ORIGIN" -H 'Sec-Fetch-Site: same-origin' -H 'Content-Type: application/json' --data "$body" --write-out '\n%{http_code}')"
+          http_code="$(printf '%s\n' "$raw" | tail -n1)"
+          response="$(printf '%s\n' "$raw" | sed '$d')"
+          printf '%s\n' "$response" | jq .
+          test "$http_code" = "200"
+          printf '%s\n' "$response" | jq -e '.success == true and .channel == "email" and .otpAuthority == "laneriq" and (.challengeId | test("^[a-f0-9]{48}$")) and .expiresInSeconds == 600' >/dev/null
+          echo "CHALLENGE_ID=$(printf '%s\n' "$response" | jq -r '.challengeId')" >> "$GITHUB_ENV"
+
+      - name: Receive the real Email Code from external inbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          message_id=""
+          for attempt in $(seq 1 45); do
+            messages="$(curl --silent --show-error --fail --max-time 20 "$MAIL_API/messages?page=1" -H "Authorization: Bearer $MAIL_TOKEN")"
+            message_id="$(printf '%s' "$messages" | jq -r '."hydra:member"[] | select(.subject == "Your LANERIQ AI verification code") | .id' | head -n1)"
+            if [ -n "$message_id" ] && [ "$message_id" != "null" ]; then break; fi
+            sleep 2
+          done
+          test -n "$message_id" && test "$message_id" != "null"
+          message="$(curl --silent --show-error --fail --max-time 20 "$MAIL_API/messages/$message_id" -H "Authorization: Bearer $MAIL_TOKEN")"
+          code="$(printf '%s' "$message" | jq -r '[.text // "", .intro // "", (if (.html|type)=="array" then (.html|join("\n")) else (.html // "") end)] | join("\n")' | grep -Eo '[0-9]{8}' | head -n1)"
+          test "${#code}" = "8"
+          echo "::add-mask::$code"
+          echo "EMAIL_CODE=$code" >> "$GITHUB_ENV"
+          subject="$(printf '%s' "$message" | jq -r '.subject // ""')"
+          test "$subject" = "Your LANERIQ AI verification code"
+
+      - name: Verify Email Code and establish authenticated Production session
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(jq -nc --arg email "$MAIL_ADDRESS" --arg challenge "$CHALLENGE_ID" --arg code "$EMAIL_CODE" '{method:"email",identifier:$email,challengeId:$challenge,code:$code}')"
+          raw="$(curl --silent --show-error --max-time 45 -c cookies.txt -b cookies.txt -X POST "$PROD_ORIGIN/api/auth/verification/verify" -H "Origin: $PROD_ORIGIN" -H 'Sec-Fetch-Site: same-origin' -H 'Content-Type: application/json' --data "$body" --write-out '\n%{http_code}')"
+          http_code="$(printf '%s\n' "$raw" | tail -n1)"
+          response="$(printf '%s\n' "$raw" | sed '$d')"
+          printf '%s\n' "$response" | jq .
+          test "$http_code" = "200"
+          printf '%s\n' "$response" | jq -e '.success == true and .otpAuthority == "laneriq" and .sessionAuthority == "laneriq" and .sessionCreated == true' >/dev/null
+          grep -Eq '[[:space:]]laneriq_session[[:space:]]' cookies.txt
+          grep -Eq 'sb-.*-auth-token' cookies.txt
+
+      - name: Verify LANERIQ primary session endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          session="$(curl --silent --show-error --fail --max-time 30 -c cookies.txt -b cookies.txt "$PROD_ORIGIN/api/auth/session")"
+          printf '%s\n' "$session" | jq .
+          printf '%s\n' "$session" | jq -e '.success == true and .authenticated == true and .sessionAuthority == "laneriq"' >/dev/null
+
+      - name: Generate and atomically save a real Production App + Website
+        shell: bash
+        run: |
+          set -euo pipefail
+          generation_id="auth-e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          body="$(jq -nc --arg rid "$generation_id" '{requestId:$rid,requestedName:"LANERIQ Production E2E",idea:"Create a simple responsive real estate lead tracker with Dashboard, Leads, Properties and Appointments. Include safe local demo data, clear navigation, mobile responsiveness and no paid external integrations.",language:"en",industry:"real_estate",createDemoVideo:false}')"
+          raw="$(curl --silent --show-error --max-time 300 -c cookies.txt -b cookies.txt -X POST "$PROD_ORIGIN/api/generate" -H "Origin: $PROD_ORIGIN" -H 'Sec-Fetch-Site: same-origin' -H 'Content-Type: application/json' --data "$body" --write-out '\n%{http_code}')"
+          http_code="$(printf '%s\n' "$raw" | tail -n1)"
+          response="$(printf '%s\n' "$raw" | sed '$d')"
+          printf '%s\n' "$response" | jq '{success,error,code,app,idempotency,credits,selfTest:{ok:.selfTest.ok},executionVerification:{ok:.executionVerification.ok},selfHeal:{passed:.selfHeal.passed}}'
+          test "$http_code" = "200"
+          printf '%s\n' "$response" | jq -e '.success == true and (.app.id | test("^[0-9a-fA-F-]{36}$")) and .selfTest.ok == true and .executionVerification.ok == true and .selfHeal.passed == true' >/dev/null
+          app_id="$(printf '%s\n' "$response" | jq -r '.app.id')"
+          test -n "$app_id" && test "$app_id" != "null"
+          echo "APP_ID=$app_id" >> "$GITHUB_ENV"
+
+      - name: Reload persisted project and build real Production Preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(jq -nc --arg appId "$APP_ID" '{appId:$appId}')"
+          raw="$(curl --silent --show-error --max-time 120 -c cookies.txt -b cookies.txt -X POST "$PROD_ORIGIN/api/preview" -H "Origin: $PROD_ORIGIN" -H 'Sec-Fetch-Site: same-origin' -H 'Content-Type: application/json' --data "$body" --write-out '\n%{http_code}')"
+          http_code="$(printf '%s\n' "$raw" | tail -n1)"
+          response="$(printf '%s\n' "$raw" | sed '$d')"
+          printf '%s\n' "$response" | jq '{success,error,app,version:{id:.version.id,version_no:.version.version_no},selfTest:{ok:.selfTest.ok},previewPresent:(.preview != null)}'
+          test "$http_code" = "200"
+          printf '%s\n' "$response" | jq -e --arg app_id "$APP_ID" '.success == true and .app.id == $app_id and .selfTest.ok == true and .preview != null' >/dev/null
+
+      - name: Confirm Email delivery health and publish evidence summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --fail --max-time 20 "$PROD_ORIGIN/api/auth/verification/status")"
+          printf '%s\n' "$status" | jq .
+          printf '%s\n' "$status" | jq -e '.success == true and .ready == true and .operationalReady == true and .deliveryHealth.operational == true and .deliveryHealth.state == "sent" and .deliveryHealth.issue == null and .otpAuthority == "laneriq" and .sessionAuthority == "laneriq"' >/dev/null
+          {
+            echo '### Authenticated Production E2E'
+            echo "- Exact Production SHA: \`$EXPECTED_SHA\`"
+            echo '- Real external Email Code delivery: PASS'
+            echo '- LANERIQ Email Code verification: PASS'
+            echo '- LANERIQ primary authenticated session: PASS'
+            echo '- Supabase compatibility authenticated session: PASS'
+            echo '- Production Generate: PASS'
+            echo '- Atomic persisted Save: PASS'
+            echo '- Production Preview from persisted version: PASS'
+            echo "- Persisted App ID: \`$APP_ID\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Delete one-time mailbox
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${MAIL_ACCOUNT_ID:-}" ] && [ -n "${MAIL_TOKEN:-}" ]; then
+            curl --silent --show-error --max-time 20 -X DELETE "$MAIL_API/accounts/$MAIL_ACCOUNT_ID" -H "Authorization: Bearer $MAIL_TOKEN" >/dev/null || true
+          fi
