@@ -32,6 +32,13 @@ jobs:
         run: node scripts/communications-service-gateway-contract-tests.mjs
       - name: Verify standalone service host
         run: npm test --prefix services/communications
+      - name: Verify standalone deployment preflight
+        env:
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SECRET_KEY: ci-service-secret-key-placeholder-123456
+          LANERIQ_COMMUNICATIONS_SERVICE_SECRET: ci-communications-secret-placeholder-1234567890
+          LANERIQ_COMMUNICATIONS_SERVICE_CLIENT_ID: laneriq-ai
+        run: npm run preflight --prefix services/communications
       - name: Verify standalone LIVE canary gate semantics
         run: node scripts/communications-standalone-canary-contract-tests.mjs
       - name: Verify zero-cost omnichannel policy remains authoritative
