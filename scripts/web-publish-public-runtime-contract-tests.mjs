@@ -31,7 +31,8 @@ for(const pattern of [
   /PUBLIC_VISIBILITY = new Set\(\["listed", "public"\]\)/,
   /app\.publish_status === "published"/,
   /if \(!isOwner && !isPublished\) return null/,
-  /\.eq\("id", app\.current_version_id\)/,
+  /selectedVersionId = requestedVersionId && isOwner \? requestedVersionId : app\.current_version_id/,
+  /\.eq\("id", selectedVersionId\)/,
   /\.eq\("app_id", app\.id\)/,
   /createSignedUrl\(asset\.storage_path, 900\)/,
 ]) assert.match(runtime,pattern);
@@ -45,6 +46,8 @@ for(const source of [appPage,websitePage]){
   assert.doesNotMatch(source,/supabase\.from\("apps"\)/,"Public render pages must not depend on anonymous Data API project reads.");
   assert.doesNotMatch(source,/supabase\.from\("app_versions"\)/,"Public render pages must not expose project specifications through anon RLS.");
 }
+assert.match(appPage,/versionId: requestedVersionId/);
+assert.match(websitePage,/versionId:requestedVersionId/);
 assert.match(websitePage,/Created with LANERIQ AI/);
 assert.doesNotMatch(websitePage,/AI BUILD APP & WEB/);
 
@@ -65,6 +68,6 @@ assert.match(migration,/revoke insert, update, delete on table public\.app_versi
 assert.doesNotMatch(migration,/create policy|grant select|grant insert|grant update|grant delete/i,"Public runtime hardening must not add anonymous row policies or grants.");
 
 console.log("✓ Published App/Website routes bypass auth only for exact UUID runtime paths; owner APIs/dashboards remain protected");
-console.log("✓ Public rendering uses server-only minimal-field reads and exact current-version loading instead of anonymous project RLS");
+console.log("✓ Public rendering stays on the exact current version while authenticated owners may pin a same-project saved version for combined preview");
 console.log("✓ Private/draft projects and manifests fail closed; published manifests use bounded public cache while owner previews stay no-store");
 console.log("✓ Anonymous project-table writes are revoked without adding public Data API policies or grants");

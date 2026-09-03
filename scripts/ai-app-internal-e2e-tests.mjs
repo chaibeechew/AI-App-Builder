@@ -79,10 +79,11 @@ assert.match(home,/Core App \+ Website are saved\. Background setup could not fi
 
 for(const pattern of [
   /auth\.getUser\(\)/,
-  /loadVisibleProject\(\{ id, userId: user\?\.id \|\| null \}\)/,
+  /loadVisibleProject\(\{ id, userId: user\?\.id \|\| null, versionId: requestedVersionId \}\)/,
   /loadVisibleProjectMedia/,
   /GeneratedAppClient/,
   /notFound\(\)/,
+  /data-project-version=\{version\.id\}/,
 ]) assert.match(preview,pattern);
 
 for(const pattern of [
@@ -90,7 +91,8 @@ for(const pattern of [
   /current_version_id/,
   /if \(!isOwner && !isPublished\) return null/,
   /\.from\("app_versions"\)/,
-  /\.eq\("id", app\.current_version_id\)/,
+  /selectedVersionId = requestedVersionId && isOwner \? requestedVersionId : app\.current_version_id/,
+  /\.eq\("id", selectedVersionId\)/,
   /\.eq\("app_id", app\.id\)/,
   /\.select\("id,version_no,specification"\)/,
 ]) assert.match(publicRuntime,pattern);
@@ -137,5 +139,5 @@ console.log("✓ AI App internal E2E locks Planning → verified Generate → du
 console.log("✓ Same-request retries are replayed or held as in-progress before duplicate AI execution; database uniqueness prevents duplicate persisted projects");
 console.log("✓ Client ambiguous retries preserve one create identity, definitive failures rotate it, and post-save bootstrap loss cannot downgrade a successful project to failed");
 console.log("✓ Creator Opportunity is individual-only, Admin-approved, no-upfront-fee Full Access with an operational +5 percentage-point commission rule");
-console.log("✓ Failed/unverified generation cannot be persisted and Preview resolves the authoritative current version through the server-only owner/published visibility gate");
+console.log("✓ Public App Preview resolves current version; authenticated owner snapshot pinning remains same-project-bound through the shared server loader");
 console.log("✓ Real external AI-provider success remains LIVE evidence and is not fabricated by this code gate");
