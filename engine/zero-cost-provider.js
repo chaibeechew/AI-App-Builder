@@ -1,4 +1,5 @@
 import { buildIdeaPlan } from "../lib/ai/idea-planning-contract.js";
+import { inferMobileGamePlan,isMobileGameIdea } from "../lib/ai/mobile-game-knowledge.js";
 
 // Deterministic zero-cost provider for Soolen AI.
 // It keeps the builder functional without calling any metered third-party model.
@@ -125,6 +126,28 @@ function appSpec(idea) {
   };
 }
 
+function gameSpec(idea){
+  const plan=inferMobileGamePlan(idea),designSystem=designProfile(idea),language=detectLanguage(idea);
+  const allowed=new Set(["arcade","racing","shooter","platformer","puzzle","tower_defense","rpg","moba","air_combat","action","strategy","simulation","card","sports","rhythm","survival","educational","idle","party","custom"]);
+  const inferred=String(plan?.genreId||plan?.archetype||"custom").toLowerCase();const archetype=allowed.has(inferred)?inferred:"custom";
+  const labels={moba:"MOBA / 5v5 Hero Battler",air_combat:"Air Combat / Flight",racing:"Racing",rpg:"RPG / Adventure",action:"Action",shooter:"Shooter",platformer:"Platformer / Runner",puzzle:"Puzzle",tower_defense:"Tower Defense",strategy:"Strategy",card:"Card",simulation:"Simulation",sports:"Sports",rhythm:"Rhythm",survival:"Survival",educational:"Educational",idle:"Idle",party:"Party",arcade:"Arcade",custom:"Original Mobile Game"};
+  const genre=labels[archetype]||labels.custom;const multiplayer=Boolean(plan?.multiplayer||archetype==="moba"||/multiplayer|pvp|co.?op|多人|联机|聯機|5\s?v\s?5/i.test(idea));
+  const pageNames=["Home","Play","Progression","Collection","Community","Settings"];
+  const pages=pageNames.map((name,index)=>({id:slug(name,`game-page-${index+1}`),name,route:index===0?"/":`/${slug(name)}`,description:index===0?`${genre} launch lobby and companion Website entry`:`${name} game screen`,purpose:index===1?"Playable touch-first gameplay surface":"Game progression and player workflow",components:index===1?["game canvas","touch controls","HUD","pause","win lose results"]:["header","game cards","primary action","status"],layout:"mobile-first game shell with responsive companion web layout",visualTreatment:designSystem.visualDirection}));
+  const systems=Array.isArray(plan?.systems)&&plan.systems.length?plan.systems.slice(0,30):["touch-first controls","deterministic gameplay state","collision and world bounds","win and lose flow","progression and restart","versioned save and load","user-controlled audio and haptics","60fps-oriented bounded simulation","mobile lifecycle recovery","accessibility and reduced motion"];
+  const screens=Array.isArray(plan?.screens)&&plan.screens.length?plan.screens.slice(0,20):["Boot / loading","Home / lobby","Gameplay","Pause","Results / rewards","Settings / accessibility"];
+  const coreLoop=archetype==="racing"?["start race","steer and manage speed","pass checkpoints","finish","reward","replay"]:archetype==="puzzle"?["load puzzle","inspect state","make move","validate","reward","next level"]:archetype==="moba"?["select hero","lane and farm","fight and take objectives","destroy core or lose","reward","requeue"]:["start","move and act","avoid or fight","collect progress","win or lose","reward and replay"];
+  return{
+    name:`Soolen ${genre}`.slice(0,100),description:clean(idea,300)||`Original ${genre} mobile game.`,productType:"mobile_game",platforms:["ios","android","web"],industry:{name:"Gaming",category:genre,confidence:.9},language:{default:language,name:language,switchable:true},
+    designSystem:{...designSystem,backgroundDirection:"Original game world atmosphere with readable safe-area HUD",heroDirection:"Original key art without copied characters or commercial-game branding",layoutSignature:"touch-first play surface plus responsive companion Website",cardStyle:"high-contrast game panels",imageStyle:"original game art direction",motionDirection:"responsive motion with reduced-motion fallback"},
+    visualAssets:[{type:"app_icon",description:"Original mobile game icon"},{type:"game_character",description:"Original player character direction"},{type:"game_environment",description:"Original gameplay environment direction"},{type:"game_vfx",description:"Readable original gameplay effects"},{type:"store_artwork",description:"Original store and companion Website artwork"}],
+    templateStrategy:{matchedPatterns:[genre],innovation:"Zero-cost Soolen Game planning converts the customer's idea into a real playable vertical-slice contract rather than a normal business App."},
+    qualityPlan:{stability:["bounded frame delta and deterministic state transitions","pause/recovery on page visibility and interruption","validated save/load with restart fallback"],security:["no client-authoritative commerce or competitive server truth","validated bounded inputs and project ownership for server actions","external game providers remain fail-closed until connected"],privacy:["no sensitive permission requested unless gameplay needs it","data minimization for telemetry and player identity","camera/location/chat remain opt-in with denial fallback"],comfort:["44px+ touch targets and safe-area HUD","user-controlled audio/haptics with non-audio feedback","reduced motion and readable contrast"],beauty:["coordinated original game palette","clear gameplay focal hierarchy","responsive companion Website/store presentation"],naturalness:["complete start-play-result-replay loop","human-readable progression and rewards","loading empty error pause and reconnect states are explicit"]},
+    game:{enabled:true,genre,archetype,dimensions:/3d|air combat|flight/i.test(`${idea} ${genre}`)?"3d":"adaptive",coreLoop,screens,controls:["touch-first movement/action controls","pointer-cancel and interruption recovery","keyboard preview without making keyboard mandatory"],systems,progression:["onboarding","level or run progression","checkpoint/reward","final victory and replay"],saveStrategy:"versioned local save with validation, autosave and cloud-ready boundary",performanceTargets:["target responsive 60fps where practical","bounded frame delta","entity and memory budgets","thermal/battery-aware mobile degradation"],audio:["user-controlled SFX","no forced autoplay","interruption recovery","visible non-audio feedback"],assets:["original character/environment/UI/VFX/icon directions only"],multiplayer:{enabled:multiplayer,notes:multiplayer?"Authoritative multiplayer integration point is prepared; live real-player matchmaking is never claimed until provider/relay/device evidence passes.":"Local/bot gameplay is authoritative for the current preview; no live multiplayer is claimed."},monetization:{ads:false,inAppPurchases:false,notes:"No ad network or purchase provider is claimed connected."},platformNotes:{ios:["safe-area HUD","background/foreground and audio interruption recovery"],android:["back navigation","lifecycle recreation and low-memory recovery"]}},
+    pages,features:[{name:"Playable Runtime",description:"Touch-first deterministic playable preview",uiPattern:"game runtime"},{name:"Progression",description:"Win/lose/reward/replay progression",uiPattern:"results and progression"},{name:"Save & Resume",description:"Validated local save and recovery",uiPattern:"automatic save"},{name:"Accessibility",description:"Reduced motion, readable controls and non-audio feedback",uiPattern:"settings"},{name:"Companion Website",description:"Responsive marketing/store/community surface linked to the same game project",uiPattern:"responsive website"}],data:{PlayerProfile:{fields:["display_name","level","progress","best_score","settings","updated_at"]}},actions:[{name:"Play",description:"Start or resume the playable game"},{name:"Restart",description:"Restart after win or loss"},{name:"Save",description:"Persist validated local progress"}],navigation:pages.map(({name,route})=>({label:name,route})),demoVideo:{enabled:false,durationSeconds:30,storyboard:["Game identity","Core loop","Progression","Companion Website"]}
+  };
+}
+
 function extractObjectAfter(text, marker) {
   const markerIndex = text.indexOf(marker);
   if (markerIndex < 0) return null;
@@ -193,8 +216,8 @@ export function generateWithZeroCostRules(prompt) {
   if (/Current specification:/i.test(text) && /modification engine/i.test(text)) return JSON.stringify(modifySpec(text));
   if (/LATEST USER MESSAGE:/i.test(text) && /readyToBuild/i.test(text)) return JSON.stringify(conversationResult(text));
   if (/Build a real mobile-first app/i.test(text) || /REFERENCE IMAGE REFERENCES:/i.test(text)) {
-    const match = text.match(/USER IDEA:\s*\n"([\s\S]*?)"\s*\n\nVOICE INPUT:/i);
-    return JSON.stringify(appSpec(clean(match?.[1] || text, 6000)));
+    const match = text.match(/USER IDEA:\s*\n"([\s\S]*?)"\s*\n\nVOICE INPUT:/i);const idea=clean(match?.[1] || text, 6000);
+    return JSON.stringify(isMobileGameIdea(idea)?gameSpec(idea):appSpec(idea));
   }
   return localChat(text);
 }
