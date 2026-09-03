@@ -33,6 +33,16 @@ const nextConfig = {
   async headers() {
     return [{ source:"/:path*", headers:SECURITY_HEADERS }];
   },
+  async redirects() {
+    return [
+      {
+        source:"/image-studio",
+        has:[{ type:"query", key:"mode", value:"design" }],
+        destination:"/design-studio",
+        permanent:false,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
