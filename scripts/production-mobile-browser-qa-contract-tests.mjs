@@ -7,6 +7,7 @@ const imageReadiness = read("app/api/images/readiness/route.js");
 const videoReadiness = read("app/api/video/readiness/route.js");
 const workflow = read(".github/workflows/production-mobile-browser-qa.yml");
 const runner = read("scripts/production-mobile-browser-qa.mjs");
+const realDeviceEntry = read("scripts/production-mobile-real-device-entry-qa.mjs");
 const sessionProxy = read("lib/supabase/proxy.js");
 const sessionRoute = read("app/api/auth/session/route.js");
 const policy = read("lib/ui/global-overlay-policy.js");
@@ -69,6 +70,7 @@ for (const pattern of [
   /install --with-deps chromium webkit/,
   /\/api\/build-info/,
   /LANERIQ_EXPECTED_SHA/,
+  /production-mobile-real-device-entry-qa\.mjs/,
   /production-mobile-browser-qa\.mjs/,
   /actions\/upload-artifact@v4/,
 ]) assert.match(workflow, pattern);
@@ -104,6 +106,27 @@ for (const pattern of [
 ]) assert.match(runner, pattern);
 assert.doesNotMatch(runner, /getUserMedia\s*\(|grantPermissions|permissions\.query|signInWithOtp|verifyOtp/i, "Browser-emulation QA must stay permission-free and must not exercise Email/SMS Auth.");
 assert.doesNotMatch(runner, /status === 401\)\s*return null|status >= 400\)\s*return null/, "QA must never blanket-ignore 401 or 4xx/5xx responses.");
+
+for (const pattern of [
+  /devices\["iPhone 13"\]/,
+  /\/mobile-readiness/,
+  /reportVersion, 2/,
+  /evidenceLevel, "REAL_DEVICE_SELF_TEST"/,
+  /physicalDeviceVerified, false/,
+  /permissionPromptsTriggered, false/,
+  /"microphone", "photoLibrary", "camera"/,
+  /"Test microphone", "Test Photos", "Test camera"/,
+  /box\.width >= 44 && box\.height >= 44/,
+  /data-mobile-photo-probe/,
+  /data-mobile-camera-probe/,
+  /capture, "environment"/,
+  /deployedRealDeviceEntryVerified: true/,
+  /permissionActionsExercised: false/,
+  /microphoneCaptureExercised: false/,
+  /pickerInteractionExercised: false/,
+  /real-device-entry-report\.json/,
+]) assert.match(realDeviceEntry, pattern);
+assert.doesNotMatch(realDeviceEntry, /\.click\(|getUserMedia\s*\(|grantPermissions|permissions\.query|signInWithOtp|verifyOtp/i, "Production real-device entry QA must verify entry readiness without triggering private permissions or Auth.");
 
 assert.match(layout, /home-mobile-input-safety\.css/);
 assert.match(homeInputSafety, /@media\s*\(max-width:\s*820px\)/);
@@ -146,6 +169,7 @@ assert.match(wallpaper, /path==="\/mobile-readiness"/);
 console.log("✓ Public build identity, Image Studio readiness and Video Renderer readiness are privacy-safe, exact-path, no-store and GET/HEAD-only before sign-in");
 console.log("✓ Session protection preserves signed-out SESSION_REQUIRED 401 semantics for every mutable/protected API");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
+console.log("✓ New Production iPhone entry QA proves microphone/Photos/camera test controls are deployed at 44px+ without clicking permission surfaces");
 console.log("✓ Mobile QA recognizes both WebKit and Chromium generic 401 console wording while exact response-level URL/status checks remain authoritative");
 console.log("✓ Mobile QA classifies only exact signed-out GET /api/auth/session 401 responses as expected and fails all unexpected HTTP errors");
 console.log("✓ Final mobile visual authority and safety layer both force homepage editable controls to >=16px");
