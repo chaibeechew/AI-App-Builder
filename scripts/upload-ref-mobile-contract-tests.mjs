@@ -8,6 +8,11 @@ const policy=fs.readFileSync("lib/media/reference-policy.js","utf8");
 for(const pattern of [
   /type="file"/,
   /multiple/,
+  /data-reference-library-input/,
+  /data-reference-camera-input/,
+  /accept="image\/\*" capture="environment"/,
+  /Photos · Video · Files/,
+  /Take Photo/,
   /image\/heic/,
   /image\/heif/,
   /video\/quicktime/,
@@ -23,8 +28,12 @@ for(const pattern of [
   /12000/,
   /supabase\.auth\.getUser\(\)/,
   /storage\.from\("user-assets"\)\.upload/,
-  /reusableAcrossUsers:false/,
-  /privateCustomerAsset:true/,
+  /reusableAcrossUsers:\s*false/,
+  /privateCustomerAsset:\s*true/,
+  /min-width:44px;min-height:44px/,
+  /\.upload,\.camera,\.analyze\{[^}]*min-height:44px/,
+  /@media\(max-width:640px\)\{[\s\S]*\.panel\{position:fixed;inset:0/,
+  /safe-area-inset-bottom/,
 ]) assert.match(uploader,pattern);
 
 assert.match(css,/\.referenceDock\{right:max\(10px,env\(safe-area-inset-right\)\)/);
@@ -33,7 +42,8 @@ assert.match(css,/72svh/);
 assert.match(css,/-webkit-overflow-scrolling:touch/);
 assert.match(policy,/REFERENCE_LIMITS/);
 
-console.log("✓ Upload Ref mobile code supports iPhone HEIC/HEIF, QuickTime/MP4, multiple selection and inline video preview");
-console.log("✓ Object URLs, media processing timeouts and SHA-256 dedupe are bounded and cleaned up");
-console.log("✓ Private owner-scoped storage remains mandatory and the mobile picker panel respects safe areas");
-console.log("✓ Real Photos/Camera picker behavior remains a final iPhone evidence item, not a fabricated code claim");
+console.log("✓ Upload Ref mobile code exposes separate Photos/Video/Files and rear-camera capture paths");
+console.log("✓ Picker, close, remove and analyze actions meet 44px mobile touch-target rules and safe-area/full-screen constraints");
+console.log("✓ iPhone HEIC/HEIF, QuickTime/MP4, multiple selection, inline video preview and bounded local preprocessing remain supported");
+console.log("✓ Object URLs, media processing timeouts, SHA-256 dedupe and owner-scoped private storage remain bounded and cleaned up");
+console.log("✓ Physical Photos/Camera picker interaction remains real-device evidence, not a fabricated code claim");
