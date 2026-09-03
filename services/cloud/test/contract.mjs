@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { validateCloudServiceRequest,CLOUD_SERVICE_CONTRACT } from '../../../lib/cloud-service/contract.js';
+const root=process.cwd(),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const gateway=read('lib/cloud-service/gateway.js'),operate=read('services/cloud/api/operate.js'),security=read('services/cloud/lib/security.js'),status=read('services/cloud/api/status.js'),manifest=JSON.parse(read('services/cloud/deployment.manifest.json'));
+assert.equal(CLOUD_SERVICE_CONTRACT.version,'csvc1');assert.equal(CLOUD_SERVICE_CONTRACT.arbitraryQueryAllowed,false);
+assert.equal(validateCloudServiceRequest({operation:'project.read',requestId:'req-1',tenantId:'tenant-1',userId:'user-1',projectId:'project-1',payload:{}}).ok,true);
+assert.equal(validateCloudServiceRequest({operation:'project.read',requestId:'req-1',tenantId:'',userId:'user-1',projectId:'project-1',payload:{}}).code,'INVALID_SCOPE_IDENTITY');
+assert.equal(validateCloudServiceRequest({operation:'project.write',requestId:'req-1',tenantId:'tenant-1',userId:'user-1',projectId:'project-1',payload:{service_role:'x'}}).code,'RAW_SECRET_FORBIDDEN');
+assert.equal(validateCloudServiceRequest({operation:'project.write',requestId:'req-1',tenantId:'tenant-1',userId:'user-1',projectId:'project-1',payload:{query:'delete from users'}}).code,'ARBITRARY_QUERY_FORBIDDEN');
+assert.match(gateway,/createHmac\("sha256"/);assert.match(gateway,/CLOUD_SERVICE_UNREACHABLE/);const ci=gateway.indexOf('catch(error)');assert.ok(ci>=0);assert.doesNotMatch(gateway.slice(ci),/return embedded\(/);
+assert.match(security,/timingSafeEqual/);assert.match(operate,/CLOUD_STORAGE_ADAPTER_NOT_READY/);assert.match(operate,/"authorization":`Bearer \$\{adapterSecret\}`/);assert.match(status,/live:false/);
+assert.equal(manifest.security.tripleScopeRequired,true);assert.equal(manifest.security.arbitraryQueryAllowed,false);assert.equal(manifest.security.rawProviderCredentialsForbidden,true);assert.equal(manifest.evidence.standaloneLive,false);
+for(const source of [gateway,operate,security])assert.doesNotMatch(source,/@supabase|SUPABASE_SERVICE|VERCEL_TOKEN|AWS_|cloudflare/i,'Cloud service boundary must remain provider-opaque.');
+console.log('✓ Cloud Data contract requires tenant + user + project scope and forbids arbitrary queries');
+console.log('✓ Remote Cloud mode is HTTPS + HMAC and never silently falls back after uncertainty');
+console.log('✓ Storage provider credentials remain adapter-owned and standalone LIVE evidence remains separate');
