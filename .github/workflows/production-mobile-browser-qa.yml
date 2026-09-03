@@ -67,6 +67,9 @@ jobs:
       - name: Verify signed-out Production interaction API boundaries
         run: node scripts/production-interaction-api-boundary-qa.mjs
 
+      - name: Verify Production Email Change verification boundaries
+        run: node scripts/production-email-change-boundary-qa.mjs
+
       - name: Run cross-engine Production mobile browser QA
         run: node scripts/production-mobile-browser-qa.mjs
 
