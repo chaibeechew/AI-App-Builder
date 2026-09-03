@@ -37,6 +37,6 @@ jobs:
       - name: Verify Game service
         run: node services/game/test/contract.mjs
       - name: Verify existing sovereign fabric
-        run: node tests/sovereign-modular-intelligence-tests.mjs
+        run: node scripts/sovereign-modular-intelligence-contract-tests.mjs
       - name: Build Next.js host
         run: npm run build
