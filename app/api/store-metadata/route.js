@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../lib/supabase/server.js";
+import { STORE_METADATA_DRAFT_MAX_BYTES, readBoundedStoreJson, sanitizeStoreDraftInput } from "../../../lib/publishing/store-metadata-safety.js";
 
 const clean = (value, max) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
-
+function json(payload,status=200){return NextResponse.json(payload,{status,headers:{"Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","X-Content-Type-Options":"nosniff"}});}
 function yesNo(value) { return value === true || String(value).toLowerCase() === "yes"; }
 
 function buildMetadata({ appName, description, category, keywords, language = "en", customerAnswers = {} }) {
@@ -34,10 +35,7 @@ function buildMetadata({ appName, description, category, keywords, language = "e
       encryptedInTransit: dataEncryptedInTransit,
       accountDeletionAvailable: loginRequired ? accountDeletionAvailable : false,
     },
-    audience: {
-      childDirected,
-      targetAudience,
-    },
+    audience: { childDirected, targetAudience },
     source: "customer_answers_draft",
     reviewNote: "Draft only. The customer must review the final app behavior and complete Google Play Data Safety in the customer-owned Play Console before submission.",
   };
@@ -46,7 +44,7 @@ function buildMetadata({ appName, description, category, keywords, language = "e
     language,
     autoFill: {
       sellerType, targetAudience, supportEmail, loginRequired, collectsPersonalData, containsAds, paidFeatures,
-      customerAnsweredFields: Object.keys(customerAnswers || {}).filter((key) => String(customerAnswers[key] ?? "").trim() !== ""),
+      customerAnsweredFields: Object.keys(customerAnswers).filter((key) => String(customerAnswers[key] ?? "").trim() !== ""),
       generatedFields: ["name", "subtitle", "keywords", "promotionalText", "descriptions", "category", "store checklist", "Google Play Data Safety draft"],
     },
     apple: {
@@ -92,14 +90,16 @@ function buildMetadata({ appName, description, category, keywords, language = "e
 export async function POST(request) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return json({ error: "Authentication required." }, 401);
 
-    const body = await request.json();
-    if (!body?.appName) return NextResponse.json({ error: "appName is required" }, { status: 400 });
-    return NextResponse.json(buildMetadata(body));
+    const parsed=await readBoundedStoreJson(request,STORE_METADATA_DRAFT_MAX_BYTES);
+    if(!parsed.ok)return json({error:parsed.status===413?"Store metadata request is too large.":"Invalid store metadata request."},parsed.status);
+    const body=sanitizeStoreDraftInput(parsed.value);
+    if (!body.appName) return json({ error: "appName is required" }, 400);
+    return json(buildMetadata(body));
   } catch (error) {
-    console.error("STORE_METADATA_ERROR", error);
-    return NextResponse.json({ error: "Unable to prepare store metadata" }, { status: 400 });
+    console.error("STORE_METADATA_ERROR", error?.code||error?.name||"unknown");
+    return json({ error: "Unable to prepare store metadata" }, 400);
   }
 }
