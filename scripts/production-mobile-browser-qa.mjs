@@ -66,12 +66,13 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
   const metrics = await page.evaluate(({ requireHome }) => {
     const width = window.innerWidth;
     const documentWidth = document.documentElement.scrollWidth;
+    const isVisible = (element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== "none" && style.visibility !== "hidden" && Number.parseFloat(style.opacity || "1") > 0 && rect.width > 0 && rect.height > 0;
+    };
     const visibleInputs = Array.from(document.querySelectorAll("input:not([type='hidden']), textarea, select"))
-      .filter((element) => {
-        const style = getComputedStyle(element);
-        const rect = element.getBoundingClientRect();
-        return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
-      })
+      .filter(isVisible)
       .map((element) => {
         const style = getComputedStyle(element);
         const parentClass = element.parentElement?.className;
@@ -87,11 +88,15 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
         };
       });
     const criticalTargets = requireHome
-      ? Array.from(document.querySelectorAll(".buildCta, .bottomNav a, .bottomNav button"))
+      ? Array.from(document.querySelectorAll(".buildCta, .liuiRealBottomNav a, .liuiRealBottomNav button, .bottomNav a, .bottomNav button")).filter(isVisible)
       : [];
     const criticalTargetSizes = criticalTargets.map((element) => {
       const rect = element.getBoundingClientRect();
-      return { width: Math.round(rect.width), height: Math.round(rect.height) };
+      return {
+        selectorFamily: element.closest(".liuiRealBottomNav") ? "liui" : element.closest(".bottomNav") ? "legacy" : "build",
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      };
     });
     return {
       width,
@@ -103,6 +108,7 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
       duplicateOverlayCount: document.querySelectorAll(".studioLauncher, .referenceDock, .sv-fab").length,
       wallpaperControlCount: document.querySelectorAll(".wallpaperControl").length,
       criticalTargetSizes,
+      liuiNavVisibleTargetCount: criticalTargetSizes.filter((item) => item.selectorFamily === "liui").length,
     };
   }, { requireHome });
 
@@ -116,9 +122,10 @@ async function pageBaseline(page, pathname, { requireHome = false } = {}) {
     assert.equal(metrics.homePresent, true, "Homepage must render .premiumHome");
     assert.equal(metrics.duplicateOverlayCount, 0, "Homepage must not mount duplicate Studio / Reference / Voice global overlays");
     assert.equal(metrics.wallpaperControlCount, 0, "Homepage must not mount the global Wallpaper control over primary builder actions");
-    assert(metrics.criticalTargetSizes.length >= 5, "Homepage must expose primary build and bottom-navigation touch targets");
+    assert(metrics.criticalTargetSizes.length >= 6, "Homepage must expose the primary build action and five visible navigation touch targets");
+    assert.equal(metrics.liuiNavVisibleTargetCount, 5, "Homepage must expose exactly five visible LIUI primary navigation targets");
     for (const size of metrics.criticalTargetSizes) {
-      assert(size.height >= 44, `Homepage critical touch target is ${size.height}px tall; minimum is 44px`);
+      assert(size.height >= 44, `Homepage visible ${size.selectorFamily} touch target is ${size.height}px tall; minimum is 44px`);
     }
   }
   return metrics;
