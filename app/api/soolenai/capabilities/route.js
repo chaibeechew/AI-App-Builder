@@ -3,6 +3,10 @@ import { createClient } from "../../../../lib/supabase/server.js";
 import { resolveSoolenCapabilities } from "../../../../lib/soolen/capability-registry.js";
 import { publicPlatformStatus } from "../../../../lib/soolen/platform-operator.js";
 import { getSoolenSubscription } from "../../../../lib/soolen/user-tier.js";
+import { getImageGenerationConfig } from "../../../../lib/ai/image-generation-gateway.js";
+import { getVideoRendererConfig } from "../../../../lib/video/render-gateway.js";
+import { getMultiplayerProviderConfig } from "../../../../lib/game/multiplayer-provider-gateway.js";
+import { GAME_RUNTIME_V1 } from "../../../../lib/game/runtime-v1.js";
 import { SOOLENAI_SECURITY_PROFILE, SOOLENAI_SECURITY_BASELINE_VERSION, SOOLENAI_MAX_SECURITY_CONTROLS } from "../../../../lib/ai/soolenai-max-security.js";
 
 function reply(payload, status = 200) {
@@ -31,6 +35,16 @@ function publicResolved(resolved){
     },
   };
 }
+function creatorRuntimeReadiness(){
+  const image=getImageGenerationConfig(),video=getVideoRendererConfig(),multiplayer=getMultiplayerProviderConfig();
+  return{
+    providerNamesHidden:true,
+    avatar:{externalProviderConnected:Boolean(image.connected),externalProviderAllowed:Boolean(image.configured),blockedByCostPolicy:Boolean(image.blockedByCostPolicy),durablePrivateCapture:true,idempotentReplay:true,liveProviderEvidenceVerified:false},
+    video:{externalRendererConnected:Boolean(video.connected),externalRendererAllowed:Boolean(video.configured),blockedByCostPolicy:Boolean(video.blockedByCostPolicy),durablePrivateMp4Required:true,idempotentRendererSubmission:true,liveProviderEvidenceVerified:false},
+    gameRuntime:{localPlayableRuntime:Boolean(GAME_RUNTIME_V1.playable),runtimeVersion:GAME_RUNTIME_V1.version,generatedProductionProjectVerified:false,realDeviceEvidenceVerified:false},
+    multiplayer:{externalProviderConnected:Boolean(multiplayer.connected),externalProviderAllowed:Boolean(multiplayer.configured),blockedByCostPolicy:Boolean(multiplayer.blockedByCostPolicy),replaySafeMatchmaking:true,authoritativeRuntimeReady:true,liveProviderEvidenceVerified:false},
+  };
+}
 
 export async function GET() {
   try {
@@ -50,6 +64,7 @@ export async function GET() {
         currentPeriodEnd: subscription?.currentPeriodEnd || null,
       },
       ...resolved,
+      creatorRuntimeReadiness:creatorRuntimeReadiness(),
       platform:publicPlatformStatus(),
       security:securityCapability(),
     });
@@ -60,6 +75,7 @@ export async function GET() {
       authenticated: false,
       subscription: { tier: "free", planName: "Free", status: "unavailable", currentPeriodEnd: null },
       ...publicResolved(resolveSoolenCapabilities({ tier: "free" })),
+      creatorRuntimeReadiness:creatorRuntimeReadiness(),
       platform:publicPlatformStatus(),
       security:securityCapability(),
     });

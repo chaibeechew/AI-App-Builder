@@ -7,15 +7,22 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const page=read('app/avatar-studio/page.js');
 const api=read('app/api/avatar/generate/route.js');
 const gateway=read('lib/ai/image-generation-gateway.js');
+const persistence=read('lib/ai/image-output-persistence.js');
 const save=read('app/api/images/save/route.js');
 const assetMigration=read('supabase/migrations/20260901124338_harden_upload_reference_asset_contract.sql');
+const replayMigration=read('supabase/migrations/20260903093000_image_generation_request_replay.sql');
 
-// Customer surface: canonical brand, bounded description, stable request IDs, explicit likeness declaration and private save.
+// Customer surface: stable mobile request identity, consent, truthful source labels and already-durable model output.
 assert.match(page,/AI Avatar Creator/);
 assert.match(page,/← LANERIQ AI/);
 assert.doesNotMatch(page,/AI BUILD APP&WEB/);
+assert.match(page,/useRef/);
+assert.match(page,/generationRequestId\.current\|\|newRequestId\("avatar"\)/);
+assert.match(page,/generationRequestId\.current=requestId/);
+assert.match(page,/AVATAR_GENERATION_IN_PROGRESS/);
+assert.match(page,/return postGeneration\(payload,attempt\+1\)/);
+assert.match(page,/Retry will resume the same avatar request instead of creating a duplicate/);
 assert.match(page,/maxLength=\{1200\}/);
-assert.match(page,/newRequestId\("avatar"\)/);
 assert.match(page,/newRequestId\("avatar-save"\)/);
 assert.match(page,/fetch\("\/api\/avatar\/generate"/);
 assert.match(page,/fetch\("\/api\/images\/save"/);
@@ -25,14 +32,26 @@ assert.match(page,/Fictional \/ Original/);
 assert.match(page,/Based on Me/);
 assert.match(page,/Person With Permission/);
 assert.match(page,/consentConfirmed/);
-assert.match(page,/Save to Private Library/);
+assert.match(page,/Saved to Private Library/);
+assert.match(page,/already secured in your private Asset Library/);
 assert.match(page,/source==="model"\?"AI model output":"Local visual concept"/);
+assert.match(page,/min-height:44px/);
+assert.match(page,/font-size:16px/);
 
-// Server API: auth + verified account, bounded request, allowlisted types/styles, real-person permission and safe server-side prompt policy.
+// Server API: verified auth, bounded request, likeness policy and one server-only replay claim before any provider execution.
 assert.match(api,/auth\.getUser\(\)/);
 assert.match(api,/confirmed_at/);
+assert.match(api,/createAdminClient/);
 assert.match(api,/MAX_REQUEST_BYTES=24\*1024/);
 assert.match(api,/REQUEST_ID=\/\^\[A-Za-z0-9\._:-\]/);
+assert.match(api,/STALE_PENDING_MS=90\*1000/);
+assert.match(api,/requestHash\(/);
+assert.match(api,/image_generation_requests/);
+assert.match(api,/claimRequest\(admin/);
+assert.match(api,/AVATAR_REQUEST_ID_CONFLICT/);
+assert.match(api,/AVATAR_RETRY_NEW_ID/);
+assert.match(api,/AVATAR_GENERATION_IN_PROGRESS/);
+assert.match(api,/claim\.state==="replay"/);
 assert.match(api,/clean\(body\?\.idea,1200\)/);
 for(const type of ['profile','game','npc','presenter','mascot'])assert.match(api,new RegExp(`"${type}"`));
 for(const style of ['cinematic','3d','cartoon','fantasy','minimal','realistic'])assert.match(api,new RegExp(`"${style}"`));
@@ -44,34 +63,48 @@ assert.match(api,/Do not imitate a celebrity, public figure, copyrighted charact
 assert.match(api,/rawReferenceStored:false/);
 assert.match(api,/Cache-Control":"private, no-store/);
 
-// Model path: shared output-host security, billing, refund and honest provider-hidden local fallback.
+// Model path: billing/refund, durable private capture before browser response, replay from private assets and honest fallback.
 assert.match(api,/getImageGenerationConfig\(\)/);
 assert.match(api,/generateExternalImages/);
 assert.match(api,/buildImagePlacementPrompt/);
 assert.match(api,/consumeAiCredits\(user\.id/);
 assert.match(api,/refundAiCredits\(user\.id/);
+assert.match(api,/persistGeneratedImages/);
+assert.match(api,/replayPersistedImages/);
+assert.match(api,/completeRequest\(admin/);
+assert.match(api,/failRequest\(admin/);
+assert.match(api,/durable:true/);
 assert.match(api,/source:"model"/);
 assert.match(api,/source:"local"/);
-assert.match(api,/modelFallback:Boolean\(modelFailureCode\)/);
 assert.match(api,/explicitly labeled local concept/);
 assert.match(api,/Provider identity and credentials remain server-side/);
 assert.doesNotMatch(api,/provider:/);
 assert.doesNotMatch(api,/error:error\?\.message/);
+const providerCall=api.indexOf('const generated=await generateExternalImages');
+const claimIndex=api.indexOf('claimRequest(admin');
+const durableIndex=api.indexOf('persistGeneratedImages({admin',providerCall);
+const firstModelResponse=api.indexOf('replayed:false,durable:true',durableIndex);
+assert.ok(claimIndex>=0&&providerCall>claimIndex,'Avatar provider execution must be downstream of the replay claim.');
+assert.ok(durableIndex>providerCall&&firstModelResponse>durableIndex,'Avatar provider bytes must be private/durable before first model response.');
 assert.match(gateway,/IMAGE_GENERATION_OUTPUT_HOST_ALLOWLIST/);
 assert.match(gateway,/isApprovedImageOutputUrl/);
 assert.match(gateway,/redirect: "error"/);
+assert.match(persistence,/storage\.from\("user-assets"\)\.upload/);
+assert.match(persistence,/createSignedUrl/);
+assert.match(persistence,/reusableAcrossUsers:false/);
+assert.match(persistence,/rawPrivateAssetsReusableAcrossCustomers:false/);
 
 // Local fallback is a real, bounded original SVG concept and never embeds customer free text.
 assert.match(api,/function localAvatarSvg/);
 assert.match(api,/ORIGINAL \$\{style\.toUpperCase\(\)\} CONCEPT/);
 const localStart=api.indexOf('function localAvatarSvg');
-const localEnd=api.indexOf('\n\nexport async function POST',localStart);
+const localEnd=api.indexOf('\nasync function readRequest',localStart);
 assert.ok(localStart>=0&&localEnd>localStart);
 const localSvgSource=api.slice(localStart,localEnd);
 assert.doesNotMatch(localSvgSource,/\$\{idea\}/);
 assert.doesNotMatch(localSvgSource,/Customer description/);
 
-// Saving inherits private owner storage, signature/SVG sanitization and cross-customer reuse blocks.
+// Manual local saving inherits private owner storage; provider output is already saved before display.
 assert.match(save,/auth\.getUser\(\)/);
 assert.match(save,/storagePath=`\$\{user\.id\}\//);
 assert.match(save,/storage\.from\("user-assets"\)\.upload/);
@@ -84,5 +117,9 @@ assert.match(assetMigration,/storage_path like \(user_id::text \|\| '\/%'\)/);
 assert.match(assetMigration,/reusableAcrossUsers/);
 assert.match(assetMigration,/rawPrivateAssetsReusableAcrossCustomers/);
 assert.match(assetMigration,/revoke insert, update, delete on table public\.asset_library from anon/i);
+assert.match(replayMigration,/create table if not exists public\.image_generation_requests/i);
+assert.match(replayMigration,/unique \(user_id, request_id\)/i);
+assert.match(replayMigration,/revoke all on table public\.image_generation_requests from public, anon, authenticated/i);
+assert.match(replayMigration,/service_role/i);
 
-console.log('AI Avatar Creator contract passed: authenticated bounded generation, explicit likeness permission, provider-hidden cost-safe model routing, honest local fallback and private owner-scoped persistence are locked.');
+console.log('AI Avatar Creator contract passed: consent-safe generation, replay-safe mobile recovery, durable private model capture, automatic refund, truthful local fallback and owner-scoped assets are locked.');
