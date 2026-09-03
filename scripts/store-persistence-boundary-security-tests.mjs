@@ -15,6 +15,8 @@ const draft=read("app/api/store-metadata/route.js");
 const save=read("app/api/store-metadata/save/route.js");
 const approve=read("app/api/store-metadata/approve/route.js");
 const agent=read("app/api/apps/[id]/publishing-agent/route.js");
+const builderDomain=read("lib/cloud/builder-projects.js");
+const builderAdapter=read("lib/cloud-adapters/builder-project-data.js");
 const productionWorkflow=read(".github/workflows/production-mobile-browser-qa.yml");
 
 assert.equal(STORE_METADATA_DRAFT_MAX_BYTES,24*1024);
@@ -54,9 +56,9 @@ const oversizedResult=await readBoundedStoreJson(oversized,STORE_METADATA_DRAFT_
 assert.equal(oversizedResult.ok,false);
 assert.equal(oversizedResult.status,413);
 
+// Direct-provider store routes authenticate locally; migrated save authenticates through LANERIQ Cloud.
 for(const [name,source,limitPattern] of [
   ["draft",draft,/STORE_METADATA_DRAFT_MAX_BYTES/],
-  ["save",save,/STORE_METADATA_SAVE_MAX_BYTES/],
   ["approval",approve,/STORE_METADATA_APPROVAL_MAX_BYTES/],
   ["publishing declarations",agent,/STORE_DECLARATIONS_MAX_BYTES/],
 ]){
@@ -65,26 +67,40 @@ for(const [name,source,limitPattern] of [
   assert.match(source,limitPattern,`${name} must use its explicit request-size budget`);
   assert.match(source,/private, no-store, max-age=0/,`${name} must return private no-store responses`);
 }
+assert.match(save,/lib\/cloud\/builder-projects\.js/,"Store save must cross the LANERIQ Cloud Builder Project boundary.");
+assert.match(save,/getBuilderPrincipal\(\{requireVerified:true\}\)/,"Store save must require a verified Cloud principal before reading the request body.");
+assert.match(save,/readBoundedStoreJson/,"Store save must parse through bounded JSON.");
+assert.match(save,/STORE_METADATA_SAVE_MAX_BYTES/,"Store save must preserve its explicit request-size budget.");
+assert.match(save,/private, no-store, max-age=0/,"Store save must return private no-store responses.");
+assert.doesNotMatch(save,/lib\/supabase\/|@supabase\/|createAdminClient/,"Store save route must not directly import or receive provider admin access.");
+assert.ok(save.indexOf("getBuilderPrincipal({requireVerified:true})")<save.indexOf("readBoundedStoreJson"),"Store save must authenticate before parsing/mutation work.");
 
 assert.match(draft,/sanitizeStoreDraftInput/);
 assert.match(draft,/customerAnsweredFields: Object\.keys\(customerAnswers\)/);
 assert.doesNotMatch(draft,/Object\.keys\(body\?\.customerAnswers|Object\.keys\(body\.customerAnswers/);
 
+// Route owns request normalization; Cloud adapter owns principal/ownership/version checks and the privileged write.
 for(const pattern of [
-  /verified\(user\)/,
   /isStoreUuid\(appId\)/,
   /isStoreUuid\(versionId\)/,
   /sanitizeStoreListingPayload/,
-  /app\.current_version_id!==versionId/,
-  /apple: normalized\.apple/,
-  /google_play: normalized\.googlePlay/,
-  /checklist: normalized\.checklist/,
-  /customer_approved_at: null/,
+  /saveBuilderStoreListing/,
   /readyForOfficialSubmission:false/,
 ])assert.match(save,pattern);
-const privilegedStoreWrite=save.slice(save.indexOf('admin.from("store_listings")'));
-assert.ok(privilegedStoreWrite.length>0,"Store listing service-role write must be present.");
-assert.doesNotMatch(privilegedStoreWrite,/body\?\.(?:apple|googlePlay|checklist)/,"Service-role store persistence must never write raw request metadata after normalization.");
+assert.match(builderDomain,/saveBuilderStoreListing/);
+assert.doesNotMatch(builderDomain,/lib\/supabase\/|@supabase\/|createAdminClient/);
+const saveStart=builderAdapter.indexOf('async saveStoreListing');
+assert.ok(saveStart>=0,"Builder provider adapter must expose store-listing persistence.");
+const saveBlock=builderAdapter.slice(saveStart);
+assert.match(saveBlock,/resolvePrincipal\(client, \{ requireVerified: true \}\)/,"Store adapter must re-authenticate and require verification.");
+assert.match(saveBlock,/\.eq\("id", appId\)\.eq\("owner_id", userId\)/,"Store adapter must bind the project to the current owner.");
+assert.match(saveBlock,/project\.current_version_id !== versionId/,"Store adapter must pin the exact current version before privileged write.");
+assert.match(saveBlock,/\.eq\("id", versionId\)\.eq\("app_id", appId\)/,"Store adapter must verify the exact app/version chain.");
+assert.match(saveBlock,/const admin = createAdminClient\(\)/,"Provider admin escalation must exist only behind the adapter boundary.");
+assert.match(saveBlock,/admin\.from\("store_listings"\)\.upsert/,"Store listing privileged write must be isolated behind the adapter.");
+for(const pattern of [/apple: normalized\.apple/,/google_play: normalized\.googlePlay/,/checklist: normalized\.checklist/,/customer_approved_at: null/])assert.match(saveBlock,pattern);
+assert.doesNotMatch(saveBlock,/body\?\.(?:apple|googlePlay|checklist)/,"Provider adapter must never write raw request metadata after normalization.");
+assert.ok(saveBlock.indexOf('resolvePrincipal')<saveBlock.indexOf('createAdminClient()'),"Store adapter must authenticate/verify before service-role escalation.");
 
 for(const pattern of [
   /verified\(user\)/,
@@ -109,7 +125,8 @@ for(const pattern of [/LANERIQ_EXPECTED_SHA:/,/production-store-boundary-qa\.mjs
 assert.ok(productionWorkflow.indexOf("production-store-boundary-qa.mjs")<productionWorkflow.indexOf("production-mobile-browser-qa.mjs"),"Store-boundary Production proof must run before browser-emulation QA.");
 
 console.log("✓ Store metadata draft input is bounded and customerAnswers are allowlisted before output generation");
-console.log("✓ Store listing persistence strips arbitrary nested JSON and enforces exact-version, verified-account, bounded writes");
+console.log("✓ Store save route is provider-opaque; sanitized payload crosses LANERIQ Cloud only after verified principal resolution");
+console.log("✓ Builder adapter re-verifies identity, owner and exact version before isolated service-role store persistence");
 console.log("✓ Store approval is bounded, UUID-scoped, verified-account gated and idempotent without claiming official submission");
 console.log("✓ Publishing declarations are private/no-store, bounded and re-sanitized through Project Memory before persistence");
 console.log("✓ Exact-SHA Production store-boundary proof remains chained before browser emulation; OFFICIAL_STORE is still separate evidence");
