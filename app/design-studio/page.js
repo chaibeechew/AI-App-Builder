@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import s from "./design-studio.module.css";
 
 const FALLBACK_PROMPT = "Create a premium real estate CRM App and customer Website. Show the upcoming client meeting first with client, property, route, documents and the suggested next action.";
+const DRAFT_KEY = "laneriqDesignStudioDraftV1";
+const SELECTED_DIRECTION_KEY = "laneriqSelectedUiDirection";
 
 function detectDomain(value) {
   const text = String(value || "").toLowerCase();
@@ -28,53 +30,78 @@ function domainCopy(domain) {
 function buildDirections(domain) {
   const c = domainCopy(domain);
   return [
-    { id:"intent-first", name:domain === "real-estate" ? "Meeting-First CRM" : "Intent-First Workspace", eyebrow:"INTENT FIRST", summary:"Put " + c.primary.toLowerCase() + " first and reveal supporting context only when it helps the next action.", preset:"luxury-gold", layout:"focus", features:[c.person + " context first", c.secondary, "Suggested next action", "Living status cards"] },
-    { id:"mobile-flow", name:domain === "real-estate" ? "Mobile Agent Flow" : "Mobile Action Flow", eyebrow:"PHONE · ONE HAND", summary:"Thumb-friendly mobile workspace with the most likely next actions anchored within easy reach.", preset:"emerald-premium", layout:"mobile", features:["Bottom action rail", "One-hand navigation", "Voice shortcut", "Progressive detail"] },
-    { id:"premium-site", name:c.site, eyebrow:"CUSTOMER EXPERIENCE", summary:"Editorial customer-facing website with strong hierarchy, focused conversion actions and domain-specific content.", preset:"minimal-light", layout:"site", features:[c.entity + " discovery", "Focused primary CTA", "Trust & proof", "Responsive storytelling"] },
-    { id:"command-center", name:"Desktop Command Center", eyebrow:"DESKTOP · MULTI PANEL", summary:"High-density desktop workspace for parallel work without shrinking the mobile UI into a wider screen.", preset:"tech-blue", layout:"desktop", features:["Multi-panel workspace", "Command palette", "Calendar / activity", "Analytics & documents"] },
+    { id:"intent-first", name:domain === "real-estate" ? "Meeting-First CRM" : "Intent-First Workspace", eyebrow:"INTENT FIRST", summary:"Put " + c.primary.toLowerCase() + " first and reveal supporting context only when it helps the next action.", builderStyleId:"cinematic", themePreset:"luxury-gold", layout:"focus", features:[c.person + " context first", c.secondary, "Suggested next action", "Living status cards"] },
+    { id:"mobile-flow", name:domain === "real-estate" ? "Mobile Agent Flow" : "Mobile Action Flow", eyebrow:"PHONE · ONE HAND", summary:"Thumb-friendly mobile workspace with the most likely next actions anchored within easy reach.", builderStyleId:"fantasy", themePreset:"emerald-premium", layout:"mobile", features:["Bottom action rail", "One-hand navigation", "Voice shortcut", "Progressive detail"] },
+    { id:"premium-site", name:c.site, eyebrow:"CUSTOMER EXPERIENCE", summary:"Editorial customer-facing website with strong hierarchy, focused conversion actions and domain-specific content.", builderStyleId:"minimal", themePreset:"minimal-light", layout:"site", features:[c.entity + " discovery", "Focused primary CTA", "Trust & proof", "Responsive storytelling"] },
+    { id:"command-center", name:"Desktop Command Center", eyebrow:"DESKTOP · MULTI PANEL", summary:"High-density desktop workspace for parallel work without shrinking the mobile UI into a wider screen.", builderStyleId:"cyberpunk", themePreset:"tech-blue", layout:"desktop", features:["Multi-panel workspace", "Command palette", "Calendar / activity", "Analytics & documents"] },
   ];
 }
 
 function MockPreview({ direction, copy }) {
   if (direction.layout === "mobile") {
-    return <div className={s.mobileMock}>
+    return <div className={s.mobileMock} aria-label="Mobile UI concept preview">
       <div className={s.mockTop}><b>09:00</b><span>LIVE</span></div>
       <div className={s.mockHero}><small>NEXT</small><strong>{copy.primary}</strong><p>{copy.person} · {copy.secondary}</p></div>
-      <div className={s.miniGrid}><i/><i/><i/></div><button>{copy.action}</button>
-      <div className={s.mockNav}><span>⌂</span><span>◇</span><span>✦</span><span>☰</span></div>
+      <div className={s.miniGrid} aria-hidden="true"><i/><i/><i/></div><button type="button" tabIndex={-1}>{copy.action}</button>
+      <div className={s.mockNav} aria-hidden="true"><span>⌂</span><span>◇</span><span>✦</span><span>☰</span></div>
     </div>;
   }
   if (direction.layout === "site") {
-    return <div className={s.siteMock}>
+    return <div className={s.siteMock} aria-label="Customer website UI concept preview">
       <div className={s.siteNav}><b>LANERIQ</b><span>Explore · Saved · Contact</span></div>
-      <div className={s.siteHero}><small>PREMIUM EXPERIENCE</small><strong>{copy.site}</strong><p>Clear content, confident hierarchy and one obvious next step.</p><button>Explore {copy.entity}</button></div>
-      <div className={s.siteCards}><i/><i/><i/></div>
+      <div className={s.siteHero}><small>PREMIUM EXPERIENCE</small><strong>{copy.site}</strong><p>Clear content, confident hierarchy and one obvious next step.</p><button type="button" tabIndex={-1}>Explore {copy.entity}</button></div>
+      <div className={s.siteCards} aria-hidden="true"><i/><i/><i/></div>
     </div>;
   }
   if (direction.layout === "desktop") {
-    return <div className={s.desktopMock}>
-      <aside><b>✦</b><span>Overview</span><span>{copy.person}s</span><span>{copy.entity}s</span><span>Activity</span></aside>
+    return <div className={s.desktopMock} aria-label="Desktop command center UI concept preview">
+      <aside aria-hidden="true"><b>✦</b><span>Overview</span><span>{copy.person}s</span><span>{copy.entity}s</span><span>Activity</span></aside>
       <section><div className={s.deskHead}><strong>Command Center</strong><small>⌘ K</small></div><div className={s.deskGrid}><article><small>NOW</small><b>{copy.primary}</b><p>{copy.secondary}</p></article><article/><article/><article/></div></section>
     </div>;
   }
-  return <div className={s.focusMock}>
+  return <div className={s.focusMock} aria-label="Intent-first UI concept preview">
     <div className={s.focusHead}><span>GOOD MORNING</span><b>Today</b></div>
-    <article><small>UP NEXT · 09:00</small><strong>{copy.primary}</strong><p>{copy.person} profile · {copy.secondary} · Documents · Route</p><button>{copy.action} →</button></article>
-    <div className={s.focusRow}><i/><i/><i/></div>
+    <article><small>UP NEXT · 09:00</small><strong>{copy.primary}</strong><p>{copy.person} profile · {copy.secondary} · Documents · Route</p><button type="button" tabIndex={-1}>{copy.action} →</button></article>
+    <div className={s.focusRow} aria-hidden="true"><i/><i/><i/></div>
   </div>;
 }
 
 export default function DesignStudio() {
   const [prompt, setPrompt] = useState("");
   const [activePrompt, setActivePrompt] = useState("");
+  const [transferError, setTransferError] = useState("");
+  const [draftRestored, setDraftRestored] = useState(false);
   const domain = useMemo(() => detectDomain(activePrompt || prompt), [activePrompt, prompt]);
   const copy = useMemo(() => domainCopy(domain), [domain]);
   const directions = useMemo(() => buildDirections(domain), [domain]);
   const ready = Boolean(activePrompt);
 
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      const saved = raw ? JSON.parse(raw) : null;
+      const savedPrompt = typeof saved?.prompt === "string" ? saved.prompt.slice(0, 5000) : "";
+      const savedActive = typeof saved?.activePrompt === "string" ? saved.activePrompt.slice(0, 5000) : "";
+      if (savedPrompt) {
+        setPrompt(savedPrompt);
+        setActivePrompt(savedActive);
+        setDraftRestored(true);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!prompt && !activePrompt) return;
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ version:1, prompt:prompt.slice(0,5000), activePrompt:activePrompt.slice(0,5000), updatedAt:Date.now() }));
+    } catch {}
+  }, [prompt, activePrompt]);
+
   function generateDirections() {
     const value = prompt.trim() || FALLBACK_PROMPT;
     if (!prompt.trim()) setPrompt(value);
+    setTransferError("");
+    setDraftRestored(false);
     setActivePrompt(value);
   }
 
@@ -84,11 +111,28 @@ export default function DesignStudio() {
       original,
       "Selected LANERIQ LIUI direction: " + direction.name + ". " + direction.summary + " Required traits: " + direction.features.join(", ") + ". Use device-specific interaction models rather than scaling one layout."
     ].join("\n\n");
+    const payload = {
+      version:2,
+      source:"design-studio",
+      id:direction.id,
+      name:direction.name,
+      domain,
+      features:direction.features,
+      builderStyleId:direction.builderStyleId,
+      themePreset:direction.themePreset,
+      createdAt:Date.now(),
+    };
+
     try {
       sessionStorage.setItem("aiAppBuilderPendingIdea", selected);
-      sessionStorage.setItem("laneriqSelectedUiDirection", JSON.stringify({ id:direction.id, name:direction.name, domain, features:direction.features }));
-      localStorage.setItem("ai-build-style-preset", direction.preset);
-    } catch {}
+      sessionStorage.setItem(SELECTED_DIRECTION_KEY, JSON.stringify(payload));
+    } catch {
+      setTransferError("LANERIQ could not hand this direction back to Builder because temporary browser storage is unavailable. Your design is still on this page; enable site storage or retry instead of losing the selection.");
+      return;
+    }
+
+    try { localStorage.setItem("ai-build-style-preset", direction.builderStyleId); } catch {}
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
     window.location.assign("/");
   }
 
@@ -98,11 +142,17 @@ export default function DesignStudio() {
       <header className={s.header}><Link href="/">← Builder</Link><b>LANERIQ AI</b><span>LIUI · DESIGN STUDIO</span></header>
       <section className={s.intro}><small>APP · WEB · UI CONCEPTS</small><h1>Design the interface,<br/><em>not another wallpaper.</em></h1><p>Describe the product you want. LANERIQ turns the intent into four structurally different UI directions. These are interface concepts, not decorative image results.</p></section>
 
-      <section className={s.composer}><label>What should the App / Website help people do?</label><textarea value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={5000} placeholder={FALLBACK_PROMPT}/><div className={s.composerFoot}><span>{prompt.length}/5000</span><button onClick={generateDirections}>✦ CREATE UI DIRECTIONS</button></div></section>
+      <section className={s.composer}>
+        <label htmlFor="laneriq-design-brief">What should the App / Website help people do?</label>
+        <textarea id="laneriq-design-brief" value={prompt} onChange={e => { setPrompt(e.target.value); setTransferError(""); }} maxLength={5000} placeholder={FALLBACK_PROMPT} aria-describedby="laneriq-design-count"/>
+        <div className={s.composerFoot}><span id="laneriq-design-count">{prompt.length}/5000{draftRestored ? " · draft restored" : " · saved in this tab"}</span><button type="button" onClick={generateDirections}>✦ CREATE UI DIRECTIONS</button></div>
+      </section>
+
+      {transferError && <section className={s.composer} role="alert" aria-live="assertive"><b>Direction not transferred</b><p>{transferError}</p></section>}
 
       <section className={s.resultHead}><div><small>UI CONCEPT DIRECTIONS</small><h2>{ready ? "4 genuinely different directions" : "Your interface directions appear here"}</h2></div>{ready && <span>LIUI · {domain.replace("-", " ")}</span>}</section>
 
-      {ready ? <div className={s.directions}>{directions.map(direction => <article className={s.direction} key={direction.id}><MockPreview direction={direction} copy={copy}/><div className={s.directionBody}><small>{direction.eyebrow}</small><h3>{direction.name}</h3><p>{direction.summary}</p><div className={s.features}>{direction.features.map(item => <span key={item}>✓ {item}</span>)}</div><button onClick={() => useDirection(direction)}>Use this direction →</button></div></article>)}</div> : <div className={s.empty}><span>✦</span><b>UI, not scenery.</b><p>Each result will show a real product layout direction for phone, website and desktop instead of four variations of the same decorative picture.</p><button onClick={() => { setPrompt(FALLBACK_PROMPT); setActivePrompt(FALLBACK_PROMPT); }}>Try the real-estate example</button></div>}
+      {ready ? <div className={s.directions}>{directions.map(direction => <article className={s.direction} key={direction.id}><MockPreview direction={direction} copy={copy}/><div className={s.directionBody}><small>{direction.eyebrow}</small><h3>{direction.name}</h3><p>{direction.summary}</p><div className={s.features}>{direction.features.map(item => <span key={item}>✓ {item}</span>)}</div><button type="button" onClick={() => useDirection(direction)} aria-label={"Use " + direction.name + " in Builder"}>Use this direction →</button></div></article>)}</div> : <div className={s.empty}><span>✦</span><b>UI, not scenery.</b><p>Each result will show a real product layout direction for phone, website and desktop instead of four variations of the same decorative picture.</p><button type="button" onClick={() => { setPrompt(FALLBACK_PROMPT); setActivePrompt(FALLBACK_PROMPT); setTransferError(""); }}>Try the real-estate example</button></div>}
 
       <section className={s.rules}><article><b>Intent first</b><p>The most important task gets visual priority.</p></article><article><b>Device specific</b><p>Phone and desktop receive different interaction models.</p></article><article><b>Human in control</b><p>You choose the direction before it becomes the build brief.</p></article></section>
     </div>
