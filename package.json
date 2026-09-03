@@ -22,7 +22,7 @@
     "test:soolenai-security-max": "node scripts/soolenai-max-security-contract-tests.mjs",
     "test:credits": "node scripts/credits-contract-tests.mjs",
     "test:pro": "node scripts/pro-mode-contract-tests.mjs",
-    "test:zero-cost": "node scripts/zero-cost-readiness-contract-tests.mjs && node scripts/device-compute-zero-cost-contract-tests.mjs",
+    "test:zero-cost": "node scripts/zero-cost-readiness-contract-tests.mjs && node scripts/cloud-security-decoupling-contract-tests.mjs && node scripts/device-compute-zero-cost-contract-tests.mjs",
     "test:game-commercial": "node scripts/game-commercial-contract-tests.mjs",
     "test:game-runtime": "node scripts/game-runtime-v1-tests.mjs && node scripts/game-runtime-contract-tests.mjs && node scripts/game-generated-e2e-tests.mjs",
     "test:multiplayer": "node scripts/multiplayer-5v5-contract-tests.mjs",

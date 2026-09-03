@@ -88,3 +88,45 @@ Migration remains workload-by-workload. Supabase/Vercel compatibility paths are 
 - encrypted backups required
 - append-only/tamper-resistant audit is a design requirement
 - CODE/provider-ready status must never be promoted to LIVE without runtime evidence
+
+## Batch 14 — Project boundary + private envelope hardening
+
+The first legacy data path has started real adapter migration rather than remaining architecture-only:
+
+- `app/api/apps/route.js` and `app/api/apps/[id]/route.js` call the provider-opaque `lib/cloud/projects.js` domain.
+- Current provider-specific session/query behavior lives behind `lib/cloud-adapters/project-data.js`.
+- The compatibility adapter keeps user-scoped access and explicit `owner_id` filtering; it does not use an admin/service-role bypass client.
+- CI applies a shrinking direct-provider route budget. Full filesystem scanning established the real baseline at 79 route-level imports; after this batch the maximum accepted budget is 77. Future work may lower the number but may not increase it.
+
+A versioned private-data encryption envelope is now defined in `lib/cloud/encryption-envelope.js`:
+
+- AES-256-GCM authenticated encryption
+- random 96-bit nonce per envelope
+- 128-bit authentication tag
+- tenant + project + purpose + key ID bound as additional authenticated data
+- raw key material is never stored in the envelope
+- imported project keys are non-extractable
+- altered ciphertext or a changed project context must fail authentication
+
+This is a CODE foundation for encrypt-before-cloud. It is not evidence that encrypted synchronization, native secure key custody, cross-device key exchange, recovery, rotation/revocation or zero-knowledge operation is fully LIVE.
+
+## Current truthful evidence boundary
+
+### Verified in code/CI when Batch 14 passes
+
+- separable LANERIQ Cloud domain
+- provider-opaque Project list/detail route layer
+- compatibility provider adapter boundary
+- direct-provider coupling ratchet
+- versioned authenticated private-data encryption envelope
+- tamper/context-mismatch rejection contract
+
+### Still not allowed to be called fully LIVE
+
+- all legacy provider calls migrated to LANERIQ Cloud adapters
+- end-to-end encrypted production synchronization
+- native Secure Enclave / Keychain / Keystore / TPM key custody
+- zero-knowledge recovery and cross-device key exchange
+- dedicated LANERIQ server infrastructure
+
+These remain separate evidence gates and must not be promoted by code readiness alone.
