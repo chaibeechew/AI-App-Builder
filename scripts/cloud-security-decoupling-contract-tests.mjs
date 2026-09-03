@@ -12,7 +12,7 @@ import {
   publicEncryptionEnvelopePolicy,
 } from "../lib/cloud/encryption-envelope.js";
 
-const PROJECT_PROVIDER_IMPORT_BUDGET = 73;
+const PROJECT_PROVIDER_IMPORT_BUDGET = 69;
 const RUNTIME_EXTENSIONS = new Set([".js", ".mjs", ".ts", ".tsx"]);
 
 function runtimeFiles(root) {
@@ -31,10 +31,16 @@ const previewRoute = fs.readFileSync("app/api/preview/route.js", "utf8");
 const securityRoute = fs.readFileSync("app/api/security/route.js", "utf8");
 const shareRoute = fs.readFileSync("app/api/share/route.js", "utf8");
 const demoRoute = fs.readFileSync("app/api/demo/route.js", "utf8");
+const generateRoute = fs.readFileSync("app/api/generate/route.js", "utf8");
+const modifyRoute = fs.readFileSync("app/api/modify/route.js", "utf8");
+const publishRoute = fs.readFileSync("app/api/publish/request/route.js", "utf8");
+const storeSaveRoute = fs.readFileSync("app/api/store-metadata/save/route.js", "utf8");
 const projectDomain = fs.readFileSync("lib/cloud/projects.js", "utf8");
 const compatibilityAdapter = fs.readFileSync("lib/cloud-adapters/project-data.js", "utf8");
 const creatorDomain = fs.readFileSync("lib/cloud/creator-operations.js", "utf8");
 const creatorAdapter = fs.readFileSync("lib/cloud-adapters/creator-operations-data.js", "utf8");
+const builderDomain = fs.readFileSync("lib/cloud/builder-projects.js", "utf8");
+const builderAdapter = fs.readFileSync("lib/cloud-adapters/builder-project-data.js", "utf8");
 const envelopeSource = fs.readFileSync("lib/cloud/encryption-envelope.js", "utf8");
 const cloudPolicyRoute = fs.readFileSync("app/api/cloud/policy/route.js", "utf8");
 const cloudPage = fs.readFileSync("app/account/cloud/page.js", "utf8");
@@ -71,6 +77,29 @@ assert.match(creatorAdapter, /version_id:\s*project\.current_version_id/, "Share
 assert.match(creatorAdapter, /create_app_demo/, "Demo RPC coupling must be isolated to the adapter");
 assert.doesNotMatch(creatorAdapter, /createAdminClient|SERVICE_ROLE|SECRET_KEY/, "Creator operations must remain user/RLS scoped");
 
+// Generate / Modify / Publish / Store metadata writes now cross a provider-opaque Builder Project boundary.
+for (const [name, source] of [
+  ["generate", generateRoute],
+  ["modify", modifyRoute],
+  ["publish request", publishRoute],
+  ["store metadata save", storeSaveRoute],
+]) {
+  assert.match(source, /lib\/cloud\/builder-projects\.js/, `${name} route must use LANERIQ Cloud Builder Project domain`);
+  assert.doesNotMatch(source, /lib\/supabase\/|@supabase\//, `${name} route must not directly import the current provider`);
+  assert.doesNotMatch(source, /SERVICE_ROLE|SECRET_KEY|API_KEY/, `${name} route must not contain provider secrets`);
+}
+assert.match(builderDomain, /cloud-adapters\/builder-project-data\.js/);
+assert.doesNotMatch(builderDomain, /lib\/supabase\/|@supabase\//, "Builder Project domain must remain provider opaque");
+assert.match(builderAdapter, /\.\.\/supabase\/server\.js/, "User-scoped provider dependency belongs only behind Builder adapter boundary");
+assert.match(builderAdapter, /\.\.\/supabase\/admin\.js/, "Privileged persistence dependency belongs only behind Builder adapter boundary");
+assert.match(builderAdapter, /auth\.getUser\(\)/, "Builder adapter must validate server identity before user-scoped or privileged work");
+assert.match(builderAdapter, /server_persist_generated_project/, "Generated-project atomic persistence must stay inside the adapter");
+assert.match(builderAdapter, /server_save_app_modification/, "Atomic modification persistence must stay inside the adapter");
+assert.match(builderAdapter, /server_create_store_publish_request/, "Store publish request RPC must stay inside the adapter");
+assert.match(builderAdapter, /\.eq\("owner_id", userId\)/, "Builder adapter must preserve explicit owner isolation");
+assert.match(builderAdapter, /project\.current_version_id !== expectedVersionId/, "Modification must fail closed on version races before privileged save");
+assert.match(builderAdapter, /project\.current_version_id !== versionId/, "Store metadata save must pin the exact current owned version");
+
 // Ratchet: legacy route coupling may shrink but must never grow again.
 const directProviderRoutes = runtimeFiles("app").filter((file) => fs.readFileSync(file, "utf8").includes("lib/supabase/server.js"));
 assert.ok(
@@ -84,6 +113,10 @@ for (const route of [
   "app/api/security/route.js",
   "app/api/share/route.js",
   "app/api/demo/route.js",
+  "app/api/generate/route.js",
+  "app/api/modify/route.js",
+  "app/api/publish/request/route.js",
+  "app/api/store-metadata/save/route.js",
 ]) assert.ok(!directProviderRoutes.includes(path.normalize(route)), `${route} must stay outside the direct-provider budget`);
 
 // Versioned authenticated encryption envelope: AES-256-GCM, random 96-bit nonce and context-bound AAD.
@@ -123,7 +156,9 @@ assert.doesNotMatch(envelopeSource, /localStorage|sessionStorage|SERVICE_ROLE|SU
 // Public status stays truthful: migration/envelope CODE is visible, full migration/E2EE/native custody/server remain not LIVE.
 assert.match(cloudPolicyRoute, /projectReadAdapterMigrated:\s*true/);
 assert.match(cloudPolicyRoute, /creatorLifecycleAdapterMigrated:\s*true/);
-assert.match(cloudPolicyRoute, /legacyDirectProviderRouteBudget:\s*73/);
+assert.match(cloudPolicyRoute, /builderGenerateModifyPublishAdapterMigrated:\s*true/);
+assert.match(cloudPolicyRoute, /generatedProjectPersistenceAdapterMigrated:\s*true/);
+assert.match(cloudPolicyRoute, /legacyDirectProviderRouteBudget:\s*69/);
 assert.match(cloudPolicyRoute, /clientSideEncryptionEnvelopeInCode:\s*true/);
 assert.match(cloudPolicyRoute, /providerAdaptersFullyMigrated:\s*false/);
 assert.match(cloudPolicyRoute, /clientSideEncryptionFullyLive:\s*false/);
@@ -134,8 +169,8 @@ for (const pattern of [/Project read routes migrated behind adapter/, /Creator l
   assert.match(cloudPage, pattern);
 }
 
-console.log("✓ Project list/detail plus Preview/Security/Share/Demo now use provider-opaque LANERIQ Cloud domains");
-console.log("✓ Creator adapter preserves server identity validation, owner isolation, current-version pinning and DB-authorized demo RPCs");
+console.log("✓ Project reads, creator lifecycle and Builder Generate/Modify/Publish routes use provider-opaque LANERIQ Cloud domains");
+console.log("✓ Builder adapter keeps user identity/owner/version checks outside privileged service-role persistence RPCs");
 console.log(`✓ Direct provider route coupling is ratcheted at <= ${PROJECT_PROVIDER_IMPORT_BUDGET} and cannot grow silently`);
 console.log("✓ LANERIQ private envelope uses non-extractable AES-256-GCM keys, authenticated context and tamper detection");
 console.log("✓ Encryption envelope is CODE foundation only; encrypted sync/native zero-knowledge custody remain truthfully NOT LIVE");
