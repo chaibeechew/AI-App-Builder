@@ -36,17 +36,21 @@ jobs:
         run: node scripts/batch36b-executable-quality-loop-tests.mjs
       - name: Batch 37 replan reduction contract
         run: node scripts/batch37-replan-reduction-tests.mjs
-      - name: Execute 50-industry zero-cost full-pipeline generation sample
+      - name: Batch 38 privacy-safe outcome learning contract
+        run: node scripts/batch38-outcome-learning-tests.mjs
+      - name: Execute 50-industry zero-cost full-pipeline generation sample and learning comparison
         run: node scripts/release-quality-generation-sample.mjs
       - name: Build runtime integration
         run: npm run build
-      - name: Upload executable quality evidence
+      - name: Upload executable quality and learning evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: release-quality-generation-sample-${{ github.run_id }}
-          path: artifacts/quality/release-quality-generation-sample.json
+          path: |
+            artifacts/quality/release-quality-generation-sample.json
+            artifacts/quality/outcome-learning-record.json
           if-no-files-found: warn
           retention-days: 14
       - name: Evidence boundary
-        run: echo "This gate proves deterministic CODE/CI zero-cost full-pipeline quality-control behavior only; external-provider LIVE, Production runtime, browser, physical-device and store evidence remain independent."
+        run: echo "This gate proves deterministic CODE/CI zero-cost full-pipeline quality-control and privacy-safe release learning only; external-provider LIVE, Production runtime, browser, physical-device, store, user-behavior and market evidence remain independent."
