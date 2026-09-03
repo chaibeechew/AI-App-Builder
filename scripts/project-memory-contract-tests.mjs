@@ -9,22 +9,11 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const route=read('app/api/apps/[id]/memory/route.js');
 const generate=read('app/api/generate/route.js');
 const modify=read('app/api/modify/route.js');
+const builderAdapter=read('lib/cloud-adapters/builder-project-data.js');
 const bootstrap=read('app/api/apps/[id]/bootstrap/route.js');
 const migration=read('supabase/migrations/20260901105712_harden_project_memory_contract.sql');
 
-const dirty={
-  requested_name:'Memory Project',
-  brand_preferences:{primaryColor:'#123456',api_token:'must-not-survive',nested:{bad:true}},
-  visual_preferences:{themeMode:'dark',wallpaperPreset:'moon-city'},
-  user_preferences:{density:'comfortable'},
-  workflow_preferences:{approvalMode:'manual'},
-  content_guidance:'x'.repeat(7000),
-  media_preferences:Array.from({length:35},(_,i)=>({assetId:`asset-${i}`,page:'Home',secret:'drop-me'})),
-  industry_plan:{profile_id:'real-estate',label:'Property',pages:Array.from({length:35},(_,i)=>`Page ${i}`),data:['clients','properties'],workflows:['lead follow-up'],roles:['agent']},
-  learned_from:Array.from({length:20},(_,i)=>`source-${i}`),
-  rawPrivateAssetsReusableAcrossCustomers:true,
-  unknownPrivateBlob:'drop-me',
-};
+const dirty={requested_name:'Memory Project',brand_preferences:{primaryColor:'#123456',api_token:'must-not-survive',nested:{bad:true}},visual_preferences:{themeMode:'dark',wallpaperPreset:'moon-city'},user_preferences:{density:'comfortable'},workflow_preferences:{approvalMode:'manual'},content_guidance:'x'.repeat(7000),media_preferences:Array.from({length:35},(_,i)=>({assetId:`asset-${i}`,page:'Home',secret:'drop-me'})),industry_plan:{profile_id:'real-estate',label:'Property',pages:Array.from({length:35},(_,i)=>`Page ${i}`),data:['clients','properties'],workflows:['lead follow-up'],roles:['agent']},learned_from:Array.from({length:20},(_,i)=>`source-${i}`),rawPrivateAssetsReusableAcrossCustomers:true,unknownPrivateBlob:'drop-me'};
 const clean=sanitizeMemoryJson(dirty);
 assert.equal(clean.requestedName,'Memory Project');
 assert.equal(clean.brandPreferences.primaryColor,'#123456');
@@ -62,15 +51,24 @@ assert.match(generate,/mergeProjectMemory/);
 assert.match(generate,/brandPreferences:brandKit/);
 assert.match(generate,/industryPlan:industryPlan\.matched/);
 assert.match(generate,/mediaPreferences:mediaAssignments\.map/);
-assert.match(generate,/learning_scope:memoryScope/);
-assert.match(generate,/projectLearning:\{scope:memoryScope,saved:!memoryError\}/);
+assert.match(generate,/saveBuilderGeneratedProjectContext/);
+assert.match(generate,/learningScope:memoryScope/);
+assert.match(generate,/projectLearning:\{scope:memoryScope,saved:Boolean\(contextSave\.ok&&contextSave\.memorySaved\)\}/);
+assert.doesNotMatch(generate,/\.from\("project_memory"\)/,'Generate must keep Project Memory provider persistence behind LANERIQ Cloud.');
 
 assert.match(modify,/buildProjectMemoryBrief/);
-assert.match(modify,/from\("project_memory"\).*eq\("app_id",appId\).*eq\("owner_id",user\.id\)/s);
+assert.match(modify,/const memoryRow=context\.memory\|\|null/);
 assert.match(modify,/const memoryBrief=buildProjectMemoryBrief\(memoryRow\)/);
 assert.match(modify,/memoryBrief\?`\\n\$\{memoryBrief\}\\n`/);
 assert.match(modify,/mergeProjectMemory\(memoryRow\?\.memory_json/);
 assert.match(modify,/lastModificationInstruction:instruction/);
+assert.match(modify,/saveBuilderModification/);
+assert.doesNotMatch(modify,/\.from\("project_memory"\)/,'Modify must read/save Project Memory through LANERIQ Cloud.');
+const loadBlock=builderAdapter.slice(builderAdapter.indexOf('async loadModificationContext'),builderAdapter.indexOf('async saveModification'));
+const saveBlock=builderAdapter.slice(builderAdapter.indexOf('async saveModification'),builderAdapter.indexOf('async loadPublishPreparation'));
+assert.match(loadBlock,/\.from\("project_memory"\)\.select\("memory_json,learning_scope"\)\.eq\("app_id", appId\)\.eq\("owner_id", userId\)/);
+assert.match(saveBlock,/\.from\("project_memory"\)\.upsert/);
+assert.match(saveBlock,/owner_id: userId/);
 
 assert.match(migration,/project_memory_json_is_safe/);
 assert.match(migration,/octet_length\(p_memory::text\) > 131072/);
@@ -88,6 +86,6 @@ assert.match(bootstrap,/Deletion\/export paths should exist for personal data wh
 
 console.log('✓ Project Memory sanitizes and bounds brand, visual, user, workflow, industry and media/reference preferences');
 console.log('✓ Project Memory is owner-scoped, no-store, request-bounded and database-constrained');
-console.log('✓ Generate persists canonical project memory and Modify reads it into the AI prompt before saving updates');
+console.log('✓ Generate/Modify keep canonical Project Memory behavior while provider reads/writes are isolated behind LANERIQ Cloud');
 console.log('✓ Private assets/secrets cannot become reusable cross-customer memory');
 console.log('✓ Bootstrap database policy remains aligned with the hardened Database/Supabase contract');
