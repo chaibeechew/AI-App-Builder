@@ -4,6 +4,7 @@ import fs from "node:fs";
 const read = (file) => fs.readFileSync(file, "utf8");
 const buildInfo = read("app/api/build-info/route.js");
 const imageReadiness = read("app/api/images/readiness/route.js");
+const videoReadiness = read("app/api/video/readiness/route.js");
 const workflow = read(".github/workflows/production-mobile-browser-qa.yml");
 const runner = read("scripts/production-mobile-browser-qa.mjs");
 const sessionProxy = read("lib/supabase/proxy.js");
@@ -36,8 +37,21 @@ for (const pattern of [
 assert.doesNotMatch(imageReadiness, /TOKEN|SECRET|PASSWORD|SERVICE_ROLE|API_KEY|IMAGE_GENERATION_ENDPOINT/i, "Public Image Studio readiness must expose state only, never credentials or runtime endpoints.");
 
 for (const pattern of [
+  /externalRendererConnected:config\.connected/,
+  /externalRendererAllowed:config\.configured/,
+  /blockedByCostPolicy:config\.blockedByCostPolicy/,
+  /durableMp4Capture:true/,
+  /atomicRenderClaim:true/,
+  /replaySafeStoryboard:true/,
+  /replaySafeProject:true/,
+  /downstreamIdempotencyKey:true/,
+  /private, no-store, max-age=0/,
+]) assert.match(videoReadiness, pattern);
+assert.doesNotMatch(videoReadiness, /TOKEN|SECRET|PASSWORD|SERVICE_ROLE|API_KEY|VIDEO_RENDER_ENDPOINT/i, "Public Video Renderer readiness must expose state only, never credentials or runtime endpoints.");
+
+for (const pattern of [
   /PUBLIC_READ_ONLY_OBSERVABILITY_ENDPOINTS/,
-  /new Set\(\["\/api\/build-info","\/api\/images\/readiness"\]\)/,
+  /new Set\(\["\/api\/build-info","\/api\/images\/readiness","\/api\/video\/readiness"\]\)/,
   /PUBLIC_READ_ONLY_OBSERVABILITY_ENDPOINTS\.has\(pathname\)/,
   /request\.method === "GET"/,
   /request\.method === "HEAD"/,
@@ -46,6 +60,8 @@ for (const pattern of [
 assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/build-info"\)/, "Build identity access must remain exact-path only.");
 assert.equal(sessionProxy.includes('startsWith("/api/images'),false,"Image Studio observability must never create a broad /api/images prefix bypass.");
 assert.equal(sessionProxy.includes("startsWith('/api/images"),false,"Image Studio observability must never create a broad /api/images prefix bypass.");
+assert.equal(sessionProxy.includes('startsWith("/api/video'),false,"Video Renderer observability must never create a broad /api/video prefix bypass.");
+assert.equal(sessionProxy.includes("startsWith('/api/video"),false,"Video Renderer observability must never create a broad /api/video prefix bypass.");
 assert.match(sessionRoute, /SESSION_REQUIRED[\s\S]*401/);
 
 for (const pattern of [
@@ -121,7 +137,7 @@ assert.match(wallpaper, /wallpaperControlHidden/);
 assert.match(wallpaper, /path==="\/auth"/);
 assert.match(wallpaper, /path==="\/mobile-readiness"/);
 
-console.log("✓ Public build identity and Image Studio readiness are privacy-safe, exact-path, no-store and GET/HEAD-only before sign-in");
+console.log("✓ Public build identity, Image Studio readiness and Video Renderer readiness are privacy-safe, exact-path, no-store and GET/HEAD-only before sign-in");
 console.log("✓ Session protection preserves signed-out SESSION_REQUIRED 401 semantics for every mutable/protected API");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
 console.log("✓ Mobile QA recognizes both WebKit and Chromium generic 401 console wording while exact response-level URL/status checks remain authoritative");
