@@ -1,0 +1,1 @@
+export default function handler(_req,res){res.setHeader("Cache-Control","no-store");return res.status(200).json({service:"laneriq-media",contract:"msvc1",evidenceLevel:"CODE_READY",capabilities:["image_generate","video_generate","avatar_generate","transform","status"],remoteEngineRequiredForLive:true});}
