@@ -8,11 +8,12 @@ assert(runtime.includes('mounted && portalTarget ? createPortal'),"language must
 assert(runtime.includes('mounted && !inHome ? button : null'),"homepage must not render a floating language pill");
 assert(css.includes('grid-template-columns:repeat(6'),"bottom nav must include language slot");
 assert(css.includes("url('/laneriq-future-city-people.webp')"),"future-city artwork must remain active");
+assert(layout.includes('href="/laneriq-future-city-people.webp"'),"approved future-city artwork must remain the sole first-paint preload");
 assert(water.includes("url('/laneriq-water-home.svg')"),"approved water/moon artwork must use a cacheable static resource");
 assert(!water.includes('data:image/'),"final water background layer must never regress to an inline data URL");
 assert(layout.includes('import "./home-water-static.css"'),"static water override must load after the legacy water layer");
 assert(layout.indexOf('home-water-moon.css')<layout.indexOf('home-water-static.css'),"static water override must have final cascade authority");
-assert(layout.includes('href="/laneriq-water-home.svg"'),"water artwork must be preloaded for iPhone and embedded browsers");
+assert(!layout.includes('href="/laneriq-water-home.svg"'),"water artwork must not compete with the sole first-paint preload");
 assert(fs.existsSync("public/laneriq-water-home.svg"),"static water artwork must ship with the app");
 assert(css.includes("content:'✦ 120 Credits'"),"credits must render once");
 assert(css.includes('white-space:nowrap!important'),"LANERIQ wordmark must stay on one line");
