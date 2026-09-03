@@ -33,6 +33,7 @@ import "./generated-industry-visual-v2.css";
 import "./home-canonical-v4.css";
 import "./home-mobile-input-safety.css";
 import "./mobile-feature-hardening.css";
+import "./local-first-cost-control.css";
 import AccountNav from "./components/AccountNav";
 import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
 import ProductCopyFix from "./components/ProductCopyFix";
@@ -47,6 +48,7 @@ import GameCommercialTermsNotice from "./components/GameCommercialTermsNotice";
 import HomeLoadGuard from "./components/HomeLoadGuard";
 import LanguageRuntime from "./components/LanguageRuntime";
 import AuthFlowGuard from "./components/AuthFlowGuard";
+import DeviceComputeManager from "./components/DeviceComputeManager";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
 import { SEO_CORE_KEYWORDS, SEO_INDEXING_ENABLED, SEO_SITE_URL, absoluteSeoUrl, buildOrganizationJsonLd, buildSoftwareJsonLd } from "../lib/seo-foundation.js";
 
@@ -97,6 +99,7 @@ export default function RootLayout({ children }) {
         <HomeLoadGuard />
         <LanguageRuntime />
         <AuthFlowGuard />
+        <DeviceComputeManager />
         <PremiumJourneyTheme />
         <ProductCopyFix />
         <AdaptiveWallpaperEngine />
