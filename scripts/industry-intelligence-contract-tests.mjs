@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {detectIndustryIntent,selectIndustryTemplateBlend,buildIndustryIntelligenceContext} from '../lib/industryIntelligence.js';
 import {TRENDING_APP_REFERENCE_PATTERNS,selectTrendingAppReferences,buildTrendingReferenceContext} from '../lib/trendingAppReferences.js';
+import {extractGenerationIdea,enrichGenerationPrompt} from '../lib/ai/provider-prompt-intelligence.js';
 
 assert.equal(TRENDING_APP_REFERENCE_PATTERNS.length,100);
 assert.equal(new Set(TRENDING_APP_REFERENCE_PATTERNS.map(x=>x.id)).size,100);
@@ -24,4 +25,13 @@ assert.ok(trend.some(x=>x.id==='ai-assistant-chat'));
 assert.match(buildTrendingReferenceContext('food delivery app'),/inspiration|references/i);
 assert.match(buildTrendingReferenceContext('food delivery app'),/Never reproduce third-party branding/i);
 
-console.log('Industry Intelligence contract passed: auto industry routing, multi-template blending and 100 originality-safe trending references are locked.');
+const rawPrompt='USER IDEA:\n"Build a Malaysia real estate CRM with property listings, viewing booking and commissions"\n\nVOICE INPUT:\n"None"\n\nINDUSTRY PATTERNS:\n[]';
+assert.match(extractGenerationIdea(rawPrompt),/real estate CRM/);
+const enriched=enrichGenerationPrompt(rawPrompt);
+assert.match(enriched,/LANERIQ AI Industry Intelligence Engine/);
+assert.match(enriched,/LANERIQ AI Trending App Reference Layer/);
+assert.match(enriched,/properties/);
+assert.match(enriched,/Never reproduce third-party branding/);
+assert.equal(enrichGenerationPrompt('ordinary non-builder prompt'),'ordinary non-builder prompt');
+
+console.log('Industry Intelligence contract passed: auto industry routing, multi-template blending, provider prompt injection and 100 originality-safe trending references are locked.');
