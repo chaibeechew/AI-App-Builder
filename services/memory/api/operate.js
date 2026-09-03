@@ -1,0 +1,35 @@
+const crypto=require("node:crypto");
+const {sanitizeMemory,mergeMemory}=require("../lib/sanitize.js");
+const PATH="/api/memory/v1/operate",MAX_BODY_BYTES=327680,MAX_SKEW=300000;
+const ID=/^[A-Za-z0-9._:-]{1,180}$/,NONCE=/^[A-Za-z0-9_-]{16,180}$/,HEX=/^[a-f0-9]{64}$/;
+function text(v){return String(v??"").trim();}
+function sha(v){return crypto.createHash("sha256").update(v).digest("hex");}
+function canonical({clientId,timestamp,nonce,body}){return `${clientId}\n${timestamp}\n${nonce}\nPOST\n${PATH}\n${sha(body)}`;}
+function json(res,status,body){res.setHeader("Cache-Control","private, no-store, max-age=0");res.setHeader("X-Content-Type-Options","nosniff");return res.status(status).json(body);}
+function config(){const url=text(process.env.SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL).replace(/\/$/,"");const key=text(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY);const secret=text(process.env.LANERIQ_MEMORY_SERVICE_SECRET);const clientId=text(process.env.LANERIQ_MEMORY_SERVICE_CLIENT_ID||"laneriq-ai");if(!url||!key)throw new Error("database_unavailable");return{url,key,secret,clientId};}
+function verify(cfg,{clientId,timestamp,nonce,signature,body}){
+  if(cfg.secret.length<32)return false;if(clientId!==cfg.clientId||!ID.test(clientId)||!NONCE.test(nonce)||!/^\d{13}$/.test(timestamp)||!HEX.test(signature)||Buffer.byteLength(body)>MAX_BODY_BYTES)return false;
+  if(Math.abs(Date.now()-Number(timestamp))>MAX_SKEW)return false;
+  const expected=crypto.createHmac("sha256",cfg.secret).update(canonical({clientId,timestamp,nonce,body})).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(expected,"hex"),Buffer.from(signature,"hex"));
+}
+async function rest(cfg,path,{method="GET",body}={}){const r=await fetch(`${cfg.url}/rest/v1/${path}`,{method,headers:{apikey:cfg.key,authorization:`Bearer ${cfg.key}`,"content-type":"application/json",prefer:"return=representation"},body:body===undefined?undefined:JSON.stringify(body),redirect:"error"});if(!r.ok)throw new Error(`database_${r.status}`);if(r.status===204)return null;return r.json().catch(()=>null);}
+async function assertOwner(cfg,appId,userId){if(!/^[0-9a-f-]{36}$/i.test(appId)||!/^[0-9a-f-]{36}$/i.test(userId))return null;const rows=await rest(cfg,`apps?select=id,name,owner_id&id=eq.${encodeURIComponent(appId)}&owner_id=eq.${encodeURIComponent(userId)}&limit=1`);return Array.isArray(rows)&&rows[0]?rows[0]:null;}
+module.exports=async function handler(req,res){
+  if(req.method!=="POST")return json(res,405,{ok:false,error:"POST only"});
+  let cfg;try{cfg=config();}catch{return json(res,503,{ok:false,error:"Memory database unavailable."});}
+  const bodyText=typeof req.body==="string"?req.body:JSON.stringify(req.body||{});const clientId=text(req.headers["x-laneriq-client-id"]),timestamp=text(req.headers["x-laneriq-timestamp"]),nonce=text(req.headers["x-laneriq-nonce"]),signature=text(req.headers["x-laneriq-signature"]).toLowerCase();
+  if(!verify(cfg,{clientId,timestamp,nonce,signature,body:bodyText}))return json(res,401,{ok:false,error:"Unauthorized memory service request."});
+  let input;try{input=typeof req.body==="string"?JSON.parse(req.body):req.body||{};}catch{return json(res,400,{ok:false,error:"Invalid JSON."});}
+  const operation=text(input.operation),appId=text(input.appId),userId=text(input.userId),payload=input.payload&&typeof input.payload==="object"?input.payload:{};
+  if(!["load","save"].includes(operation))return json(res,400,{ok:false,error:"Invalid memory operation."});
+  let app;try{app=await assertOwner(cfg,appId,userId);}catch{return json(res,503,{ok:false,error:"Memory ownership check unavailable."});}if(!app)return json(res,404,{ok:false,error:"Project not found."});
+  try{
+    const rows=await rest(cfg,`project_memory?select=id,memory_json,learning_scope,updated_at&app_id=eq.${encodeURIComponent(appId)}&owner_id=eq.${encodeURIComponent(userId)}&limit=1`);const existing=Array.isArray(rows)&&rows[0]?rows[0]:null;
+    if(operation==="load")return json(res,200,{ok:true,app:{id:app.id,name:app.name},memory:existing?{...existing,memory_json:sanitizeMemory(existing.memory_json)}:null,evidenceLevel:"CODE"});
+    const patch=payload.memory&&typeof payload.memory==="object"&&!Array.isArray(payload.memory)?payload.memory:{};if(Buffer.byteLength(JSON.stringify(patch),"utf8")>262144)return json(res,413,{ok:false,error:"Project memory update is too large."});
+    const scope=payload.learningScope==="anonymized_patterns"?"anonymized_patterns":payload.learningScope==="project_only"?"project_only":existing?.learning_scope||"project_only";const memory=mergeMemory(existing?.memory_json,patch);
+    const saved=await rest(cfg,"project_memory?on_conflict=app_id",{method:"POST",body:{app_id:appId,owner_id:userId,memory_json:memory,learning_scope:scope,updated_at:new Date().toISOString()}});const row=Array.isArray(saved)&&saved[0]?saved[0]:null;
+    return json(res,200,{ok:true,memory:row?{...row,memory_json:sanitizeMemory(row.memory_json)}:{memory_json:memory,learning_scope:scope},evidenceLevel:"CODE"});
+  }catch{return json(res,503,{ok:false,error:"Memory service operation failed."});}
+};
