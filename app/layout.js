@@ -37,6 +37,7 @@ import "./local-first-cost-control.css";
 import AccountNav from "./components/AccountNav";
 import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
 import ProductCopyFix from "./components/ProductCopyFix";
+import LaunchModeGuard from "./components/LaunchModeGuard";
 import AdaptiveWallpaperEngine from "./components/AdaptiveWallpaperEngine";
 import PremiumJourneyTheme from "./components/PremiumJourneyTheme";
 import PreciseEditAssistant from "./components/PreciseEditAssistant";
@@ -100,6 +101,7 @@ export default function RootLayout({ children }) {
         <LanguageRuntime />
         <AuthFlowGuard />
         <DeviceComputeManager />
+        <LaunchModeGuard />
         <PremiumJourneyTheme />
         <ProductCopyFix />
         <AdaptiveWallpaperEngine />
