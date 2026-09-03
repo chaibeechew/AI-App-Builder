@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
 import { buildStoreReadiness } from "../../../../../lib/publishing/store-readiness-policy.js";
+import { STORE_DECLARATIONS_MAX_BYTES, readBoundedStoreJson } from "../../../../../lib/publishing/store-metadata-safety.js";
+import { sanitizeMemoryJson } from "../../../../../lib/project-memory.js";
 
 function present(value) { return String(value ?? "").trim().length > 0; }
 function safeObject(value){return value&&typeof value==="object"&&!Array.isArray(value)?value:{};}
 function clean(value,max=500){return String(value??"").trim().replace(/\s+/g," ").slice(0,max);}
+function verified(user){return Boolean(user?.confirmed_at||user?.email_confirmed_at||user?.phone_confirmed_at);}
+function json(payload,status=200){return NextResponse.json(payload,{status,headers:{"Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","X-Content-Type-Options":"nosniff"}});}
 
 function listingMetadata(listing) {
   if (!listing) return null;
@@ -25,12 +29,12 @@ export async function GET(_request, { params }) {
   try {
     const { id } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return json({ error: "Authentication required." }, 401);
 
     const app=await ownedProject(supabase,user.id,id);
-    if (!app) return NextResponse.json({ error: "Project not found." }, { status: 404 });
-    if (!app.current_version_id) return NextResponse.json({ error: "A saved project version is required first." }, { status: 409 });
+    if (!app) return json({ error: "Project not found." }, 404);
+    if (!app.current_version_id) return json({ error: "A saved project version is required first." }, 409);
 
     const [{ data: version }, { data: listing }, { data: projectAssets }, {data:memoryRow}] = await Promise.all([
       supabase.from("app_versions").select("id,version_no,specification").eq("id", app.current_version_id).eq("app_id", id).single(),
@@ -39,7 +43,7 @@ export async function GET(_request, { params }) {
       supabase.from("project_memory").select("memory_json").eq("app_id",id).eq("owner_id",user.id).maybeSingle(),
     ]);
 
-    if (!version) return NextResponse.json({ error: "Current project version not found." }, { status: 404 });
+    if (!version) return json({ error: "Current project version not found." }, 404);
 
     const assetIds=(projectAssets||[]).map(item=>item.asset_id).filter(Boolean);
     let assetLibrary=[];
@@ -50,8 +54,8 @@ export async function GET(_request, { params }) {
     const libraryById=new Map(assetLibrary.map(item=>[item.id,item]));
     const assets=(projectAssets||[]).map(item=>({...item,...(libraryById.get(item.asset_id)||{})}));
 
-    const apple = listing?.apple || {};
-    const google = listing?.google_play || {};
+    const apple = safeObject(listing?.apple);
+    const google = safeObject(listing?.google_play);
     const inferredAnswers = {
       supportEmail: google.contactEmail || "",
       privacyPolicyUrl: apple.privacyUrl || google.privacyPolicyUrl || "",
@@ -60,7 +64,7 @@ export async function GET(_request, { params }) {
       targetAudience: google.audienceSummary || "",
       loginRequired: /authenticated areas|provide review\/demo access/i.test(String(apple.reviewNotes || "")),
     };
-    const customerDeclarations=safeObject(memoryRow?.memory_json?.storePublishingDeclarations);
+    const customerDeclarations=sanitizeMemoryJson(memoryRow?.memory_json).storePublishingDeclarations;
 
     const needsCustomer = [];
     if (!present(inferredAnswers.supportEmail)) needsCustomer.push({ key: "supportEmail", label: "Support email", reason: "The stores need a real customer support contact and AI must not invent it." });
@@ -94,7 +98,7 @@ export async function GET(_request, { params }) {
       { platform: "stores", label: "Final store declarations and review", payer: "customer_action" },
     ];
 
-    return NextResponse.json({
+    return json({
       success: true,
       app: { id: app.id, name: app.name },
       version: { id: version.id, versionNo: version.version_no },
@@ -114,24 +118,30 @@ export async function GET(_request, { params }) {
       note: "SoolenAI can prepare and validate store information, icon/screenshot requirements and permission-purpose gaps, but it must not guess customer declarations, store credentials, signing credentials or platform review answers. Official submission remains controlled by the customer and Apple/Google.",
     });
   } catch (error) {
-    console.error("PUBLISHING_AGENT_ERROR", error);
-    return NextResponse.json({ error: "Unable to evaluate store publishing readiness." }, { status: 500 });
+    console.error("PUBLISHING_AGENT_ERROR", error?.code||error?.name||"unknown");
+    return json({ error: "Unable to evaluate store publishing readiness." }, 500);
   }
 }
 
 export async function POST(request,{params}){
   try{
-    const{id}=await params;const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();
-    if(!user)return NextResponse.json({error:"Authentication required."},{status:401});
-    const app=await ownedProject(supabase,user.id,id);if(!app)return NextResponse.json({error:"Project not found."},{status:404});
-    const body=await request.json();const incoming=safeObject(body?.declarations);const permissionInput=safeObject(incoming.permissionPurposes);const allowedPermissionKeys=["camera","microphone","location","photos","notifications"];const permissionPurposes={};
+    const{id}=await params;const supabase=await createClient();const{data:{user},error:authError}=await supabase.auth.getUser();
+    if(authError||!user)return json({error:"Authentication required."},401);
+    if(!verified(user))return json({error:"Account verification is required."},403);
+    const app=await ownedProject(supabase,user.id,id);if(!app)return json({error:"Project not found."},404);
+
+    const parsed=await readBoundedStoreJson(request,STORE_DECLARATIONS_MAX_BYTES);
+    if(!parsed.ok)return json({error:parsed.status===413?"Publishing declarations request is too large.":"Invalid publishing declarations request."},parsed.status);
+    const incoming=safeObject(parsed.value?.declarations);const permissionInput=safeObject(incoming.permissionPurposes);const allowedPermissionKeys=["camera","microphone","location","photos","notifications"];const permissionPurposes={};
     for(const key of allowedPermissionKeys){const value=clean(permissionInput[key],500);if(value)permissionPurposes[key]=value;}
     const termsChoice=["platform_default","custom"].includes(incoming.termsChoice)?incoming.termsChoice:"";const termsUrl=clean(incoming.termsUrl,500);
-    if(termsChoice==="custom"&&!/^https:\/\//i.test(termsUrl))return NextResponse.json({error:"A custom Terms / EULA must use a real HTTPS URL."},{status:400});
+    if(termsChoice==="custom"&&!/^https:\/\//i.test(termsUrl))return json({error:"A custom Terms / EULA must use a real HTTPS URL."},400);
     const declarations={termsChoice,termsUrl:termsChoice==="custom"?termsUrl:"",ageRatingAcknowledged:incoming.ageRatingAcknowledged===true,permissionPurposes,updatedAt:new Date().toISOString()};
-    const{data:existing}=await supabase.from("project_memory").select("memory_json,learning_scope").eq("app_id",id).eq("owner_id",user.id).maybeSingle();const memory=safeObject(existing?.memory_json);
-    const{error}=await supabase.from("project_memory").upsert({app_id:id,owner_id:user.id,memory_json:{...memory,storePublishingDeclarations:declarations},learning_scope:existing?.learning_scope||"project_only",updated_at:new Date().toISOString()},{onConflict:"app_id"});
+    const{data:existing}=await supabase.from("project_memory").select("memory_json,learning_scope").eq("app_id",id).eq("owner_id",user.id).maybeSingle();
+    const memory=sanitizeMemoryJson(existing?.memory_json);
+    const nextMemory=sanitizeMemoryJson({...memory,storePublishingDeclarations:declarations});
+    const{error}=await supabase.from("project_memory").upsert({app_id:id,owner_id:user.id,memory_json:nextMemory,learning_scope:existing?.learning_scope||"project_only",updated_at:new Date().toISOString()},{onConflict:"app_id"});
     if(error)throw error;
-    return NextResponse.json({success:true,declarations,message:"Customer publishing declarations saved to this project. Official store-console declarations are still not submitted."});
-  }catch(error){console.error("PUBLISHING_DECLARATIONS_SAVE_ERROR",error);return NextResponse.json({error:"Unable to save publishing declarations."},{status:500});}
+    return json({success:true,declarations:nextMemory.storePublishingDeclarations,readyForOfficialSubmission:false,message:"Customer publishing declarations saved to this project. Official store-console declarations are still not submitted."});
+  }catch(error){console.error("PUBLISHING_DECLARATIONS_SAVE_ERROR",error?.code||error?.name||"unknown");return json({error:"Unable to save publishing declarations."},500);}
 }
