@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server.js";
 import { loadVisibleProject, loadVisibleProjectMedia } from "../../../lib/publishing/public-project-runtime.js";
 import { resolveGeneratedRuntime } from "../../../lib/game/game-runtime-router-v1.js";
@@ -29,12 +29,15 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function GeneratedAppPage({ params }) {
+export default async function GeneratedAppPage({ params, searchParams }) {
   const { id } = await params;
+  const query = await searchParams || {};
+  const requestedVersionId = String(query?.previewVersion || "").trim();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const visible = await loadVisibleProject({ id, userId: user?.id || null });
+  const visible = await loadVisibleProject({ id, userId: user?.id || null, versionId: requestedVersionId });
   if (!visible) notFound();
+  if (visible.isOwner && query?.demo === "1" && query?.surface !== "app") redirect(`/preview/${id}`);
 
   const { admin, app, version } = visible;
   const media = await loadVisibleProjectMedia(admin, id);
@@ -57,5 +60,5 @@ export default async function GeneratedAppPage({ params }) {
     default: runtime = <GeneratedAppClient appId={id} app={app} specification={specification} customerMedia={media}/>;
   }
 
-  return <div className={`generatedExperience generatedExperience--${experience.industry}`} data-laneriq-standard={experience.standardId} data-theme-mode={specification?.designSystem?.themeMode||"auto"} data-golden-reference={isGoldenPropertyReference?"true":"false"}><AnalyticsTracker appId={id} channel={route.isGame ? "game" : "app"} eventName={route.eventName}/>{runtime}</div>;
+  return <div className={`generatedExperience generatedExperience--${experience.industry}`} data-laneriq-standard={experience.standardId} data-theme-mode={specification?.designSystem?.themeMode||"auto"} data-golden-reference={isGoldenPropertyReference?"true":"false"} data-project-version={version.id}><AnalyticsTracker appId={id} channel={route.isGame ? "game" : "app"} eventName={route.eventName}/>{runtime}</div>;
 }
