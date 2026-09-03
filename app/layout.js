@@ -23,6 +23,7 @@ import "./big-moon-valley-game-pro-commerce.css";
 import "./big-moon-valley-discovery-community.css";
 import "./home-iphone-rescue.css";
 import "./home-water-moon.css";
+import "./home-water-static.css";
 import "./home-signature-v3.css";
 import "./home-signature-mobile-final.css";
 import "./generated-app-premium.css";
@@ -86,6 +87,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
+        <link rel="preload" as="image" href="/laneriq-water-home.svg" fetchPriority="high" />
         <link rel="preload" as="image" href="/laneriq-future-city-people.webp" type="image/webp" fetchPriority="high" />
       </head>
       <body>
