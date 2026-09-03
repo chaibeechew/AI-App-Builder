@@ -2,53 +2,44 @@
 
 ## Goal
 
-Run today inside LANERIQ AI at zero additional infrastructure cost, while keeping the communications domain extractable into a standalone service later without rewriting channel routing, cost policy, message normalization or provider contracts.
+Run today inside LANERIQ AI at zero additional infrastructure cost, while remaining extractable into a standalone service without rewriting channel routing, cost policy, message normalization or provider contracts.
 
 ## Stable core
 
-The standalone core lives under `lib/communications/` and must remain independent of UI routes, React, Next.js request objects, Vercel APIs and direct Supabase imports.
-
-Core responsibilities:
-
-- canonical message envelope
-- channel contract
-- zero-cost routing and fail-closed paid-provider policy
-- provider-agnostic capability model
-- dispatch planning
-- channel failover semantics
-- evidence semantics (`CODE`, `PROVIDER_READY`, `LIVE`, `PRODUCTION`, `DEVICE_VERIFIED` remain distinct)
+`lib/communications/service-core.js` stays independent of UI routes, React, Next.js request objects, Vercel APIs and direct Supabase imports. It owns the canonical message envelope, channel contract, zero-cost routing, provider-agnostic capability model, dispatch planning, failover and evidence semantics.
 
 ## Runtime ports
 
-`service-core.js` consumes only two runtime ports:
-
-1. `adapterStatus()` — returns channel capability/cost/health information.
-2. `senders()` — returns channel sender functions.
-
-The current LANERIQ AI deployment supplies these through `runtime-port.js`. A future standalone deployment may replace the runtime port with another database, queue, provider registry or compute platform without changing the service core.
+The core consumes only `adapterStatus()` and `senders()`. The current app supplies them with `runtime-port.js`; a future standalone deployment can replace storage, queue, provider registry or compute without changing the core.
 
 ## Current deployment
 
 `embedded_now_extractable_later`
 
-The public status endpoint is:
+- `GET /api/communications/v1/status` — sanitized capability/evidence status only.
+- `POST /api/communications/v1/dispatch` — private signed service dispatch.
 
-`GET /api/communications/v1/status`
+Dispatch requires a configured service client ID, HMAC-SHA256 signature, bounded timestamp, high-entropy nonce and stable idempotency key. The nonce and idempotency key are privacy-hashed and atomically persisted through service-role-only RPCs before any sender executes. Signed callers still cannot bypass the RM0 policy unless the server explicitly enables customer-billed routes.
 
-It returns only sanitized capability/evidence information. It never returns provider tokens, recipients, message content or secrets.
+## Signed request contract
 
-## Future extraction path
+Headers: `x-laneriq-client-id`, `x-laneriq-timestamp`, `x-laneriq-nonce`, `x-laneriq-signature`.
 
-1. Keep `service-core.js`, channel contracts, zero-cost policy and routing unchanged.
-2. Move the runtime adapter into a dedicated communications deployment.
-3. Introduce authenticated service-to-service dispatch with replay-safe signed requests.
-4. Move delivery jobs/receipts/provider-health into the communications datastore.
-5. Point LANERIQ AI to the standalone service URL through a client adapter.
-6. Preserve the embedded adapter as a fallback until standalone production evidence is complete.
+Canonical signature input is client ID + timestamp + nonce + method + path + SHA256(body). The HMAC secret remains server-side. Stale signatures, reused nonces and reused idempotency keys do not trigger another delivery.
 
-## Non-goals for this phase
+## Extraction path
+
+1. Keep service core, channel contracts, zero-cost policy and signature contract unchanged.
+2. Move the runtime adapter to a dedicated communications deployment.
+3. Configure `LANERIQ_COMMUNICATIONS_SERVICE_URL` in LANERIQ AI and use the signed remote client.
+4. Move delivery jobs, receipts and provider health into the communications datastore.
+5. Expand to a managed service-client registry only when another LANERIQ product genuinely needs access.
+6. Keep embedded mode as fallback until standalone Production evidence exists.
+
+## Current boundaries
 
 - No dedicated server purchase.
 - No paid SMS activation.
-- No claim that provider-ready channels are LIVE.
-- No public arbitrary-send endpoint before replay-safe service authentication and persistent idempotency are present.
+- No unauthenticated arbitrary-send endpoint.
+- Provider-ready is never labeled LIVE.
+- Browser/Production evidence never substitutes for physical-device delivery evidence.
