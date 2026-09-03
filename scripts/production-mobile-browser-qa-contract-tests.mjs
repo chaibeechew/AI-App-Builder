@@ -44,7 +44,8 @@ for (const pattern of [
   /no broad \/api prefix bypass/,
 ]) assert.match(sessionProxy, pattern);
 assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/build-info"\)/, "Build identity access must remain exact-path only.");
-assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/images/ , "Image Studio observability must never create a broad /api/images prefix bypass.");
+assert.equal(sessionProxy.includes('startsWith("/api/images'),false,"Image Studio observability must never create a broad /api/images prefix bypass.");
+assert.equal(sessionProxy.includes("startsWith('/api/images"),false,"Image Studio observability must never create a broad /api/images prefix bypass.");
 assert.match(sessionRoute, /SESSION_REQUIRED[\s\S]*401/);
 
 for (const pattern of [
