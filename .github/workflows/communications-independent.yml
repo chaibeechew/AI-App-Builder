@@ -28,6 +28,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify independent communications core
         run: node scripts/independent-communications-service-contract-tests.mjs
+      - name: Verify remote/embedded cutover gateway
+        run: node scripts/communications-service-gateway-contract-tests.mjs
       - name: Verify zero-cost omnichannel policy remains authoritative
         run: npm run test:zero-cost-communications
       - name: Verify full communications safety contract
