@@ -37,7 +37,7 @@
     "test:email-provider": "node scripts/laneriq-email-provider-contract-tests.mjs",
     "test:whatsapp-auth": "node scripts/whatsapp-auth-contract-tests.mjs",
     "test:communications-100": "node scripts/communications-100-contract-tests.mjs && node scripts/email-delivery-adapter-contract-tests.mjs && npm run test:email-provider",
-    "test:mobile-ui": "node scripts/mobile-ui-contract-tests.mjs && node scripts/homepage-mobile-polish-contract-tests.mjs",
+    "test:mobile-ui": "node scripts/mobile-ui-contract-tests.mjs && node scripts/homepage-mobile-polish-contract-tests.mjs && node scripts/big-moon-valley-media-intelligence-contract-tests.mjs",
     "test:mobile-performance": "node scripts/mobile-performance-contract-tests.mjs",
     "test:mobile-readiness": "node scripts/mobile-readiness-diagnostics-contract-tests.mjs",
     "test:production-mobile-browser-qa": "node scripts/production-mobile-browser-qa-contract-tests.mjs",
