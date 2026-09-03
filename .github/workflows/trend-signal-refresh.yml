@@ -1,0 +1,53 @@
+name: LANERIQ Trend Signal Refresh
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * 0'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh-pattern-signals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Refresh anonymous pattern signals from official Malaysia chart
+        run: node scripts/refresh-trend-signals.mjs
+      - name: Validate trend-learning safety contract
+        run: node scripts/trend-learning-contract-tests.mjs
+      - name: Open guarded refresh PR when evidence changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- lib/trendSignalSnapshot.js; then
+            echo "No trend-signal change; no PR needed."
+            exit 0
+          fi
+          branch="automation/trend-signals-${GITHUB_RUN_ID}"
+          git config user.name "laneriq-trend-bot"
+          git config user.email "laneriq-trend-bot@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add lib/trendSignalSnapshot.js
+          git commit -m "chore: refresh anonymized trend signals"
+          git push origin "$branch"
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "Trend refresh: Malaysia app pattern signals" \
+            --body "Automated zero-cost refresh from Apple's official Malaysia Top Free Apps feed. Raw third-party app identities are discarded after local classification; this PR changes only anonymous LANERIQ pattern IDs/ranks. Merge only after normal LANERIQ AI 100 CI and Vercel checks pass."
