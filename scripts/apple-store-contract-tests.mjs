@@ -3,15 +3,35 @@ import fs from "node:fs";
 import {buildStoreReadiness} from "../lib/publishing/store-readiness-policy.js";
 
 const route=fs.readFileSync("app/api/publish/request/route.js","utf8");
+const domain=fs.readFileSync("lib/cloud/builder-projects.js","utf8");
+const adapter=fs.readFileSync("lib/cloud-adapters/builder-project-data.js","utf8");
 const page=fs.readFileSync("app/publish/[id]/page.js","utf8");
 const migration=fs.readFileSync("supabase/migrations/20260901135653_harden_store_publish_request_contract.sql","utf8");
 
 const readiness=buildStoreReadiness({specification:{pages:[{name:"Home",route:"/"}]},listing:null,assets:[],inferredAnswers:{}});
 assert.equal(readiness.readyForOfficialSubmission,false);
 
-for(const pattern of [/auth\.getUser\(\)/,/Account verification is required/,/MAX_REQUEST_BYTES/,/REQUEST_ID/,/platform/,/apple/,/\.eq\("owner_id", user\.id\)/,/current_version_id !== versionId/,/evaluateReleaseReadiness/,/customer_approved_at/,/listing\.version_id !== versionId/,/server_create_store_publish_request/,/officialSubmissionConfirmed:false/,/Nothing has been submitted to Apple or Google yet/,/Cache-Control\":\"private, no-store/])assert.match(route,pattern);
-assert.ok(route.indexOf("current_version_id !== versionId")<route.indexOf("server_create_store_publish_request"),"Exact current version must be verified before store preparation persistence.");
-assert.ok(route.indexOf("customer_approved_at")<route.indexOf("server_create_store_publish_request"),"Customer approval must be verified before store preparation persistence.");
+// Customer-facing store preparation stays provider-opaque and uses a verified LANERIQ Cloud principal.
+for(const pattern of [/getBuilderPrincipal\(\{requireVerified:true\}\)/,/Account verification is required/,/MAX_REQUEST_BYTES/,/REQUEST_ID/,/platform/,/apple/,/loadBuilderPublishPreparation/,/current_version_id !== versionId/,/evaluateReleaseReadiness/,/customer_approved_at/,/listing\.version_id !== versionId/,/createBuilderStorePublishRequest/,/officialSubmissionConfirmed:false/,/Nothing has been submitted to Apple or Google yet/,/Cache-Control\":\"private, no-store/])assert.match(route,pattern);
+assert.doesNotMatch(route,/lib\/supabase\/|@supabase\/|createAdminClient|server_create_store_publish_request/);
+assert.ok(route.indexOf("current_version_id !== versionId")<route.indexOf("createBuilderStorePublishRequest"),"Exact current version must be verified before store preparation persistence.");
+assert.ok(route.indexOf("customer_approved_at")<route.indexOf("createBuilderStorePublishRequest"),"Customer approval must be verified before store preparation persistence.");
+
+// LANERIQ Cloud re-authenticates and owner-scopes the exact project/version/listing/assets before any service-role RPC.
+assert.match(domain,/loadBuilderPublishPreparation/);assert.match(domain,/createBuilderStorePublishRequest/);
+const loadBlock=adapter.slice(adapter.indexOf('async loadPublishPreparation'),adapter.indexOf('async createStorePublishRequest'));
+const createBlock=adapter.slice(adapter.indexOf('async createStorePublishRequest'),adapter.indexOf('async saveStoreListing'));
+assert.match(loadBlock,/resolvePrincipal\(client, \{ requireVerified: true \}\)/);
+assert.match(loadBlock,/\.eq\("id", appId\)\.eq\("owner_id", userId\)/);
+assert.match(loadBlock,/\.eq\("id", versionId\)\.eq\("app_id", appId\)/);
+assert.match(loadBlock,/\.eq\("id", listingId\)\.eq\("app_id", appId\)/);
+assert.match(loadBlock,/\.eq\("app_id", appId\)\.eq\("owner_id", userId\)/);
+assert.match(loadBlock,/\.eq\("user_id", userId\)\.in\("id", assetIds\)/);
+assert.match(createBlock,/resolvePrincipal\(client, \{ requireVerified: true \}\)/);
+assert.match(createBlock,/createAdminClient\(\)/);
+assert.match(createBlock,/server_create_store_publish_request/);
+assert.match(createBlock,/p_user_id: principal\.principal\.principalId/);
+assert.ok(createBlock.indexOf('resolvePrincipal')<createBlock.indexOf('createAdminClient()'),"Cloud adapter must authenticate before privileged store persistence.");
 
 for(const pattern of [/stableStoreRequestId/,/window\.sessionStorage/,/requestId/,/platform/,/Prepare Apple Submission/,/Nothing has been submitted to the store yet/,/LANERIQ AI does not collect/])assert.match(page,pattern);
 
@@ -29,4 +49,4 @@ assert.match(migration,/officialSubmissionConfirmed',false/i);
 assert.match(migration,/revoke all on function public\.server_create_store_publish_request\(uuid,uuid,uuid,uuid,text,text\) from public,anon,authenticated/i);
 assert.match(migration,/grant execute on function public\.server_create_store_publish_request\(uuid,uuid,uuid,uuid,text,text\) to service_role/i);
 
-console.log("Apple App Store code contract passed: exact-version customer-approved preparation is replay safe and service-only, while official Apple submission/review stays truthfully LIVE PENDING until provider evidence exists.");
+console.log("Apple App Store code contract passed: provider-opaque exact-version customer-approved preparation is replay safe and service-only, while official Apple submission/review stays truthfully LIVE PENDING until provider evidence exists.");
