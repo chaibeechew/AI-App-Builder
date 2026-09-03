@@ -65,6 +65,18 @@ assert.match(idempotencyMigration,/unique index/i);
 assert.match(idempotencyMigration,/owner_id, generation_request_id/);
 assert.match(idempotencyMigration,/apps_generation_request_id_format_check/);
 
+// Client recovery must reuse only ambiguous/in-progress attempts and must not turn post-save bootstrap loss into a false generation failure.
+assert.match(home,/const CREATE_REQUEST_KEY="laneriqPendingCreateRequest"/);
+assert.match(home,/stableCreateRequestId\(createFingerprint\)/);
+assert.match(home,/requestId:createRequestId/);
+assert.doesNotMatch(home,/requestId:newRequestId\("create"\)/,"Generate must not invent a fresh request ID for every ambiguous retry.");
+assert.match(home,/if\(d\?\.code!=="GENERATION_REQUEST_IN_PROGRESS"\)clearCreateRequest\(createRequestId\)/);
+assert.match(home,/clearCreateRequest\(createRequestId\);/);
+const savedPlanIndex=home.indexOf('setPlan({...d,orchestrationPlan:modulePlan,bootstrap:null})');
+const bootstrapFetchIndex=home.indexOf('fetch(`/api/apps/${appId}/bootstrap`');
+assert.ok(savedPlanIndex>generateIndex&&bootstrapFetchIndex>savedPlanIndex,"A verified saved project must be committed to UI state before optional bootstrap work begins.");
+assert.match(home,/Core App \+ Website are saved\. Background setup could not finish because the connection changed/);
+
 for(const pattern of [
   /auth\.getUser\(\)/,
   /loadVisibleProject\(\{ id, userId: user\?\.id \|\| null \}\)/,
@@ -123,6 +135,7 @@ assert.match(pricing,/normal 5% platform share becomes 10%/);
 
 console.log("✓ AI App internal E2E locks Planning → verified Generate → durable request identity → App save → Version save → current pointer → Preview");
 console.log("✓ Same-request retries are replayed or held as in-progress before duplicate AI execution; database uniqueness prevents duplicate persisted projects");
+console.log("✓ Client ambiguous retries preserve one create identity, definitive failures rotate it, and post-save bootstrap loss cannot downgrade a successful project to failed");
 console.log("✓ Creator Opportunity is individual-only, Admin-approved, no-upfront-fee Full Access with an operational +5 percentage-point commission rule");
 console.log("✓ Failed/unverified generation cannot be persisted and Preview resolves the authoritative current version through the server-only owner/published visibility gate");
 console.log("✓ Real external AI-provider success remains LIVE evidence and is not fabricated by this code gate");
