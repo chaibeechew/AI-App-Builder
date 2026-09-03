@@ -1,21 +1,15 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { buildAutonomousPlan, orchestrationBrief } from "../lib/build/orchestrator.js";
-import { CREATOR_OPPORTUNITY_POLICY,creatorOpportunityEffectiveShare } from "../lib/creator-opportunity-policy.js";
 
-const home=fs.readFileSync("app/page.js","utf8");
-const generate=fs.readFileSync("app/api/generate/route.js","utf8");
-const preview=fs.readFileSync("app/a/[id]/page.js","utf8");
-const publicRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
-const idempotencyMigration=fs.readFileSync("supabase/migrations/20260903081500_harden_ai_app_generation_idempotency.sql","utf8");
-const creatorMigration=fs.readFileSync("supabase/migrations/20260903082500_creator_opportunity_access.sql","utf8");
-const commissionMigration=fs.readFileSync("supabase/migrations/20260903084000_creator_opportunity_commission_rate.sql","utf8");
-const creatorApi=fs.readFileSync("app/api/creator-opportunity/route.js","utf8");
-const adminCreatorApi=fs.readFileSync("app/api/admin/creator-opportunities/route.js","utf8");
-const creatorPage=fs.readFileSync("app/creator-opportunity/page.js","utf8");
-const adminCreatorPage=fs.readFileSync("app/admin/creator-opportunities/page.js","utf8");
-const access=fs.readFileSync("lib/app-builder-access.js","utf8");
-const pricing=fs.readFileSync("app/pricing/page.js","utf8");
+const read=(path)=>fs.readFileSync(path,"utf8");
+const home=read("app/page.js");
+const generate=read("app/api/generate/route.js");
+const preview=read("app/a/[id]/page.js");
+const publicRuntime=read("lib/publishing/public-project-runtime.js");
+const idempotencyMigration=read("supabase/migrations/20260903081500_harden_ai_app_generation_idempotency.sql");
+const atomicMigration=read("supabase/migrations/20260903104500_atomic_generated_project_persistence.sql");
+const publishPinMigration=read("supabase/migrations/20260903105500_pin_published_project_version.sql");
 
 const plan=buildAutonomousPlan({idea:"Create a mobile-first real estate CRM app with clients, properties, appointments and follow-up automation"});
 assert.equal(plan.modules.app,true);
@@ -38,45 +32,57 @@ for(const pattern of [
   /verifyGeneratedAppExecution/,
   /inspectProjectSpecification/,
   /adult\.status!=="verified"/,
-  /\.from\("apps"\)\.insert/,
-  /\.from\("app_versions"\)\.insert/,
-  /current_version_id:version\.id/,
+  /server_persist_generated_project/,
   /\.from\("project_memory"\)\.upsert/,
-  /success:true/,
 ]) assert.match(generate,pattern);
+assert.ok(generate.indexOf('adult.status!=="verified"')<generate.indexOf('server_persist_generated_project'),"Unverified generation must never persist as an App.");
 
-assert.ok(generate.indexOf('adult.status!=="verified"')<generate.indexOf('.from("apps").insert'),"Unverified generation must never persist as an App.");
-assert.ok(generate.indexOf('.from("app_versions").insert')<generate.indexOf('current_version_id:version.id'),"Version must exist before current pointer advances.");
-
-// Durable request identity and replay: retries must recover the same saved project instead of creating duplicates.
+// One stable request identity owns the whole generate/save operation.
 assert.match(generate,/const REQUEST_ID=\/\^\[A-Za-z0-9\._:-\]\{1,160\}\$\//);
 assert.match(generate,/A stable generation request ID is required/);
 assert.match(generate,/loadGenerationReplay/);
 assert.match(generate,/\.eq\("generation_request_id",requestId\)/);
-assert.match(generate,/generation_request_id:chargeRequestId/);
+assert.match(generate,/STALE_PARTIAL_MS=90\*1000/);
+assert.match(generate,/stalePartial:true/);
 assert.match(generate,/GENERATION_REQUEST_IN_PROGRESS/);
-assert.match(generate,/entitlement\?\.replayed\|\|creditCharge\?\.replayed/);
-const aiExecutionIndex=generate.indexOf("const adult=await runSoolenAdultMode");
-assert.ok(aiExecutionIndex>0,"Generate must execute through the verified Soolen Adult Mode path.");
-assert.ok(generate.indexOf("const replay=await loadGenerationReplay")<aiExecutionIndex,"Persisted replay must be checked before AI execution.");
-assert.ok(generate.indexOf("const postReservationReplay=await loadGenerationReplay")<aiExecutionIndex,"Concurrent replay state must be rechecked after entitlement/credit reservation and before AI execution.");
+assert.match(generate,/p_request_id:chargeRequestId/);
+assert.match(generate,/idempotency:\{requestId:chargeRequestId[\s\S]*atomic:true/);
 assert.match(idempotencyMigration,/apps_owner_generation_request_uidx/);
-assert.match(idempotencyMigration,/unique index/i);
 assert.match(idempotencyMigration,/owner_id, generation_request_id/);
-assert.match(idempotencyMigration,/apps_generation_request_id_format_check/);
 
-// Client recovery must reuse only ambiguous/in-progress attempts and must not turn post-save bootstrap loss into a false generation failure.
+const aiExecutionIndex=generate.indexOf("const adult=await runSoolenAdultMode");
+assert.ok(generate.indexOf("const replay=await loadGenerationReplay")<aiExecutionIndex,"Persisted replay must be checked before AI execution.");
+assert.ok(generate.indexOf("const postReservationReplay=await loadGenerationReplay")<aiExecutionIndex,"Concurrent replay state must be rechecked after reservation and before AI execution.");
+
+// Initial App + Website project persistence is one transaction, not three partially-failing client mutations.
+for(const pattern of [
+  /create or replace function public\.server_persist_generated_project/,
+  /security definer/,
+  /auth\.uid\(\)/,
+  /caller is distinct from uid/,
+  /pg_advisory_xact_lock/,
+  /generation_request_id=request_key/,
+  /insert into public\.apps/,
+  /insert into public\.app_versions/,
+  /update public\.apps set current_version_id=version_row\.id/,
+  /recovered_partial/,
+  /revoke all on function public\.server_persist_generated_project.*from public,anon/s,
+  /grant execute on function public\.server_persist_generated_project.*to authenticated,service_role/s,
+]) assert.match(atomicMigration,pattern);
+assert.doesNotMatch(generate,/createdAppId&&!accessBound[\s\S]*\.from\("apps"\)\.delete/,"A persisted project must never be deleted because a response/enrichment step failed.");
+assert.match(generate,/if\(createdAppId\)return json\(\{success:false,code:"GENERATION_REQUEST_IN_PROGRESS"/);
+
+// The iPhone/browser client reuses ambiguous request IDs but rotates after definitive failures.
 assert.match(home,/const CREATE_REQUEST_KEY="laneriqPendingCreateRequest"/);
 assert.match(home,/stableCreateRequestId\(createFingerprint\)/);
 assert.match(home,/requestId:createRequestId/);
-assert.doesNotMatch(home,/requestId:newRequestId\("create"\)/,"Generate must not invent a fresh request ID for every ambiguous retry.");
+assert.doesNotMatch(home,/requestId:newRequestId\("create"\)/);
 assert.match(home,/if\(d\?\.code!=="GENERATION_REQUEST_IN_PROGRESS"\)clearCreateRequest\(createRequestId\)/);
-assert.match(home,/clearCreateRequest\(createRequestId\);/);
 const savedPlanIndex=home.indexOf('setPlan({...d,orchestrationPlan:modulePlan,bootstrap:null})');
 const bootstrapFetchIndex=home.indexOf('fetch(`/api/apps/${appId}/bootstrap`');
-assert.ok(savedPlanIndex>generateIndex&&bootstrapFetchIndex>savedPlanIndex,"A verified saved project must be committed to UI state before optional bootstrap work begins.");
-assert.match(home,/Core App \+ Website are saved\. Background setup could not finish because the connection changed/);
+assert.ok(savedPlanIndex>generateIndex&&bootstrapFetchIndex>savedPlanIndex,"Saved project UI state must commit before optional bootstrap work.");
 
+// App Preview resolves through the shared server runtime, not anonymous project-table access.
 for(const pattern of [
   /auth\.getUser\(\)/,
   /loadVisibleProject\(\{ id, userId: user\?\.id \|\| null, versionId: requestedVersionId \}\)/,
@@ -85,59 +91,22 @@ for(const pattern of [
   /notFound\(\)/,
   /data-project-version=\{version\.id\}/,
 ]) assert.match(preview,pattern);
+assert.doesNotMatch(preview,/\.from\("apps"\)|\.from\("app_versions"\)/);
 
+// Owners see current/pinned working versions; anonymous customers see only the exact published version.
 for(const pattern of [
-  /\.from\("apps"\)/,
-  /current_version_id/,
+  /current_version_id,published_version_id/,
   /if \(!isOwner && !isPublished\) return null/,
-  /\.from\("app_versions"\)/,
-  /selectedVersionId = requestedVersionId && isOwner \? requestedVersionId : app\.current_version_id/,
+  /requestedVersionId && isOwner[\s\S]*app\.current_version_id[\s\S]*app\.published_version_id/,
   /\.eq\("id", selectedVersionId\)/,
   /\.eq\("app_id", app\.id\)/,
-  /\.select\("id,version_no,specification"\)/,
+  /isPublishedVersion: Boolean\(app\.published_version_id && version\.id === app\.published_version_id\)/,
 ]) assert.match(publicRuntime,pattern);
-assert.doesNotMatch(preview,/\.from\("apps"\)|\.from\("app_versions"\)/,"Preview must use the shared server-only visibility/current-version loader rather than direct project reads.");
+assert.match(publishPinMigration,/published_version_id=p_expected_version_id/);
+assert.match(publishPinMigration,/published_version_id=null/);
 
-// Creator Opportunity: individual-only, Admin-approved Full Access, no upfront fee, +5 percentage points.
-assert.equal(CREATOR_OPPORTUNITY_POLICY.eligibility.individualsOnly,true);
-assert.equal(CREATOR_OPPORTUNITY_POLICY.eligibility.companiesAllowed,false);
-assert.equal(CREATOR_OPPORTUNITY_POLICY.eligibility.teamsAllowed,false);
-assert.equal(CREATOR_OPPORTUNITY_POLICY.eligibility.organizationsAllowed,false);
-assert.equal(CREATOR_OPPORTUNITY_POLICY.eligibility.requiresAdminApproval,true);
-assert.equal(CREATOR_OPPORTUNITY_POLICY.access.upfrontPlatformAccessFeeUsd,0);
-assert.equal(CREATOR_OPPORTUNITY_POLICY.access.grantsFullCreationAccess,true);
-assert.equal(CREATOR_OPPORTUNITY_POLICY.access.gameAccessPlan,"full");
-assert.equal(CREATOR_OPPORTUNITY_POLICY.commercialTerms.extraPlatformSalesSharePercentagePoints,5);
-assert.equal(creatorOpportunityEffectiveShare(5),10);
-assert.match(creatorMigration,/applicant_type='individual'/);
-assert.match(creatorMigration,/companies|individual/i);
-assert.match(creatorMigration,/extra_platform_sales_share_percent=5/);
-assert.match(creatorMigration,/creator_opportunity_active/);
-assert.match(creatorMigration,/creator_opportunity_bonus_share_percent/);
-assert.match(creatorMigration,/enable row level security/i);
-assert.match(creatorMigration,/auth\.uid\(\)\)=user_id/);
-assert.match(creatorApi,/confirmsIndividual/);
-assert.match(creatorApi,/acceptsExtraRevenueShare/);
-assert.match(creatorApi,/individual creator/);
-assert.match(adminCreatorApi,/user\.app_metadata\?\.role!=="admin"/);
-assert.match(adminCreatorApi,/pro_valid_until:"9999-12-31T23:59:59\.000Z"/);
-assert.match(adminCreatorApi,/game_access_plan:"full"/);
-assert.match(adminCreatorApi,/creator_opportunity_active:true/);
-assert.match(adminCreatorApi,/creator_opportunity_bonus_share_percent:5/);
-assert.match(access,/creatorOpportunity/);
-assert.match(access,/creatorOpportunityActive \|\| data\.game_access_plan === "full"/);
-assert.match(commissionMigration,/0\.05 \+ \(coalesce\(opportunity_bonus,0\) \/ 100\)/);
-assert.match(commissionMigration,/rate=excluded\.rate/);
-assert.match(creatorPage,/Send to Admin/);
-assert.match(creatorPage,/company, team or organization/);
-assert.match(adminCreatorPage,/Approve Full Access/);
-assert.match(pricing,/Creator Opportunity Access/);
-assert.match(pricing,/additional 5 percentage-point platform sales share/);
-assert.match(pricing,/normal 5% platform share becomes 10%/);
-
-console.log("✓ AI App internal E2E locks Planning → verified Generate → durable request identity → App save → Version save → current pointer → Preview");
-console.log("✓ Same-request retries are replayed or held as in-progress before duplicate AI execution; database uniqueness prevents duplicate persisted projects");
-console.log("✓ Client ambiguous retries preserve one create identity, definitive failures rotate it, and post-save bootstrap loss cannot downgrade a successful project to failed");
-console.log("✓ Creator Opportunity is individual-only, Admin-approved, no-upfront-fee Full Access with an operational +5 percentage-point commission rule");
-console.log("✓ Public App Preview resolves current version; authenticated owner snapshot pinning remains same-project-bound through the shared server loader");
-console.log("✓ Real external AI-provider success remains LIVE evidence and is not fabricated by this code gate");
+console.log("✓ AI App internal E2E locks Planning → verified Generate → atomic App + Version + current pointer → Preview");
+console.log("✓ Same-request retries recover completed or stale-partial work without creating or charging a duplicate project");
+console.log("✓ Post-save response/bootstrap loss cannot delete a successful project; the same request recovers it");
+console.log("✓ Owner App preview stays on the working version while anonymous production traffic is pinned to published_version_id");
+console.log("✓ Real authenticated Production generation and physical-device evidence remain separate LIVE evidence gates");

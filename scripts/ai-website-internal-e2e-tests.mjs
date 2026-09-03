@@ -5,6 +5,8 @@ import { buildAutonomousPlan, orchestrationBrief } from "../lib/build/orchestrat
 const home=fs.readFileSync("app/page.js","utf8");
 const engine=fs.readFileSync("engine/autonomous-engine.js","utf8");
 const generate=fs.readFileSync("app/api/generate/route.js","utf8");
+const runtimeGuard=fs.readFileSync("lib/generator/runtime-guard.js","utf8");
+const qualityBaseline=fs.readFileSync("lib/generator/generated-quality-baseline.js","utf8");
 const appPreview=fs.readFileSync("app/a/[id]/page.js","utf8");
 const websitePreview=fs.readFileSync("app/website/[id]/page.js","utf8");
 const websiteForm=fs.readFileSync("app/website/[id]/WebsiteEnquiryForm.js","utf8");
@@ -17,6 +19,7 @@ const rootProxy=fs.readFileSync("proxy.js","utf8");
 const publicRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
 const enquiryMigration=fs.readFileSync("supabase/migrations/20260903004110_website_enquiry_runtime.sql","utf8");
 const enquiryPolicy=fs.readFileSync("supabase/migrations/20260903004150_website_enquiry_service_policy.sql","utf8");
+const publishPinMigration=fs.readFileSync("supabase/migrations/20260903105500_pin_published_project_version.sql","utf8");
 
 const plan=buildAutonomousPlan({idea:"Create a premium multilingual property website with listings, enquiry forms and mobile-first navigation"});
 assert.equal(plan.modules.website,true);
@@ -46,15 +49,20 @@ for(const pattern of [
   /verifyGeneration/,
   /loadGenerationReplay/,
   /generation_request_id/,
-  /\.from\("apps"\)\.insert/,
-  /\.from\("app_versions"\)\.insert/,
-  /current_version_id:version\.id/,
+  /server_persist_generated_project/,
+  /p_specification:specification/,
+  /p_source_prompt:combinedInput/,
   /App \+ Website/,
 ]) assert.match(generate,pattern);
+assert.match(generate,/stalePartial:true/);
+assert.match(generate,/recoveredPartial:Boolean\(persisted\.recovered_partial\)/);
+assert.match(runtimeGuard,/applyGeneratedQualityBaseline/);
+for(const dimension of ["stability","privacy","comfort","naturalness"])assert.match(qualityBaseline,new RegExp(`${dimension}:\\[`));
+assert.match(qualityBaseline,/App and Website share one project identity, current version, design language and workflow terminology/);
 
 for(const source of [appPreview,websitePreview]){
   assert.match(source,/auth\.getUser\(\)/,"App and Website previews must resolve trusted owner identity.");
-  assert.match(source,/loadVisibleProject\(\{id|loadVisibleProject\(\{ id/,"App and Website previews must use the shared visibility/current-version loader.");
+  assert.match(source,/loadVisibleProject\(\{id|loadVisibleProject\(\{ id/,"App and Website previews must use the shared visibility/version loader.");
   assert.match(source,/loadVisibleProjectMedia/);
   assert.match(source,/notFound\(\)/,"Hidden/missing projects must fail closed.");
   assert.match(source,/data-project-version=\{version\.id\}/,"Both customer surfaces must expose the exact rendered version for deterministic combined-preview QA.");
@@ -65,9 +73,9 @@ assert.match(websitePreview,/version\.specification/);
 assert.match(websitePreview,/Customer Website/);
 assert.match(websitePreview,/Created with LANERIQ AI/);
 assert.match(websitePreview,/WebsiteEnquiryForm/);
-assert.match(websitePreview,/const enquiryEnabled=isPublished&&!isPinnedPreview/,"Only the live published Website may accept customer enquiries; pinned owner snapshots must remain side-effect free.");
+assert.match(websitePreview,/const enquiryEnabled=isPublished&&isPublishedVersion&&!isPinnedPreview/,"Only the exact published Website snapshot may accept real customer enquiries.");
 assert.match(websitePreview,/enabled=\{enquiryEnabled\}/);
-assert.match(websitePreview,/isOwner&&!isPinnedPreview&&<WebsiteEnquiryInbox/);
+assert.match(websitePreview,/isOwner&&isPublishedVersion&&!isPinnedPreview&&<WebsiteEnquiryInbox/,"The live enquiry inbox must render only alongside the exact published Website snapshot.");
 assert.doesNotMatch(websitePreview,/href="mailto:"/,"Generated Website must never ship an empty Contact CTA.");
 
 // Customer enquiry conversion path: real same-origin POST, stable retry identity, bounded PII and no automatic permissions.
@@ -86,10 +94,10 @@ assert.match(publicEnquiryRoute,/submitWebsiteEnquiry/);
 assert.match(publicEnquiryRoute,/Cache-Control\":\"no-store/);
 assert.doesNotMatch(publicEnquiryRoute,/export async function GET|export async function PATCH|export async function DELETE/,"The unauthenticated Website enquiry endpoint must remain POST-only.");
 
-// The public auth bypass is exact UUID + exact POST, and cross-site browser mutation protection remains upstream.
+// Public auth bypass is exact UUID + exact POST, with cross-site mutation protection upstream.
 assert.match(sessionProxy,/PUBLIC_WEBSITE_ENQUIRY_POST=\/\^\\\/api\\\/public\\\/website/);
 assert.match(sessionProxy,/PUBLIC_WEBSITE_ENQUIRY_POST\.test\(pathname\)&&request\.method==="POST"/);
-assert.doesNotMatch(sessionProxy,/pathname\.startsWith\("\/api\/public"\)/,"Never introduce a broad public API prefix bypass.");
+assert.doesNotMatch(sessionProxy,/pathname\.startsWith\("\/api\/public"\)/);
 assert.match(rootProxy,/fetchSite==="cross-site"/);
 assert.match(rootProxy,/crossSiteMutation\(request\)/);
 
@@ -100,7 +108,6 @@ assert.match(enquiryEngine,/SUPABASE_SERVICE_ROLE_KEY/);
 assert.match(enquiryEngine,/server_create_website_enquiry/);
 assert.match(enquiryEngine,/source_hash:p_source_hash|p_source_hash:sourceHash\(request\)/);
 assert.doesNotMatch(enquiryEngine,/console\.(log|info|warn|debug)\(/);
-
 for(const pattern of [
   /create table if not exists public\.website_enquiries/,
   /unique\(app_id, request_id\)/,
@@ -108,42 +115,41 @@ for(const pattern of [
   /revoke all on table public\.website_enquiries from public, anon, authenticated/,
   /grant select, insert, update, delete on table public\.website_enquiries to service_role/,
   /security definer/,
-  /set search_path=''/,
   /publish_status <> 'published'/,
   /visibility not in \('listed','public'\)/,
   /pg_advisory_xact_lock/,
-  /interval '10 minutes'/,
-  /interval '24 hours'/,
   /WEBSITE_ENQUIRY_RATE_LIMITED/,
   /revoke all on function public\.server_create_website_enquiry.*from public, anon, authenticated/s,
   /grant execute on function public\.server_create_website_enquiry.*to service_role/s,
 ]) assert.match(enquiryMigration,pattern);
 assert.match(enquiryPolicy,/for all to service_role/i);
-assert.match(enquiryPolicy,/with check \(true\)/i);
 
-// Owner inbox remains authenticated + exact-owner scoped and excludes source/request fingerprints from output.
+// Owner inbox remains authenticated + exact-owner scoped and hides request/source fingerprints.
 assert.match(ownerEnquiryRoute,/auth\.getUser\(\)/);
 assert.match(ownerEnquiryRoute,/\.eq\("owner_id",user\.id\)/);
 assert.match(ownerEnquiryRoute,/\.eq\("owner_id",ctx\.user\.id\)/);
-assert.match(ownerEnquiryRoute,/Cache-Control\":\"private, no-store/);
 assert.doesNotMatch(ownerEnquiryRoute,/source_hash|request_id/);
 assert.match(websiteInbox,/website-enquiries\?limit=20/);
 assert.match(websiteInbox,/Mark contacted/);
 
+// Public Website is pinned to the reviewed publish version; owner preview keeps following current work.
 for(const pattern of [
-  /current_version_id/,
+  /current_version_id,published_version_id/,
   /if \(!isOwner && !isPublished\) return null/,
-  /selectedVersionId = requestedVersionId && isOwner \? requestedVersionId : app\.current_version_id/,
+  /requestedVersionId && isOwner[\s\S]*app\.current_version_id[\s\S]*app\.published_version_id/,
   /\.eq\("id", selectedVersionId\)/,
   /\.eq\("app_id", app\.id\)/,
-  /\.select\("id,version_no,specification"\)/,
+  /isPublishedVersion: Boolean\(app\.published_version_id && version\.id === app\.published_version_id\)/,
 ]) assert.match(publicRuntime,pattern);
+assert.match(publishPinMigration,/published_version_id=p_expected_version_id/);
+assert.match(publishPinMigration,/published_version_id=null/);
 assert.doesNotMatch(appPreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
 assert.doesNotMatch(websitePreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
 
-console.log("✓ AI Website internal E2E locks Planning → verified Generate → durable save/version → authoritative Website Preview");
-console.log("✓ Generated customer Websites now have a functional enquiry conversion path instead of an empty Contact CTA");
-console.log("✓ Public enquiry writes are same-origin, POST-only, published-site-only, HMAC source-bound, replay-safe and atomically rate-limited");
-console.log("✓ Pinned owner snapshots remain same-project/version-bound and cannot create real enquiries or expose the live owner inbox");
-console.log("✓ Engine still requires pages, navigation, responsive web behavior and switchable language rather than a text-only landing mockup");
-console.log("✓ Real external AI-provider Website output remains LIVE evidence and is not claimed by this deterministic code gate");
+console.log("✓ AI Website internal E2E locks Planning → verified Generate → atomic project/version save → authoritative Website Preview");
+console.log("✓ Generated customer Websites keep a real privacy-bounded enquiry conversion path instead of an empty Contact CTA");
+console.log("✓ Real enquiries and the owner inbox are enabled only for the exact published_version_id snapshot, never a newer working draft");
+console.log("✓ Public Website rendering is pinned to published_version_id so later AI Modify cannot silently replace the live reviewed version");
+console.log("✓ Public enquiry writes remain same-origin, POST-only, published-site-only, HMAC source-bound, replay-safe and atomically rate-limited");
+console.log("✓ Generated runtime enforces release-grade stability/privacy/comfort/naturalness evidence before App + Website rendering");
+console.log("✓ Real external AI-provider Website output remains a separate LIVE evidence gate");

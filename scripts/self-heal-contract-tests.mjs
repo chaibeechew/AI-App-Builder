@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { inspectProjectSpecification, buildSelfHealInstruction } from '../lib/ai/project-self-heal-policy.js';
+import { applySoolenMaxSecurity } from '../lib/ai/soolenai-max-security.js';
 import { selfTestGeneratedApp } from '../lib/generator/self-test.js';
 import { verifyGeneratedAppExecution } from '../lib/generator/execution-verifier.js';
 
@@ -37,6 +38,21 @@ const badData=inspectProjectSpecification({...base,dataModels:[{name:'Customer',
 assert.equal(badData.checkResults.data_contracts.passed,false);
 const secretField=inspectProjectSpecification({...base,data:{Customer:{fields:['name','api_key']}}});
 assert.equal(secretField.checkResults.ownership_permissions.passed,false);
+
+// Canonical LANERIQ metadata may contain secret-like words without carrying credential material.
+// Those exact labels must survive Self-Heal, while arbitrary nested credential-like fields remain fail-closed.
+const securedBase=applySoolenMaxSecurity(base);
+const securedReport=inspectProjectSpecification(securedBase);
+assert.equal(securedReport.checkResults.ownership_permissions.passed,true,`Canonical MAX metadata must not self-block: ${JSON.stringify(securedReport.issues)}`);
+const nestedSecuritySecret=inspectProjectSpecification({...securedBase,security:{...securedBase.security,secrets:{...securedBase.security.secrets,apiKey:'must-never-be-generated'}}});
+assert.equal(nestedSecuritySecret.checkResults.ownership_permissions.passed,false,'Nested apiKey under the trusted security.secrets container must still fail closed.');
+const loggingToken=inspectProjectSpecification({...securedBase,security:{...securedBase.security,logging:{...securedBase.security.logging,authToken:'must-never-be-generated'}}});
+assert.equal(loggingToken.checkResults.ownership_permissions.passed,false,'Only canonical tokensRedacted metadata is trusted; authToken must still fail closed.');
+const designTokensSafe=inspectProjectSpecification({...securedBase,designSystem:{...securedBase.designSystem,designTokens:{spacing:'8px grid',radius:'16px',typography:'responsive scale'}}});
+assert.equal(designTokensSafe.checkResults.ownership_permissions.passed,true,`Canonical designSystem.designTokens must not be mistaken for credentials: ${JSON.stringify(designTokensSafe.issues)}`);
+const designTokensSecret=inspectProjectSpecification({...securedBase,designSystem:{...securedBase.designSystem,designTokens:{spacing:'8px grid',authToken:'must-never-be-generated'}}});
+assert.equal(designTokensSecret.checkResults.ownership_permissions.passed,false,'Nested authToken inside designTokens must still fail closed.');
+
 const badRoute=inspectProjectSpecification({...base,navigation:[...base.navigation,{label:'Ghost',route:'/ghost'}]});
 assert.equal(badRoute.checkResults.missing_routes.passed,false);
 const apiWarning=inspectProjectSpecification({...base,features:[{name:'Payments API',description:'External checkout'}],qualityPlan:{...qualityPlan,stability:['Fast UI','Clear layout','Simple status']}});
@@ -64,7 +80,8 @@ assert.match(generate,/buildSelfHealInstruction/);
 assert.match(generate,/repair:async/);
 assert.match(generate,/if\(adult\.status!=="verified"\)throw new Error/);
 assert.match(generate,/const verified=verifyGeneration\(adult\.result\);\s*if\(!verified\.passed\)throw new Error/);
-assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('.from("apps").insert'),'Create must finish final verification before saving the App.');
+assert.match(generate,/server_persist_generated_project/);
+assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('server_persist_generated_project'),'Create must finish final verification before atomic App + Website persistence.');
 
 // Modify path: quality regression repair + self-heal revalidation happen before atomic version persistence.
 assert.match(modify,/function qualityRegressed/);
@@ -82,11 +99,15 @@ for(const id of required)assert.match(policy,new RegExp(`add\\("${id}"|checkResu
 assert.match(policy,/assessBuildQuality/);
 assert.match(policy,/Explicit min-width|Explicit \$\{key\}/i);
 assert.match(policy,/credential field|Secret-like field\/key/i);
+assert.match(policy,/TRUSTED_NON_SECRET_METADATA_PATHS/);
+assert.match(policy,/isTrustedNonSecretMetadataPath/);
+assert.match(policy,/designSystem\.designTokens/);
 assert.match(policy,/unsafe URL|insecure HTTP media/i);
 assert.match(policy,/Accessibility is explicitly disabled/i);
 
 console.log('✓ All 10 declared Self-Heal categories have executable deterministic checks');
 console.log('✓ Raw missing-page output is detected before normalization can hide the structural failure');
-console.log('✓ Create performs autonomous repair plus final deterministic verification before App persistence');
+console.log('✓ Canonical MAX/design metadata survives Self-Heal while nested credential-like fields remain fail-closed');
+console.log('✓ Create performs autonomous repair plus final deterministic verification before atomic App + Website persistence');
 console.log('✓ Modify blocks quality regression, re-verifies self-heal output and saves only after the candidate passes');
 console.log('✓ Unsafe routes, overflow, data contracts, credential fields, media and explicit accessibility failures are fail-closed');

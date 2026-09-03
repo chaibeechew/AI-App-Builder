@@ -18,6 +18,7 @@ const GENERATE_CREDIT_COST=Math.max(1,Number(process.env.APP_GENERATE_CREDIT_COS
 const HEX_COLOR=/^#[0-9a-f]{6}$/i;
 const REQUEST_ID=/^[A-Za-z0-9._:-]{1,160}$/;
 const MAX_REQUEST_BYTES=64*1024;
+const STALE_PARTIAL_MS=90*1000;
 
 function json(payload,status=200){
  return NextResponse.json(payload,{status,headers:{"Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","X-Content-Type-Options":"nosniff"}});
@@ -33,7 +34,11 @@ async function loadGenerationReplay(supabase,userId,requestId){
  const{data:app,error:appError}=await supabase.from("apps").select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status").eq("owner_id",userId).eq("generation_request_id",requestId).maybeSingle();
  if(appError)throw new Error(`Generation replay lookup failed: ${appError.message}`);
  if(!app)return null;
- if(!app.current_version_id)return{inProgress:true,app};
+ if(!app.current_version_id){
+  const updatedMs=Date.parse(app.updated_at||app.created_at||"");
+  const stale=Number.isFinite(updatedMs)&&Date.now()-updatedMs>=STALE_PARTIAL_MS;
+  return stale?{stalePartial:true,app}:{inProgress:true,app};
+ }
  const{data:version,error:versionError}=await supabase.from("app_versions").select("id,version_no,specification,created_at").eq("id",app.current_version_id).eq("app_id",app.id).maybeSingle();
  if(versionError)throw new Error(`Generation replay version lookup failed: ${versionError.message}`);
  if(!version?.specification)return{inProgress:true,app};
@@ -102,7 +107,7 @@ export async function POST(request){
     if(entitlementReserved&&!entitlement?.replayed){try{await restoreFailedAppBuilderCreate(user.id,{requestId:chargeRequestId})}catch{}}
     return json(postReservationReplay);
   }
-  if(postReservationReplay?.inProgress||entitlement?.replayed||creditCharge?.replayed){
+  if(postReservationReplay?.inProgress||((entitlement?.replayed||creditCharge?.replayed)&&!postReservationReplay?.stalePartial)){
     return json({success:false,code:"GENERATION_REQUEST_IN_PROGRESS",error:"This exact build request is already running. Retry the same request ID to recover the saved project without creating a duplicate."},409);
   }
 
@@ -112,23 +117,28 @@ export async function POST(request){
   const verified=verifyGeneration(adult.result);
   if(!verified.passed)throw new Error(`Generated app failed final verification: ${verified.errors.join("; ")}`);
   const specification={...verified.normalized,name:requestedName||verified.normalized.name};
+  const changeSummary=brandBrief?"Initial verified + self-healed build with saved Brand Kit":"Initial Soolen Super Brain generated, repaired, self-healed and verified application";
 
-  const{data:app,error:appError}=await supabase.from("apps").insert({owner_id:user.id,name:String(specification.name||"Untitled App").trim(),description:String(specification.description||"").trim(),source_prompt:combinedInput,generation_request_id:chargeRequestId,visibility:"private",publish_status:"draft"}).select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status").single();
-  if(appError){
-   if(appError.code==="23505"){
-    const duplicateReplay=await loadGenerationReplay(supabase,user.id,chargeRequestId);
-    if(duplicateReplay?.success)return json(duplicateReplay);
-    return json({success:false,code:"GENERATION_REQUEST_IN_PROGRESS",error:"This exact build request is already being saved. Retry the same request ID to recover the saved project without creating a duplicate."},409);
-   }
-   throw new Error(`App save failed: ${appError.message}`);
+  const{data:persisted,error:persistError}=await supabase.rpc("server_persist_generated_project",{p_user_id:user.id,p_request_id:chargeRequestId,p_name:String(specification.name||"Untitled App").trim(),p_description:String(specification.description||"").trim(),p_source_prompt:combinedInput,p_specification:specification,p_change_summary:changeSummary});
+  if(persistError||!persisted?.success)throw new Error(`Atomic App + Website save failed: ${persistError?.message||"unknown persistence failure"}`);
+  createdAppId=persisted.app_id;
+  const app={id:persisted.app_id,name:persisted.app_name||String(specification.name||"Untitled App").trim(),visibility:persisted.visibility||"private",publish_status:persisted.publish_status||"draft"};
+  const version={id:persisted.version_id,version_no:Number(persisted.version_no||1)};
+
+  if(persisted.replayed&&!persisted.recovered_partial){
+    if(entitlementReserved&&!entitlement?.replayed){try{await restoreFailedAppBuilderCreate(user.id,{requestId:chargeRequestId})}catch{}}
+    if(charged&&!creditCharge?.replayed){try{await refundAiCredits(user.id,{requestId:chargeRequestId,amount:GENERATE_CREDIT_COST,description:"Duplicate generation replay - automatic refund",metadata:{operation:"generate",reason:"atomic_replay"}})}catch{}}
+    const atomicReplay=await loadGenerationReplay(supabase,user.id,chargeRequestId);
+    if(atomicReplay?.success)return json(atomicReplay);
   }
-  createdAppId=app.id;
-  const{data:version,error:versionError}=await supabase.from("app_versions").insert({app_id:app.id,version_no:1,specification,change_summary:brandBrief?"Initial verified + self-healed build with saved Brand Kit":"Initial Soolen Super Brain generated, repaired, self-healed and verified application",created_by:user.id}).select("id,version_no,created_at").single();
-  if(versionError)throw new Error(`App version save failed: ${versionError.message}`);
-  const{data:savedApp,error:appUpdateError}=await supabase.from("apps").update({current_version_id:version.id}).eq("id",app.id).eq("owner_id",user.id).select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status").single();
-  if(appUpdateError)throw new Error(`App version link failed: ${appUpdateError.message}`);
 
-  if(entitlementReserved){const binding=await bindAppBuilderProjectAccess(user.id,{appId:app.id,requestId:chargeRequestId});accessBound=Boolean(binding?.bound||binding?.replayed);}
+  if(entitlementReserved){
+    try{
+      let binding=await bindAppBuilderProjectAccess(user.id,{appId:app.id,requestId:chargeRequestId});
+      if(!binding?.bound&&!binding?.replayed)binding=await bindAppBuilderProjectAccess(user.id,{appId:app.id,requestId:chargeRequestId});
+      accessBound=Boolean(binding?.bound||binding?.replayed);
+    }catch(error){console.warn("PROJECT_ACCESS_BIND_ERROR:",error?.message||"unknown");}
+  }
   let mediaAssignments=[];if(assetIds.length){const{data:ownedAssets,error:assetError}=await supabase.from("asset_library").select("id,file_name,mime_type,category").eq("user_id",user.id).in("id",assetIds);if(assetError)console.warn("CUSTOMER_MEDIA_LOOKUP_ERROR:",assetError.message);const pages=Array.isArray(specification.pages)?specification.pages:[];mediaAssignments=(ownedAssets||[]).map(asset=>({app_id:app.id,asset_id:asset.id,owner_id:user.id,...choosePlacement(asset,pages)}));if(mediaAssignments.length){const{error:mapError}=await supabase.from("project_assets").upsert(mediaAssignments,{onConflict:"app_id,asset_id"});if(mapError)console.warn("PROJECT_MEDIA_MAP_ERROR:",mapError.message)}}
   const finalDesign=specification?.designSystem||{},memoryScope=body?.innovationLearningConsent?"anonymized_patterns":"project_only",memoryPayload=mergeProjectMemory(null,{requestedName:requestedName||specification.name,brandPreferences:brandKit?{companyName:brandKit.company_name||"",logoReference:brandKit.logo_url||"",primaryColor:brandKit.primary_color||"",secondaryColor:brandKit.secondary_color||"",accentColor:brandKit.accent_color||"",fontStyle:brandKit.font_style||"",brandVoice:brandKit.brand_voice||""}:{},industryPlan:industryPlan.matched?{profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit}:{},visualPreferences:{themeMode:finalDesign.themeMode||themeMode,themePreset,primaryColor:finalDesign.primaryColor||primaryColor,accentColor:finalDesign.accentColor||accentColor,backgroundColor:finalDesign.backgroundColor||backgroundColor,styleRequest,wallpaperMode:finalDesign.wallpaperMode||wallpaperMode,wallpaperPreset:finalDesign.wallpaperPreset||wallpaperPreset},mediaPreferences:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role})),selfHeal:{score:verified.selfHeal.score,issues:verified.selfHeal.issues.length,passed:verified.selfHeal.passed},lastBuildAt:new Date().toISOString()});
   const{error:memoryError}=await supabase.from("project_memory").upsert({app_id:app.id,owner_id:user.id,memory_json:memoryPayload,learning_scope:memoryScope,updated_at:new Date().toISOString()},{onConflict:"app_id"});
@@ -136,12 +146,12 @@ export async function POST(request){
   const{error:referralError}=await supabase.rpc("record_first_app_referral_reward");
   if(referralError)console.warn("Referral qualification could not be recorded:",referralError.message);
 
-  const payload={success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,selfHeal:verified.selfHeal,industryPlan:{matched:industryPlan.matched,profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit},brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},theme:memoryPayload.visualPreferences,media:{attached:mediaAssignments.length,assignments:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryScope,saved:!memoryError},superBrain:{mode:adult.mode,status:adult.status,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,selfHeal:verified.selfHeal.passed,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},idempotency:{requestId:chargeRequestId,replayed:false,persisted:true},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:savedApp.id,name:savedApp.name,versionId:version.id,versionNo:version.version_no,visibility:savedApp.visibility,publishStatus:savedApp.publish_status}};
+  const payload={success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,selfHeal:verified.selfHeal,industryPlan:{matched:industryPlan.matched,profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit},brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},theme:memoryPayload.visualPreferences,media:{attached:mediaAssignments.length,assignments:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryScope,saved:!memoryError},superBrain:{mode:adult.mode,status:adult.status,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,selfHeal:verified.selfHeal.passed,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},idempotency:{requestId:chargeRequestId,replayed:Boolean(persisted.replayed),recoveredPartial:Boolean(persisted.recovered_partial),persisted:true,atomic:true},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:app.id,name:app.name,versionId:version.id,versionNo:version.version_no,visibility:app.visibility,publishStatus:app.publish_status}};
   return json(payload);
  }catch(error){
   console.error("AI BUILD APP & WEB error:",error);
-  if(supabase&&createdAppId&&!accessBound){try{await supabase.from("apps").delete().eq("id",createdAppId)}catch{}}
-  if(entitlementReserved&&!accessBound&&chargeRequestId&&userId){try{await restoreFailedAppBuilderCreate(userId,{requestId:chargeRequestId})}catch{}}
+  if(createdAppId)return json({success:false,code:"GENERATION_REQUEST_IN_PROGRESS",error:"The core App + Website were saved, but the final response was interrupted. Retry the same request ID to recover the saved project without creating or charging again."},409);
+  if(entitlementReserved&&chargeRequestId&&userId){try{await restoreFailedAppBuilderCreate(userId,{requestId:chargeRequestId})}catch{}}
   if(charged&&chargeRequestId&&userId){try{await refundAiCredits(userId,{requestId:chargeRequestId,amount:GENERATE_CREDIT_COST,description:"AI generation failed - automatic refund",metadata:{operation:"generate"}})}catch{}}
   const message=String(error?.message||"");
   if(message.includes("Another creation request is already in progress"))return json({success:false,error:"Another build is already in progress. Wait for it to finish before starting another."},409);
