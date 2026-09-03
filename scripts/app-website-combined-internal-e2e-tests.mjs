@@ -9,6 +9,7 @@ const modify=fs.readFileSync("app/api/modify/route.js","utf8");
 const combinedPreview=fs.readFileSync("app/preview/[id]/page.js","utf8");
 const appSurface=fs.readFileSync("app/a/[id]/page.js","utf8");
 const websiteSurface=fs.readFileSync("app/website/[id]/page.js","utf8");
+const analyticsTracker=fs.readFileSync("app/components/AnalyticsTracker.js","utf8");
 const visibleRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
 
 for(const idea of [
@@ -66,6 +67,14 @@ assert.match(websiteSurface,/data-project-version=\{version\.id\}/);
 assert.match(websiteSurface,/const enquiryEnabled=isPublished&&!isPinnedPreview/);
 assert.match(websiteSurface,/isOwner&&!isPinnedPreview&&<WebsiteEnquiryInbox/);
 
+// Owner snapshot frames are review surfaces, not customer traffic. They must never inflate App/Website analytics.
+assert.match(analyticsTracker,/function isEmbeddedPinnedPreview\(\)/);
+assert.match(analyticsTracker,/window\.parent===window/);
+assert.match(analyticsTracker,/params\.has\("previewVersion"\)/);
+assert.match(analyticsTracker,/surface==="app"\|\|surface==="website"/);
+assert.match(analyticsTracker,/if\(isEmbeddedPinnedPreview\(\)\)return;/);
+assert.ok(analyticsTracker.indexOf("if(isEmbeddedPinnedPreview())return;")<analyticsTracker.indexOf("trackProjectEvent({appId,channel"),"Pinned Preview guard must execute before customer analytics tracking.");
+
 // AI Modify persists one new authoritative version; both surfaces resolve through the same apps.current_version_id lineage.
 assert.match(modify,/server_save_app_modification/);
 assert.match(modify,/p_expected_version_id:baseVersionId/);
@@ -73,5 +82,5 @@ assert.match(modify,/\.eq\("id",baseVersionId\)\.eq\("app_id",appId\)/);
 
 console.log("✓ App + Website simultaneous internal E2E uses one Planning decision and one authoritative verified specification");
 console.log("✓ Preview Both locks App and Website to the same owner-authorized project version with no shadow Website record");
-console.log("✓ Pinned Website preview cannot accept real enquiries; Modify persists one authoritative version for both customer surfaces");
-console.log("✓ Real simultaneous external-provider rendering remains a separate LIVE evidence gate");
+console.log("✓ Pinned Website preview cannot accept real enquiries and embedded owner snapshots do not inflate customer analytics");
+console.log("✓ Modify persists one authoritative version for both customer surfaces; real simultaneous external-provider rendering remains a separate LIVE evidence gate");
