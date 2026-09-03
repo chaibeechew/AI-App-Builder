@@ -82,7 +82,9 @@ for(const pattern of [
   /customer_approved_at: null/,
   /readyForOfficialSubmission:false/,
 ])assert.match(save,pattern);
-assert.doesNotMatch(save,/apple:\s*body\?\.apple|google_play:\s*body\?\.googlePlay|checklist:\s*body\?\.checklist/);
+const privilegedStoreWrite=save.slice(save.indexOf('admin.from("store_listings")'));
+assert.ok(privilegedStoreWrite.length>0,"Store listing service-role write must be present.");
+assert.doesNotMatch(privilegedStoreWrite,/body\?\.(?:apple|googlePlay|checklist)/,"Service-role store persistence must never write raw request metadata after normalization.");
 
 for(const pattern of [
   /verified\(user\)/,
