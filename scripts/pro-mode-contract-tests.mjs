@@ -11,6 +11,9 @@ const tier=read('lib/soolen/user-tier.js');
 const runtime=read('supabase/migrations/20260831120000_preview_access_credit_runtime.sql');
 const serverEntitlement=read('supabase/migrations/20260831170000_server_only_entitlements_and_credits.sql');
 const creatorPlanMigration=read('supabase/migrations/20260901141106_add_game_fair_use_cooldown_and_full_access.sql');
+const creatorOpportunityMigration=read('supabase/migrations/20260903082500_creator_opportunity_access.sql');
+const creatorOpportunityPolicy=read('lib/creator-opportunity-policy.js');
+const adminCreatorOpportunity=read('app/api/admin/creator-opportunities/route.js');
 const proPage=read('app/pro/[id]/page.js');
 const gameRoute=read('app/api/game/generate/route.js');
 const generate=read('app/api/generate/route.js');
@@ -35,9 +38,11 @@ assert.match(policy,/professionalModeUnlocksDeeperControl:\s*true/);
 
 // Account access is active only while the server-stored expiry is in the future and exposes Game plan/cooldown state.
 assert.match(access,/pro_valid_from,pro_valid_until,game_access_plan,game_cooldown_level,game_cooldown_until/);
+assert.match(access,/creator_opportunity_active,creator_opportunity_bonus_share_percent,creator_opportunity_approved_at,creator_opportunity_approved_by/);
 assert.match(access,/const active = Number\.isFinite\(untilMs\) && untilMs > now/);
-assert.match(access,/gameAccessPlan = data\.game_access_plan === "full" \? "full" : "professional"/);
-assert.match(access,/gameCooldownActive: gameAccessPlan === "professional"/);
+assert.match(access,/const creatorOpportunityActive = data\.creator_opportunity_active === true/);
+assert.match(access,/gameAccessPlan = creatorOpportunityActive \|\| data\.game_access_plan === "full" \? "full" : "professional"/);
+assert.match(access,/gameCooldownActive: !creatorOpportunityActive && gameAccessPlan === "professional"/);
 assert.match(access,/daysRemaining: active \? Math\.max\(1, Math\.ceil\(\(untilMs - now\) \/ 86400000\)\) : 0/);
 assert.match(tier,/if\(access\.professional\.active\)/);
 assert.match(tier,/planCode:"professional_365"/);
@@ -57,6 +62,22 @@ assert.match(creatorPlanMigration,/game_access_plan in \('professional','full'\)
 assert.match(creatorPlanMigration,/excluded\.game_access_plan='full' then 0/);
 assert.match(creatorPlanMigration,/revoke all on function public\.server_set_game_access_plan\(uuid,text\) from public, anon, authenticated/);
 assert.match(creatorPlanMigration,/grant execute on function public\.server_set_game_access_plan\(uuid,text\) to service_role/);
+
+// Creator Opportunity is an individual-only Admin exception that grants Full Access without weakening normal Pro gates.
+assert.match(creatorOpportunityPolicy,/individualsOnly:\s*true/);
+assert.match(creatorOpportunityPolicy,/companiesAllowed:\s*false/);
+assert.match(creatorOpportunityPolicy,/teamsAllowed:\s*false/);
+assert.match(creatorOpportunityPolicy,/organizationsAllowed:\s*false/);
+assert.match(creatorOpportunityPolicy,/requiresAdminApproval:\s*true/);
+assert.match(creatorOpportunityPolicy,/upfrontPlatformAccessFeeUsd:\s*0/);
+assert.match(creatorOpportunityPolicy,/gameAccessPlan:\s*"full"/);
+assert.match(creatorOpportunityPolicy,/extraPlatformSalesSharePercentagePoints:\s*5/);
+assert.match(creatorOpportunityMigration,/applicant_type text not null default 'individual'/);
+assert.match(creatorOpportunityMigration,/extra_platform_sales_share_percent numeric\(5,2\) not null default 5/);
+assert.match(adminCreatorOpportunity,/user\.app_metadata\?\.role!=="admin"/);
+assert.match(adminCreatorOpportunity,/game_access_plan:"full"/);
+assert.match(adminCreatorOpportunity,/creator_opportunity_active:true/);
+assert.match(adminCreatorOpportunity,/creator_opportunity_bonus_share_percent:5/);
 
 // Professional project access expires safely and cannot be bound after account access expires.
 assert.match(serverEntitlement,/account_row\.pro_valid_until is not null and account_row\.pro_valid_until>now\(\)/);
@@ -96,8 +117,8 @@ assert.match(gameGate,/Continue with App \/ Website/);
 assert.match(gameGate,/href="\/pricing"/);
 
 console.log('✓ Professional and Full Access prices/durations/no-auto-renew policy are explicit');
-console.log('✓ Creator access is active only for an unexpired server-stored entitlement and Game plan/cooldown state is server-derived');
-console.log('✓ Professional grants and Full Access plan changes are service-role only');
+console.log('✓ Creator access is server-derived; approved individual Creator Opportunity access maps to Full Game access while normal Pro expiry remains authoritative');
+console.log('✓ Professional grants, Full Access plan changes and Creator Opportunity approval are privileged');
 console.log('✓ Professional project access is exact-expiry bound and refuses expired binding');
 console.log('✓ Pro workspace authenticates, owner-scopes and locks advanced access when inactive');
 console.log('✓ Game creation has server-side double creator-plan gating before any entitlement/credit consumption');
