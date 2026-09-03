@@ -23,6 +23,6 @@ console.log('✓ No-code database/project rollback preserves history and ownersh
 console.log('✓ Generated App records persist through an owner-scoped RLS runtime with bounded fields, safe editing concurrency and device fallback');
 console.log('✓ Video runtime now atomically claims one provider submission, sends downstream idempotency, durably captures MP4 before completion and stays draft when no renderer exists');
 console.log('✓ Image generation uses a cost-gated HTTPS runtime with an explicit non-photorealistic local fallback');
-console.log('✓ Creation entitlements and AI credits preserve server-only, request-bound finance semantics after LANERIQ Cloud identity migration');
-console.log('✓ Professional AI modify is provider-opaque at the route, exact-version bound in Cloud, service-only, time-bounded and replay safe');
+console.log('✓ Creation entitlements and AI credits use server-only, request-bound, exact-project financial runtime through LANERIQ Cloud identity migration');
+console.log('✓ Professional AI modify is time-bounded, provider-opaque at the route, exact-version bound in Cloud, service-only and replay safe');
 console.log('✓ Professional module sync rejects stale versions and bounds media work');
