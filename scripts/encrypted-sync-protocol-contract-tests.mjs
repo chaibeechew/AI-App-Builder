@@ -32,12 +32,18 @@ assert.equal(await decryptPrivateTextEnvelope({envelope:mutation.envelope,key,co
 assert.equal(JSON.stringify(mutation).includes("private customer project payload"),false,"Sync transport must never contain plaintext.");
 for(const forbidden of ["rawKey","plaintext","password","secret"]) assert.equal(Object.hasOwn(mutation.envelope,forbidden),false);
 
-const firstApply=assessEncryptedSyncApply(mutation,{currentRevision:0,seenOperationIds:[]});
-assert.deepEqual(firstApply,{accepted:true,replayed:false,conflict:false,nextRevision:1});
-const replay=assessEncryptedSyncApply(mutation,{currentRevision:1,seenOperationIds:["sync-op-001"]});
-assert.deepEqual(replay,{accepted:true,replayed:true,conflict:false,nextRevision:1});
-const stale=assessEncryptedSyncApply({...mutation,operationId:"sync-op-002"},{currentRevision:3,seenOperationIds:[]});
-assert.deepEqual(stale,{accepted:false,replayed:false,conflict:true,nextRevision:3});
+const firstApply=assessEncryptedSyncApply(mutation,{currentRevision:0,seenOperations:[]});
+assert.deepEqual(firstApply,{accepted:true,replayed:false,conflict:false,replayMismatch:false,nextRevision:1});
+const replay=assessEncryptedSyncApply(mutation,{currentRevision:1,seenOperations:[{operationId:"sync-op-001",ciphertextHash:mutation.ciphertextHash}]});
+assert.deepEqual(replay,{accepted:true,replayed:true,conflict:false,replayMismatch:false,nextRevision:1});
+const replayMismatch=assessEncryptedSyncApply({...mutation,ciphertextHash:"different-ciphertext-hash"},{currentRevision:1,seenOperations:[{operationId:"sync-op-001",ciphertextHash:mutation.ciphertextHash}]});
+assert.deepEqual(replayMismatch,{accepted:false,replayed:false,conflict:true,replayMismatch:true,nextRevision:1});
+const stale=assessEncryptedSyncApply({...mutation,operationId:"sync-op-002"},{currentRevision:3,seenOperations:[]});
+assert.deepEqual(stale,{accepted:false,replayed:false,conflict:true,replayMismatch:false,nextRevision:3});
+assert.throws(
+  ()=>assessEncryptedSyncApply(mutation,{currentRevision:1,seenOperations:[{operationId:"sync-op-001",ciphertextHash:mutation.ciphertextHash},{operationId:"sync-op-001",ciphertextHash:"other"}]}),
+  /SEEN_OPERATION_AMBIGUOUS/,
+);
 
 await assert.rejects(
   validateEncryptedSyncMutation({...mutation,context:{...context,projectId:"project-other"}},{expectedContext:context}),
@@ -60,6 +66,7 @@ const policy=publicEncryptedSyncProtocolPolicy();
 assert.equal(policy.ciphertextOnlyTransport,true);
 assert.equal(policy.contextBound,true);
 assert.equal(policy.replayAware,true);
+assert.equal(policy.replayRequiresCiphertextIdentity,true);
 assert.equal(policy.optimisticConcurrency,true);
 assert.equal(policy.serverReceivesRawProjectKey,false);
 assert.equal(policy.nativeSecureKeyCustodyLive,false);
@@ -68,5 +75,6 @@ assert.equal(policy.encryptedSyncProductionLive,false);
 
 console.log("✓ LANERIQ encrypted sync protocol transports ciphertext only and binds tenant/project/purpose context");
 console.log("✓ Sync mutations are bounded, tamper-evident, replay-aware and optimistic-concurrency safe");
+console.log("✓ Duplicate operation IDs replay only when the original ciphertext identity matches; mismatches fail closed");
 console.log("✓ Raw project keys/plaintext never enter the sync record; server-side key custody remains forbidden");
 console.log("✓ Protocol CODE readiness does not claim native secure-key custody, cross-device key exchange or Production encrypted sync LIVE");
