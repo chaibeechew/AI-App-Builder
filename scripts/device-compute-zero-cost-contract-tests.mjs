@@ -61,6 +61,22 @@ assert.equal(gamingMobile.npuPreferred, true);
 assert.equal(gamingMobile.ownDevicesOnly, true);
 assert.equal(gamingMobile.crossUserComputeAllowed, false);
 
+const unknownThermalPerformanceMobile = computeDeviceBudget({
+  settings: { ...defaults, decision: "local", localComputeEnabled: true, mode: "performance" },
+  deviceClass: "mobile",
+  thermalState: "unknown",
+  batteryLevel: 0.8,
+  charging: false,
+  visibility: "visible",
+  hardwareConcurrency: 8,
+});
+assert.equal(unknownThermalPerformanceMobile.thermalTelemetryAvailable, false);
+assert.equal(unknownThermalPerformanceMobile.reason, "thermal_unknown_conservative");
+assert.ok(unknownThermalPerformanceMobile.sustainedCpuShare <= 0.32, "Unknown mobile thermal state must cap sustained CPU near gaming-safe levels.");
+assert.ok(unknownThermalPerformanceMobile.burstGpuShare <= 0.59, "Unknown mobile thermal state must not allow the full Performance GPU burst.");
+assert.ok(unknownThermalPerformanceMobile.burstSeconds <= 20, "Unknown mobile thermal state must shorten heavy bursts.");
+assert.ok(unknownThermalPerformanceMobile.recoverySeconds >= 30, "Unknown mobile thermal state must lengthen recovery time.");
+
 const fairMobile = computeDeviceBudget({
   settings: { ...defaults, decision: "local", localComputeEnabled: true, mode: "gaming" },
   deviceClass: "mobile",
@@ -114,6 +130,7 @@ assert.equal(publicPolicy.deltaSyncPreferred, true);
 assert.equal(publicPolicy.backgroundComputeDefault, false);
 assert.equal(publicPolicy.crossUserComputeAllowed, false);
 assert.equal(publicPolicy.thermalGuardianRequired, true);
+assert.equal(publicPolicy.fullMobileBudgetRequiresRealThermalTelemetry, true);
 assert.equal(publicPolicy.userFacingCreditsRequired, false);
 
 const costPolicy = zeroCostPolicy({ SOOLEN_COST_MODE: "zero" });
@@ -163,6 +180,7 @@ assert.match(costCss, /display:\s*none\s*!important/);
 
 console.log("✓ LANERIQ Local-First Device Compute requires an explicit first-use choice and keeps Cloud Only available");
 console.log("✓ Mobile/tablet/laptop/desktop budgets are separate, Gaming Mode is adaptive, and Thermal Guardian cannot be disabled");
+console.log("✓ Missing mobile thermal telemetry forces a conservative budget, shorter bursts and longer recovery instead of assuming the device is cool");
 console.log("✓ Severe/critical heat, low battery and background rules can redirect heavy work to the user's own Desktop or cloud fallback");
 console.log("✓ Browser thermal telemetry remains UNKNOWN unless an installed native LANERIQ wrapper supplies a real thermal signal");
 console.log("✓ Cross-customer compute is forced OFF; only the customer's own devices may participate in distributed compute");
