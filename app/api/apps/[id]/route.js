@@ -1,41 +1,30 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../../lib/supabase/server.js";
+import { getCurrentUserProject } from "../../../../lib/cloud/projects.js";
 
 export async function GET(_request, { params }) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
     const { id } = await params;
+    const result = await getCurrentUserProject(id);
 
-    if (!user) {
+    if (!result.ok && result.code === "AUTHENTICATION_REQUIRED") {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
 
-    const { data: app, error: appError } = await supabase
-      .from("apps")
-      .select("id, name, description, source_prompt, current_version_id, published_version_id, visibility, publish_status, created_at, updated_at")
-      .eq("id", id)
-      .eq("owner_id", user.id)
-      .single();
-
-    if (appError || !app) {
+    if (!result.ok && result.code === "PROJECT_NOT_FOUND") {
       return NextResponse.json({ error: "App not found." }, { status: 404 });
     }
 
-    const { data: versions, error: versionsError } = await supabase
-      .from("app_versions")
-      .select("id, version_no, specification, change_summary, created_at")
-      .eq("app_id", id)
-      .order("version_no", { ascending: false });
-
-    if (versionsError) {
-      console.error("APP_VERSIONS_LIST_ERROR:", versionsError);
-      return NextResponse.json({ error: "Unable to load app versions." }, { status: 500 });
+    if (!result.ok) {
+      console.error("APP_DETAIL_ERROR:", result.code || "PROJECT_UNAVAILABLE");
+      return NextResponse.json({ error: result.code === "PROJECT_VERSIONS_UNAVAILABLE" ? "Unable to load app versions." : "Unable to load app." }, { status: 500 });
     }
 
-    return NextResponse.json({ app, versions: versions || [] }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
+    return NextResponse.json(
+      { app: result.project, versions: result.versions || [] },
+      { headers: { "Cache-Control": "private, no-store, max-age=0" } },
+    );
   } catch (error) {
-    console.error("APP_DETAIL_API_ERROR:", error);
+    console.error("APP_DETAIL_API_ERROR:", error instanceof Error ? error.message : "PROJECT_UNAVAILABLE");
     return NextResponse.json({ error: "Unable to load app." }, { status: 500 });
   }
 }

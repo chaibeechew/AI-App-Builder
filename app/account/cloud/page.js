@@ -36,38 +36,39 @@ export default function CloudPage() {
   if (loading) return <main className="cloudPage"><section className="cloudCard"><p>Loading LANERIQ Cloud…</p></section></main>;
 
   const evidence = policy?.evidence || {};
+  const envelope = policy?.encryptionEnvelope || {};
   return <main className="cloudPage">
     <section className="cloudCard">
       <button className="back" type="button" onClick={() => router.push("/my-apps")}>← My Projects</button>
       <div className="eyebrow">LANERIQ AI · ZERO-TRUST LOCAL-FIRST</div>
       <h1>LANERIQ Cloud</h1>
-      <p className="lead">Cloud is part of LANERIQ AI today, but its code boundary is intentionally separable. Builders call LANERIQ contracts; provider-specific adapters can be replaced or moved into an independent service later.</p>
+      <p className="lead">Cloud stays inside LANERIQ AI today, but the domain is deliberately separable. Product routes depend on LANERIQ contracts while provider-specific compatibility code remains behind replaceable adapters.</p>
 
       <div className="statusGrid">
         <div><span>Current shape</span><strong>Embedded module</strong><small>Designed to split into an independent LANERIQ Cloud service later.</small></div>
-        <div><span>Routing</span><strong>Local first</strong><small>Cloud is used only when the product needs cloud behavior.</small></div>
-        <div><span>Security posture</span><strong>Default deny</strong><small>Private sync requires encrypt-before-cloud in the new contract.</small></div>
+        <div><span>Project data path</span><strong>Adapter migration started</strong><small>Project list and detail reads no longer import a provider directly.</small></div>
+        <div><span>Security posture</span><strong>Default deny</strong><small>Private shared-cloud sync requires encrypt-before-cloud under the new contract.</small></div>
         <div><span>Own server</span><strong>Not required</strong><small>Migration is triggered by TCO + operational readiness, not a user-count target.</small></div>
       </div>
 
       <section className="panel">
         <h2>Separation boundary</h2>
         <div className="stack">
-          <div><b>LANERIQ AI Builder</b><span>Uses LANERIQ Cloud contracts instead of depending on one provider.</span></div>
+          <div><b>LANERIQ AI Builder</b><span>Calls stable LANERIQ Cloud behavior instead of one infrastructure vendor.</span></div>
           <i>↓</i>
           <div><b>LANERIQ Cloud Domain</b><span>Identity · Database · Storage · Realtime · Functions · Deployment · Backup · AI</span></div>
           <i>↓</i>
-          <div><b>Provider Adapters</b><span>Replaceable behind the contract; provider names stay out of the public policy surface.</span></div>
+          <div><b>Provider Adapters</b><span>Replaceable compatibility boundary; legacy direct imports have a shrinking CI budget.</span></div>
         </div>
       </section>
 
       <section className="panel">
-        <h2>Privacy contract</h2>
+        <h2>Private-data encryption foundation</h2>
         <div className="rows">
-          <div><b>Public / normal data</b><span>Cloud permitted with normal transport and storage controls.</span></div>
-          <div><b>Private data</b><span>New Cloud contract requires client-side encryption before shared-cloud synchronization.</span></div>
-          <div><b>Secrets</b><span>Browser plaintext is blocked by policy; secrets belong in a server-side vault.</span></div>
-          <div><b>AI context</b><span>Minimum necessary context; sensitive workloads can remain local where a real local runtime exists.</span></div>
+          <div><b>{envelope.algorithm || "Authenticated encryption"}</b><span>Versioned private envelope with random nonce and authenticated ciphertext.</span></div>
+          <div><b>Context bound</b><span>Tenant, project, purpose and key ID are authenticated so ciphertext cannot be silently moved to a different context.</span></div>
+          <div><b>No key in envelope</b><span>Encrypted payload never carries the raw encryption key with it.</span></div>
+          <div><b>Truth boundary</b><span>Envelope CODE exists now; full encrypted sync and native zero-knowledge key custody remain not LIVE.</span></div>
         </div>
       </section>
 
@@ -75,12 +76,14 @@ export default function CloudPage() {
         <h2>Truthful implementation status</h2>
         <div className="flags">
           <Flag ok={evidence.cloudDomainBoundaryInCode}>Cloud domain boundary in code</Flag>
+          <Flag ok={evidence.projectReadAdapterMigrated}>Project read routes migrated behind adapter</Flag>
+          <Flag ok={evidence.clientSideEncryptionEnvelopeInCode}>Private encryption envelope in code</Flag>
           <Flag ok={evidence.providerAdaptersFullyMigrated}>All legacy provider calls migrated to adapters</Flag>
           <Flag ok={evidence.clientSideEncryptionFullyLive}>Client-side encryption fully LIVE</Flag>
           <Flag ok={evidence.zeroKnowledgeNativeKeyCustodyLive}>Native zero-knowledge key custody LIVE</Flag>
           <Flag ok={evidence.dedicatedLaneriqServerLive}>Dedicated LANERIQ server LIVE</Flag>
         </div>
-        <p className="truth">CODE / policy readiness is not labeled LIVE until runtime, native-device and production evidence exists.</p>
+        <p className="truth">CODE / policy readiness is not labeled LIVE until runtime, native-device and production evidence exists. Legacy direct-provider route budget: {Number.isFinite(evidence.legacyDirectProviderRouteBudget) ? evidence.legacyDirectProviderRouteBudget : "—"}.</p>
       </section>
     </section>
 
