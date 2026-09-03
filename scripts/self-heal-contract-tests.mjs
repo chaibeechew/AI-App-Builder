@@ -88,7 +88,7 @@ assert.doesNotMatch(generate,/if\(adult\.status!=="verified"\)throw new Error/,'
 assert.match(generate,/persistBuilderGeneratedProject/);
 assert.match(builderDomain,/persistBuilderGeneratedProject/);
 assert.match(builderAdapter,/server_persist_generated_project/);
-assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('persistBuilderGeneratedProject'),'Create must finish final verification before LANERIQ Cloud App + Website persistence.');
+assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('const persistence=await persistBuilderGeneratedProject'),'Create must finish final verification before LANERIQ Cloud App + Website persistence.');
 
 // Modify path: quality regression repair + self-heal revalidation happen before Cloud atomic version persistence.
 assert.match(modify,/function qualityRegressed/);
@@ -100,7 +100,7 @@ assert.match(modify,/if\(!healed\.selfHeal\.passed\)throw new Error/);
 assert.match(modify,/if\(qualityRegressed\(currentQuality,healed\.quality\)\)throw new Error/);
 assert.match(modify,/saveBuilderModification/);
 assert.match(builderAdapter,/server_save_app_modification/);
-assert.ok(modify.indexOf('if(!candidate.selfHeal.passed)') < modify.indexOf('saveBuilderModification'),'Self-heal must complete before Cloud version persistence.');
+assert.ok(modify.indexOf('if(!candidate.selfHeal.passed)') < modify.indexOf('const save=await saveBuilderModification'),'Self-heal must complete before Cloud version persistence.');
 assert.match(modify,/PREVIOUS KNOWN-GOOD SPECIFICATION/);
 
 for(const id of required)assert.match(policy,new RegExp(`add\\("${id}"|checkResults\\[check\\]|${id}`));
