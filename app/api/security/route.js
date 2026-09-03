@@ -1,6 +1,12 @@
-import { NextResponse } from "next/server";
 import { createServerClient } from "../../../lib/supabase/server.js";
 import { securityScan } from "../../../engine/security-engine.js";
+import {
+  HIGH_RISK_API_LIMITS,
+  boundaryResponse,
+  isVerifiedUser,
+  privateJson,
+  readBoundedJson,
+} from "../../../lib/security/high-risk-api-boundary.js";
 
 export async function POST(request) {
   try {
@@ -8,16 +14,22 @@ export async function POST(request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ safe: false, error: "Authentication required." }, { status: 401 });
+      return privateJson({ safe: false, error: "Authentication required." }, 401);
+    }
+    if (!isVerifiedUser(user)) {
+      return privateJson({ safe: false, error: "Account verification is required." }, 403);
     }
 
-    const body = await request.json();
-    const text = String(body?.text || "");
-    const result = securityScan(text);
+    const body = await readBoundedJson(request, HIGH_RISK_API_LIMITS.securityScanBytes);
+    const text = String(body?.text || "").trim();
+    if (!text) return privateJson({ safe: false, error: "Text is required for security scanning." }, 400);
+    if (text.length > HIGH_RISK_API_LIMITS.securityScanTextChars) {
+      return privateJson({ safe: false, error: "Security scan input is too long." }, 413);
+    }
 
-    return NextResponse.json(result);
+    return privateJson(securityScan(text));
   } catch (error) {
-    console.error("SECURITY_SCAN_ERROR:", error);
-    return NextResponse.json({ safe: false, error: "Security scan failed." }, { status: 500 });
+    console.error("SECURITY_SCAN_ERROR:", error?.name || "Error");
+    return boundaryResponse(error, "Security scan failed.");
   }
 }
