@@ -5,6 +5,8 @@ import { inferMobileGamePlan } from "../lib/ai/mobile-game-knowledge.js";
 import { GENERATION_QUALITY_RULES } from "../lib/buildStandards.js";
 import { PRODUCT_BRAND, PREMIUM_VISUAL_AI_INSTRUCTION, buildCustomerThemeInstruction } from "../lib/ai/premium-visual-policy.js";
 import { WALLPAPER_PRESETS,resolveWallpaperId,pickWallpaperForStage } from "../lib/design/wallpaper-presets.js";
+import { buildGenerationCandidateBudget,buildShadowCandidateInstruction,evaluateGenerationCandidatePool } from "../lib/ai/generation-candidate-orchestrator.js";
+import { expandZeroCostIndustrySpecification } from "../lib/ai/zero-cost-industry-expander.js";
 
 function extractJson(text) {
   if (!text) throw new Error("AI provider returned an empty response");
@@ -51,6 +53,21 @@ function mergeAviationSpecification(specification,gamePlan){
   specification.game={...(specification.game||{}),enabled:true,genre:"Air Combat / Flight",archetype:"air_combat",dimensions:"3d",aviation:{...existing,enabled:true,era:plan.era,simulationMode:plan.simulation?"simulation":"assisted",aircraftRoles:["fighter","interceptor","multirole","strike","bomber","transport","reconnaissance","tanker","airborne-early-warning","helicopter","uav","civil-airliner"],flightPhysics:plan.knowledge.physics,avionics:plan.knowledge.avionics,damageSystems:plan.knowledge.damage,environmentSystems:plan.knowledge.environment,missionSystems:plan.knowledge.missions,pilotAiSystems:plan.knowledge.ai,mobileControls:plan.knowledge.controls,performanceSystems:plan.knowledge.performance,catalogSeedCount:plan.catalogSeed.length},multiplayer:{...(specification?.game?.multiplayer||{}),enabled:Boolean(plan.multiplayer),notes:specification?.game?.multiplayer?.notes||"Authoritative server required before any competitive online air-combat mode can be claimed live."}};
   return specification;
 }
+async function buildCostSafeCandidatePool({primarySpecification,provider,combinedIdea,patterns,promptOptions,gamePlan}){
+  if(gamePlan?.matched)return null;
+  const budget=buildGenerationCandidateBudget({costMode:"free",requestedCandidates:3});
+  const candidates=[{id:"primary",provider,sourceKind:provider==="soolen-local"?"zero-cost-local-primary":"primary-provider",specification:provider==="soolen-local"?expandZeroCostIndustrySpecification(primarySpecification,combinedIdea,{variationIndex:0}):primarySpecification}];
+  for(let index=0;index<budget.localShadowCandidates;index++){
+    try{
+      const shadowIdea=`${combinedIdea}\n\n${buildShadowCandidateInstruction(index+2)}`;
+      const generated=await generateWithFallback(buildPrompt(shadowIdea,patterns,promptOptions),{providers:["soolen-local"]});
+      const raw=extractJson(generated.result);
+      const expanded=expandZeroCostIndustrySpecification(raw,combinedIdea,{variationIndex:index+1});
+      candidates.push({id:`zero-cost-shadow-${index+1}`,provider:"soolen-local",sourceKind:"zero-cost-local-shadow",specification:expanded});
+    }catch(error){console.warn("LANERIQ zero-cost shadow candidate unavailable:",error?.message);}
+  }
+  return evaluateGenerationCandidatePool(candidates);
+}
 export async function runAutonomousEngine(userIdea,options={}) {
   if(!userIdea||!userIdea.trim()) throw new Error("Please describe the app you want to build.");
   const idea=userIdea.trim(); const voiceTranscript=typeof options.voiceTranscript==="string"?options.voiceTranscript.trim():"";
@@ -71,9 +88,14 @@ export async function runAutonomousEngine(userIdea,options={}) {
   const patterns=await loadIndustryPatterns(combinedIdea);
   const gamePlan=inferMobileGamePlan(combinedIdea);
   const promptOptions={voiceTranscript,referenceImages,language,industry,terminology,createDemoVideo,themeMode,themePreset,primaryColor,accentColor,backgroundColor,styleRequest,wallpaperMode,wallpaperPreset,gamePlan};
-  const {provider,result}=await generateWithFallback(buildPrompt(combinedIdea,patterns,promptOptions));
-  let specification=extractJson(result);const proposed=String(specification?.designSystem?.wallpaperPreset||"");const fallback=wallpaperMode==="selected"?resolveWallpaperId(wallpaperPreset,"moon-city"):pickWallpaperForStage("generated",combinedIdea);const finalWallpaper=resolveWallpaperId(wallpaperMode==="selected"?wallpaperPreset:proposed,fallback);specification.designSystem={...(specification.designSystem||{}),wallpaperMode,wallpaperPreset:finalWallpaper};
+  const primary=await generateWithFallback(buildPrompt(combinedIdea,patterns,promptOptions));
+  let specification=extractJson(primary.result);
+  const candidatePool=await buildCostSafeCandidatePool({primarySpecification:specification,provider:primary.provider,combinedIdea,patterns,promptOptions,gamePlan});
+  if(candidatePool?.selectedSpecification)specification=candidatePool.selectedSpecification;
+  const provider=candidatePool?.selectedProvider||primary.provider;
+  const proposed=String(specification?.designSystem?.wallpaperPreset||"");const fallback=wallpaperMode==="selected"?resolveWallpaperId(wallpaperPreset,"moon-city"):pickWallpaperForStage("generated",combinedIdea);const finalWallpaper=resolveWallpaperId(wallpaperMode==="selected"?wallpaperPreset:proposed,fallback);specification.designSystem={...(specification.designSystem||{}),wallpaperMode,wallpaperPreset:finalWallpaper};
   if(gamePlan.matched){specification.productType="mobile_game";specification.platforms=[...new Set([...(Array.isArray(specification.platforms)?specification.platforms:[]),"ios","android","web"])];specification.game={...(specification.game||{}),enabled:true,genre:specification?.game?.genre||gamePlan.genre,archetype:gamePlan.archetype||specification?.game?.archetype,dimensions:specification?.game?.dimensions||gamePlan.dimensions};specification=mergeMobaSpecification(specification,gamePlan);specification=mergeAviationSpecification(specification,gamePlan);}
   const model=process.env[`${provider.toUpperCase()}_MODEL`]||undefined;
-  return {status:"preview_ready",idea:combinedIdea,specification,aiProvider:provider,...(model?{aiModel:model}:{}),intelligence:{engine:"Soolen AI",product:PRODUCT_BRAND.name,industryPatternsMatched:patterns.length,patternLibrary:"industry_patterns",voiceInput:Boolean(voiceTranscript),referenceImages:referenceImages.length,language:buildSoolenGenerationContext({language,industry,terminology}).language.name,terminologyCount:buildSoolenGenerationContext({language,industry,terminology}).terminology.length,themeMode,themePreset,wallpaperMode,wallpaperPreset:finalWallpaper,media:"provider-neutral-zero-cost-first",demoVideo:createDemoVideo,mobileGame:gamePlan.matched?{genre:gamePlan.genre,archetype:gamePlan.archetype,platforms:gamePlan.platforms,multiplayer:gamePlan.multiplayer,moba:Boolean(gamePlan?.moba?.matched),aviation:Boolean(gamePlan?.aviation?.matched),aircraftCatalogSeedCount:gamePlan?.aviation?.catalogSeed?.length||0,mediaCapabilities:gamePlan.mediaCapabilities}:null},nextStep:"preview",test:{status:"pending"},security:{status:"pending"},publish:{allowed:false,requiresHumanApproval:true}};
+  const qualityCandidates=candidatePool?{enabled:true,mode:"one-primary-plus-zero-cost-local-shadows",candidateCount:candidatePool.candidateCount,uniqueCandidateCount:candidatePool.uniqueCandidateCount,selectedCandidateId:candidatePool.selectedCandidateId,selectedProvider:candidatePool.selectedProvider,selectedQualityScore:candidatePool.selectedQualityScore,selectedDecision:candidatePool.selectedDecision,requiresSelfHeal:candidatePool.requiresSelfHeal,paidShadowCalls:0,ranking:candidatePool.ranking.map(item=>({id:item.id,provider:item.provider,sourceKind:item.sourceKind,qualityScore:item.qualityScore,decision:item.decision,rankingScore:item.rankingScore,duplicatePenalty:item.duplicatePenalty,hardBlockers:item.hardBlockers}))}:{enabled:false,mode:"specialized-game-path",candidateCount:1,paidShadowCalls:0};
+  return {status:"preview_ready",idea:combinedIdea,specification,aiProvider:provider,...(model?{aiModel:model}:{}),intelligence:{engine:"Soolen AI",product:PRODUCT_BRAND.name,industryPatternsMatched:patterns.length,patternLibrary:"industry_patterns",voiceInput:Boolean(voiceTranscript),referenceImages:referenceImages.length,language:buildSoolenGenerationContext({language,industry,terminology}).language.name,terminologyCount:buildSoolenGenerationContext({language,industry,terminology}).terminology.length,themeMode,themePreset,wallpaperMode,wallpaperPreset:finalWallpaper,media:"provider-neutral-zero-cost-first",demoVideo:createDemoVideo,qualityCandidates,mobileGame:gamePlan.matched?{genre:gamePlan.genre,archetype:gamePlan.archetype,platforms:gamePlan.platforms,multiplayer:gamePlan.multiplayer,moba:Boolean(gamePlan?.moba?.matched),aviation:Boolean(gamePlan?.aviation?.matched),aircraftCatalogSeedCount:gamePlan?.aviation?.catalogSeed?.length||0,mediaCapabilities:gamePlan.mediaCapabilities}:null},nextStep:"preview",test:{status:"pending"},security:{status:"pending"},publish:{allowed:false,requiresHumanApproval:true}};
 }
