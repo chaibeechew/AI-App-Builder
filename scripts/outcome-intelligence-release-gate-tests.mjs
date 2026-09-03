@@ -85,10 +85,14 @@ assert.equal(status.deterministicSample.industryCoverage,50);
 assert.equal(status.cost.requiredExternalProviderCallsForCi,false);
 
 const createRoute=read('app/api/create-app/route.js');
-assert.match(createRoute,/applyOutcomeIntelligence/);
-assert.match(createRoute,/zero-cost-structural-shadow/);
-assert.match(createRoute,/paidShadowCalls:0/);
-assert.match(createRoute,/maxMeteredRemoteCalls/);
+const runtimeSelector=read('lib/ai/runtime-outcome-selector.js');
+assert.match(createRoute,/applyRuntimeOutcomeIntelligence/);
+assert.match(createRoute,/runtime-outcome-selector\.js/);
+assert.match(runtimeSelector,/zero-cost-structural-shadow/);
+assert.match(runtimeSelector,/paidShadowCalls:0/);
+assert.match(runtimeSelector,/maxMeteredRemoteCalls/);
+assert.match(runtimeSelector,/sharedByProductionAndCi:true/);
+assert.match(runtimeSelector,/storesRawUserPrompt:false/);
 const statusRoute=read('app/api/quality/status/route.js');
 assert.match(statusRoute,/CODE_CI_CAPABILITY/);
 assert.match(statusRoute,/externalProviderLiveVerified:false/);
@@ -97,7 +101,8 @@ assert.match(statusRoute,/storeVerified:false/);
 assert.doesNotMatch(statusRoute,/process\.env|service_role|api[_-]?key|secret/i);
 
 console.log('✓ Automatic Quality Judge v2 scores workflow coherence and resilience/accessibility');
-console.log('✓ Runtime Outcome Intelligence selects among bounded zero-cost structural candidates with no paid shadow calls');
+console.log('✓ Production route delegates to the shared Runtime Outcome Selector used by CI');
+console.log('✓ Runtime Outcome Intelligence ranks bounded zero-cost structural candidates with no paid shadow calls');
 console.log('✓ Explicit 50-industry local expansion prevents adjacent-industry keyword takeover');
 console.log('✓ Release Quality Intelligence exposes 600-case benchmark + deterministic 50-industry sample evidence');
 console.log('✓ Evidence labels remain CODE/CI only until independent Production/browser/device/store verification');
