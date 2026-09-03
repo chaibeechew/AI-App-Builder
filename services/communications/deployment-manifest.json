@@ -1,0 +1,36 @@
+{
+  "service": "laneriq-communications",
+  "rootDirectory": "services/communications",
+  "runtime": "nodejs22",
+  "publicProtocol": {
+    "status": "/api/communications/v1/status",
+    "dispatch": "/api/communications/v1/dispatch"
+  },
+  "requiredServerEnv": [
+    "SUPABASE_URL",
+    "SUPABASE_SECRET_KEY",
+    "LANERIQ_COMMUNICATIONS_SERVICE_SECRET",
+    "LANERIQ_COMMUNICATIONS_SERVICE_CLIENT_ID"
+  ],
+  "callerEnvAfterCutover": [
+    "LANERIQ_COMMUNICATIONS_SERVICE_URL",
+    "LANERIQ_COMMUNICATIONS_SERVICE_SECRET",
+    "LANERIQ_COMMUNICATIONS_SERVICE_CLIENT_ID"
+  ],
+  "cutoverPolicy": {
+    "initialChannel": "in_app",
+    "externalSpendCap": 0,
+    "remoteFailureFallbackToEmbedded": false,
+    "requireHttps": true,
+    "requireExactProductionSha": true,
+    "requireSignedCanary": true,
+    "requireReplayBlock": true,
+    "requireIdempotencyConflictBlock": true,
+    "requireCleanRuntimeLogs": true
+  },
+  "evidenceSemantics": {
+    "beforeSecondProject": "DEPLOY_READY",
+    "afterProjectBeforeCanary": "PRODUCTION_READY",
+    "afterSuccessfulCanaryAndCleanLogs": "LIVE_STANDALONE"
+  }
+}
