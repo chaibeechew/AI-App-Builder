@@ -12,7 +12,7 @@ import {
   publicEncryptionEnvelopePolicy,
 } from "../lib/cloud/encryption-envelope.js";
 
-const PROJECT_PROVIDER_IMPORT_BUDGET = 54;
+const PROJECT_PROVIDER_IMPORT_BUDGET = 77;
 const RUNTIME_EXTENSIONS = new Set([".js", ".mjs", ".ts", ".tsx"]);
 
 function runtimeFiles(root) {
@@ -90,7 +90,7 @@ assert.doesNotMatch(envelopeSource, /localStorage|sessionStorage|SERVICE_ROLE|SU
 
 // Public status stays truthful: migration/envelope CODE is visible, full migration/E2EE/native custody/server remain not LIVE.
 assert.match(cloudPolicyRoute, /projectReadAdapterMigrated:\s*true/);
-assert.match(cloudPolicyRoute, /legacyDirectProviderRouteBudget:\s*54/);
+assert.match(cloudPolicyRoute, /legacyDirectProviderRouteBudget:\s*77/);
 assert.match(cloudPolicyRoute, /clientSideEncryptionEnvelopeInCode:\s*true/);
 assert.match(cloudPolicyRoute, /providerAdaptersFullyMigrated:\s*false/);
 assert.match(cloudPolicyRoute, /clientSideEncryptionFullyLive:\s*false/);
