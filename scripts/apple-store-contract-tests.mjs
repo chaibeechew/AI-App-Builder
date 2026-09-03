@@ -14,8 +14,11 @@ assert.equal(readiness.readyForOfficialSubmission,false);
 // Customer-facing store preparation stays provider-opaque and uses a verified LANERIQ Cloud principal.
 for(const pattern of [/getBuilderPrincipal\(\{requireVerified:true\}\)/,/Account verification is required/,/MAX_REQUEST_BYTES/,/REQUEST_ID/,/platform/,/apple/,/loadBuilderPublishPreparation/,/current_version_id !== versionId/,/evaluateReleaseReadiness/,/customer_approved_at/,/listing\.version_id !== versionId/,/createBuilderStorePublishRequest/,/officialSubmissionConfirmed:false/,/Nothing has been submitted to Apple or Google yet/,/Cache-Control\":\"private, no-store/])assert.match(route,pattern);
 assert.doesNotMatch(route,/lib\/supabase\/|@supabase\/|createAdminClient|server_create_store_publish_request/);
-assert.ok(route.indexOf("current_version_id !== versionId")<route.indexOf("createBuilderStorePublishRequest"),"Exact current version must be verified before store preparation persistence.");
-assert.ok(route.indexOf("customer_approved_at")<route.indexOf("createBuilderStorePublishRequest"),"Customer approval must be verified before store preparation persistence.");
+const publishInvocation='const created=await createBuilderStorePublishRequest';
+assert.ok(route.indexOf(publishInvocation)>0,"Cloud publish persistence invocation must exist.");
+assert.ok(route.indexOf("current_version_id !== versionId")<route.indexOf(publishInvocation),"Exact current version must be verified before store preparation persistence.");
+assert.ok(route.indexOf("customer_approved_at")<route.indexOf(publishInvocation),"Customer approval must be verified before store preparation persistence.");
+assert.ok(route.indexOf("evaluateAuthoritativeStoreReadiness")<route.indexOf(publishInvocation),"Authoritative Store Readiness must be evaluated before store preparation persistence.");
 
 // LANERIQ Cloud re-authenticates and owner-scopes the exact project/version/listing/assets before any service-role RPC.
 assert.match(domain,/loadBuilderPublishPreparation/);assert.match(domain,/createBuilderStorePublishRequest/);
