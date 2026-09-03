@@ -87,9 +87,19 @@ for (const pattern of [
   /refPanelLocator\.screenshot/,
   /modalAboveFloatingUtilities:true/,
   /closeInteractionPassed:true/,
+  /featureEvidenceVersion:2/,
+  /authenticatedActionsExercised:false/,
   /permissionActionsExercised:false/,
   /physicalDeviceVerified:false/,
+  /authenticatedAccountSurfaceVerified:false/,
+  /logoutInteractionExercised:false/,
+  /microphoneCaptureExercised:false/,
+  /speechRecognitionResultVerified:false/,
+  /pickerInteractionExercised:false/,
+  /signed-out Account surface, Voice Idea UI and Upload Ref UI checks passed/,
+  /Authenticated Account\/Logout, physical iPhone microphone capture/,
 ]) assert.match(featureQa, pattern);
+assert.doesNotMatch(featureQa, /Account\/Logout, Voice Idea and Upload Ref mobile surface checks passed/, "Signed-out browser QA must not imply authenticated Logout was exercised.");
 assert.doesNotMatch(featureQa, /fullPage\s*:\s*true/, "Three-feature evidence must screenshot bounded feature panels, not potentially unbounded full pages.");
 assert.doesNotMatch(featureQa, /force\s*:\s*true/, "Pointer accessibility must pass naturally; QA must never force clicks through overlay conflicts.");
 assert.doesNotMatch(featureQa, /\.sv-mic"\)\.click|input\[type=['"]file['"]\].*click|getUserMedia\([^)]*\)\s*;/i, "Production three-feature QA must not exercise microphone/camera/file-picker permissions.");
@@ -115,6 +125,7 @@ console.log("✓ Account/Logout mobile chrome has 44px+ controls, bounded menus 
 console.log("✓ Voice Idea mobile modal sits above floating utility controls while the dedicated Language modal remains top-level");
 console.log("✓ Upload Ref open workspace raises its stacking context above floating Language/Voice controls");
 console.log("✓ Production feature QA must naturally click both modal close controls; force-click bypasses are forbidden");
+console.log("✓ Browser evidence explicitly records that authenticated Logout, microphone recognition and picker actions were not exercised");
 console.log("✓ Three-feature Production evidence captures bounded panels, avoiding browser screenshot dimension limits without relaxing assertions");
 console.log("✓ Exact-Production WebKit/iPhone and Chromium/Pixel feature-surface QA is wired without relabeling browser emulation as physical-device proof");
 console.log("✓ Code can score 100 while real-device visual/touch/permission evidence remains separately required");

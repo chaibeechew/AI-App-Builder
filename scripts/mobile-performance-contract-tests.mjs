@@ -46,6 +46,17 @@ for (const pattern of [
   /real iPhone\/network evidence is still required for 100 LIVE VERIFIED/,
 ]) assert.match(browserEvidence, pattern);
 
+// Browser engines may expose an entry but omit a timing. Unknown values must remain unknown;
+// JavaScript Number(null) === 0 must never turn missing evidence into a fake perfect metric.
+assert.match(browserEvidence, /if \(value == null \|\| value === ""\) return null/);
+assert.match(browserEvidence, /responseStart > 0 \? responseStart : null/);
+assert.match(browserEvidence, /ttfbMeasured:/);
+assert.match(browserEvidence, /TTFB \$\{ttfb\}/);
+assert.match(browserEvidence, /performanceEvidenceVersion:\s*2/);
+assert.match(browserEvidence, /Missing\/unsupported timings remain null and are never converted to 0/);
+assert.match(browserEvidence, /Unsupported timing values remain n\/a\/null instead of being misreported as 0ms/);
+assert.doesNotMatch(browserEvidence, /const ttfb = evidence\.navigation\.ttfbMs == null \? "0ms"/);
+
 for (const surface of ["/", "/auth", "/mobile-readiness", "/ai-app-game-website-builder"]) {
   assert.match(browserEvidence, new RegExp(surface.replaceAll("/", "\\/")));
 }
@@ -70,5 +81,6 @@ assert.equal(perfect.realDeviceVerified, false);
 console.log("✓ Mobile Performance code budget locks LCP/INP/CLS targets and limits eager hero preloading");
 console.log("✓ Root layout avoids blocking third-party scripts and reduced-motion disables expensive animation work");
 console.log("✓ Production browser evidence records navigation, paint, LCP/CLS support and resource-weight observations across WebKit/iPhone and Chromium/Pixel");
+console.log("✓ Missing browser timings stay null/n/a instead of being misreported as 0ms");
 console.log("✓ Browser performance evidence is observational BROWSER_EMULATION only; INP and real iPhone/network proof remain evidence-gated");
 console.log("✓ Performance code score is 100; real device evidence is still required for 100 LIVE VERIFIED");
