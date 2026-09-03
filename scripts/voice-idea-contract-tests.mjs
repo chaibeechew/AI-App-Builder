@@ -29,7 +29,13 @@ assert.doesNotMatch(voiceErrorMessage("secret internal provider detail"), /secre
 
 for (const pattern of [
   /window\.SpeechRecognition \|\| window\.webkitSpeechRecognition/,
-  /recognition\.continuous=!\/iPhone\|iPad\|iPod/,
+  /isTouchAppleDevice\(\)/,
+  /recognition\.continuous=!isTouchAppleDevice\(\)/,
+  /async function ensureTouchAppleMicrophoneAccess\(\)/,
+  /navigator\.mediaDevices\.getUserMedia\(\{ audio: true \}\)/,
+  /for \(const track of stream\.getTracks\(\)\)/,
+  /track\.stop\(\)/,
+  /const micAccess=await ensureTouchAppleMicrophoneAccess\(\)/,
   /VOICE_IDEA_POLICY\.maxListeningMs/,
   /window\.setTimeout/,
   /pagehide/,
@@ -43,17 +49,21 @@ for (const pattern of [
   /safe-area-inset-bottom/,
   /100svh/,
   /prefers-reduced-motion:reduce/,
+  /Apple may show its normal system permission prompt/,
 ]) assert.match(voice, pattern);
 assert.match(layout, /BuilderGlobalOverlays/);
 assert.match(overlays, /SoolenVoiceAssistant/);
 assert.match(overlays, /shouldHideBuilderGlobalOverlay\(pathname\)/);
 assert.match(overlayPolicy, /"\/"/);
 assert.match(overlayPolicy, /"\/mobile-readiness"/);
-assert.doesNotMatch(voice, /getUserMedia\([^)]*\)[\s\S]{0,100}start\(\)/, "Voice must not auto-start microphone capture.");
+
+const lifecycle = voice.match(/useEffect\(\(\)=>\{[\s\S]*?\n  \},\[\]\);/)?.[0] || "";
+assert.doesNotMatch(lifecycle, /getUserMedia|SpeechRecognition\(\)|\.start\(\)/, "Voice must never request microphone access or start recognition on mount/lifecycle events.");
+assert.match(voice, /<button className=\{recording\?"sv-mic recording":"sv-mic"\} type="button" onClick=\{recording\?\(\)=>stopRecognition\(\):start\}/, "Microphone access must remain behind the explicit microphone button tap.");
 assert.doesNotMatch(voice, /Your voice is private and secure/, "Voice UI must not overclaim browser/provider privacy guarantees.");
 
 console.log("✓ Voice Idea has bounded transcript/language/error policies and never auto-starts microphone capture");
+console.log("✓ Touch Apple devices prime microphone permission only after the explicit mic tap and immediately release the temporary stream");
 console.log("✓ Recognition stops on timeout, pagehide, hidden-tab and unmount lifecycle boundaries");
 console.log("✓ Voice transcript is bounded before sessionStorage and Builder event handoff");
-console.log("✓ Voice mounts through the shared route gate so homepage/evidence routes avoid unnecessary listener setup");
-console.log("✓ Mobile safe-area and reduced-motion behavior are enforced while real microphone behavior remains device-evidence gated");
+console.log("✓ Mobile safe-area and reduced-motion behavior remain enforced while physical microphone success stays device-evidence gated");
