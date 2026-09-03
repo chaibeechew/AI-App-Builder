@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 import {
+  COMPUTE_MODES,
   DEVICE_COMPUTE_POLICY_VERSION,
   classifyDevice,
   computeDeviceBudget,
@@ -25,6 +26,7 @@ assert.equal(defaults.backgroundComputeEnabled, false, "Background compute must 
 assert.equal(defaults.ownDesktopRemoteComputeEnabled, false, "Remote Desktop compute needs a separate opt-in.");
 assert.equal(defaults.crossUserComputeEnabled, false, "LANERIQ must never default into cross-customer compute.");
 assert.equal(defaults.thermalGuardianEnabled, true);
+assert.deepEqual(Object.values(COMPUTE_MODES).map((mode) => mode.label), ["Battery Saver", "Gaming Mode", "Performance"]);
 
 const hostileSettings = sanitizeDeviceComputeSettings({
   decision: "local",
@@ -159,9 +161,7 @@ for (const pattern of [
 assert.doesNotMatch(manager, /temperature\s*=\s*Math\.random|thermalState\s*=\s*["']nominal["']/i, "Browser runtime must not fabricate a healthy thermal reading.");
 
 for (const pattern of [
-  /Gaming Mode/,
-  /Battery Saver/,
-  /Performance/,
+  /Object\.values\(COMPUTE_MODES\)/,
   /Thermal Guardian/,
   /Other customers&apos; devices/,
   /Not allowed/,
