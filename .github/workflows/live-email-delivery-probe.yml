@@ -1,0 +1,71 @@
+name: LANERIQ AI Live Email Delivery Probe
+
+on:
+  push:
+    branches:
+      - hardening/batch12-live-production-e2e
+
+permissions:
+  contents: read
+
+jobs:
+  live-email-delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Request real Production Email Code
+        shell: bash
+        env:
+          PROD_ORIGIN: https://laneriq-ai.vercel.app
+          TEST_EMAIL: ${{ github.repository_owner }}@gmail.com
+        run: |
+          set -euo pipefail
+          request_id="live-email-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          body="$(jq -nc --arg email "$TEST_EMAIL" --arg rid "$request_id" '{method:"email",identifier:$email,requestId:$rid}')"
+          raw="$(curl --silent --show-error --max-time 30 \
+            -X POST "$PROD_ORIGIN/api/auth/verification/request" \
+            -H "Origin: $PROD_ORIGIN" \
+            -H 'Sec-Fetch-Site: same-origin' \
+            -H 'Content-Type: application/json' \
+            --data "$body" \
+            --write-out '\n%{http_code}')"
+          http_code="$(printf '%s\n' "$raw" | tail -n1)"
+          response="$(printf '%s\n' "$raw" | sed '$d')"
+          printf '%s\n' "$response" | jq .
+          test "$http_code" = "200"
+          printf '%s\n' "$response" | jq -e '
+            .success == true and
+            .channel == "email" and
+            .otpAuthority == "laneriq" and
+            (.challengeId | test("^[a-f0-9]{48}$")) and
+            .expiresInSeconds == 600
+          ' >/dev/null
+          challenge_id="$(printf '%s\n' "$response" | jq -r '.challengeId')"
+          {
+            echo '### Production Email Code request'
+            echo '- HTTP: 200'
+            echo '- LANERIQ OTP authority: confirmed'
+            echo "- Challenge ID: \`$challenge_id\`"
+            echo '- Real inbox delivery: pending Gmail receipt verification outside this workflow'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Confirm Production delivery health refreshed
+        shell: bash
+        env:
+          PROD_ORIGIN: https://laneriq-ai.vercel.app
+        run: |
+          set -euo pipefail
+          sleep 2
+          status="$(curl --silent --show-error --fail --max-time 20 "$PROD_ORIGIN/api/auth/verification/status")"
+          printf '%s\n' "$status" | jq .
+          printf '%s\n' "$status" | jq -e '
+            .success == true and
+            .ready == true and
+            .operationalReady == true and
+            .deliveryHealth.observed == true and
+            .deliveryHealth.operational == true and
+            .deliveryHealth.state == "sent" and
+            .deliveryHealth.issue == null and
+            .otpAuthority == "laneriq" and
+            .sessionAuthority == "laneriq"
+          ' >/dev/null
