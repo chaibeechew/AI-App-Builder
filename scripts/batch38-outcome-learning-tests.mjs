@@ -71,8 +71,16 @@ assert.match(sampleScript,/outcome-learning-batch37-main\.json/);
 assert.match(sampleScript,/outcome-learning-record\.json/);
 assert.match(sampleScript,/reviewed-baseline outcome learning regression failed/);
 
+const statusRoute=fs.readFileSync('app/api/quality/status/route.js','utf8');
+assert.match(statusRoute,/privacy-safe-synthetic-release-comparison/);
+assert.match(statusRoute,/reviewed-pull-request-only/);
+assert.match(statusRoute,/OUTCOME_LEARNING_LEDGER_POLICY/);
+assert.match(statusRoute,/OUTCOME_LEARNING_COMPARISON_POLICY/);
+assert.doesNotMatch(statusRoute,/process\.env|service_role|api[_-]?key|secret/i);
+
 console.log('✓ Outcome Learning keeps only synthetic aggregate metrics, strategy families and blocker IDs');
 console.log('✓ Raw prompts, specifications and user identifiers are discarded even when present in input rows');
 console.log('✓ Release-over-release comparison catches score, replan, uniqueness and hard-blocker regressions');
 console.log('✓ Batch 37 post-merge main is pinned as a reviewed baseline and cannot mutate automatically');
+console.log('✓ Quality status exposes policy/governance only and no secrets or baseline row data');
 console.log('✓ Learning may rank strategies but cannot lower Quality Judge or Release Gate standards');
