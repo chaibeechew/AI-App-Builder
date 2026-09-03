@@ -88,7 +88,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <link rel="preload" as="image" href="/laneriq-water-home.svg" fetchPriority="high" />
+        <link rel="preload" as="image" href="/laneriq-future-city-people.webp" type="image/webp" fetchPriority="high" />
       </head>
       <body>
         <script dangerouslySetInnerHTML={{ __html: earlyHomeLoadGuard }} />
