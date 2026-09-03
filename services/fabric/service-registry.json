@@ -1,0 +1,12 @@
+{
+  "version": "fabric1",
+  "defaultMode": "embedded",
+  "liveEvidencePolicy": "standalone_live_requires_distinct_https_production_and_successful_signed_canary",
+  "services": {
+    "communications": {"root":"services/communications","remoteUrlEnv":"LANERIQ_COMMUNICATIONS_SERVICE_URL","secretEnv":"LANERIQ_COMMUNICATIONS_SERVICE_SECRET","statusPath":"/api/communications/v1/status"},
+    "generation": {"root":"services/generation","remoteUrlEnv":"LANERIQ_GENERATION_SERVICE_URL","secretEnv":"LANERIQ_GENERATION_SERVICE_SECRET","statusPath":"/api/generation/v1/status"},
+    "memory": {"root":"services/memory","remoteUrlEnv":"LANERIQ_MEMORY_SERVICE_URL","secretEnv":"LANERIQ_MEMORY_SERVICE_SECRET","statusPath":"/api/memory/v1/status"},
+    "cloud": {"root":"services/cloud","remoteUrlEnv":"LANERIQ_CLOUD_SERVICE_URL","secretEnv":"LANERIQ_CLOUD_SERVICE_SECRET","statusPath":"/api/cloud/v1/status"},
+    "publish": {"root":"services/publish","remoteUrlEnv":"LANERIQ_PUBLISH_SERVICE_URL","secretEnv":"LANERIQ_PUBLISH_SERVICE_SECRET","statusPath":"/api/publish/v1/status"}
+  }
+}
