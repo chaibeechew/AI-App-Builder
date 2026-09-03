@@ -8,6 +8,7 @@ const generate=fs.readFileSync("app/api/generate/route.js","utf8");
 const preview=fs.readFileSync("app/a/[id]/page.js","utf8");
 const publicRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
 const idempotencyMigration=fs.readFileSync("supabase/migrations/20260903081500_harden_ai_app_generation_idempotency.sql","utf8");
+const atomicMigration=fs.readFileSync("supabase/migrations/20260903104500_atomic_generated_project_persistence.sql","utf8");
 const creatorMigration=fs.readFileSync("supabase/migrations/20260903082500_creator_opportunity_access.sql","utf8");
 const commissionMigration=fs.readFileSync("supabase/migrations/20260903084000_creator_opportunity_commission_rate.sql","utf8");
 const creatorApi=fs.readFileSync("app/api/creator-opportunity/route.js","utf8");
@@ -38,22 +39,25 @@ for(const pattern of [
   /verifyGeneratedAppExecution/,
   /inspectProjectSpecification/,
   /adult\.status!=="verified"/,
-  /\.from\("apps"\)\.insert/,
-  /\.from\("app_versions"\)\.insert/,
-  /current_version_id:version\.id/,
+  /server_persist_generated_project/,
   /\.from\("project_memory"\)\.upsert/,
   /success:true/,
 ]) assert.match(generate,pattern);
 
-assert.ok(generate.indexOf('adult.status!=="verified"')<generate.indexOf('.from("apps").insert'),"Unverified generation must never persist as an App.");
-assert.ok(generate.indexOf('.from("app_versions").insert')<generate.indexOf('current_version_id:version.id'),"Version must exist before current pointer advances.");
+assert.ok(generate.indexOf('adult.status!=="verified"')<generate.indexOf('server_persist_generated_project'),"Unverified generation must never persist as an App.");
+assert.match(generate,/STALE_PARTIAL_MS=90\*1000/);
+assert.match(generate,/stalePartial:true/);
+assert.match(generate,/postReservationReplay\?\.stalePartial/);
+assert.match(generate,/idempotency:\{requestId:chargeRequestId[\s\S]*atomic:true/);
+assert.match(generate,/if\(createdAppId\)return json\(\{success:false,code:"GENERATION_REQUEST_IN_PROGRESS"/);
+assert.doesNotMatch(generate,/createdAppId&&!accessBound[\s\S]*\.from\("apps"\)\.delete/,"A successfully persisted App + Website must never be deleted because the final response or optional enrichment failed.");
 
 // Durable request identity and replay: retries must recover the same saved project instead of creating duplicates.
 assert.match(generate,/const REQUEST_ID=\/\^\[A-Za-z0-9\._:-\]\{1,160\}\$\//);
 assert.match(generate,/A stable generation request ID is required/);
 assert.match(generate,/loadGenerationReplay/);
 assert.match(generate,/\.eq\("generation_request_id",requestId\)/);
-assert.match(generate,/generation_request_id:chargeRequestId/);
+assert.match(generate,/p_request_id:chargeRequestId/);
 assert.match(generate,/GENERATION_REQUEST_IN_PROGRESS/);
 assert.match(generate,/entitlement\?\.replayed\|\|creditCharge\?\.replayed/);
 const aiExecutionIndex=generate.indexOf("const adult=await runSoolenAdultMode");
@@ -64,6 +68,20 @@ assert.match(idempotencyMigration,/apps_owner_generation_request_uidx/);
 assert.match(idempotencyMigration,/unique index/i);
 assert.match(idempotencyMigration,/owner_id, generation_request_id/);
 assert.match(idempotencyMigration,/apps_generation_request_id_format_check/);
+
+// First App + Version + current pointer are one transaction and legacy partial requests can self-repair.
+assert.match(atomicMigration,/create or replace function public\.server_persist_generated_project/);
+assert.match(atomicMigration,/security definer/);
+assert.match(atomicMigration,/auth\.uid\(\)/);
+assert.match(atomicMigration,/caller is distinct from uid/);
+assert.match(atomicMigration,/pg_advisory_xact_lock/);
+assert.match(atomicMigration,/generation_request_id=request_key/);
+assert.match(atomicMigration,/insert into public\.apps/);
+assert.match(atomicMigration,/insert into public\.app_versions/);
+assert.match(atomicMigration,/update public\.apps set current_version_id=version_row\.id/);
+assert.match(atomicMigration,/recovered_partial/);
+assert.match(atomicMigration,/revoke all on function public\.server_persist_generated_project.*from public,anon/s);
+assert.match(atomicMigration,/grant execute on function public\.server_persist_generated_project.*to authenticated,service_role/s);
 
 // Client recovery must reuse only ambiguous/in-progress attempts and must not turn post-save bootstrap loss into a false generation failure.
 assert.match(home,/const CREATE_REQUEST_KEY="laneriqPendingCreateRequest"/);
@@ -135,9 +153,9 @@ assert.match(pricing,/Creator Opportunity Access/);
 assert.match(pricing,/additional 5 percentage-point platform sales share/);
 assert.match(pricing,/normal 5% platform share becomes 10%/);
 
-console.log("✓ AI App internal E2E locks Planning → verified Generate → durable request identity → App save → Version save → current pointer → Preview");
-console.log("✓ Same-request retries are replayed or held as in-progress before duplicate AI execution; database uniqueness prevents duplicate persisted projects");
-console.log("✓ Client ambiguous retries preserve one create identity, definitive failures rotate it, and post-save bootstrap loss cannot downgrade a successful project to failed");
+console.log("✓ AI App internal E2E locks Planning → verified Generate → atomic App + Version + current pointer → Preview");
+console.log("✓ Same-request retries are replayed, recent concurrent work stays in-progress, and stale partial saves can self-repair without a duplicate project");
+console.log("✓ Client ambiguous retries preserve one create identity, definitive failures rotate it, and post-save response/bootstrap loss cannot delete or downgrade a successful project");
 console.log("✓ Creator Opportunity is individual-only, Admin-approved, no-upfront-fee Full Access with an operational +5 percentage-point commission rule");
 console.log("✓ Public App Preview resolves current version; authenticated owner snapshot pinning remains same-project-bound through the shared server loader");
 console.log("✓ Real external AI-provider success remains LIVE evidence and is not fabricated by this code gate");
