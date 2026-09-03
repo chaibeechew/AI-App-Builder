@@ -78,8 +78,13 @@ assert.match(generate,/verifyGeneration/);
 assert.match(generate,/buildRepairInstruction/);
 assert.match(generate,/buildSelfHealInstruction/);
 assert.match(generate,/repair:async/);
-assert.match(generate,/if\(adult\.status!=="verified"\)throw new Error/);
+assert.match(generate,/if\(adult\.generationStatus!=="verified"\)throw new Error/);
 assert.match(generate,/const verified=verifyGeneration\(adult\.result\);\s*if\(!verified\.passed\)throw new Error/);
+assert.match(generate,/sourceEngineeringEvidence/);
+assert.match(generate,/sandboxVerified:status==="verified"/);
+assert.match(generate,/requiredForGeneration:false/);
+assert.match(generate,/requiredBeforeSourceRelease:true/);
+assert.doesNotMatch(generate,/if\(adult\.status!=="verified"\)throw new Error/,'External source sandbox availability must not replace deterministic specification verification.');
 assert.match(generate,/server_persist_generated_project/);
 assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('server_persist_generated_project'),'Create must finish final verification before atomic App + Website persistence.');
 
@@ -109,5 +114,6 @@ console.log('✓ All 10 declared Self-Heal categories have executable determinis
 console.log('✓ Raw missing-page output is detected before normalization can hide the structural failure');
 console.log('✓ Canonical MAX/design metadata survives Self-Heal while nested credential-like fields remain fail-closed');
 console.log('✓ Create performs autonomous repair plus final deterministic verification before atomic App + Website persistence');
+console.log('✓ Source sandbox evidence remains truthful and separate from verified specification persistence');
 console.log('✓ Modify blocks quality regression, re-verifies self-heal output and saves only after the candidate passes');
 console.log('✓ Unsafe routes, overflow, data contracts, credential fields, media and explicit accessibility failures are fail-closed');

@@ -31,11 +31,17 @@ for(const pattern of [
   /selfTestGeneratedApp/,
   /verifyGeneratedAppExecution/,
   /inspectProjectSpecification/,
-  /adult\.status!=="verified"/,
+  /adult\.generationStatus!=="verified"/,
   /server_persist_generated_project/,
   /\.from\("project_memory"\)\.upsert/,
 ]) assert.match(generate,pattern);
-assert.ok(generate.indexOf('adult.status!=="verified"')<generate.indexOf('server_persist_generated_project'),"Unverified generation must never persist as an App.");
+assert.ok(generate.indexOf('adult.generationStatus!=="verified"')<generate.indexOf('server_persist_generated_project'),"Unverified generation must never persist as an App.");
+assert.match(generate,/function sourceEngineeringEvidence\(adult\)/);
+assert.match(generate,/requiredForGeneration:false/);
+assert.match(generate,/requiredBeforeSourceRelease:true/);
+assert.match(generate,/sandboxVerified:status==="verified"/);
+assert.match(generate,/status:adult\.generationStatus,generationStatus:adult\.generationStatus,overallStatus:adult\.status,sourceEngineering:engineeringEvidence/);
+assert.doesNotMatch(generate,/if\(adult\.status!=="verified"\)/,"Generate must not require a separately connected source-code sandbox before a verified specification can be saved.");
 
 // One stable request identity owns the whole generate/save operation.
 assert.match(generate,/const REQUEST_ID=\/\^\[A-Za-z0-9\._:-\]\{1,160\}\$\//);
@@ -105,7 +111,8 @@ for(const pattern of [
 assert.match(publishPinMigration,/published_version_id=p_expected_version_id/);
 assert.match(publishPinMigration,/published_version_id=null/);
 
-console.log("✓ AI App internal E2E locks Planning → verified Generate → atomic App + Version + current pointer → Preview");
+console.log("✓ AI App internal E2E locks Planning → verified specification → atomic App + Version + current pointer → Preview");
+console.log("✓ Source sandbox evidence remains explicit and is required before source release, not before specification persistence");
 console.log("✓ Same-request retries recover completed or stale-partial work without creating or charging a duplicate project");
 console.log("✓ Post-save response/bootstrap loss cannot delete a successful project; the same request recovers it");
 console.log("✓ Owner App preview stays on the working version while anonymous production traffic is pinned to published_version_id");
