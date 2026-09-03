@@ -93,34 +93,77 @@ for (const pattern of [
 assert.doesNotMatch(zeroSpendMigration, /standard_project_credits|server_consume_ai_credits|credit_accounts|credit_transactions/,
   "Database zero-spend entitlement must not read, decrement or call any credit mechanism.");
 
+const buildIndex = quickTest.indexOf("/api/build-info");
 const planIndex = quickTest.indexOf("/api/orchestrate");
 const reserveIndex = quickTest.indexOf("/api/production-e2e/zero-spend");
 const generateIndex = quickTest.indexOf("/api/generate");
-assert(planIndex > 0 && reserveIndex > planIndex && generateIndex > reserveIndex,
-  "Fresh Production E2E must Plan, reserve zero-spend entitlement, then Generate in that order.");
+assert(buildIndex > 0 && planIndex > buildIndex && reserveIndex > planIndex && generateIndex > reserveIndex,
+  "Fresh Production journey must verify exact Production build, Plan, reserve zero-spend entitlement, then Generate in that order.");
+
 for (const pattern of [
-  /RUN ZERO-SPEND E2E/,
+  /RUN ZERO-SPEND PRODUCTION JOURNEY/,
+  /verifyExactProductionBuild/,
+  /data\.product==='LANERIQ AI'/,
+  /environment==='production'/,
+  /commitRef==='main'/,
+  /COMMIT_SHA\.test\(commitSha\)/,
   /action:'reserve'/,
   /action:'release'/,
   /reservationHeld=true/,
   /reservationHeld=false/,
   /requestId:createRequestId/,
   /\/api\/apps\/'\+encodeURIComponent\(appId\)\+'\/bootstrap/,
+  /getJson\('\/api\/apps\/'\+encodeURIComponent\(appId\)/,
+  /persistedVersionVerified/,
+  /current_version_id/,
+  /\/app-dashboard\/'\+encodeURIComponent\(appId\)/,
+  /\/preview\/'\+encodeURIComponent\(appId\)/,
+  /\/editor\/'\+encodeURIComponent\(appId\)/,
+  /\/database\/'\+encodeURIComponent\(appId\)/,
+  /\/workflows\/'\+encodeURIComponent\(appId\)/,
+  /\/operations\/'\+encodeURIComponent\(appId\)/,
+  /\/analytics\/'\+encodeURIComponent\(appId\)/,
+  /\/release\/'\+encodeURIComponent\(appId\)/,
+  /\/publish\/'\+encodeURIComponent\(appId\)/,
   /\/a\/'\+encodeURIComponent\(appId\)\+'\?demo=1/,
   /\/website\/'\+encodeURIComponent\(appId\)/,
-  /AUTHENTICATED_PRODUCTION_E2E/,
+  /AUTHENTICATED_PRODUCTION_BROWSER_JOURNEY/,
+  /reportVersion:3/,
+  /exactProductionBuildVerified:true/,
   /physicalDeviceVerified:false/,
+  /originalGenerationProviderVerified:false/,
+  /officialStoreSubmissionVerified:false/,
+  /storeSubmissionExercised:false/,
+  /smsExercised:false/,
   /zeroSpendOnly:true/,
   /aiCreditsCharged:0/,
   /projectCreditsCharged:0/,
   /planningVerified:true/,
+  /generationRequestCompleted:generated\.success===true/,
   /saveVerified:true/,
+  /browserJourneySurfacesVerified:true/,
   /appPreviewVerified:appPreview\.ok/,
   /websitePreviewVerified:websitePreview\.ok/,
   /writesExercised:true/,
+  /journeySurfaceCoverage:\{required:journeySurfaces\.length,passed:journeySurfaces\.filter\(x=>x\.ok\)\.length/,
 ]) assert.match(quickTest, pattern);
-assert.doesNotMatch(quickTest, /\/api\/credits|consumeAiCredits|standard_project_credits|SMS|signInWithOtp|verifyOtp/,
-  "Fresh zero-spend E2E must not touch credits or SMS/OTP internals.");
+
+assert.doesNotMatch(quickTest, /\/api\/credits|consumeAiCredits|standard_project_credits|signInWithOtp|verifyOtp|phone-auth|sms-auth|send_sms|sendSms/i,
+  "Fresh zero-spend E2E must not invoke credit or SMS/OTP execution internals; truthful explanatory copy may still mention those boundaries.");
+assert.doesNotMatch(quickTest, /officialStoreSubmissionVerified:true|originalGenerationProviderVerified:true|physicalDeviceVerified:true/,
+  "Browser journey evidence must not impersonate physical-device, provider-LIVE or official-store evidence.");
+assert.doesNotMatch(quickTest, /\/api\/modify|\/api\/publish\/request|\/api\/store-metadata\/approve/,
+  "Batch 42 authenticated journey may create/bootstrap a test project but must not modify it or submit/approve store publishing.");
+
+for (const pattern of [
+  /safe-area-inset-top/,
+  /safe-area-inset-bottom/,
+  /min-height:50px/,
+  /font-size:16px/,
+  /touch-action:manipulation/,
+  /focus-visible/,
+  /prefers-reduced-motion:reduce/,
+]) assert.match(quickTest, pattern);
 
 for (const pattern of [
   /100svh/,
@@ -136,7 +179,8 @@ for (const pattern of [
 console.log("✓ Authenticated Production E2E evidence route stays protected and noindex");
 console.log("✓ Evidence can be issued only from an exact Production main deployment with a real 40-character commit SHA");
 console.log("✓ Read-only evidence validates persisted App/Website/version/release surfaces without replaying provider output");
-console.log("✓ Batch 13 adds a separate explicit authenticated write runner: Plan → zero-spend reserve → Generate → atomic Save → App Preview → Website Preview");
+console.log("✓ Batch 42 write runner verifies exact Production identity before Plan → zero-spend reserve → Generate → atomic Save → bootstrap");
+console.log("✓ Batch 42 re-reads the persisted current version and verifies App, Website plus nine owner-scoped journey surfaces in the authenticated browser session");
 console.log("✓ Zero-spend reservation is service-role-only and can use only free-first-project or active Pro access; AI/project credits are impossible by contract");
 console.log("✓ Failed E2E attempts release their reservation; successful Generate binds the same stable request ID to the persisted project");
-console.log("✓ Fresh write evidence remains truthful: authenticated Production E2E is not physical-device, paid-provider or official-store proof, and SMS stays untouched");
+console.log("✓ Browser journey evidence remains truthful: no physical-device, provider-LIVE, official-store or SMS execution claim is introduced");
