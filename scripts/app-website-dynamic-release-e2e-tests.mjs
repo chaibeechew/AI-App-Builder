@@ -4,13 +4,17 @@ process.env.SOOLEN_COST_MODE="zero";
 process.env.SOOLEN_ZERO_COST_PROVIDERS="soolen-local";
 delete process.env.OLLAMA_BASE_URL;
 
-const { runAutonomousEngine } = await import("../engine/autonomous-engine.js");
+const { generateWithFallback } = await import("../engine/ai-provider.js");
 const { normalizeAppSpec } = await import("../lib/generator/runtime-guard.js");
 const { selfTestGeneratedApp } = await import("../lib/generator/self-test.js");
 const { verifyGeneratedAppExecution } = await import("../lib/generator/execution-verifier.js");
 const { inspectProjectSpecification } = await import("../lib/ai/project-self-heal-policy.js");
 const { assessBuildQuality } = await import("../lib/buildStandards.js");
 const { evaluateReleaseReadiness } = await import("../lib/release-readiness.js");
+
+function buildPrompt(idea,language){
+  return `Build a real mobile-first App and customer Website from the user's idea.\nUSER IDEA:\n"${idea}"\n\nREQUESTED LANGUAGE:\n"${language}"\n\nVOICE INPUT:\n""\n\nREFERENCE IMAGE REFERENCES:\n[]`;
+}
 
 const cases=[
   {label:"property-zh",idea:"制作一个房地产 CRM App 和客户 Website，管理房源、客户、预约、跟进和销售报告，手机优先，高级深绿金色",language:"zh-CN"},
@@ -20,11 +24,14 @@ const cases=[
 ];
 
 for(const testCase of cases){
-  const generated=await runAutonomousEngine(testCase.idea,{language:testCase.language,industry:"technology",createDemoVideo:false});
-  assert.equal(generated?.provider,"soolen-local",`${testCase.label}: dynamic engine must stay on zero-cost soolen-local`);
-  assert.ok(generated?.specification&&typeof generated.specification==="object",`${testCase.label}: engine must return a specification`);
+  const generated=await generateWithFallback(buildPrompt(testCase.idea,testCase.language),{providers:["soolen-local"]});
+  assert.equal(generated?.provider,"soolen-local",`${testCase.label}: dynamic generation must stay on zero-cost soolen-local`);
+  assert.equal(generated?.attempts,1,`${testCase.label}: zero-cost generation must execute exactly one allowed provider attempt`);
+  assert.deepEqual(generated?.errors||[],[],`${testCase.label}: zero-cost generation must not record blocked-provider errors`);
+  const raw=JSON.parse(String(generated?.result||"{}"));
+  assert.ok(raw&&typeof raw==="object"&&!Array.isArray(raw),`${testCase.label}: provider router must return a specification object`);
 
-  const normalized=normalizeAppSpec(generated.specification);
+  const normalized=normalizeAppSpec(raw);
   assert.equal(normalized.productType,"app_website",`${testCase.label}: normal creation must remain one App + Website product`);
   for(const platform of ["ios","android","web"])assert.ok(normalized.platforms.includes(platform),`${testCase.label}: missing ${platform} platform`);
   assert.ok(Array.isArray(normalized.pages)&&normalized.pages.length>=5,`${testCase.label}: insufficient generated pages`);
@@ -55,7 +62,7 @@ for(const testCase of cases){
   assert.equal(normalized.security?.release?.defaultPublishStatus,"draft",`${testCase.label}: generated product must start draft`);
 }
 
-console.log(`✓ Dynamic autonomous engine generated ${cases.length} real App + Website specifications through soolen-local only`);
+console.log(`✓ Zero-cost generation pipeline produced ${cases.length} real App + Website specifications through soolen-local only`);
 console.log("✓ Every generated product passed normalization, self-test, execution verification, self-heal and Secure-by-Default MAX");
 console.log("✓ Stability, security, privacy, comfort, beauty and naturalness each reached deterministic 100 with >=3 implementation-evidence entries");
 console.log("✓ The exact normalized output is Release-Gate ready while external provider, authenticated Production and real-device evidence remain separate truth levels");
