@@ -1,5 +1,4 @@
 import { generateWithFallback } from "./ai-provider.js";
-import { createClient } from "../lib/supabase/server.js";
 import { buildSoolenGenerationContext } from "../lib/ai/language-terminology.js";
 import { buildMediaInstruction } from "../lib/ai/media-capabilities.js";
 import { inferMobileGamePlan } from "../lib/ai/mobile-game-knowledge.js";
@@ -17,6 +16,9 @@ function extractJson(text) {
 function tokens(idea) { return [...new Set(idea.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g," ").split(/\s+/).filter(x=>x.length>=3).slice(0,12))]; }
 async function loadIndustryPatterns(idea) {
   try {
+    // Production loads the request-scoped Supabase server client. CI/offline engine execution
+    // is allowed to continue without the optional pattern library when Next request context is absent.
+    const { createClient } = await import("../lib/supabase/server.js");
     const supabase=await createClient(); const words=tokens(idea);
     let query=supabase.from("industry_patterns").select("name,category,description,app_types,pages,features,workflows,data_model,ui_pattern,design_pattern,special_requirements,keywords").eq("is_active",true).limit(12);
     if(words.length) query=query.or(words.flatMap(w=>[`name.ilike.%${w}%`,`category.ilike.%${w}%`,`description.ilike.%${w}%`]).join(","));
