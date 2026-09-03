@@ -57,6 +57,7 @@ for(const source of [appPreview,websitePreview]){
   assert.match(source,/loadVisibleProject\(\{id|loadVisibleProject\(\{ id/,"App and Website previews must use the shared visibility/current-version loader.");
   assert.match(source,/loadVisibleProjectMedia/);
   assert.match(source,/notFound\(\)/,"Hidden/missing projects must fail closed.");
+  assert.match(source,/data-project-version=\{version\.id\}/,"Both customer surfaces must expose the exact rendered version for deterministic combined-preview QA.");
 }
 assert.match(appPreview,/GeneratedAppClient/);
 assert.match(appPreview,/appleWebApp/);
@@ -64,8 +65,9 @@ assert.match(websitePreview,/version\.specification/);
 assert.match(websitePreview,/Customer Website/);
 assert.match(websitePreview,/Created with LANERIQ AI/);
 assert.match(websitePreview,/WebsiteEnquiryForm/);
-assert.match(websitePreview,/enabled=\{isPublished\}/,"Unpublished owner previews must not accept customer enquiries.");
-assert.match(websitePreview,/isOwner&&<WebsiteEnquiryInbox/);
+assert.match(websitePreview,/const enquiryEnabled=isPublished&&!isPinnedPreview/,"Only the live published Website may accept customer enquiries; pinned owner snapshots must remain side-effect free.");
+assert.match(websitePreview,/enabled=\{enquiryEnabled\}/);
+assert.match(websitePreview,/isOwner&&!isPinnedPreview&&<WebsiteEnquiryInbox/);
 assert.doesNotMatch(websitePreview,/href="mailto:"/,"Generated Website must never ship an empty Contact CTA.");
 
 // Customer enquiry conversion path: real same-origin POST, stable retry identity, bounded PII and no automatic permissions.
@@ -131,7 +133,8 @@ assert.match(websiteInbox,/Mark contacted/);
 for(const pattern of [
   /current_version_id/,
   /if \(!isOwner && !isPublished\) return null/,
-  /\.eq\("id", app\.current_version_id\)/,
+  /selectedVersionId = requestedVersionId && isOwner \? requestedVersionId : app\.current_version_id/,
+  /\.eq\("id", selectedVersionId\)/,
   /\.eq\("app_id", app\.id\)/,
   /\.select\("id,version_no,specification"\)/,
 ]) assert.match(publicRuntime,pattern);
@@ -141,6 +144,6 @@ assert.doesNotMatch(websitePreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
 console.log("✓ AI Website internal E2E locks Planning → verified Generate → durable save/version → authoritative Website Preview");
 console.log("✓ Generated customer Websites now have a functional enquiry conversion path instead of an empty Contact CTA");
 console.log("✓ Public enquiry writes are same-origin, POST-only, published-site-only, HMAC source-bound, replay-safe and atomically rate-limited");
-console.log("✓ Enquiry PII is service-role-only at the table; project owners retrieve only their own inbox through authenticated no-store API");
+console.log("✓ Pinned owner snapshots remain same-project/version-bound and cannot create real enquiries or expose the live owner inbox");
 console.log("✓ Engine still requires pages, navigation, responsive web behavior and switchable language rather than a text-only landing mockup");
 console.log("✓ Real external AI-provider Website output remains LIVE evidence and is not claimed by this deterministic code gate");
