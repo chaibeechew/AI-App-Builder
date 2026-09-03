@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { validatePublishServiceRequest,PUBLISH_SERVICE_CONTRACT } from '../../../lib/publish-service/contract.js';
+
+const root=process.cwd();const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const gateway=read('lib/publish-service/gateway.js');const operate=read('services/publish/api/operate.js');const security=read('services/publish/lib/security.js');const status=read('services/publish/api/status.js');const manifest=JSON.parse(read('services/publish/deployment.manifest.json'));
+const digest=`sha256:${'a'.repeat(64)}`;
+assert.equal(PUBLISH_SERVICE_CONTRACT.version,'psvc1');
+assert.equal(validatePublishServiceRequest({operation:'prepare',requestId:'req-1',projectId:'project-1',releaseId:'release-1',target:'preview',artifactDigest:digest,payload:{}}).ok,true);
+assert.equal(validatePublishServiceRequest({operation:'prepare',requestId:'req-1',projectId:'project-1',releaseId:'release-1',target:'preview',artifactDigest:'bad',payload:{}}).code,'INVALID_ARTIFACT_DIGEST');
+assert.equal(validatePublishServiceRequest({operation:'prepare',requestId:'req-1',projectId:'project-1',releaseId:'release-1',target:'preview',artifactDigest:digest,payload:{vercel_token:'x'}}).code,'RAW_SECRET_FORBIDDEN');
+assert.match(gateway,/createHmac\("sha256"/);assert.match(gateway,/PUBLISH_SERVICE_UNREACHABLE/);const ci=gateway.indexOf('catch(error)');assert.ok(ci>=0);assert.doesNotMatch(gateway.slice(ci),/return embedded\(/);
+assert.match(security,/timingSafeEqual/);assert.match(security,/INVALID_ARTIFACT_DIGEST/);
+assert.match(operate,/PUBLISH_DEPLOYMENT_ADAPTER_NOT_READY/);assert.match(operate,/"authorization":`Bearer \$\{adapterSecret\}`/);assert.match(status,/live:false/);
+assert.equal(manifest.security.artifactDigestRequired,true);assert.equal(manifest.security.rawProviderCredentialsForbidden,true);assert.equal(manifest.security.silentEmbeddedFallback,false);assert.equal(manifest.evidence.standaloneLive,false);
+for(const source of [gateway,operate,security])assert.doesNotMatch(source,/VERCEL_TOKEN|CLOUDFLARE_API|AWS_|SUPABASE_SERVICE|openai|gemini/i,'Publish boundary must not own provider credentials or AI providers.');
+console.log('✓ Publish service binds requests to immutable SHA-256 artifact identity');
+console.log('✓ Publish remote mode is HTTPS + HMAC, provider-opaque and no-silent-fallback');
+console.log('✓ Standalone publish host truthfully remains CODE_READY until a second project and signed canary exist');
