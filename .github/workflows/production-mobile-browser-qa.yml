@@ -55,6 +55,9 @@ jobs:
           echo "Production did not reach expected commit $LANERIQ_EXPECTED_SHA."
           exit 1
 
+      - name: Verify signed-out Production provider boundaries
+        run: node scripts/production-provider-boundary-qa.mjs
+
       - name: Run cross-engine Production mobile browser QA
         run: node scripts/production-mobile-browser-qa.mjs
 
