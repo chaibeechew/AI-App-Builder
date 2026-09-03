@@ -3,6 +3,7 @@ import fs from "node:fs";
 
 const read = (file) => fs.readFileSync(file, "utf8");
 const buildInfo = read("app/api/build-info/route.js");
+const imageReadiness = read("app/api/images/readiness/route.js");
 const workflow = read(".github/workflows/production-mobile-browser-qa.yml");
 const runner = read("scripts/production-mobile-browser-qa.mjs");
 const sessionProxy = read("lib/supabase/proxy.js");
@@ -25,14 +26,26 @@ for (const pattern of [
 assert.doesNotMatch(buildInfo, /TOKEN|SECRET|PASSWORD|SERVICE_ROLE|API_KEY/i, "Public build identity must never expose secrets or credentials.");
 
 for (const pattern of [
+  /externalProviderConnected:config\.connected/,
+  /externalProviderAllowed:config\.configured/,
+  /blockedByCostPolicy:config\.blockedByCostPolicy/,
+  /durableProviderCapture:true/,
+  /idempotentReplay:true/,
+  /private, no-store, max-age=0/,
+]) assert.match(imageReadiness, pattern);
+assert.doesNotMatch(imageReadiness, /TOKEN|SECRET|PASSWORD|SERVICE_ROLE|API_KEY|IMAGE_GENERATION_ENDPOINT/i, "Public Image Studio readiness must expose state only, never credentials or runtime endpoints.");
+
+for (const pattern of [
   /PUBLIC_READ_ONLY_OBSERVABILITY_ENDPOINTS/,
-  /new Set\(\["\/api\/build-info"\]\)/,
+  /new Set\(\["\/api\/build-info","\/api\/images\/readiness"\]\)/,
   /PUBLIC_READ_ONLY_OBSERVABILITY_ENDPOINTS\.has\(pathname\)/,
   /request\.method === "GET"/,
   /request\.method === "HEAD"/,
   /no broad \/api prefix bypass/,
 ]) assert.match(sessionProxy, pattern);
 assert.doesNotMatch(sessionProxy, /startsWith\("\/api\/build-info"\)/, "Build identity access must remain exact-path only.");
+assert.equal(sessionProxy.includes('startsWith("/api/images'),false,"Image Studio observability must never create a broad /api/images prefix bypass.");
+assert.equal(sessionProxy.includes("startsWith('/api/images"),false,"Image Studio observability must never create a broad /api/images prefix bypass.");
 assert.match(sessionRoute, /SESSION_REQUIRED[\s\S]*401/);
 
 for (const pattern of [
@@ -108,8 +121,8 @@ assert.match(wallpaper, /wallpaperControlHidden/);
 assert.match(wallpaper, /path==="\/auth"/);
 assert.match(wallpaper, /path==="\/mobile-readiness"/);
 
-console.log("✓ Public build identity is privacy-safe, exact-commit aware, no-store and GET/HEAD-only before sign-in");
-console.log("✓ Session protection keeps the build identity bypass exact-path only and preserves signed-out SESSION_REQUIRED 401 semantics");
+console.log("✓ Public build identity and Image Studio readiness are privacy-safe, exact-path, no-store and GET/HEAD-only before sign-in");
+console.log("✓ Session protection preserves signed-out SESSION_REQUIRED 401 semantics for every mutable/protected API");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
 console.log("✓ Mobile QA recognizes both WebKit and Chromium generic 401 console wording while exact response-level URL/status checks remain authoritative");
 console.log("✓ Mobile QA classifies only exact signed-out GET /api/auth/session 401 responses as expected and fails all unexpected HTTP errors");
