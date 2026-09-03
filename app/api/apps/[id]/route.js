@@ -13,7 +13,7 @@ export async function GET(_request, { params }) {
 
     const { data: app, error: appError } = await supabase
       .from("apps")
-      .select("id, name, description, source_prompt, current_version_id, visibility, publish_status, created_at, updated_at")
+      .select("id, name, description, source_prompt, current_version_id, published_version_id, visibility, publish_status, created_at, updated_at")
       .eq("id", id)
       .eq("owner_id", user.id)
       .single();
