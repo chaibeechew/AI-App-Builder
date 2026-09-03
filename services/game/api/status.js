@@ -1,0 +1,1 @@
+export default function handler(_req,res){res.setHeader("Cache-Control","no-store");return res.status(200).json({service:"laneriq-game",contract:"gmsvc1",evidenceLevel:"CODE_READY",capabilities:["build","simulate","matchmake","state_sync","verify","status"],remoteEngineRequiredForLive:true});}
