@@ -62,11 +62,20 @@ for (const pattern of [
   /microphoneCaptureExercised: false/,
   /pickerInteractionExercised: false/,
   /physicalDeviceVerified: false/,
+  /function classifyHttpFailure\(response\)/,
+  /url\.origin === productionOrigin && url\.pathname === "\/api\/auth\/session" && status === 401 && item\.method === "GET"/,
+  /expectedSession401s/,
+  /expected401ConsoleNoise/,
+  /unexpectedHttpFailures/,
+  /assert\.deepEqual\(unexpectedHttpFailures, \[\]/,
+  /expected401ConsoleNoise\.length <= expectedSession401s\.length/,
 ]) assert.match(productionQa, pattern);
 assert.doesNotMatch(productionQa, /\.click\(|getUserMedia\s*\(/, "Production browser QA must not trigger real permission actions.");
+assert.doesNotMatch(productionQa, /status === 401\)\s*return null|status >= 400\)\s*return null/, "Production real-device entry QA must never blanket-ignore 401 or 4xx/5xx responses.");
 
 console.log("✓ Batch 12 locks Account 44px/safe-area mobile chrome into CI");
 console.log("✓ Upload Ref exposes separate library and rear-camera paths with 44px+ controls");
 console.log("✓ Voice primes iPhone microphone permission only from explicit user tap and releases the stream immediately");
 console.log("✓ Mobile Readiness exposes local-only microphone/Photos/camera self-tests without auto-upload or file-name collection");
 console.log("✓ Production WebKit QA verifies deployed real-device entry readiness while preserving physicalDeviceVerified=false");
+console.log("✓ Production real-device entry QA classifies only exact signed-out GET /api/auth/session 401 noise and fails all unexpected HTTP errors");
