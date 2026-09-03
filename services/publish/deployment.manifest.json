@@ -1,0 +1,10 @@
+{
+  "service":"laneriq-publish",
+  "contract":"psvc1",
+  "root":"services/publish",
+  "deploymentModes":["embedded","remote"],
+  "requiredEnvironment":["LANERIQ_PUBLISH_SERVICE_SECRET","LANERIQ_PUBLISH_DEPLOYMENT_ADAPTER_URL","LANERIQ_PUBLISH_DEPLOYMENT_ADAPTER_SECRET"],
+  "security":{"httpsOnly":true,"signedInbound":true,"artifactDigestRequired":true,"rawProviderCredentialsForbidden":true,"silentEmbeddedFallback":false},
+  "cost":{"fixedInfrastructureRequired":false,"automaticPaidEscalation":false},
+  "evidence":{"codeReady":true,"standaloneLive":false,"signedCanaryRequired":true}
+}
