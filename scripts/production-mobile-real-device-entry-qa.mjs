@@ -4,6 +4,7 @@ import path from "node:path";
 import { devices, webkit } from "playwright";
 
 const baseUrl = String(process.env.LANERIQ_PRODUCTION_URL || "https://laneriq-ai.vercel.app").replace(/\/$/, "");
+const productionOrigin = new URL(baseUrl).origin;
 const expectedSha = String(process.env.LANERIQ_EXPECTED_SHA || "").trim();
 const artifactDir = path.resolve("artifacts/production-mobile-browser-qa");
 const reportPath = path.join(artifactDir, "real-device-entry-report.json");
@@ -20,6 +21,17 @@ async function productionBuild() {
   return body;
 }
 
+function classifyHttpFailure(response) {
+  const status = response.status();
+  if (status < 400) return null;
+  const url = new URL(response.url());
+  const item = { status, method: response.request().method(), origin: url.origin, path: `${url.pathname}${url.search}` };
+  if (url.origin === productionOrigin && url.pathname === "/api/auth/session" && status === 401 && item.method === "GET") {
+    return { expected: true, item };
+  }
+  return { expected: false, item };
+}
+
 const build = await productionBuild();
 const browser = await webkit.launch({ headless: true });
 const device = devices["iPhone 13"];
@@ -28,8 +40,23 @@ const context = await browser.newContext({ ...device, locale: "en-MY", timezoneI
 const page = await context.newPage();
 const pageErrors = [];
 const consoleErrors = [];
+const expectedSession401s = [];
+const expected401ConsoleNoise = [];
+const unexpectedHttpFailures = [];
+
 page.on("pageerror", (error) => pageErrors.push(String(error?.message || error)));
-page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
+page.on("response", (response) => {
+  const classified = classifyHttpFailure(response);
+  if (!classified) return;
+  if (classified.expected) expectedSession401s.push(classified.item);
+  else unexpectedHttpFailures.push(classified.item);
+});
+page.on("console", (message) => {
+  if (message.type() !== "error") return;
+  const text = message.text();
+  if (/Failed to load resource:.*status of 401\b/i.test(text)) expected401ConsoleNoise.push(text);
+  else consoleErrors.push(text);
+});
 
 try {
   const response = await page.goto(`${baseUrl}/mobile-readiness`, { waitUntil: "domcontentloaded", timeout: 45_000 });
@@ -81,10 +108,12 @@ try {
   assert.equal(pickerContract.camera?.capture, "environment", "Camera probe must request the rear-camera capture path");
   assert.equal(pickerContract.horizontalOverflow, false, "Mobile readiness must not overflow horizontally");
   assert.deepEqual(pageErrors, [], `Mobile readiness page errors: ${pageErrors.join(" | ")}`);
+  assert.deepEqual(unexpectedHttpFailures, [], `Mobile readiness unexpected HTTP failures: ${JSON.stringify(unexpectedHttpFailures)}`);
   assert.deepEqual(consoleErrors, [], `Mobile readiness console errors: ${consoleErrors.join(" | ")}`);
+  assert(expected401ConsoleNoise.length <= expectedSession401s.length, `Mobile readiness emitted more generic 401 console errors (${expected401ConsoleNoise.length}) than exact signed-out GET /api/auth/session 401 responses (${expectedSession401s.length})`);
 
   const evidence = {
-    evidenceVersion: 1,
+    evidenceVersion: 2,
     evidenceLevel: "BROWSER_EMULATION",
     product: "LANERIQ AI",
     generatedAt: new Date().toISOString(),
@@ -101,11 +130,15 @@ try {
     initialInteractiveEvidence: readiness.interactiveEvidence,
     pageErrors,
     consoleErrors,
+    expectedSession401s,
+    expected401ConsoleNoiseCount: expected401ConsoleNoise.length,
+    unexpectedHttpFailures,
   };
   await page.screenshot({ path: path.join(artifactDir, "webkit-iphone13-real-device-entry.png"), fullPage: true });
   await fs.writeFile(reportPath, `${JSON.stringify(evidence, null, 2)}\n`, "utf8");
   console.log("✓ Production WebKit/iPhone 13 exposes real-device microphone, Photos and rear-camera test entries at 44px+");
-  console.log("✓ Initial page load triggers no permissions and browser emulation remains explicitly physicalDeviceVerified=false");
+  console.log(`✓ Initial page load triggers no permissions; ${expectedSession401s.length} exact signed-out session 401 response(s) classified as expected and unexpected HTTP failures are 0`);
+  console.log("✓ Browser emulation remains explicitly physicalDeviceVerified=false");
 } finally {
   await context.close();
   await browser.close();
