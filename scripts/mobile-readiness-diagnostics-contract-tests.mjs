@@ -23,22 +23,35 @@ for (const pattern of [
   /safe-area-inset-top/,
   /document\.documentElement\.scrollWidth/,
   /PointerEvent/,
-  /capture/,
+  /capture="environment"/,
   /navigator\.mediaDevices\?\.getUserMedia/,
   /speechSynthesis/,
   /SpeechRecognition|webkitSpeechRecognition/,
   /serviceWorker/,
   /display-mode: standalone/,
-  /permissionPromptsTriggered:\s*false/,
+  /reportVersion:\s*2/,
+  /evidenceLevel:\s*"REAL_DEVICE_SELF_TEST"/,
+  /physicalDeviceVerified:\s*false/,
+  /permissionPromptsTriggered:\s*Boolean\(interaction\.microphonePromptAttempted\)/,
+  /microphonePromptAttempted:\s*false/,
+  /Test microphone/,
+  /Test Photos/,
+  /Test camera/,
+  /data-mobile-photo-probe/,
+  /data-mobile-camera-probe/,
   /Copy report/,
-  /No user ID, phone number, email address or browser user-agent is collected/,
+  /No user ID, phone number, email address, file name or browser user-agent is collected/,
 ]) assert.match(client, pattern);
 
-assert.doesNotMatch(client, /getUserMedia\s*\(/, "Diagnostics must inspect microphone support without requesting permission.");
-assert.doesNotMatch(client, /navigator\.permissions\.query/, "Diagnostics must not probe permission state or trigger privacy-sensitive flows.");
+const microphoneFunction = client.match(/async function testMicrophone\(\) \{[\s\S]*?\n  \}/)?.[0] || "";
+assert.match(microphoneFunction, /navigator\.mediaDevices\.getUserMedia\(\{ audio: true \}\)/, "Microphone access must only be requested from the explicit Test microphone action.");
+assert.match(microphoneFunction, /track\.stop\(\)/, "Diagnostic microphone tracks must be released immediately.");
+assert.doesNotMatch(client.match(/useEffect\(\(\) => \{[\s\S]*?\n  \}, \[runChecks\]\);/)?.[0] || "", /getUserMedia/, "Baseline effects must not auto-request microphone access.");
+assert.doesNotMatch(client, /navigator\.permissions\.query/, "Diagnostics must not probe permission state before a user gesture.");
 assert.doesNotMatch(client, /fetch\s*\(|sendBeacon\s*\(|XMLHttpRequest/, "Device evidence must stay local until the user explicitly copies it.");
 assert.doesNotMatch(client, /localStorage|sessionStorage/, "Diagnostics must not persist device evidence in browser storage.");
-assert.doesNotMatch(client, /userAgent|platform/, "Diagnostics must not collect browser fingerprint strings.");
+assert.doesNotMatch(client, /userAgent|navigator\.platform/, "Diagnostics must not collect browser fingerprint strings.");
+assert.doesNotMatch(client, /file\.name/, "Picker evidence must not collect customer file names.");
 assert.doesNotMatch(client, /signInWithOtp|verifyOtp|sms-auth|phone-auth|SMS Login/i, "SMS/OTP execution remains on hold and must not be part of mobile readiness diagnostics.");
 
 for (const pattern of [
@@ -58,7 +71,8 @@ for (const pattern of [
 
 assert.ok(stability.includes('path:"/mobile-readiness"'), "The real-device diagnostics surface must be covered by Production stability.");
 
-console.log("✓ Mobile readiness diagnostics are public-but-noindex, exact-path bounded and permission-free");
-console.log("✓ Device report checks viewport, touch, safe area, 44px targets, 16px inputs, picker, media, voice and PWA capabilities without uploading evidence");
-console.log("✓ Diagnostics collect no user ID, phone/email, user-agent, browser storage or SMS/OTP execution evidence");
+console.log("✓ Mobile readiness baseline remains public-but-noindex, exact-path bounded and permission-free");
+console.log("✓ Microphone, Photos and Camera checks are explicit user-tap self-tests and stay local to the device");
+console.log("✓ Diagnostic microphone streams are released immediately; picker reports omit customer file names");
+console.log("✓ Device report keeps physicalDeviceVerified=false until real-device evidence is externally reviewed");
 console.log("✓ The mobile readiness page is locked into the Production stability surface set");
