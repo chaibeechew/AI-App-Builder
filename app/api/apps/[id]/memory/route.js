@@ -5,8 +5,8 @@ import { executeMemoryService } from "../../../../../lib/memory-service/gateway.
 
 const MAX_MEMORY_REQUEST_BYTES=262144;
 
-async function ownedApp(supabase,id,userId){
-  const {data}=await supabase.from("apps").select("id,name,owner_id").eq("id",id).eq("owner_id",userId).single();
+async function ownedApp(supabase,id,user){
+  const {data}=await supabase.from("apps").select("id,name,owner_id").eq("id",id).eq("owner_id",user.id).single();
   return data;
 }
 
@@ -30,7 +30,7 @@ export async function GET(_request,{params}){
   try{
     const {id}=await params;const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();
     if(!user)return NextResponse.json({error:"Authentication required."},{status:401});
-    const app=await ownedApp(supabase,id,user.id);if(!app)return NextResponse.json({error:"Project not found."},{status:404});
+    const app=await ownedApp(supabase,id,user);if(!app)return NextResponse.json({error:"Project not found."},{status:404});
     const result=await executeMemoryService({operation:"load",appId:id,userId:user.id,embedded:()=>embeddedLoad(supabase,id,user.id,app)});
     return NextResponse.json({success:true,app:result.app||{id:app.id,name:app.name},memory:result.memory??null},{headers:{"Cache-Control":"no-store"}});
   }catch(error){console.error("PROJECT_MEMORY_GET_ERROR",error);return NextResponse.json({error:"Unable to load project memory."},{status:Number(error?.status)||500});}
@@ -41,7 +41,7 @@ export async function POST(request,{params}){
     const contentLength=Number(request.headers.get("content-length")||0);if(contentLength>MAX_MEMORY_REQUEST_BYTES)return NextResponse.json({error:"Project memory update is too large."},{status:413});
     const {id}=await params;const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();
     if(!user)return NextResponse.json({error:"Authentication required."},{status:401});
-    const app=await ownedApp(supabase,id,user.id);if(!app)return NextResponse.json({error:"Project not found."},{status:404});
+    const app=await ownedApp(supabase,id,user);if(!app)return NextResponse.json({error:"Project not found."},{status:404});
     const body=await request.json().catch(()=>({}));const patch=body?.memory&&typeof body.memory==="object"&&!Array.isArray(body.memory)?body.memory:{};
     if(Buffer.byteLength(JSON.stringify(patch),"utf8")>MAX_MEMORY_REQUEST_BYTES)return NextResponse.json({error:"Project memory update is too large."},{status:413});
     const result=await executeMemoryService({operation:"save",appId:id,userId:user.id,payload:{memory:patch,learningScope:body?.learningScope},embedded:()=>embeddedSave(supabase,id,user.id,body)});
