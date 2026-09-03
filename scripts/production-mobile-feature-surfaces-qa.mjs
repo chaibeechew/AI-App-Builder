@@ -65,8 +65,8 @@ for(const entry of matrix){
     await page.waitForLoadState("networkidle",{timeout:20000}).catch(()=>{});
     await page.waitForTimeout(300);
 
-    // Signed-out Account behavior: do not leak account chrome; CSS still guarantees
-    // 44px touch targets when AccountNav is mounted after authentication.
+    // Signed-out Account behavior only. This browser-emulation run intentionally does not
+    // authenticate or execute Logout, so the report must never label Logout as verified.
     assert.equal(await page.locator(".accountNav").count(),0,`${entry.label} signed-out public route must not expose account chrome`);
     const accountCss=await page.evaluate(()=>{
       const shell=document.createElement("div");
@@ -116,15 +116,45 @@ for(const entry of matrix){
     await page.locator(".referenceDock .panel header>button").click();
     await refPanelLocator.waitFor({state:"hidden",timeout:5000});
 
-    results.push({id:entry.id,label:entry.label,evidenceLevel:"BROWSER_EMULATION",account:{signedOutChromeHidden:true,touchTargetsAtLeast44:true},voiceIdea:{openedWithoutCapture:true,touchTargetsAtLeast44:true,inputFontAtLeast16:true,noHorizontalOverflow:true,modalAboveFloatingUtilities:true,closeInteractionPassed:true},uploadRef:{openedWithoutCapture:true,viewportPanel:true,touchTargetsAtLeast44:true,noHorizontalOverflow:true,modalAboveFloatingUtilities:true,closeInteractionPassed:true},passed:true});
-    console.log(`✓ ${entry.label}: Account/Logout, Voice Idea and Upload Ref mobile surface checks passed`);
+    results.push({
+      id:entry.id,
+      label:entry.label,
+      evidenceLevel:"BROWSER_EMULATION",
+      account:{
+        signedOutChromeHidden:true,
+        touchTargetsAtLeast44:true,
+        authenticatedAccountSurfaceVerified:false,
+        logoutInteractionExercised:false,
+      },
+      voiceIdea:{
+        openedWithoutCapture:true,
+        touchTargetsAtLeast44:true,
+        inputFontAtLeast16:true,
+        noHorizontalOverflow:true,
+        modalAboveFloatingUtilities:true,
+        closeInteractionPassed:true,
+        microphoneCaptureExercised:false,
+        speechRecognitionResultVerified:false,
+      },
+      uploadRef:{
+        openedWithoutCapture:true,
+        viewportPanel:true,
+        touchTargetsAtLeast44:true,
+        noHorizontalOverflow:true,
+        modalAboveFloatingUtilities:true,
+        closeInteractionPassed:true,
+        pickerInteractionExercised:false,
+      },
+      passed:true,
+    });
+    console.log(`✓ ${entry.label}: signed-out Account surface, Voice Idea UI and Upload Ref UI checks passed`);
   }finally{
     await context.close();
     await browser.close();
   }
 }
 
-await fs.writeFile(path.join(artifactDir,"feature-surfaces-report.json"),`${JSON.stringify({evidenceLevel:"BROWSER_EMULATION",physicalDeviceVerified:false,permissionActionsExercised:false,productionUrl:baseUrl,buildInfo,generatedAt:new Date().toISOString(),results},null,2)}\n`,"utf8");
-console.log("✓ Three mobile feature surfaces passed Production browser emulation without exercising microphone/camera/file-picker permissions");
+await fs.writeFile(path.join(artifactDir,"feature-surfaces-report.json"),`${JSON.stringify({featureEvidenceVersion:2,evidenceLevel:"BROWSER_EMULATION",physicalDeviceVerified:false,authenticatedActionsExercised:false,permissionActionsExercised:false,productionUrl:baseUrl,buildInfo,generatedAt:new Date().toISOString(),results},null,2)}\n`,"utf8");
+console.log("✓ Three mobile UI surfaces passed Production browser emulation without authenticated Logout or microphone/camera/file-picker permission actions");
 console.log("✓ Feature modals stay above floating utility controls and both close actions are pointer-accessible in the evidence matrix");
-console.log("✓ Physical iPhone Account logout, microphone capture and Photos/Camera picker behavior remain separate device-evidence gates");
+console.log("✓ Authenticated Account/Logout, physical iPhone microphone capture and Photos/Camera picker behavior remain separate LIVE/device-evidence gates");
