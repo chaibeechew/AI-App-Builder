@@ -1,71 +1,110 @@
 "use client";
-import { useMemo,useState } from "react";
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import s from "./design-studio.module.css";
 
-const FALLBACK_PROMPT="Create a premium real estate CRM App and customer Website. Show the upcoming client meeting first with client, property, route, documents and the suggested next action.";
+const FALLBACK_PROMPT = "Create a premium real estate CRM App and customer Website. Show the upcoming client meeting first with client, property, route, documents and the suggested next action.";
 
-function detectDomain(value){
-  const text=String(value||"").toLowerCase();
-  if(/real estate|property|realtor|listing|agent|房产|房地产|地产/.test(text))return"real-estate";
-  if(/restaurant|cafe|food|menu|reservation|餐厅|餐饮/.test(text))return"hospitality";
-  if(/shop|store|commerce|product|checkout|购物|电商|商城/.test(text))return"commerce";
-  if(/travel|hotel|trip|booking|旅游|旅行|酒店/.test(text))return"travel";
-  if(/crm|business|client|lead|sales|客户|销售/.test(text))return"business";
-  return"product";
+function detectDomain(value) {
+  const text = String(value || "").toLowerCase();
+  if (/real estate|property|realtor|listing|agent|房产|房地产|地产/.test(text)) return "real-estate";
+  if (/restaurant|cafe|food|menu|reservation|餐厅|餐饮/.test(text)) return "hospitality";
+  if (/shop|store|commerce|product|checkout|购物|电商|商城/.test(text)) return "commerce";
+  if (/travel|hotel|trip|booking|旅游|旅行|酒店/.test(text)) return "travel";
+  if (/crm|business|client|lead|sales|客户|销售/.test(text)) return "business";
+  return "product";
 }
 
-function domainCopy(domain){
-  if(domain==="real-estate")return{entity:"Property",person:"Client",primary:"Upcoming Viewing",secondary:"Interested Property",action:"Open meeting brief",site:"Premium Listing Website"};
-  if(domain==="hospitality")return{entity:"Reservation",person:"Guest",primary:"Next Booking",secondary:"Table & Preferences",action:"Prepare guest visit",site:"Guest Booking Website"};
-  if(domain==="commerce")return{entity:"Order",person:"Customer",primary:"Priority Order",secondary:"Product & Delivery",action:"Open order brief",site:"Conversion Storefront"};
-  if(domain==="travel")return{entity:"Trip",person:"Traveler",primary:"Upcoming Journey",secondary:"Booking & Itinerary",action:"Open trip brief",site:"Immersive Travel Website"};
-  if(domain==="business")return{entity:"Opportunity",person:"Client",primary:"Next Priority",secondary:"Account & Follow-up",action:"Open client brief",site:"Customer Website"};
-  return{entity:"Task",person:"Customer",primary:"Next Priority",secondary:"Context & Details",action:"Open smart brief",site:"Premium Customer Website"};
+function domainCopy(domain) {
+  if (domain === "real-estate") return { entity:"Property", person:"Client", primary:"Upcoming Viewing", secondary:"Interested Property", action:"Open meeting brief", site:"Premium Listing Website" };
+  if (domain === "hospitality") return { entity:"Reservation", person:"Guest", primary:"Next Booking", secondary:"Table & Preferences", action:"Prepare guest visit", site:"Guest Booking Website" };
+  if (domain === "commerce") return { entity:"Order", person:"Customer", primary:"Priority Order", secondary:"Product & Delivery", action:"Open order brief", site:"Conversion Storefront" };
+  if (domain === "travel") return { entity:"Trip", person:"Traveler", primary:"Upcoming Journey", secondary:"Booking & Itinerary", action:"Open trip brief", site:"Immersive Travel Website" };
+  if (domain === "business") return { entity:"Opportunity", person:"Client", primary:"Next Priority", secondary:"Account & Follow-up", action:"Open client brief", site:"Customer Website" };
+  return { entity:"Task", person:"Customer", primary:"Next Priority", secondary:"Context & Details", action:"Open smart brief", site:"Premium Customer Website" };
 }
 
-function buildDirections(domain){
-  const c=domainCopy(domain);
-  return[
-    {id:"intent-first",name:domain==="real-estate"?"Meeting-First CRM":"Intent-First Workspace",eyebrow:"INTENT FIRST",summary:`Put ${c.primary.toLowerCase()} first and reveal supporting context only when it helps the next action.`,preset:"luxury-gold",layout:"focus",features:[`${c.person} context first`,c.secondary,"Suggested next action","Living status cards"]},
-    {id:"mobile-flow",name:domain==="real-estate"?"Mobile Agent Flow":"Mobile Action Flow",eyebrow:"PHONE · ONE HAND",summary:"Thumb-friendly mobile workspace with the most likely next actions anchored within easy reach.",preset:"emerald-premium",layout:"mobile",features:["Bottom action rail","One-hand navigation","Voice shortcut","Progressive detail"]},
-    {id:"premium-site",name:c.site,eyebrow:"CUSTOMER EXPERIENCE",summary:"Editorial customer-facing website with strong hierarchy, focused conversion actions and domain-specific content.",preset:"minimal-light",layout:"site",features:[`${c.entity} discovery","Focused primary CTA","Trust & proof","Responsive storytelling"]},
-    {id:"command-center",name:"Desktop Command Center",eyebrow:"DESKTOP · MULTI PANEL",summary:"High-density desktop workspace for parallel work without shrinking the mobile UI into a wider screen.",preset:"tech-blue",layout:"desktop",features:["Multi-panel workspace","Command palette","Calendar / activity","Analytics & documents"]},
+function buildDirections(domain) {
+  const c = domainCopy(domain);
+  return [
+    { id:"intent-first", name:domain === "real-estate" ? "Meeting-First CRM" : "Intent-First Workspace", eyebrow:"INTENT FIRST", summary:"Put " + c.primary.toLowerCase() + " first and reveal supporting context only when it helps the next action.", preset:"luxury-gold", layout:"focus", features:[c.person + " context first", c.secondary, "Suggested next action", "Living status cards"] },
+    { id:"mobile-flow", name:domain === "real-estate" ? "Mobile Agent Flow" : "Mobile Action Flow", eyebrow:"PHONE · ONE HAND", summary:"Thumb-friendly mobile workspace with the most likely next actions anchored within easy reach.", preset:"emerald-premium", layout:"mobile", features:["Bottom action rail", "One-hand navigation", "Voice shortcut", "Progressive detail"] },
+    { id:"premium-site", name:c.site, eyebrow:"CUSTOMER EXPERIENCE", summary:"Editorial customer-facing website with strong hierarchy, focused conversion actions and domain-specific content.", preset:"minimal-light", layout:"site", features:[c.entity + " discovery", "Focused primary CTA", "Trust & proof", "Responsive storytelling"] },
+    { id:"command-center", name:"Desktop Command Center", eyebrow:"DESKTOP · MULTI PANEL", summary:"High-density desktop workspace for parallel work without shrinking the mobile UI into a wider screen.", preset:"tech-blue", layout:"desktop", features:["Multi-panel workspace", "Command palette", "Calendar / activity", "Analytics & documents"] },
   ];
 }
 
-function MockPreview({direction,copy}){
-  if(direction.layout==="mobile")return <div className="mock mobileMock"><div className="mockTop"><b>09:00</b><span>LIVE</span></div><div className="mockHero"><small>NEXT</small><strong>{copy.primary}</strong><p>{copy.person} · {copy.secondary}</p></div><div className="miniGrid"><i/><i/><i/></div><button>{copy.action}</button><div className="mockNav"><span>⌂</span><span>◇</span><span>✦</span><span>☰</span></div></div>;
-  if(direction.layout==="site")return <div className="mock siteMock"><div className="siteNav"><b>LANERIQ</b><span>Explore　Saved　Contact</span></div><div className="siteHero"><small>PREMIUM EXPERIENCE</small><strong>{copy.site}</strong><p>Clear content, confident hierarchy and one obvious next step.</p><button>Explore {copy.entity}</button></div><div className="siteCards"><i/><i/><i/></div></div>;
-  if(direction.layout==="desktop")return <div className="mock desktopMock"><aside><b>✦</b><span>Overview</span><span>{copy.person}s</span><span>{copy.entity}s</span><span>Activity</span></aside><section><div className="deskHead"><strong>Command Center</strong><small>⌘ K</small></div><div className="deskGrid"><article><small>NOW</small><b>{copy.primary}</b><p>{copy.secondary}</p></article><article/><article/><article/></div></section></div>;
-  return <div className="mock focusMock"><div className="focusHead"><span>GOOD MORNING</span><b>Today</b></div><article><small>UP NEXT · 09:00</small><strong>{copy.primary}</strong><p>{copy.person} profile · {copy.secondary} · Documents · Route</p><button>{copy.action} →</button></article><div className="focusRow"><i/><i/><i/></div></div>;
+function MockPreview({ direction, copy }) {
+  if (direction.layout === "mobile") {
+    return <div className={s.mobileMock}>
+      <div className={s.mockTop}><b>09:00</b><span>LIVE</span></div>
+      <div className={s.mockHero}><small>NEXT</small><strong>{copy.primary}</strong><p>{copy.person} · {copy.secondary}</p></div>
+      <div className={s.miniGrid}><i/><i/><i/></div><button>{copy.action}</button>
+      <div className={s.mockNav}><span>⌂</span><span>◇</span><span>✦</span><span>☰</span></div>
+    </div>;
+  }
+  if (direction.layout === "site") {
+    return <div className={s.siteMock}>
+      <div className={s.siteNav}><b>LANERIQ</b><span>Explore · Saved · Contact</span></div>
+      <div className={s.siteHero}><small>PREMIUM EXPERIENCE</small><strong>{copy.site}</strong><p>Clear content, confident hierarchy and one obvious next step.</p><button>Explore {copy.entity}</button></div>
+      <div className={s.siteCards}><i/><i/><i/></div>
+    </div>;
+  }
+  if (direction.layout === "desktop") {
+    return <div className={s.desktopMock}>
+      <aside><b>✦</b><span>Overview</span><span>{copy.person}s</span><span>{copy.entity}s</span><span>Activity</span></aside>
+      <section><div className={s.deskHead}><strong>Command Center</strong><small>⌘ K</small></div><div className={s.deskGrid}><article><small>NOW</small><b>{copy.primary}</b><p>{copy.secondary}</p></article><article/><article/><article/></div></section>
+    </div>;
+  }
+  return <div className={s.focusMock}>
+    <div className={s.focusHead}><span>GOOD MORNING</span><b>Today</b></div>
+    <article><small>UP NEXT · 09:00</small><strong>{copy.primary}</strong><p>{copy.person} profile · {copy.secondary} · Documents · Route</p><button>{copy.action} →</button></article>
+    <div className={s.focusRow}><i/><i/><i/></div>
+  </div>;
 }
 
-export default function DesignStudio(){
-  const[prompt,setPrompt]=useState("");
-  const[activePrompt,setActivePrompt]=useState("");
-  const[notice,setNotice]=useState("");
-  const domain=useMemo(()=>detectDomain(activePrompt||prompt),[activePrompt,prompt]);
-  const copy=useMemo(()=>domainCopy(domain),[domain]);
-  const directions=useMemo(()=>buildDirections(domain),[domain]);
-  const ready=Boolean(activePrompt);
+export default function DesignStudio() {
+  const [prompt, setPrompt] = useState("");
+  const [activePrompt, setActivePrompt] = useState("");
+  const domain = useMemo(() => detectDomain(activePrompt || prompt), [activePrompt, prompt]);
+  const copy = useMemo(() => domainCopy(domain), [domain]);
+  const directions = useMemo(() => buildDirections(domain), [domain]);
+  const ready = Boolean(activePrompt);
 
-  function generateDirections(){const value=prompt.trim();if(!value){setPrompt(FALLBACK_PROMPT);setActivePrompt(FALLBACK_PROMPT);return}setActivePrompt(value);setNotice("");}
-  function useDirection(direction){
-    const original=(activePrompt||prompt).trim()||FALLBACK_PROMPT;
-    const selected=`${original}\n\nSelected LANERIQ LIUI direction: ${direction.name}. ${direction.summary} Required traits: ${direction.features.join(", ")}. Use device-specific interaction models rather than scaling one layout.`;
-    try{sessionStorage.setItem("aiAppBuilderPendingIdea",selected);sessionStorage.setItem("laneriqSelectedUiDirection",JSON.stringify({id:direction.id,name:direction.name,domain,features:direction.features}));localStorage.setItem("ai-build-style-preset",direction.preset)}catch{}
+  function generateDirections() {
+    const value = prompt.trim() || FALLBACK_PROMPT;
+    if (!prompt.trim()) setPrompt(value);
+    setActivePrompt(value);
+  }
+
+  function useDirection(direction) {
+    const original = (activePrompt || prompt).trim() || FALLBACK_PROMPT;
+    const selected = [
+      original,
+      "Selected LANERIQ LIUI direction: " + direction.name + ". " + direction.summary + " Required traits: " + direction.features.join(", ") + ". Use device-specific interaction models rather than scaling one layout."
+    ].join("\n\n");
+    try {
+      sessionStorage.setItem("aiAppBuilderPendingIdea", selected);
+      sessionStorage.setItem("laneriqSelectedUiDirection", JSON.stringify({ id:direction.id, name:direction.name, domain, features:direction.features }));
+      localStorage.setItem("ai-build-style-preset", direction.preset);
+    } catch {}
     window.location.assign("/");
   }
 
-  return <main className="designStudio"><div className="ambient"/><div className="shell">
-    <header><Link href="/">← Builder</Link><b>LANERIQ AI</b><span>LIUI · DESIGN STUDIO</span></header>
-    <section className="intro"><small>APP · WEB · UI CONCEPTS</small><h1>Design the interface,<br/><em>not another wallpaper.</em></h1><p>Describe the product you want. LANERIQ turns the intent into four structurally different UI directions. These are interface concepts, not decorative image results.</p></section>
-    <section className="composer"><label>What should the App / Website help people do?</label><textarea value={prompt} onChange={e=>setPrompt(e.target.value)} maxLength={5000} placeholder={FALLBACK_PROMPT}/><div className="composerFoot"><span>{prompt.length}/5000</span><button onClick={generateDirections}>✦ CREATE UI DIRECTIONS</button></div></section>
-    <section className="resultHead"><div><small>UI CONCEPT DIRECTIONS</small><h2>{ready?"4 genuinely different directions":"Your interface directions appear here"}</h2></div>{ready&&<span>LIUI · {domain.replace("-"," ")}</span>}</section>
-    {ready?<div className="directions">{directions.map(direction=><article className="direction" key={direction.id}><MockPreview direction={direction} copy={copy}/><div className="directionBody"><small>{direction.eyebrow}</small><h3>{direction.name}</h3><p>{direction.summary}</p><div className="features">{direction.features.map(item=><span key={item}>✓ {item}</span>)}</div><button onClick={()=>useDirection(direction)}>Use this direction →</button></div></article>)}</div>:<div className="empty"><span>✦</span><b>UI, not scenery.</b><p>Each result will show a real product layout direction for phone, website and desktop instead of four variations of the same decorative picture.</p><button onClick={()=>{setPrompt(FALLBACK_PROMPT);setActivePrompt(FALLBACK_PROMPT)}}>Try the real-estate example</button></div>}
-    {notice&&<div className="notice">{notice}</div>}
-    <section className="rules"><article><b>Intent first</b><p>The most important task gets visual priority.</p></article><article><b>Device specific</b><p>Phone and desktop receive different interaction models.</p></article><article><b>Human in control</b><p>You choose the direction before it becomes the build brief.</p></article></section>
-  </div><style jsx>{`
-    *{box-sizing:border-box}.designStudio{min-height:100vh;background:#020b16;color:#f8fbff;font-family:Inter,system-ui,-apple-system,sans-serif;padding:22px 16px 80px;position:relative;overflow:hidden}.ambient{position:fixed;inset:0;background:radial-gradient(circle at 75% 8%,#164b6855,transparent 28%),radial-gradient(circle at 12% 38%,#8b6a2030,transparent 28%),linear-gradient(180deg,#071827,#020811 78%);pointer-events:none}.shell{position:relative;z-index:1;max-width:1180px;margin:auto}header{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px;letter-spacing:.12em}header a{color:#ffe394;text-decoration:none}header b{font-size:15px;color:#fff}header span{color:#86a8bd}.intro{padding:58px 0 26px;max-width:900px}.intro small,.resultHead small,.directionBody>small{color:#f1bd4b;letter-spacing:.16em;font-weight:900;font-size:10px}.intro h1{font-size:clamp(44px,7.8vw,82px);line-height:.95;letter-spacing:-.05em;margin:12px 0 18px}.intro em{font-style:normal;background:linear-gradient(90deg,#ffe394,#67d8ff);-webkit-background-clip:text;color:transparent}.intro p{max-width:760px;color:#b9cad5;line-height:1.65}.composer{border:1px solid #88c8ee38;border-radius:28px;background:rgba(255,255,255,.09);backdrop-filter:blur(22px);padding:18px;box-shadow:0 24px 70px #0007}.composer label{display:block;font-size:14px;font-weight:800;margin-bottom:10px}.composer textarea{field-sizing:content;width:100%;height:auto;min-height:128px;max-height:360px;overflow-y:auto;resize:none;border:1px solid #ffffff35;border-radius:20px;background:rgba(255,255,255,.12);color:#fff;padding:17px;font:600 17px/1.5 Inter,system-ui;outline:none}.composer textarea::placeholder{color:#dce8ef99}.composer textarea:focus{border-color:#ffe394aa;background:rgba(255,255,255,.15);box-shadow:0 0 0 3px #f1bd4b18}.composerFoot{display:flex;align-items:center;gap:12px;justify-content:flex-end;margin-top:10px}.composerFoot span{margin-right:auto;color:#8da7b7;font-size:11px}.composerFoot button,.directionBody>button,.empty button{border:1px solid #ffe394;border-radius:14px;background:linear-gradient(180deg,#ffe17e,#d89b27);color:#07111d;font-weight:950;padding:13px 16px}.resultHead{display:flex;justify-content:space-between;gap:18px;align-items:end;margin:34px 2px 14px}.resultHead h2{margin:5px 0 0;font-size:clamp(28px,4vw,42px)}.resultHead>span{color:#73d8ff;text-transform:uppercase;font-size:10px;letter-spacing:.12em}.directions{display:grid;grid-template-columns:1fr 1fr;gap:14px}.direction{border:1px solid #7ccaf132;border-radius:24px;background:#061522d9;overflow:hidden;box-shadow:0 22px 58px #0006}.mock{height:310px;background:#091927;position:relative;overflow:hidden}.directionBody{padding:18px}.directionBody h3{font-size:25px;margin:6px 0 8px}.directionBody p{color:#aebfca;line-height:1.5;margin:0 0 13px}.features{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:15px}.features span{border:1px solid #ffffff18;border-radius:999px;background:#ffffff09;color:#dce9ef;font-size:10px;padding:7px 9px}.directionBody>button{width:100%}.focusMock{padding:18px;background:radial-gradient(circle at 88% 0,#e6bc5b33,transparent 35%),#071b26}.focusHead{display:flex;justify-content:space-between;color:#9fb6c1;font-size:10px}.focusHead b{color:#fff}.focusMock article{margin-top:42px;border:1px solid #f0ca7050;background:#081621dd;border-radius:22px;padding:20px}.focusMock article small{color:#f1bd4b}.focusMock article strong{display:block;font-size:27px;margin:8px 0}.focusMock article p{color:#9eb4c0;font-size:11px}.focusMock article button,.mobileMock button,.siteHero button{border:0;border-radius:10px;background:#f0c35a;color:#08131b;font-weight:900;padding:10px 12px}.focusRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.focusRow i{height:48px;border-radius:12px;background:#ffffff0c;border:1px solid #ffffff12}.mobileMock{width:190px;height:310px;margin:auto;border-left:6px solid #02070c;border-right:6px solid #02070c;background:linear-gradient(180deg,#0b2730,#061119);padding:15px 12px}.mockTop{display:flex;justify-content:space-between;font-size:9px}.mockTop span{color:#75e6aa}.mockHero{margin-top:35px}.mockHero small{color:#f1bd4b}.mockHero strong{display:block;font-size:22px;margin:6px 0}.mockHero p{font-size:9px;color:#a8bbc3}.miniGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:12px 0}.miniGrid i{height:48px;border-radius:9px;background:#ffffff0d}.mobileMock button{width:100%;font-size:9px}.mockNav{position:absolute;left:10px;right:10px;bottom:10px;display:flex;justify-content:space-around;border:1px solid #ffffff16;border-radius:13px;padding:9px;background:#02090dcf}.siteMock{padding:18px;background:linear-gradient(120deg,#101d2b,#162d36)}.siteNav{display:flex;justify-content:space-between;font-size:9px}.siteNav span{color:#aec0ca}.siteHero{margin:58px 0 0;max-width:70%}.siteHero small{color:#f1bd4b}.siteHero strong{display:block;font:700 31px/1.05 Georgia,serif;margin:7px 0}.siteHero p{font-size:10px;color:#b6c7d0}.siteHero button{font-size:9px}.siteCards{position:absolute;right:16px;bottom:16px;width:38%;display:grid;gap:6px}.siteCards i{height:55px;border-radius:12px;background:linear-gradient(145deg,#ffffff18,#78c9e814);border:1px solid #ffffff15}.desktopMock{display:grid;grid-template-columns:100px 1fr}.desktopMock aside{display:flex;flex-direction:column;gap:15px;padding:16px 10px;background:#041019;border-right:1px solid #ffffff12;font-size:9px;color:#90aab8}.desktopMock aside b{color:#f1bd4b;font-size:18px}.desktopMock section{padding:18px}.deskHead{display:flex;justify-content:space-between}.deskHead small{border:1px solid #ffffff20;border-radius:8px;padding:6px;color:#9ab1bd}.deskGrid{display:grid;grid-template-columns:1.6fr 1fr;gap:8px;margin-top:30px}.deskGrid article{height:96px;border:1px solid #ffffff13;border-radius:13px;background:#ffffff09;padding:11px}.deskGrid article:first-child{height:200px;grid-row:span 2;border-color:#f1bd4b40}.deskGrid article small{color:#f1bd4b}.deskGrid article b{display:block;font-size:19px;margin-top:8px}.deskGrid article p{font-size:9px;color:#9fb2bd}.empty{min-height:390px;border:1px dashed #86ccef36;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:35px;color:#abc0cb}.empty>span{font-size:42px;color:#f1bd4b}.empty b{font-size:25px;color:#fff}.empty p{max-width:540px;line-height:1.6}.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}.rules article{border:1px solid #ffffff12;border-radius:16px;background:#ffffff08;padding:14px}.rules b{color:#ffe394}.rules p{color:#92aab7;font-size:11px;line-height:1.5}.notice{margin-top:12px;padding:12px;border-radius:12px;background:#1a624a55;color:#9ce0c0}@media(max-width:760px){.designStudio{padding:18px 10px 60px}.intro{padding-top:42px}.directions{grid-template-columns:1fr}.mock{height:280px}.resultHead{align-items:flex-start;flex-direction:column}.composer{padding:14px;border-radius:22px}.composer textarea{min-height:136px;max-height:42svh;font-size:16px}.composerFoot{align-items:stretch;flex-direction:column}.composerFoot span{margin-right:0}.composerFoot button{width:100%}.rules{grid-template-columns:1fr}header span{display:none}}
-  `}</style></main>;
+  return <main className={s.designStudio}>
+    <div className={s.ambient}/>
+    <div className={s.shell}>
+      <header className={s.header}><Link href="/">← Builder</Link><b>LANERIQ AI</b><span>LIUI · DESIGN STUDIO</span></header>
+      <section className={s.intro}><small>APP · WEB · UI CONCEPTS</small><h1>Design the interface,<br/><em>not another wallpaper.</em></h1><p>Describe the product you want. LANERIQ turns the intent into four structurally different UI directions. These are interface concepts, not decorative image results.</p></section>
+
+      <section className={s.composer}><label>What should the App / Website help people do?</label><textarea value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={5000} placeholder={FALLBACK_PROMPT}/><div className={s.composerFoot}><span>{prompt.length}/5000</span><button onClick={generateDirections}>✦ CREATE UI DIRECTIONS</button></div></section>
+
+      <section className={s.resultHead}><div><small>UI CONCEPT DIRECTIONS</small><h2>{ready ? "4 genuinely different directions" : "Your interface directions appear here"}</h2></div>{ready && <span>LIUI · {domain.replace("-", " ")}</span>}</section>
+
+      {ready ? <div className={s.directions}>{directions.map(direction => <article className={s.direction} key={direction.id}><MockPreview direction={direction} copy={copy}/><div className={s.directionBody}><small>{direction.eyebrow}</small><h3>{direction.name}</h3><p>{direction.summary}</p><div className={s.features}>{direction.features.map(item => <span key={item}>✓ {item}</span>)}</div><button onClick={() => useDirection(direction)}>Use this direction →</button></div></article>)}</div> : <div className={s.empty}><span>✦</span><b>UI, not scenery.</b><p>Each result will show a real product layout direction for phone, website and desktop instead of four variations of the same decorative picture.</p><button onClick={() => { setPrompt(FALLBACK_PROMPT); setActivePrompt(FALLBACK_PROMPT); }}>Try the real-estate example</button></div>}
+
+      <section className={s.rules}><article><b>Intent first</b><p>The most important task gets visual priority.</p></article><article><b>Device specific</b><p>Phone and desktop receive different interaction models.</p></article><article><b>Human in control</b><p>You choose the direction before it becomes the build brief.</p></article></section>
+    </div>
+  </main>;
 }
