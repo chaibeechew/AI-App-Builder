@@ -67,7 +67,7 @@ jobs:
       - name: Record Production mobile performance browser evidence
         run: node scripts/production-mobile-performance-evidence.mjs
 
-      - name: Verify Account Voice and Upload Ref mobile surfaces
+      - name: Verify signed-out private feature isolation and mobile CSS probes
         run: node scripts/production-mobile-feature-surfaces-qa.mjs
 
       - name: Upload browser-emulation evidence

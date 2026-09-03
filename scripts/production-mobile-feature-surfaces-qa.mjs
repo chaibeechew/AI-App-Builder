@@ -17,24 +17,8 @@ async function verifyBuild(){
   return body;
 }
 
-function atLeast44(size,label){
-  assert(Number(size?.width)>=44,`${label} width ${size?.width}px is below 44px`);
-  assert(Number(size?.height)>=44,`${label} height ${size?.height}px is below 44px`);
-}
-
-async function box(page,selector){
-  return page.locator(selector).evaluate(el=>{const r=el.getBoundingClientRect();return{width:Math.round(r.width),height:Math.round(r.height),fontSize:Number.parseFloat(getComputedStyle(el).fontSize||"0")};});
-}
-
-async function layerOrder(page, modalSelector){
-  return page.evaluate((selector)=>{
-    const modal=document.querySelector(selector);
-    const language=document.querySelector(".laneriqLangButton.floating");
-    return {
-      modalZ:Number.parseInt(getComputedStyle(modal).zIndex||"0",10)||0,
-      languageZ:language?(Number.parseInt(getComputedStyle(language).zIndex||"0",10)||0):0,
-    };
-  },modalSelector);
+function assertAtLeast44(value,label){
+  assert(Number(value)>=44,`${label} ${value}px is below 44px`);
 }
 
 const buildInfo=await verifyBuild();
@@ -48,113 +32,91 @@ for(const entry of matrix){
   const browser=await entry.browserType.launch({headless:true});
   const context=await browser.newContext({...entry.device,locale:"en-MY",timezoneId:"Asia/Kuala_Lumpur",colorScheme:"dark"});
   const page=await context.newPage();
-  await page.addInitScript(()=>{
-    window.__laneriqQaCaptureCalls=0;
-    try{
-      const media=navigator.mediaDevices;
-      if(media?.getUserMedia){
-        const original=media.getUserMedia.bind(media);
-        media.getUserMedia=(...args)=>{window.__laneriqQaCaptureCalls+=1;return original(...args);};
-      }
-    }catch{}
-  });
-
   try{
     const response=await page.goto(`${baseUrl}/templates`,{waitUntil:"domcontentloaded",timeout:45000});
     assert.equal(response?.status(),200,`${entry.label} /templates must return 200`);
     await page.waitForLoadState("networkidle",{timeout:20000}).catch(()=>{});
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(250);
 
-    // Signed-out Account behavior only. This browser-emulation run intentionally does not
-    // authenticate or execute Logout, so the report must never label Logout as verified.
-    assert.equal(await page.locator(".accountNav").count(),0,`${entry.label} signed-out public route must not expose account chrome`);
-    const accountCss=await page.evaluate(()=>{
-      const shell=document.createElement("div");
-      shell.className="accountNav";
-      shell.style.cssText="position:fixed;left:-10000px;top:0;visibility:hidden";
-      shell.innerHTML='<button class="accountTrigger">A</button><button class="visibleLogout">Logout</button><div class="accountMenu"><button>Menu</button></div>';
-      document.body.appendChild(shell);
-      const measure=selector=>{const el=shell.querySelector(selector);const s=getComputedStyle(el);return{minHeight:Number.parseFloat(s.minHeight||"0"),touchAction:s.touchAction}};
-      const out={trigger:measure(".accountTrigger"),logout:measure(".visibleLogout"),menu:measure(".accountMenu button")};
-      shell.remove();
+    // Public/signed-out pages must not mount private Account, Voice, Upload Ref or Studio controls.
+    // This is an access-isolation proof, not an authenticated feature-interaction proof.
+    for(const [selector,label] of [
+      [".accountNav","Account chrome"],
+      [".sv-fab","Voice Idea trigger"],
+      [".sv-panel","Voice Idea panel"],
+      [".referenceDock","Upload Ref workspace"],
+      [".studioLauncher","Studio launcher"],
+    ]) assert.equal(await page.locator(selector).count(),0,`${entry.label} public /templates must not expose private ${label}`);
+
+    // Probe the deployed production CSS in-browser without pretending the protected components
+    // were rendered or interacted with. The synthetic nodes are removed immediately after measurement.
+    const cssProbe=await page.evaluate(()=>{
+      const root=document.createElement("div");
+      root.setAttribute("data-laneriq-private-feature-css-probe","true");
+      root.style.cssText="position:fixed;left:-10000px;top:0;visibility:hidden;pointer-events:none";
+      root.innerHTML=`
+        <div class="accountNav"><button class="accountTrigger">A</button><button class="visibleLogout">Logout</button><div class="accountMenu"><button>Menu</button></div></div>
+        <div class="sv-backdrop"><div class="sv-panel"><button class="sv-close">×</button><button class="sv-mic">Mic</button><button class="sv-play">Play</button><button class="sv-build">Build</button><textarea>Voice</textarea></div></div>
+        <div class="referenceDock"><button class="trigger">Ref</button><div class="panel"><header><button>×</button></header><label class="upload">Upload</label></div></div>`;
+      document.body.appendChild(root);
+      const metric=(selector)=>{const el=root.querySelector(selector);const s=getComputedStyle(el);const r=el.getBoundingClientRect();return{width:Math.round(r.width),height:Math.round(r.height),minHeight:Number.parseFloat(s.minHeight||"0"),fontSize:Number.parseFloat(s.fontSize||"0"),zIndex:Number.parseInt(s.zIndex||"0",10)||0};};
+      const out={
+        accountTrigger:metric(".accountTrigger"),
+        accountLogout:metric(".visibleLogout"),
+        accountMenu:metric(".accountMenu button"),
+        voiceClose:metric(".sv-close"),
+        voiceMic:metric(".sv-mic"),
+        voicePlay:metric(".sv-play"),
+        voiceBuild:metric(".sv-build"),
+        voiceTextarea:metric(".sv-panel textarea"),
+        voiceBackdrop:metric(".sv-backdrop"),
+        refTrigger:metric(".referenceDock>.trigger"),
+        refClose:metric(".referenceDock .panel header>button"),
+        refUpload:metric(".referenceDock .panel .upload"),
+        refPanel:metric(".referenceDock .panel"),
+        viewport:{width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth},
+      };
+      root.remove();
       return out;
     });
-    for(const [name,value] of Object.entries(accountCss))assert(value.minHeight>=44,`${entry.label} Account ${name} min-height ${value.minHeight}px is below 44px`);
 
-    const voiceTrigger=page.locator(".sv-fab");
-    await voiceTrigger.waitFor({state:"visible",timeout:15000});
-    atLeast44(await box(page,".sv-fab"),`${entry.label} Voice Idea trigger`);
-    await voiceTrigger.click();
-    const voicePanel=page.locator(".sv-panel");
-    await voicePanel.waitFor({state:"visible",timeout:10000});
-    for(const [selector,label] of [[".sv-close","Voice close"],[".sv-mic","Voice microphone"],[".sv-play","Voice playback"],[".sv-build","Voice build"]])atLeast44(await box(page,selector),`${entry.label} ${label}`);
-    const voiceTextarea=await box(page,".sv-panel textarea");
-    assert(voiceTextarea.fontSize>=16,`${entry.label} Voice transcript font ${voiceTextarea.fontSize}px risks iOS zoom`);
-    const voiceViewport=await page.evaluate(()=>({innerWidth,scrollWidth:document.documentElement.scrollWidth,captureCalls:window.__laneriqQaCaptureCalls||0}));
-    assert(voiceViewport.scrollWidth<=voiceViewport.innerWidth+1,`${entry.label} Voice dialog creates horizontal overflow`);
-    assert.equal(voiceViewport.captureCalls,0,`${entry.label} opening Voice Idea must not request microphone capture`);
-    const voiceLayers=await layerOrder(page,".sv-backdrop");
-    assert(voiceLayers.modalZ>voiceLayers.languageZ,`${entry.label} Voice modal z-index ${voiceLayers.modalZ} must exceed floating Language control ${voiceLayers.languageZ}`);
-    await voicePanel.screenshot({path:path.join(artifactDir,`${entry.id}-voice-idea-open.png`)});
-    await page.locator(".sv-close").click();
-    await voicePanel.waitFor({state:"hidden",timeout:5000});
+    for(const [name,metric] of Object.entries({
+      accountTrigger:cssProbe.accountTrigger,
+      accountLogout:cssProbe.accountLogout,
+      accountMenu:cssProbe.accountMenu,
+      voiceClose:cssProbe.voiceClose,
+      voiceMic:cssProbe.voiceMic,
+      voicePlay:cssProbe.voicePlay,
+      voiceBuild:cssProbe.voiceBuild,
+      refTrigger:cssProbe.refTrigger,
+      refClose:cssProbe.refClose,
+      refUpload:cssProbe.refUpload,
+    })) assertAtLeast44(Math.max(metric.minHeight,metric.height),`${entry.label} ${name} touch target`);
+    assert(cssProbe.voiceTextarea.fontSize>=16,`${entry.label} Voice textarea font ${cssProbe.voiceTextarea.fontSize}px risks iOS zoom`);
+    assert(cssProbe.refPanel.height>=cssProbe.viewport.height*.95,`${entry.label} Upload Ref CSS probe panel ${cssProbe.refPanel.height}px must use almost the full ${cssProbe.viewport.height}px viewport`);
+    assert(cssProbe.viewport.scrollWidth<=cssProbe.viewport.width+1,`${entry.label} CSS probe creates horizontal overflow`);
 
-    const refTrigger=page.locator(".referenceDock>.trigger");
-    await refTrigger.waitFor({state:"visible",timeout:10000});
-    atLeast44(await box(page,".referenceDock>.trigger"),`${entry.label} Upload Ref trigger`);
-    await refTrigger.click();
-    const refPanelLocator=page.locator(".referenceDock .panel");
-    await refPanelLocator.waitFor({state:"visible",timeout:10000});
-    for(const [selector,label] of [[".referenceDock .panel header>button","Reference close"],[".referenceDock .panel .upload","Reference upload"]])atLeast44(await box(page,selector),`${entry.label} ${label}`);
-    const refPanel=await refPanelLocator.evaluate(el=>{const r=el.getBoundingClientRect();return{height:Math.round(r.height),viewport:window.innerHeight,scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth};});
-    assert(refPanel.height>=refPanel.viewport*.95,`${entry.label} Upload Ref mobile panel must use the viewport instead of a cramped floating sheet`);
-    assert(refPanel.scrollWidth<=refPanel.innerWidth+1,`${entry.label} Upload Ref panel creates horizontal overflow`);
-    assert.equal(await page.evaluate(()=>window.__laneriqQaCaptureCalls||0),0,`${entry.label} opening Upload Ref must not request media capture`);
-    const referenceLayers=await layerOrder(page,".referenceDock");
-    assert(referenceLayers.modalZ>referenceLayers.languageZ,`${entry.label} Upload Ref modal z-index ${referenceLayers.modalZ} must exceed floating Language control ${referenceLayers.languageZ}`);
-    await refPanelLocator.screenshot({path:path.join(artifactDir,`${entry.id}-upload-ref-open.png`)});
-    await page.locator(".referenceDock .panel header>button").click();
-    await refPanelLocator.waitFor({state:"hidden",timeout:5000});
-
+    await page.screenshot({path:path.join(artifactDir,`${entry.id}-private-feature-isolation.png`),fullPage:false});
     results.push({
       id:entry.id,
       label:entry.label,
       evidenceLevel:"BROWSER_EMULATION",
-      account:{
-        signedOutChromeHidden:true,
-        touchTargetsAtLeast44:true,
-        authenticatedAccountSurfaceVerified:false,
-        logoutInteractionExercised:false,
-      },
-      voiceIdea:{
-        openedWithoutCapture:true,
-        touchTargetsAtLeast44:true,
-        inputFontAtLeast16:true,
-        noHorizontalOverflow:true,
-        modalAboveFloatingUtilities:true,
-        closeInteractionPassed:true,
-        microphoneCaptureExercised:false,
-        speechRecognitionResultVerified:false,
-      },
-      uploadRef:{
-        openedWithoutCapture:true,
-        viewportPanel:true,
-        touchTargetsAtLeast44:true,
-        noHorizontalOverflow:true,
-        modalAboveFloatingUtilities:true,
-        closeInteractionPassed:true,
-        pickerInteractionExercised:false,
-      },
+      publicIsolation:{accountHidden:true,voiceHidden:true,uploadRefHidden:true,studioHidden:true},
+      cssProbe:{touchTargetsAtLeast44:true,voiceInputFontAtLeast16:true,uploadRefViewportRuleActive:true,noHorizontalOverflow:true},
+      account:{authenticatedAccountSurfaceVerified:false,logoutInteractionExercised:false},
+      voiceIdea:{componentRendered:false,openInteractionExercised:false,microphoneCaptureExercised:false,speechRecognitionResultVerified:false},
+      uploadRef:{componentRendered:false,openInteractionExercised:false,pickerInteractionExercised:false},
+      authenticatedActionsExercised:false,
+      permissionActionsExercised:false,
       passed:true,
     });
-    console.log(`✓ ${entry.label}: signed-out Account surface, Voice Idea UI and Upload Ref UI checks passed`);
+    console.log(`✓ ${entry.label}: public Account/Voice/Upload Ref/Studio isolation and deployed mobile CSS probes passed`);
   }finally{
     await context.close();
     await browser.close();
   }
 }
 
-await fs.writeFile(path.join(artifactDir,"feature-surfaces-report.json"),`${JSON.stringify({featureEvidenceVersion:2,evidenceLevel:"BROWSER_EMULATION",physicalDeviceVerified:false,authenticatedActionsExercised:false,permissionActionsExercised:false,productionUrl:baseUrl,buildInfo,generatedAt:new Date().toISOString(),results},null,2)}\n`,"utf8");
-console.log("✓ Three mobile UI surfaces passed Production browser emulation without authenticated Logout or microphone/camera/file-picker permission actions");
-console.log("✓ Feature modals stay above floating utility controls and both close actions are pointer-accessible in the evidence matrix");
-console.log("✓ Authenticated Account/Logout, physical iPhone microphone capture and Photos/Camera picker behavior remain separate LIVE/device-evidence gates");
+await fs.writeFile(path.join(artifactDir,"feature-surfaces-report.json"),`${JSON.stringify({featureEvidenceVersion:3,evidenceLevel:"BROWSER_EMULATION",physicalDeviceVerified:false,authenticatedFeatureSurfacesVerified:false,authenticatedActionsExercised:false,permissionActionsExercised:false,productionUrl:baseUrl,buildInfo,generatedAt:new Date().toISOString(),results},null,2)}\n`,"utf8");
+console.log("✓ Production browser evidence proves signed-out public isolation plus deployed CSS constraints; it does not pretend protected feature controls were rendered or clicked");
+console.log("✓ Authenticated Account/Logout, protected Voice/Upload Ref rendering, physical iPhone microphone capture and Photos/Camera picker behavior remain separate LIVE/device-evidence gates");

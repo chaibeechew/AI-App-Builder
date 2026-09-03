@@ -71,39 +71,36 @@ for (const pattern of [
   /devices\["Pixel 5"\]/,
   /\/templates/,
   /\.accountNav/,
-  /signed-out public route must not expose account chrome/,
   /\.sv-fab/,
+  /\.sv-panel/,
+  /\.referenceDock/,
+  /\.studioLauncher/,
+  /public \/templates must not expose private/,
+  /data-laneriq-private-feature-css-probe/,
   /\.sv-panel textarea/,
-  /opening Voice Idea must not request microphone capture/,
-  /layerOrder\(page,"\.sv-backdrop"\)/,
-  /Voice modal z-index/,
-  /\.sv-close"\)\.click\(\)/,
   /\.referenceDock>\.trigger/,
-  /Upload Ref mobile panel must use the viewport/,
-  /layerOrder\(page,"\.referenceDock"\)/,
-  /Upload Ref modal z-index/,
-  /\.referenceDock \.panel header>button"\)\.click\(\)/,
-  /voicePanel\.screenshot/,
-  /refPanelLocator\.screenshot/,
-  /modalAboveFloatingUtilities:true/,
-  /closeInteractionPassed:true/,
-  /featureEvidenceVersion:2/,
+  /Upload Ref CSS probe panel/,
+  /featureEvidenceVersion:3/,
+  /publicIsolation:\{accountHidden:true,voiceHidden:true,uploadRefHidden:true,studioHidden:true\}/,
+  /cssProbe:\{touchTargetsAtLeast44:true,voiceInputFontAtLeast16:true,uploadRefViewportRuleActive:true,noHorizontalOverflow:true\}/,
+  /authenticatedFeatureSurfacesVerified:false/,
   /authenticatedActionsExercised:false/,
   /permissionActionsExercised:false/,
   /physicalDeviceVerified:false/,
   /authenticatedAccountSurfaceVerified:false/,
   /logoutInteractionExercised:false/,
+  /componentRendered:false/,
   /microphoneCaptureExercised:false/,
   /speechRecognitionResultVerified:false/,
   /pickerInteractionExercised:false/,
-  /signed-out Account surface, Voice Idea UI and Upload Ref UI checks passed/,
-  /Authenticated Account\/Logout, physical iPhone microphone capture/,
+  /public Account\/Voice\/Upload Ref\/Studio isolation and deployed mobile CSS probes passed/,
+  /does not pretend protected feature controls were rendered or clicked/,
+  /Authenticated Account\/Logout, protected Voice\/Upload Ref rendering, physical iPhone microphone capture/,
 ]) assert.match(featureQa, pattern);
-assert.doesNotMatch(featureQa, /Account\/Logout, Voice Idea and Upload Ref mobile surface checks passed/, "Signed-out browser QA must not imply authenticated Logout was exercised.");
-assert.doesNotMatch(featureQa, /fullPage\s*:\s*true/, "Three-feature evidence must screenshot bounded feature panels, not potentially unbounded full pages.");
-assert.doesNotMatch(featureQa, /force\s*:\s*true/, "Pointer accessibility must pass naturally; QA must never force clicks through overlay conflicts.");
-assert.doesNotMatch(featureQa, /\.sv-mic"\)\.click|input\[type=['"]file['"]\].*click|getUserMedia\([^)]*\)\s*;/i, "Production three-feature QA must not exercise microphone/camera/file-picker permissions.");
-assert.match(workflow, /Verify Account Voice and Upload Ref mobile surfaces/);
+assert.doesNotMatch(featureQa, /voiceTrigger\.click|refTrigger\.click|\.sv-close"\)\.click|input\[type=['"]file['"]\].*click|getUserMedia\([^)]*\)\s*;/i, "Signed-out Production QA must never click protected feature controls or permission surfaces.");
+assert.doesNotMatch(featureQa, /authenticatedFeatureSurfacesVerified:true|physicalDeviceVerified:true|componentRendered:true/, "Public isolation evidence must never be relabeled as protected/physical feature evidence.");
+assert.doesNotMatch(featureQa, /force\s*:\s*true/, "QA must never force interactions through overlay conflicts.");
+assert.match(workflow, /Verify signed-out private feature isolation and mobile CSS probes/);
 assert.match(workflow, /production-mobile-feature-surfaces-qa\.mjs/);
 
 const result = evaluateMobileCodeEvidence({
@@ -122,10 +119,7 @@ assert.equal(result.realDeviceVerified, false);
 
 console.log("✓ Mobile UI code contract enforces iPhone safe areas, 44px touch targets and 16px form inputs");
 console.log("✓ Account/Logout mobile chrome has 44px+ controls, bounded menus and iPhone safe-area placement");
-console.log("✓ Voice Idea mobile modal sits above floating utility controls while the dedicated Language modal remains top-level");
-console.log("✓ Upload Ref open workspace raises its stacking context above floating Language/Voice controls");
-console.log("✓ Production feature QA must naturally click both modal close controls; force-click bypasses are forbidden");
-console.log("✓ Browser evidence explicitly records that authenticated Logout, microphone recognition and picker actions were not exercised");
-console.log("✓ Three-feature Production evidence captures bounded panels, avoiding browser screenshot dimension limits without relaxing assertions");
-console.log("✓ Exact-Production WebKit/iPhone and Chromium/Pixel feature-surface QA is wired without relabeling browser emulation as physical-device proof");
-console.log("✓ Code can score 100 while real-device visual/touch/permission evidence remains separately required");
+console.log("✓ Voice Idea and Upload Ref protected controls retain mobile CSS constraints without exposing them on public routes");
+console.log("✓ Exact-Production browser evidence verifies signed-out private-feature isolation and deployed CSS behavior");
+console.log("✓ Browser evidence explicitly records that authenticated Logout, protected feature rendering, microphone recognition and picker actions were not exercised");
+console.log("✓ Code can score 100 while authenticated/real-device visual, touch and permission evidence remains separately required");
