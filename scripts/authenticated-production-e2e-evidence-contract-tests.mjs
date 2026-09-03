@@ -6,6 +6,10 @@ const page = fs.readFileSync("app/production-e2e/page.js", "utf8");
 const client = fs.readFileSync("app/production-e2e/ProductionE2EClient.js", "utf8");
 const css = fs.readFileSync("app/production-e2e/production-e2e.module.css", "utf8");
 const buildInfo = fs.readFileSync("app/api/build-info/route.js", "utf8");
+const quickTest = fs.readFileSync("app/quick-test/route.js", "utf8");
+const zeroSpendRoute = fs.readFileSync("app/api/production-e2e/zero-spend/route.js", "utf8");
+const finance = fs.readFileSync("lib/app-builder-finance.js", "utf8");
+const zeroSpendMigration = fs.readFileSync("supabase/migrations/20260903080410_batch13_zero_spend_generation_entitlement.sql", "utf8");
 
 assert.equal(isPublicAccountPath("/production-e2e"), false, "Authenticated Production E2E evidence must remain protected by account middleware.");
 assert.match(page, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/);
@@ -54,8 +58,69 @@ assert.doesNotMatch(client, /Math\.max\(0,\s*Date\.now\(\) - createdAtMs\)/, "A 
 assert.doesNotMatch(client, /providerOutputReplayed:\s*false/, "Evidence-runner behavior must not be mislabeled as proof about the original generation provider output.");
 assert.doesNotMatch(client, /createClient\s*\(/, "Evidence UI must use normal protected application APIs instead of constructing privileged Supabase access.");
 assert.doesNotMatch(client, /signInWithOtp|verifyOtp|phone-auth|sms-auth/i, "SMS/OTP execution remains on hold and outside authenticated E2E evidence.");
-assert.doesNotMatch(client, /\/api\/generate|\/api\/modify|\/api\/apps\/.*\/publish/, "Evidence collection must be read-only and must not create, modify or publish a project.");
+assert.doesNotMatch(client, /\/api\/generate|\/api\/modify|\/api\/apps\/.*\/publish/, "Evidence collection must remain read-only; the separate Quick Test owns explicit write execution.");
 assert.doesNotMatch(client, /service_role|SUPABASE_SERVICE|admin\.createUser/i, "Evidence collection must never bypass normal Auth with privileged credentials.");
+
+for (const pattern of [
+  /sameOrigin\(request\)/,
+  /readBoundedJson\(request, MAX_BYTES\)/,
+  /authenticatedUser\(\)/,
+  /consumeZeroSpendAppBuilderEntitlement/,
+  /restoreFailedAppBuilderCreate/,
+  /ZERO_SPEND_ENTITLEMENT_REQUIRED/,
+  /free_first_project_create/,
+  /pro_access/,
+  /aiCreditsCharged:\s*0/,
+  /projectCreditsCharged:\s*0/,
+  /zeroSpendOnly:\s*true/,
+]) assert.match(zeroSpendRoute, pattern);
+assert.doesNotMatch(zeroSpendRoute, /consumeAiCredits|standard_project_credits|server_consume_ai_credits/,
+  "Zero-spend reservation API must never consume AI or project credits.");
+
+assert.match(finance, /consumeZeroSpendAppBuilderEntitlement/);
+assert.match(finance, /server_consume_app_builder_zero_spend_entitlement/);
+
+for (const pattern of [
+  /server_consume_app_builder_zero_spend_entitlement/,
+  /security definer/i,
+  /set search_path = ''/,
+  /free_first_project_create/,
+  /pro_access/,
+  /zero_spend/,
+  /revoke all on function public\.server_consume_app_builder_zero_spend_entitlement\(uuid,text\) from public, anon, authenticated/,
+  /grant execute on function public\.server_consume_app_builder_zero_spend_entitlement\(uuid,text\) to service_role/,
+]) assert.match(zeroSpendMigration, pattern);
+assert.doesNotMatch(zeroSpendMigration, /standard_project_credits|server_consume_ai_credits|credit_accounts|credit_transactions/,
+  "Database zero-spend entitlement must not read, decrement or call any credit mechanism.");
+
+const planIndex = quickTest.indexOf("/api/orchestrate");
+const reserveIndex = quickTest.indexOf("/api/production-e2e/zero-spend");
+const generateIndex = quickTest.indexOf("/api/generate");
+assert(planIndex > 0 && reserveIndex > planIndex && generateIndex > reserveIndex,
+  "Fresh Production E2E must Plan, reserve zero-spend entitlement, then Generate in that order.");
+for (const pattern of [
+  /RUN ZERO-SPEND E2E/,
+  /action:'reserve'/,
+  /action:'release'/,
+  /reservationHeld=true/,
+  /reservationHeld=false/,
+  /requestId:createRequestId/,
+  /\/api\/apps\/'\+encodeURIComponent\(appId\)\+'\/bootstrap/,
+  /\/a\/'\+encodeURIComponent\(appId\)\+'\?demo=1/,
+  /\/website\/'\+encodeURIComponent\(appId\)/,
+  /AUTHENTICATED_PRODUCTION_E2E/,
+  /physicalDeviceVerified:false/,
+  /zeroSpendOnly:true/,
+  /aiCreditsCharged:0/,
+  /projectCreditsCharged:0/,
+  /planningVerified:true/,
+  /saveVerified:true/,
+  /appPreviewVerified:appPreview\.ok/,
+  /websitePreviewVerified:websitePreview\.ok/,
+  /writesExercised:true/,
+]) assert.match(quickTest, pattern);
+assert.doesNotMatch(quickTest, /\/api\/credits|consumeAiCredits|standard_project_credits|SMS|signInWithOtp|verifyOtp/,
+  "Fresh zero-spend E2E must not touch credits or SMS/OTP internals.");
 
 for (const pattern of [
   /100svh/,
@@ -70,7 +135,8 @@ for (const pattern of [
 
 console.log("✓ Authenticated Production E2E evidence route stays protected and noindex");
 console.log("✓ Evidence can be issued only from an exact Production main deployment with a real 40-character commit SHA");
-console.log("✓ Evidence runner validates a real persisted app, current version, App Demo, Website Preview, Versions/Undo and Release surfaces");
-console.log("✓ Fresh Generate→Save evidence is bounded to a non-future project created within 20 minutes instead of inferred from an old or clock-invalid project");
-console.log("✓ Report v2 distinguishes exact-build, physical-device, original-provider, runner-replay and write-execution evidence truthfully");
-console.log("✓ Evidence is read-only: no fake Auth, no provider replay, no Generate/Modify/Publish write, and SMS remains untouched");
+console.log("✓ Read-only evidence validates persisted App/Website/version/release surfaces without replaying provider output");
+console.log("✓ Batch 13 adds a separate explicit authenticated write runner: Plan → zero-spend reserve → Generate → atomic Save → App Preview → Website Preview");
+console.log("✓ Zero-spend reservation is service-role-only and can use only free-first-project or active Pro access; AI/project credits are impossible by contract");
+console.log("✓ Failed E2E attempts release their reservation; successful Generate binds the same stable request ID to the persisted project");
+console.log("✓ Fresh write evidence remains truthful: authenticated Production E2E is not physical-device, paid-provider or official-store proof, and SMS stays untouched");
