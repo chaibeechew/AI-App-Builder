@@ -22,7 +22,7 @@ export async function GET() {
     evidence: {
       cloudDomainBoundaryInCode: true,
       projectReadAdapterMigrated: true,
-      legacyDirectProviderRouteBudget: 54,
+      legacyDirectProviderRouteBudget: 77,
       clientSideEncryptionEnvelopeInCode: true,
       providerAdaptersFullyMigrated: false,
       clientSideEncryptionFullyLive: false,
