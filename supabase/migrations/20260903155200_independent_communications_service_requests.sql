@@ -42,7 +42,6 @@ declare
   v_existing public.communication_service_requests%rowtype;
   v_id uuid;
 begin
-  if (select auth.role()) <> 'service_role' then raise exception 'service_role required'; end if;
   if char_length(coalesce(p_client_hash,'')) not between 32 and 128
      or char_length(coalesce(p_nonce_hash,'')) not between 32 and 128
      or char_length(coalesce(p_idempotency_hash,'')) not between 32 and 128
@@ -92,7 +91,6 @@ security definer
 set search_path=''
 as $$
 begin
-  if (select auth.role()) <> 'service_role' then raise exception 'service_role required'; end if;
   if p_status not in ('completed','failed') then raise exception 'invalid service request completion status'; end if;
   update public.communication_service_requests
     set status=p_status,completed_at=now()
