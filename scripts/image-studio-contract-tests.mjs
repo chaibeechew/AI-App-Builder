@@ -68,8 +68,12 @@ assert.match(generate,/failRequest\(admin/);
 assert.match(generate,/source:"model"/);
 assert.match(generate,/source:"local"/);
 assert.match(generate,/modelFallback:Boolean\(modelFailureCode\)/);
-assert.ok(generate.indexOf('claimRequest(admin')<generate.indexOf('const generated=await generateExternalImages'),'Provider execution must happen only after the request replay ledger is claimed.');
-assert.ok(generate.indexOf('persistGeneratedImages({admin')<generate.indexOf('engine:"Soolen Image Runtime"'),'Provider bytes must be durably captured before model output is returned to the browser.');
+const providerCallIndex=generate.indexOf('const generated=await generateExternalImages');
+const requestClaimIndex=generate.indexOf('claimRequest(admin');
+const durableCaptureIndex=generate.indexOf('const durableImages=await persistGeneratedImages',providerCallIndex);
+const providerSuccessIndex=generate.indexOf('replayed:false,durable:true',durableCaptureIndex);
+assert.ok(requestClaimIndex>=0&&providerCallIndex>requestClaimIndex,'Provider execution must happen only after the request replay ledger is claimed.');
+assert.ok(durableCaptureIndex>providerCallIndex&&providerSuccessIndex>durableCaptureIndex,'Provider bytes must be durably captured before first-run model output is returned to the browser.');
 assert.match(generate,/return noStore\(\{error:"Unable to generate image right now\."\},500\)/);
 assert.doesNotMatch(generate,/return noStore\(\{error:error\?\.message/);
 
