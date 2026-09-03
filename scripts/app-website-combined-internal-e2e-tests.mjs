@@ -5,6 +5,11 @@ import { buildAutonomousPlan, orchestrationBrief } from "../lib/build/orchestrat
 const home=fs.readFileSync("app/page.js","utf8");
 const engine=fs.readFileSync("engine/autonomous-engine.js","utf8");
 const generate=fs.readFileSync("app/api/generate/route.js","utf8");
+const modify=fs.readFileSync("app/api/modify/route.js","utf8");
+const combinedPreview=fs.readFileSync("app/preview/[id]/page.js","utf8");
+const appSurface=fs.readFileSync("app/a/[id]/page.js","utf8");
+const websiteSurface=fs.readFileSync("app/website/[id]/page.js","utf8");
+const visibleRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
 
 for(const idea of [
   "Create a real estate CRM for agents",
@@ -40,6 +45,33 @@ assert.match(generate,/projectLearning/);
 assert.match(generate,/media:\{attached/);
 assert.match(generate,/project_memory/);
 
+// The original completion CTA still enters through the App demo route, but owner demo traffic is upgraded into Preview Both.
+assert.match(home,/window\.location\.assign\(`\/a\/\$\{id\}\?demo=1`\)/);
+assert.match(appSurface,/query\?\.demo === "1"[\s\S]*redirect\(`\/preview\/\$\{id\}`\)/);
+assert.match(combinedPreview,/ONE PROJECT · ONE CURRENT VERSION/);
+assert.match(combinedPreview,/data-project-id=\{id\}/);
+assert.match(combinedPreview,/data-version-id=\{versionId\}/);
+assert.equal((combinedPreview.match(/previewVersion=\$\{pinned\}/g)||[]).length,2,"Both App and Website preview frames must pin the exact same version ID.");
+assert.match(combinedPreview,/data-surface="app"/);
+assert.match(combinedPreview,/data-surface="website"/);
+
+// Version pinning is owner-only and the selected version must still belong to the same project.
+assert.match(visibleRuntime,/requestedVersionId && isOwner \? requestedVersionId : app\.current_version_id/);
+assert.match(visibleRuntime,/\.eq\("id", selectedVersionId\)[\s\S]*\.eq\("app_id", app\.id\)/);
+assert.match(visibleRuntime,/isPinnedPreview: Boolean\(requestedVersionId && isOwner\)/);
+assert.match(appSurface,/versionId: requestedVersionId/);
+assert.match(appSurface,/data-project-version=\{version\.id\}/);
+assert.match(websiteSurface,/versionId:requestedVersionId/);
+assert.match(websiteSurface,/data-project-version=\{version\.id\}/);
+assert.match(websiteSurface,/const enquiryEnabled=isPublished&&!isPinnedPreview/);
+assert.match(websiteSurface,/isOwner&&!isPinnedPreview&&<WebsiteEnquiryInbox/);
+
+// AI Modify persists one new authoritative version; both surfaces resolve through the same apps.current_version_id lineage.
+assert.match(modify,/server_save_app_modification/);
+assert.match(modify,/p_expected_version_id:baseVersionId/);
+assert.match(modify,/\.eq\("id",baseVersionId\)\.eq\("app_id",appId\)/);
+
 console.log("✓ App + Website simultaneous internal E2E uses one Planning decision and one authoritative verified specification");
-console.log("✓ Brand Kit, referenceImages, owner-verified private assets, Project Memory and version persistence stay synchronized across the combined product");
-console.log("✓ No duplicate shadow Website record is invented; real simultaneous provider rendering remains LIVE evidence-gated");
+console.log("✓ Preview Both locks App and Website to the same owner-authorized project version with no shadow Website record");
+console.log("✓ Pinned Website preview cannot accept real enquiries; Modify persists one authoritative version for both customer surfaces");
+console.log("✓ Real simultaneous external-provider rendering remains a separate LIVE evidence gate");
