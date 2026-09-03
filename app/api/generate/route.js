@@ -86,7 +86,26 @@ export async function POST(request){
   if(isMobileGameIdea(combinedInput)){const access=await getAppBuilderAccess(supabase,user.id),trustedGameGateway=request.headers.get("x-soolen-game-gateway")==="professional-fair-use";if(!access.professional.active||!trustedGameGateway)return json({success:false,code:"PRO_GAME_CREATOR_REQUIRED",error:"Mobile Game Creator is a Professional feature. Start game creation from the Pro Game Creator so Fair Use protections apply.",upgradePath:"/game-builder"},403);}
   const industryPlan=inferIndustryCapabilities({idea:combinedInput,industry});
   const{data:brandKit}=await supabase.from("brand_kits").select("company_name,logo_url,primary_color,secondary_color,accent_color,font_style,brand_voice").eq("user_id",user.id).maybeSingle(),brandBrief=buildBrandBrief(brandKit),buildInput=[combinedInput,industryPlan.brief,brandBrief].filter(Boolean).join("\n\n");
-  const entitlement=await consumeAppBuilderEntitlement(user.id,{operation:"create",appId:null,requestId:chargeRequestId});if(!entitlement?.allowed){const charge=await consumeAiCredits(user.id,{amount:GENERATE_CREDIT_COST,requestId:chargeRequestId,description:"AI app generation",metadata:{operation:"generate"}});charged=charge?.charged!==false;}else{entitlementSource=entitlement.source;entitlementReserved=true;}
+
+  const entitlement=await consumeAppBuilderEntitlement(user.id,{operation:"create",appId:null,requestId:chargeRequestId});
+  let creditCharge=null;
+  if(!entitlement?.allowed){
+    creditCharge=await consumeAiCredits(user.id,{amount:GENERATE_CREDIT_COST,requestId:chargeRequestId,description:"AI app generation",metadata:{operation:"generate"}});
+    charged=creditCharge?.charged===true;
+  }else{
+    entitlementSource=entitlement.source;
+    entitlementReserved=true;
+  }
+
+  const postReservationReplay=await loadGenerationReplay(supabase,user.id,chargeRequestId);
+  if(postReservationReplay?.success){
+    if(entitlementReserved&&!entitlement?.replayed){try{await restoreFailedAppBuilderCreate(user.id,{requestId:chargeRequestId})}catch{}}
+    return json(postReservationReplay);
+  }
+  if(postReservationReplay?.inProgress||entitlement?.replayed||creditCharge?.replayed){
+    return json({success:false,code:"GENERATION_REQUEST_IN_PROGRESS",error:"This exact build request is already running. Retry the same request ID to recover the saved project without creating a duplicate."},409);
+  }
+
   const generationOptions={voiceTranscript,referenceImages,language,industry,terminology,createDemoVideo,brandKit:brandKit||null,themeMode,themePreset,primaryColor,accentColor,backgroundColor,styleRequest,wallpaperMode,wallpaperPreset};
   const adult=await runSoolenAdultMode({taskType:"app-build",goal:buildInput,privateData:referenceImages.length>0||assetIds.length>0,requirements:{...(body?.requirements||{}),brandKit:brandKit||undefined,requestedName:requestedName||undefined,industryPlan:industryPlan.matched?{profileId:industryPlan.profileId,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit}:undefined,themeMode,themePreset,primaryColor,accentColor,backgroundColor,styleRequest,wallpaperMode,wallpaperPreset},executors:[{id:"soolen-autonomous-engine",available:true,local:false,requiresNetwork:true,baseScore:50,historicalSuccess:0.5}],permissions:{network:true,privateUpload:referenceImages.length>0||assetIds.length>0}},{execute:async()=>runAutonomousEngine(buildInput,generationOptions),verify:async result=>{const report=verifyGeneration(result);return{passed:report.passed,report}},repair:async({result,review,verification})=>{const report=verification?.report||verifyGeneration(result),criticFailures=(review?.failed||[]).map(x=>x.id),instruction=buildRepairInstruction(report.execution||{}),selfHealInstruction=buildSelfHealInstruction({specification:report.normalized});return runAutonomousEngine(`${buildInput}\n\nSOOLEN AUTONOMOUS REPAIR + SELF-HEAL MODE\n${instruction}\n\n${selfHealInstruction}\nCritic failures: ${criticFailures.join(", ")||"none"}\nSelf-test failures: ${(report.selfTest?.errors||[]).join(", ")||"none"}\nDo not remove working features. Preserve the saved Brand Kit and customer-selected color/theme/wallpaper direction unless it conflicts with accessibility or safety. Preserve the customer's chosen app name. Never invent external-provider success. Return the full corrected specification only.`,generationOptions)}});
   if(adult.status!=="verified")throw new Error("Soolen Super Brain could not verify the generated app after autonomous repair attempts.");
