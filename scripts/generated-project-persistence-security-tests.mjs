@@ -5,17 +5,35 @@ import path from "node:path";
 const root=process.cwd();
 const read=(p)=>fs.readFileSync(path.join(root,p),"utf8");
 const generate=read("app/api/generate/route.js");
+const builderDomain=read("lib/cloud/builder-projects.js");
+const builderAdapter=read("lib/cloud-adapters/builder-project-data.js");
 const migration=read("supabase/migrations/20260903122000_restrict_generated_project_persistence_service_role.sql");
 const signature="server_persist_generated_project\\(uuid,text,text,text,text,jsonb,text\\)";
 
-assert.match(generate,/auth\.getUser\(\)/,"Generate must authenticate the customer before any privileged persistence.");
-assert.match(generate,/createAdminClient/,"Generate must have a server-only service-role persistence client.");
-assert.match(generate,/const persistenceAdmin=createAdminClient\(\)/,"Generated project persistence must use an explicitly scoped admin client.");
-assert.match(generate,/persistenceAdmin\.rpc\("server_persist_generated_project"/,"Atomic generated-project persistence must execute through the service-role client.");
-assert.doesNotMatch(generate,/supabase\.rpc\("server_persist_generated_project"/,"The customer-scoped Supabase client must never invoke the privileged persistence RPC.");
-assert.ok(generate.indexOf("auth.getUser()")<generate.indexOf("const persistenceAdmin=createAdminClient()"),"Authentication must happen before service-role escalation.");
-assert.ok(generate.indexOf("const verified=verifyGeneration(adult.result)")<generate.indexOf("const persistenceAdmin=createAdminClient()"),"Final AI verification must complete before service-role persistence.");
+// Route layer must be provider opaque. It authenticates through the LANERIQ Cloud domain and never receives an admin client.
+assert.match(generate,/lib\/cloud\/builder-projects\.js/,"Generate must cross the LANERIQ Cloud Builder Project boundary.");
+assert.match(generate,/getBuilderPrincipal\(\{requireVerified:true\}\)/,"Generate must require a verified Cloud principal before generation.");
+assert.match(generate,/persistBuilderGeneratedProject\(/,"Generate must persist only through the Cloud domain.");
+assert.doesNotMatch(generate,/lib\/supabase\/|@supabase\//,"Generate route must not directly import the current provider.");
+assert.doesNotMatch(generate,/createAdminClient|SERVICE_ROLE|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/,"Generate route must never hold provider admin credentials.");
+assert.ok(generate.indexOf("getBuilderPrincipal({requireVerified:true})")<generate.indexOf("persistBuilderGeneratedProject("),"Verified principal resolution must happen before Cloud persistence.");
+assert.ok(generate.indexOf("const verified=verifyGeneration(adult.result)")<generate.indexOf("persistBuilderGeneratedProject("),"Final AI verification must complete before generated-project persistence.");
 
+// Provider/domain split: the domain stays provider opaque; only the compatibility adapter can touch current provider clients.
+assert.match(builderDomain,/cloud-adapters\/builder-project-data\.js/);
+assert.match(builderDomain,/persistGeneratedProject/);
+assert.doesNotMatch(builderDomain,/lib\/supabase\/|@supabase\/|createAdminClient/,"Builder domain must not depend directly on provider SDK/admin clients.");
+assert.match(builderAdapter,/\.\.\/supabase\/server\.js/);
+assert.match(builderAdapter,/\.\.\/supabase\/admin\.js/);
+assert.match(builderAdapter,/auth\.getUser\(\)/,"Compatibility adapter must independently validate server identity.");
+assert.match(builderAdapter,/resolvePrincipal\(client, \{ requireVerified: true \}\)/,"Privileged generated-project persistence must require a verified principal inside the adapter too.");
+assert.match(builderAdapter,/const admin = createAdminClient\(\)/,"Service-role escalation must be explicitly scoped inside the compatibility adapter.");
+assert.match(builderAdapter,/admin\.rpc\("server_persist_generated_project"/,"Atomic generated-project persistence must execute only behind the service-role adapter boundary.");
+assert.doesNotMatch(builderAdapter,/client\.rpc\("server_persist_generated_project"/,"The customer-scoped provider client must never invoke the privileged persistence RPC.");
+const persistBlock=builderAdapter.slice(builderAdapter.indexOf("async persistGeneratedProject"),builderAdapter.indexOf("async saveGeneratedProjectContext"));
+assert.ok(persistBlock.indexOf("resolvePrincipal")<persistBlock.indexOf("createAdminClient()"),"Adapter authentication must happen before service-role escalation.");
+
+// Database is the final authority and remains service-role only.
 assert.match(migration,/security definer/i);
 assert.match(migration,/set search_path=''/i);
 assert.match(migration,/coalesce\(auth\.role\(\),''\) <> 'service_role'/i,"RPC must reject non-service JWT roles even if a future grant is accidentally broadened.");
@@ -27,7 +45,7 @@ assert.match(migration,/pg_advisory_xact_lock/,"Concurrent same-request persiste
 assert.match(migration,/insert into public\.app_versions/,"The privileged RPC must still atomically create the initial version.");
 assert.match(migration,/update public\.apps set current_version_id=version_row\.id/,"The initial version pointer must still advance atomically.");
 
-console.log("✓ Generated App + Website persistence is service-role only at both API and database boundaries");
-console.log("✓ Customer authentication and final AI verification complete before privileged persistence");
-console.log("✓ Direct authenticated RPC execution cannot bypass entitlement, credits, verification or self-heal gates");
+console.log("✓ Generated App + Website route is provider-opaque and persists only through LANERIQ Cloud");
+console.log("✓ Cloud adapter re-authenticates before service-role escalation; the user-scoped client cannot call privileged persistence");
+console.log("✓ Final AI verification completes before Cloud persistence and database RPC remains service-role only");
 console.log("✓ Atomic replay, version creation and current-version pointer semantics remain intact");

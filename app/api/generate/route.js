@@ -8,12 +8,10 @@ import { verifyGeneratedAppExecution,buildRepairInstruction } from "../../../lib
 import { inspectProjectSpecification,buildSelfHealInstruction } from "../../../lib/ai/project-self-heal-policy.js";
 import { inferIndustryCapabilities } from "../../../lib/ai/industry-capability-planner.js";
 import { isMobileGameIdea } from "../../../lib/ai/mobile-game-knowledge.js";
-import { getAppBuilderAccess } from "../../../lib/app-builder-access.js";
-import { createClient } from "../../../lib/supabase/server.js";
-import { createAdminClient } from "../../../lib/supabase/admin.js";
 import { resolveWallpaperId } from "../../../lib/design/wallpaper-presets.js";
 import { mergeProjectMemory } from "../../../lib/project-memory.js";
 import { consumeAppBuilderEntitlement,bindAppBuilderProjectAccess,restoreFailedAppBuilderCreate,consumeAiCredits,refundAiCredits } from "../../../lib/app-builder-finance.js";
+import { getBuilderPrincipal,loadBuilderGenerationReplay,loadBuilderGenerationInputs,persistBuilderGeneratedProject,saveBuilderGeneratedProjectContext } from "../../../lib/cloud/builder-projects.js";
 
 const GENERATE_CREDIT_COST=Math.max(1,Number(process.env.APP_GENERATE_CREDIT_COST||10));
 const HEX_COLOR=/^#[0-9a-f]{6}$/i;
@@ -28,21 +26,21 @@ function verifyGeneration(result){const normalized=normalizeAppSpec(result?.spec
 function sourceEngineeringEvidence(adult){const status=String(adult?.engineeringStatus||"not-required");return{status,sandboxVerified:status==="verified",requiredForGeneration:false,requiredBeforeSourceRelease:true};}
 function buildBrandBrief(kit){if(!kit)return"";const rows=[kit.company_name&&`Brand/company: ${kit.company_name}`,kit.primary_color&&`Primary color: ${kit.primary_color}`,kit.secondary_color&&`Secondary color: ${kit.secondary_color}`,kit.accent_color&&`Accent color: ${kit.accent_color}`,kit.font_style&&`Typography direction: ${kit.font_style}`,kit.brand_voice&&`Brand voice: ${kit.brand_voice}`,kit.logo_url&&`Logo reference: ${kit.logo_url}`].filter(Boolean);return rows.length?`SAVED BRAND KIT\n${rows.join("\n")}\nUse this identity as a design system for the new App + Website. Keep the result original, readable, comfortable, natural and accessible. Do not imitate third-party branding/assets.`:"";}
 function pageText(page){return`${page?.name||""} ${page?.purpose||page?.description||""}`.toLowerCase();}
-function choosePlacement(asset,pages=[]){const name=String(asset?.file_name||"").toLowerCase(),category=String(asset?.category||"").toLowerCase(),candidates=pages.map((page,index)=>({page,index,text:pageText(page)})),match=words=>candidates.find(item=>words.some(word=>item.text.includes(word)));let target=null,role="content",reason="Placed on the most relevant generated page.";if(/logo|brand|icon/.test(name)){target=match(["home","landing","about","profile"]);role="brand";reason="Detected as likely brand/logo media."}else if(/property|house|home|unit|listing|room/.test(name)){target=match(["property","listing","home","gallery"]);role="gallery";reason="Filename suggests property/listing media."}else if(/product|item|menu|food/.test(name)){target=match(["product","shop","store","menu","catalog"]);role="gallery";reason="Filename suggests product or catalog media."}else if(category==="video"){target=match(["home","about","story","gallery","media"]);role="video";reason="Video placed where motion/story content is most useful."}else target=match(["home","gallery","about","portfolio","product","listing"]);target=target||candidates[0]||null;return{suggested_page:target?.page?.name||"Main",suggested_role:role,placement_reason:reason};}
+function choosePlacement(asset,pages=[]){const name=String(asset?.file_name||"").toLowerCase(),category=String(asset?.category||"").toLowerCase(),candidates=pages.map((page,index)=>({page,index,text:pageText(page)})),match=words=>candidates.find(item=>words.some(word=>item.text.includes(word)));let target=null,role="content",reason="Placed on the most relevant generated page.";if(/logo|brand|icon/.test(name)){target=match(["home","landing","about","profile"]);role="brand";reason="Detected as likely brand/logo media."}else if(/property|house|home|unit|listing|room/.test(name)){target=match(["property","listing","home","gallery"]);role="gallery";reason="Filename suggests property/listing media."}else if(/product|item|menu|food/.test(name)){target=match(["product","shop","store","menu","catalog"]);role="gallery";reason="Filename suggests product or catalog media."}else if(category==="video"){target=match(["home","about","story","gallery","media"]);role="video";reason="Video placed where motion/story content is most useful."}else target=match(["home","gallery","about","portfolio","product","listing"]);target=target||candidates[0]||null;return{asset_id:asset.id,suggested_page:target?.page?.name||"Main",suggested_role:role,placement_reason:reason};}
 function safeColor(value){const v=String(value||"").trim();return HEX_COLOR.test(v)?v:"";}
 function cookieValue(request,key){const raw=String(request?.headers?.get?.("cookie")||"");for(const part of raw.split(";")){const[name,...rest]=part.trim().split("=");if(name===key){try{return decodeURIComponent(rest.join("="))}catch{return rest.join("=")}}}return"";}
 
-async function loadGenerationReplay(supabase,userId,requestId){
- const{data:app,error:appError}=await supabase.from("apps").select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status").eq("owner_id",userId).eq("generation_request_id",requestId).maybeSingle();
- if(appError)throw new Error(`Generation replay lookup failed: ${appError.message}`);
+async function loadGenerationReplay(requestId){
+ const state=await loadBuilderGenerationReplay({requestId});
+ if(!state.ok)throw new Error(state.detail||`Generation replay lookup failed: ${state.code}`);
+ const app=state.app;
  if(!app)return null;
  if(!app.current_version_id){
   const updatedMs=Date.parse(app.updated_at||app.created_at||"");
   const stale=Number.isFinite(updatedMs)&&Date.now()-updatedMs>=STALE_PARTIAL_MS;
   return stale?{stalePartial:true,app}:{inProgress:true,app};
  }
- const{data:version,error:versionError}=await supabase.from("app_versions").select("id,version_no,specification,created_at").eq("id",app.current_version_id).eq("app_id",app.id).maybeSingle();
- if(versionError)throw new Error(`Generation replay version lookup failed: ${versionError.message}`);
+ const version=state.version;
  if(!version?.specification)return{inProgress:true,app};
  const verified=verifyGeneration({specification:version.specification});
  if(!verified.passed)throw new Error("Persisted generation replay failed integrity verification.");
@@ -62,16 +60,17 @@ async function loadGenerationReplay(supabase,userId,requestId){
 }
 
 export async function POST(request){
- let supabase=null,userId=null,charged=false,chargeRequestId=null,entitlementSource=null,entitlementReserved=false,createdAppId=null,accessBound=false;
+ let userId=null,charged=false,chargeRequestId=null,entitlementSource=null,entitlementReserved=false,createdAppId=null,accessBound=false;
  try{
   const contentLength=Number(request.headers.get("content-length")||0);
   if(contentLength>MAX_REQUEST_BYTES)return json({success:false,error:"App generation request is too large."},413);
 
-  supabase=await createClient();
-  const{data:{user},error:userError}=await supabase.auth.getUser();
-  if(userError||!user)return json({success:false,error:"Authentication required."},401);
-  userId=user.id;
-  if(!user.confirmed_at&&!user.email_confirmed_at&&!user.phone_confirmed_at)return json({success:false,error:"Please verify your email or phone before creating an app."},403);
+  const principal=await getBuilderPrincipal({requireVerified:true});
+  if(!principal.ok){
+   if(principal.code==="ACCOUNT_VERIFICATION_REQUIRED")return json({success:false,error:"Please verify your email or phone before creating an app."},403);
+   return json({success:false,error:"Authentication required."},401);
+  }
+  userId=principal.principal.principalId;
 
   const body=await request.json().catch(()=>null);
   if(!body)return json({success:false,error:"Invalid app generation request."},400);
@@ -86,27 +85,30 @@ export async function POST(request){
   const combinedInput=[requestedName?`CUSTOMER-CHOSEN APP NAME: ${requestedName}`:"",idea,voiceTranscript].filter(Boolean).join("\n\n");
   if(combinedInput.length>8000)return json({success:false,error:"App description is too long."},413);
 
-  const replay=await loadGenerationReplay(supabase,user.id,chargeRequestId);
+  const replay=await loadGenerationReplay(chargeRequestId);
   if(replay?.success)return json(replay);
   if(replay?.inProgress)return json({success:false,code:"GENERATION_REQUEST_IN_PROGRESS",error:"This exact build request is already being saved. Retry the same request ID to recover the saved project without creating a duplicate."},409);
 
-  if(isMobileGameIdea(combinedInput)){const access=await getAppBuilderAccess(supabase,user.id),trustedGameGateway=request.headers.get("x-soolen-game-gateway")==="professional-fair-use";if(!access.professional.active||!trustedGameGateway)return json({success:false,code:"PRO_GAME_CREATOR_REQUIRED",error:"Mobile Game Creator is a Professional feature. Start game creation from the Pro Game Creator so Fair Use protections apply.",upgradePath:"/game-builder"},403);}
+  const inputs=await loadBuilderGenerationInputs({assetIds});
+  if(!inputs.ok)throw new Error(`Builder generation inputs unavailable: ${inputs.code}`);
+  const brandKit=inputs.brandKit||null,ownedAssets=inputs.ownedAssets||[];
+  if(isMobileGameIdea(combinedInput)){const access=inputs.builderAccess,trustedGameGateway=request.headers.get("x-soolen-game-gateway")==="professional-fair-use";if(!access?.professional?.active||!trustedGameGateway)return json({success:false,code:"PRO_GAME_CREATOR_REQUIRED",error:"Mobile Game Creator is a Professional feature. Start game creation from the Pro Game Creator so Fair Use protections apply.",upgradePath:"/game-builder"},403);}
   const industryPlan=inferIndustryCapabilities({idea:combinedInput,industry});
-  const{data:brandKit}=await supabase.from("brand_kits").select("company_name,logo_url,primary_color,secondary_color,accent_color,font_style,brand_voice").eq("user_id",user.id).maybeSingle(),brandBrief=buildBrandBrief(brandKit),buildInput=[combinedInput,industryPlan.brief,brandBrief].filter(Boolean).join("\n\n");
+  const brandBrief=buildBrandBrief(brandKit),buildInput=[combinedInput,industryPlan.brief,brandBrief].filter(Boolean).join("\n\n");
 
-  const entitlement=await consumeAppBuilderEntitlement(user.id,{operation:"create",appId:null,requestId:chargeRequestId});
+  const entitlement=await consumeAppBuilderEntitlement(userId,{operation:"create",appId:null,requestId:chargeRequestId});
   let creditCharge=null;
   if(!entitlement?.allowed){
-    creditCharge=await consumeAiCredits(user.id,{amount:GENERATE_CREDIT_COST,requestId:chargeRequestId,description:"AI app generation",metadata:{operation:"generate"}});
+    creditCharge=await consumeAiCredits(userId,{amount:GENERATE_CREDIT_COST,requestId:chargeRequestId,description:"AI app generation",metadata:{operation:"generate"}});
     charged=creditCharge?.charged===true;
   }else{
     entitlementSource=entitlement.source;
     entitlementReserved=true;
   }
 
-  const postReservationReplay=await loadGenerationReplay(supabase,user.id,chargeRequestId);
+  const postReservationReplay=await loadGenerationReplay(chargeRequestId);
   if(postReservationReplay?.success){
-    if(entitlementReserved&&!entitlement?.replayed){try{await restoreFailedAppBuilderCreate(user.id,{requestId:chargeRequestId})}catch{}}
+    if(entitlementReserved&&!entitlement?.replayed){try{await restoreFailedAppBuilderCreate(userId,{requestId:chargeRequestId})}catch{}}
     return json(postReservationReplay);
   }
   if(postReservationReplay?.inProgress||((entitlement?.replayed||creditCharge?.replayed)&&!postReservationReplay?.stalePartial)){
@@ -122,35 +124,34 @@ export async function POST(request){
   const engineeringEvidence=sourceEngineeringEvidence(adult);
   const changeSummary=brandBrief?"Initial verified + self-healed build with saved Brand Kit":"Initial Soolen Super Brain generated, repaired, self-healed and verified application";
 
-  const persistenceAdmin=createAdminClient();
-  const{data:persisted,error:persistError}=await persistenceAdmin.rpc("server_persist_generated_project",{p_user_id:user.id,p_request_id:chargeRequestId,p_name:String(specification.name||"Untitled App").trim(),p_description:String(specification.description||"").trim(),p_source_prompt:combinedInput,p_specification:specification,p_change_summary:changeSummary});
-  if(persistError||!persisted?.success)throw new Error(`Atomic App + Website save failed: ${persistError?.message||"unknown persistence failure"}`);
+  const persistence=await persistBuilderGeneratedProject({requestId:chargeRequestId,name:String(specification.name||"Untitled App").trim(),description:String(specification.description||"").trim(),sourcePrompt:combinedInput,specification,changeSummary});
+  if(!persistence.ok)throw new Error(`Atomic App + Website save failed: ${persistence.detail||persistence.code||"unknown persistence failure"}`);
+  const persisted=persistence.persisted;
   createdAppId=persisted.app_id;
   const app={id:persisted.app_id,name:persisted.app_name||String(specification.name||"Untitled App").trim(),visibility:persisted.visibility||"private",publish_status:persisted.publish_status||"draft"};
   const version={id:persisted.version_id,version_no:Number(persisted.version_no||1)};
 
   if(persisted.replayed&&!persisted.recovered_partial){
-    if(entitlementReserved&&!entitlement?.replayed){try{await restoreFailedAppBuilderCreate(user.id,{requestId:chargeRequestId})}catch{}}
-    if(charged&&!creditCharge?.replayed){try{await refundAiCredits(user.id,{requestId:chargeRequestId,amount:GENERATE_CREDIT_COST,description:"Duplicate generation replay - automatic refund",metadata:{operation:"generate",reason:"atomic_replay"}})}catch{}}
-    const atomicReplay=await loadGenerationReplay(supabase,user.id,chargeRequestId);
+    if(entitlementReserved&&!entitlement?.replayed){try{await restoreFailedAppBuilderCreate(userId,{requestId:chargeRequestId})}catch{}}
+    if(charged&&!creditCharge?.replayed){try{await refundAiCredits(userId,{requestId:chargeRequestId,amount:GENERATE_CREDIT_COST,description:"Duplicate generation replay - automatic refund",metadata:{operation:"generate",reason:"atomic_replay"}})}catch{}}
+    const atomicReplay=await loadGenerationReplay(chargeRequestId);
     if(atomicReplay?.success)return json(atomicReplay);
   }
 
   if(entitlementReserved){
     try{
-      let binding=await bindAppBuilderProjectAccess(user.id,{appId:app.id,requestId:chargeRequestId});
-      if(!binding?.bound&&!binding?.replayed)binding=await bindAppBuilderProjectAccess(user.id,{appId:app.id,requestId:chargeRequestId});
+      let binding=await bindAppBuilderProjectAccess(userId,{appId:app.id,requestId:chargeRequestId});
+      if(!binding?.bound&&!binding?.replayed)binding=await bindAppBuilderProjectAccess(userId,{appId:app.id,requestId:chargeRequestId});
       accessBound=Boolean(binding?.bound||binding?.replayed);
     }catch(error){console.warn("PROJECT_ACCESS_BIND_ERROR:",error?.message||"unknown");}
   }
-  let mediaAssignments=[];if(assetIds.length){const{data:ownedAssets,error:assetError}=await supabase.from("asset_library").select("id,file_name,mime_type,category").eq("user_id",user.id).in("id",assetIds);if(assetError)console.warn("CUSTOMER_MEDIA_LOOKUP_ERROR:",assetError.message);const pages=Array.isArray(specification.pages)?specification.pages:[];mediaAssignments=(ownedAssets||[]).map(asset=>({app_id:app.id,asset_id:asset.id,owner_id:user.id,...choosePlacement(asset,pages)}));if(mediaAssignments.length){const{error:mapError}=await supabase.from("project_assets").upsert(mediaAssignments,{onConflict:"app_id,asset_id"});if(mapError)console.warn("PROJECT_MEDIA_MAP_ERROR:",mapError.message)}}
+  const pages=Array.isArray(specification.pages)?specification.pages:[];
+  const mediaAssignments=ownedAssets.map(asset=>choosePlacement(asset,pages));
   const finalDesign=specification?.designSystem||{},memoryScope=body?.innovationLearningConsent?"anonymized_patterns":"project_only",memoryPayload=mergeProjectMemory(null,{requestedName:requestedName||specification.name,brandPreferences:brandKit?{companyName:brandKit.company_name||"",logoReference:brandKit.logo_url||"",primaryColor:brandKit.primary_color||"",secondaryColor:brandKit.secondary_color||"",accentColor:brandKit.accent_color||"",fontStyle:brandKit.font_style||"",brandVoice:brandKit.brand_voice||""}:{},industryPlan:industryPlan.matched?{profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit}:{},visualPreferences:{themeMode:finalDesign.themeMode||themeMode,themePreset,primaryColor:finalDesign.primaryColor||primaryColor,accentColor:finalDesign.accentColor||accentColor,backgroundColor:finalDesign.backgroundColor||backgroundColor,styleRequest,wallpaperMode:finalDesign.wallpaperMode||wallpaperMode,wallpaperPreset:finalDesign.wallpaperPreset||wallpaperPreset},mediaPreferences:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role})),selfHeal:{score:verified.selfHeal.score,issues:verified.selfHeal.issues.length,passed:verified.selfHeal.passed},lastBuildAt:new Date().toISOString()});
-  const{error:memoryError}=await supabase.from("project_memory").upsert({app_id:app.id,owner_id:user.id,memory_json:memoryPayload,learning_scope:memoryScope,updated_at:new Date().toISOString()},{onConflict:"app_id"});
-  if(memoryError)console.warn("PROJECT_MEMORY_SAVE_ERROR:",memoryError.message);
-  const{error:referralError}=await supabase.rpc("record_first_app_referral_reward");
-  if(referralError)console.warn("Referral qualification could not be recorded:",referralError.message);
+  const contextSave=await saveBuilderGeneratedProjectContext({projectId:app.id,assignments:mediaAssignments,memoryJson:memoryPayload,learningScope:memoryScope});
+  if(!contextSave.ok)console.warn("PROJECT_CONTEXT_SAVE_ERROR:",contextSave.code);
 
-  const payload={success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,selfHeal:verified.selfHeal,industryPlan:{matched:industryPlan.matched,profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit},brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},theme:memoryPayload.visualPreferences,media:{attached:mediaAssignments.length,assignments:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryScope,saved:!memoryError},superBrain:{mode:adult.mode,status:adult.generationStatus,generationStatus:adult.generationStatus,overallStatus:adult.status,sourceEngineering:engineeringEvidence,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,selfHeal:verified.selfHeal.passed,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},idempotency:{requestId:chargeRequestId,replayed:Boolean(persisted.replayed),recoveredPartial:Boolean(persisted.recovered_partial),persisted:true,atomic:true},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:app.id,name:app.name,versionId:version.id,versionNo:version.version_no,visibility:app.visibility,publishStatus:app.publish_status}};
+  const payload={success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,selfHeal:verified.selfHeal,industryPlan:{matched:industryPlan.matched,profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit},brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},theme:memoryPayload.visualPreferences,media:{attached:mediaAssignments.length,assignments:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryScope,saved:Boolean(contextSave.ok&&contextSave.memorySaved)},superBrain:{mode:adult.mode,status:adult.generationStatus,generationStatus:adult.generationStatus,overallStatus:adult.status,sourceEngineering:engineeringEvidence,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,selfHeal:verified.selfHeal.passed,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},idempotency:{requestId:chargeRequestId,replayed:Boolean(persisted.replayed),recoveredPartial:Boolean(persisted.recovered_partial),persisted:true,atomic:true},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:app.id,name:app.name,versionId:version.id,versionNo:version.version_no,visibility:app.visibility,publishStatus:app.publish_status}};
   return json(payload);
  }catch(error){
   console.error("AI BUILD APP & WEB error:",error);

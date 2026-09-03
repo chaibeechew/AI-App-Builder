@@ -17,6 +17,8 @@ const workflowRun=read('app/api/apps/[id]/workflows/[workflowId]/run/route.js');
 const checkout=read('app/api/apps/[id]/monetization/[offerId]/checkout/route.js');
 const publishRequest=read('app/api/publish/request/route.js');
 const storeApprove=read('app/api/store-metadata/approve/route.js');
+const builderDomain=read('lib/cloud/builder-projects.js');
+const builderAdapter=read('lib/cloud-adapters/builder-project-data.js');
 const storePublishRpc=read('supabase/migrations/20260901135653_harden_store_publish_request_contract.sql');
 const buyout=read('supabase/migrations/20260831031500_harden_has_active_buyout_rpc.sql');
 const admin=read('lib/supabase/admin.js');
@@ -26,14 +28,35 @@ const modifyRuntime=read('supabase/migrations/20260831181000_harden_professional
 const revokeLegacy=read('supabase/migrations/20260831171000_revoke_legacy_authenticated_financial_rpcs.sql');
 const recordsMigration=read('supabase/migrations/20260831174000_add_app_data_records.sql');
 
+// Legacy direct-provider routes still authenticate locally. Migrated Builder routes authenticate via a provider-opaque Cloud boundary.
 for(const [name,source] of [
-  ['generate',generate],['modify',modify],['publish',publish],['quality',quality],
-  ['records',records],['database',database],['bootstrap',bootstrap],['workflow run',workflowRun],
-  ['checkout',checkout],['publish request',publishRequest],['store approval',storeApprove],
+  ['publish',publish],['quality',quality],['records',records],['database',database],['bootstrap',bootstrap],
+  ['workflow run',workflowRun],['checkout',checkout],['store approval',storeApprove],
 ]) assert.match(source,/auth\.getUser\(\)/,`${name} must authenticate with auth.getUser().`);
 
-assert.match(generate,/owner_id\s*:\s*user\.id/);
-assert.match(modify,/\.eq\(\s*["']owner_id["']\s*,\s*user\.id\s*\)/);
+for(const [name,source] of [['generate',generate],['modify',modify],['publish request',publishRequest]]){
+  assert.match(source,/lib\/cloud\/builder-projects\.js/,`${name} must cross the LANERIQ Cloud Builder Project boundary.`);
+  assert.match(source,/getBuilderPrincipal\(\{requireVerified:true\}\)/,`${name} must require a verified Cloud principal.`);
+  assert.doesNotMatch(source,/lib\/supabase\/|@supabase\//,`${name} must not directly import the current provider.`);
+  assert.doesNotMatch(source,/createAdminClient|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/,`${name} must not hold provider admin credentials.`);
+}
+assert.match(builderDomain,/cloud-adapters\/builder-project-data\.js/);
+assert.doesNotMatch(builderDomain,/lib\/supabase\/|@supabase\/|createAdminClient/,`Provider-opaque Builder domain must not import provider clients.`);
+assert.match(builderAdapter,/\.\.\/supabase\/server\.js/);
+assert.match(builderAdapter,/\.\.\/supabase\/admin\.js/);
+assert.match(builderAdapter,/auth\.getUser\(\)/,'Builder compatibility adapter must validate server identity.');
+assert.match(builderAdapter,/verified:\s*Boolean\(user\.confirmed_at \|\| user\.email_confirmed_at \|\| user\.phone_confirmed_at\)/,'Builder principal must preserve account verification state.');
+
+// Cloud adapter now owns the migrated route ownership/version/provider checks.
+assert.match(builderAdapter,/\.eq\("owner_id", userId\)/,'Builder adapter must retain explicit owner isolation.');
+assert.match(builderAdapter,/\.eq\("user_id", userId\)/,'User-owned Brand Kit/assets/account data must remain user scoped.');
+assert.match(builderAdapter,/project\.current_version_id !== expectedVersionId/,'Modify must re-check the exact current version before privileged persistence.');
+assert.match(builderAdapter,/project\.current_version_id !== versionId/,'Store metadata must remain current-version pinned.');
+assert.match(builderAdapter,/server_persist_generated_project/,'Generate persistence RPC must be isolated behind the adapter.');
+assert.match(builderAdapter,/server_save_app_modification/,'Modify persistence RPC must be isolated behind the adapter.');
+assert.match(builderAdapter,/server_create_store_publish_request/,'Store publish request RPC must be isolated behind the adapter.');
+assert.ok(builderAdapter.indexOf('resolvePrincipal(client, { requireVerified: true })') < builderAdapter.indexOf('admin.rpc("server_persist_generated_project"'),'Verified identity must be resolved before generated-project service-role persistence.');
+
 assert.match(publish,/\.eq\(\s*["']owner_id["']\s*,\s*user\.id\s*\)/);
 assert.match(quality,/\.eq\(\s*["']owner_id["']\s*,\s*user\.id\s*\)/);
 assert.match(publish,/evaluateReleaseReadiness/);
@@ -78,22 +101,22 @@ assert.match(checkout,/url\.protocol!=="https:"/);
 assert.match(checkout,/idempotencyKey=`checkout:\$\{user\.id\}:\$\{id\}:\$\{offer\.id\}:/);
 assert.match(checkout,/owner_id:user\.id/);
 
-// Store approval and publish request: exact current version + owned app chain before any privileged write.
+// Store approval remains direct today; Publish Request is migrated and must keep the same exact-version chain inside the adapter.
 assert.match(storeApprove,/\.eq\("id", listing\.app_id\)\.eq\("owner_id", user\.id\)/);
 assert.match(storeApprove,/app\.current_version_id !== listing\.version_id/);
 assert.ok(storeApprove.indexOf('.eq("owner_id", user.id)') < storeApprove.indexOf('createAdminClient()'),'Store approval must verify ownership before using admin client.');
 assert.match(storeApprove,/\.eq\("app_id",app\.id\)\.eq\("version_id",app\.current_version_id\)/);
 
-assert.match(publishRequest,/\.eq\("id", appId\)\.eq\("owner_id", user\.id\)/);
+assert.match(publishRequest,/loadBuilderPublishPreparation/);
+assert.match(publishRequest,/createBuilderStorePublishRequest/);
 assert.match(publishRequest,/app\.current_version_id !== versionId/);
-assert.match(publishRequest,/\.eq\("id", versionId\)\.eq\("app_id", appId\)/);
-assert.match(publishRequest,/\.eq\("id", listingId\)\.eq\("app_id", appId\)/);
-assert.match(publishRequest,/server_create_store_publish_request/);
-assert.match(publishRequest,/p_user_id:user\.id/);
-assert.match(publishRequest,/p_request_id:requestId/);
-assert.ok(publishRequest.indexOf('.eq("owner_id", user.id)') < publishRequest.indexOf('createAdminClient()'),'Publish request must verify ownership before using admin client.');
 assert.match(publishRequest,/evaluateReleaseReadiness/);
 assert.match(publishRequest,/officialSubmissionConfirmed:false/);
+const publishBlock=builderAdapter.slice(builderAdapter.indexOf('async loadPublishPreparation'),builderAdapter.indexOf('async saveStoreListing'));
+assert.match(publishBlock,/\.eq\("id", appId\)\.eq\("owner_id", userId\)/,'Publish adapter must bind the app to the current owner.');
+assert.match(publishBlock,/\.eq\("id", versionId\)\.eq\("app_id", appId\)/,'Publish adapter must bind exact app/version.');
+assert.match(publishBlock,/\.eq\("id", listingId\)\.eq\("app_id", appId\)/,'Publish adapter must bind listing to the same app.');
+assert.ok(publishBlock.indexOf('resolvePrincipal') < publishBlock.indexOf('createAdminClient()'),'Publish adapter must authenticate before service-role escalation.');
 
 assert.match(storePublishRpc,/security definer set search_path=''/);
 assert.match(storePublishRpc,/where requested_by=uid and source_request_id=request_key for update/);
@@ -129,9 +152,12 @@ for(const name of ['server_consume_app_builder_entitlement','server_bind_app_bui
   assert.match(serverRpc,new RegExp(`revoke all on function public\\.${name}`));
   assert.match(serverRpc,new RegExp(`grant execute on function public\\.${name}[^;]+ to service_role`));
 }
-assert.match(modify,/createAdminClient/);
-assert.match(modify,/server_save_app_modification/);
-assert.match(modify,/\.eq\("id",baseVersionId\)\.eq\("app_id",appId\)/);
+assert.match(modify,/saveBuilderModification/);
+assert.doesNotMatch(modify,/createAdminClient|server_save_app_modification/,'Modify route must not directly hold the privileged persistence implementation.');
+const modifyBlock=builderAdapter.slice(builderAdapter.indexOf('async saveModification'),builderAdapter.indexOf('async loadPublishPreparation'));
+assert.match(modifyBlock,/server_save_app_modification/);
+assert.match(modifyBlock,/project\.current_version_id !== expectedVersionId/);
+assert.ok(modifyBlock.indexOf('resolvePrincipal') < modifyBlock.indexOf('createAdminClient()'),'Modify adapter must authenticate and re-check ownership/version before service-role escalation.');
 assert.match(modifyRuntime,/security definer/);
 assert.match(modifyRuntime,/set search_path = ''/);
 assert.match(modifyRuntime,/p_expected_version_id/);
@@ -147,13 +173,13 @@ const clientFiles=filesUnder('app').filter(p=>/^\s*["']use client["'];/m.test(re
 for(const file of clientFiles){const source=read(file);for(const name of forbidden)if(source.includes(name))leaked.push(`${file}: ${name}`);for(const m of source.matchAll(/process\.env\.([A-Z0-9_]+)/g))if(!m[1].startsWith('NEXT_PUBLIC_'))leaked.push(`${file}: non-public env ${m[1]}`)}
 assert.deepEqual(leaked,[]);
 
-console.log('✓ Critical create/modify/release routes authenticate and enforce project ownership server-side');
+console.log('✓ Migrated Builder routes are provider-opaque while Cloud adapter independently validates identity, ownership and exact versions');
 console.log('✓ Records, database and bootstrap are owner-scoped, bounded and conflict-safe');
 console.log('✓ Workflow execution binds app/workflow/run ownership and is replay-safe');
 console.log('✓ Checkout uses owner-scoped authoritative offers, HTTPS redirects and owner-scoped tracking');
-console.log('✓ Store approval and publish requests verify owned exact-version chains before service-only atomic writes');
+console.log('✓ Store approval and Cloud publish requests verify owned exact-version chains before service-only atomic writes');
 console.log('✓ Buyout migration is idempotent and SECURITY INVOKER');
 console.log('✓ Entitlement, credit charge/refund and project binding use service-role-only RPCs');
-console.log('✓ Professional AI modify persistence is service-only, expected-version bound and replay safe');
+console.log('✓ Professional AI modify persistence is Cloud-isolated, service-only, expected-version bound and replay safe');
 console.log('✓ Legacy authenticated financial RPCs have a post-Preview revocation migration');
 console.log(`✓ ${clientFiles.length} client component(s) scanned with no server-secret references`);

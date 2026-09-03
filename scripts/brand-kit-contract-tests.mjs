@@ -8,10 +8,10 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const page=read('app/brand-kit/page.js');
 const generate=read('app/api/generate/route.js');
 const modify=read('app/api/modify/route.js');
+const builderAdapter=read('lib/cloud-adapters/builder-project-data.js');
 const memory=read('lib/project-memory.js');
 const migration=read('supabase/migrations/20260901110725_harden_brand_kit_contract.sql');
 
-// Brand Kit persistence is authenticated, exact-user scoped and input-bounded.
 assert.match(page,/auth\.getUser\(\)/);
 assert.match(page,/\.from\("brand_kits"\)/);
 assert.match(page,/\.eq\("user_id", user\.id\)/);
@@ -26,7 +26,6 @@ assert.match(page,/Logo URL must be a valid HTTPS address/);
 assert.match(page,/type="url"/);
 assert.match(page,/reuses it only for your builds/i);
 
-// Database is the final authority for format/length and customer-role access.
 for(const name of [
   'brand_kits_company_name_length_check','brand_kits_logo_url_check','brand_kits_primary_color_check',
   'brand_kits_secondary_color_check','brand_kits_accent_color_check','brand_kits_font_style_length_check',
@@ -47,9 +46,11 @@ assert.match(migration,/revoke all on public\.brand_kits from anon/);
 assert.match(migration,/revoke delete, truncate, references, trigger on public\.brand_kits from authenticated/);
 assert.match(migration,/grant select, insert, update on public\.brand_kits to authenticated/);
 
-// New builds consume the current account Brand Kit and snapshot it into Project Memory.
-assert.match(generate,/from\("brand_kits"\)/);
-assert.match(generate,/\.eq\("user_id",user\.id\)/);
+// New builds consume the exact current user's Brand Kit through Cloud generation inputs, then snapshot it into Project Memory.
+assert.match(generate,/loadBuilderGenerationInputs\(\{assetIds\}\)/);
+assert.doesNotMatch(generate,/from\("brand_kits"\)|lib\/supabase\/|@supabase\//);
+assert.match(builderAdapter,/\.from\("brand_kits"\)\.select\(BRAND_FIELDS\)\.eq\("user_id", userId\)\.maybeSingle\(\)/);
+assert.match(builderAdapter,/const BRAND_FIELDS = "company_name,logo_url,primary_color,secondary_color,accent_color,font_style,brand_voice"/);
 assert.match(generate,/function buildBrandBrief/);
 for(const field of ['company_name','logo_url','primary_color','secondary_color','accent_color','font_style','brand_voice']) assert.match(generate,new RegExp(field));
 assert.match(generate,/brandKit:brandKit\|\|null/);
@@ -59,17 +60,18 @@ assert.match(generate,/logoReference:brandKit\.logo_url/);
 assert.match(generate,/primaryColor:brandKit\.primary_color/);
 assert.match(generate,/brandVoice:brandKit\.brand_voice/);
 
-// Existing projects consume their saved Brand Kit snapshot through Project Memory.
+// Existing projects use the saved Project Memory snapshot, now loaded behind the Cloud adapter.
 assert.match(memory,/brandPreferences/);
 assert.match(memory,/Brand preferences:/);
 assert.match(modify,/buildProjectMemoryBrief/);
-assert.match(modify,/from\("project_memory"\)[\s\S]*\.eq\("app_id",appId\)\.eq\("owner_id",user\.id\)/);
+assert.match(modify,/const memoryRow=context\.memory\|\|null/);
 assert.match(modify,/const memoryBrief=buildProjectMemoryBrief\(memoryRow\)/);
 assert.match(modify,/memoryBrief\?`\\n\$\{memoryBrief\}\\n`/);
-assert.doesNotMatch(modify,/from\("brand_kits"\)/,'Modify must use the project Brand Kit snapshot; later account Brand Kit edits must not silently rewrite an existing project.');
+assert.doesNotMatch(modify,/from\("brand_kits"\)|from\("project_memory"\)/,'Modify must consume the saved project snapshot through LANERIQ Cloud; later account Brand Kit edits must not silently rewrite an existing project.');
+assert.match(builderAdapter,/\.from\("project_memory"\)\.select\("memory_json,learning_scope"\)\.eq\("app_id", appId\)\.eq\("owner_id", userId\)\.maybeSingle\(\)/);
 
 console.log('✓ Brand Kit save/read is authenticated, exact-user scoped and input bounded');
 console.log('✓ Brand Kit database constraints enforce HTTPS logo, valid colors and bounded text');
 console.log('✓ Anonymous access is revoked and authenticated customers can only SELECT/INSERT/UPDATE their own kit');
-console.log('✓ Generate consumes the current Brand Kit and snapshots it into canonical Project Memory');
-console.log('✓ Modify consumes the saved per-project Brand Kit snapshot so global Brand Kit changes cannot silently rewrite existing projects');
+console.log('✓ Generate consumes current Brand Kit through LANERIQ Cloud and snapshots it into canonical Project Memory');
+console.log('✓ Modify consumes the saved per-project Brand Kit snapshot through Cloud so global Brand Kit changes cannot silently rewrite existing projects');

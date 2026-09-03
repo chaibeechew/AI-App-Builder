@@ -5,6 +5,8 @@ import { REFERENCE_LIMITS, REFERENCE_IMAGE_MIME_TYPES, REFERENCE_VIDEO_MIME_TYPE
 const uploader = await readFile(new URL('../app/components/ReferenceUploader.js', import.meta.url), 'utf8');
 const analyzeRoute = await readFile(new URL('../app/api/reference-analyze/route.js', import.meta.url), 'utf8');
 const generateRoute = await readFile(new URL('../app/api/generate/route.js', import.meta.url), 'utf8');
+const builderDomain = await readFile(new URL('../lib/cloud/builder-projects.js', import.meta.url), 'utf8');
+const builderAdapter = await readFile(new URL('../lib/cloud-adapters/builder-project-data.js', import.meta.url), 'utf8');
 const migration = await readFile(new URL('../supabase/migrations/20260901124338_harden_upload_reference_asset_contract.sql', import.meta.url), 'utf8');
 
 assert.equal(REFERENCE_LIMITS.maxFiles,8);
@@ -55,11 +57,22 @@ assert.match(uploader,/soolenReferenceAnalysis/);
 assert.match(uploader,/URL\.revokeObjectURL/);
 assert.doesNotMatch(uploader,/accept="image\/\*,video\/\*"/);
 
+// Generate is provider-opaque: asset IDs cross LANERIQ Cloud, then the adapter re-authenticates and owner-scopes every asset read/write.
 assert.match(generateRoute,/assetIds=Array\.isArray\(body\?\.assetIds\)/);
-assert.match(generateRoute,/from\("asset_library"\)[\s\S]*\.eq\("user_id",user\.id\)\.in\("id",assetIds\)/);
-assert.match(generateRoute,/from\("project_assets"\)\.upsert\(mediaAssignments/);
-assert.match(generateRoute,/owner_id:user\.id/);
+assert.match(generateRoute,/loadBuilderGenerationInputs\(\{assetIds\}\)/);
+assert.match(generateRoute,/const brandKit=inputs\.brandKit\|\|null,ownedAssets=inputs\.ownedAssets\|\|\[\]/);
+assert.match(generateRoute,/saveBuilderGeneratedProjectContext\(\{projectId:app\.id,assignments:mediaAssignments/);
 assert.match(generateRoute,/mediaPreferences:mediaAssignments/);
+assert.doesNotMatch(generateRoute,/from\("asset_library"\)|from\("project_assets"\)|lib\/supabase\/|@supabase\/|createAdminClient/);
+assert.match(builderDomain,/loadBuilderGenerationInputs/);
+assert.match(builderDomain,/saveBuilderGeneratedProjectContext/);
+assert.match(builderAdapter,/async loadGenerationInputs/);
+assert.match(builderAdapter,/resolvePrincipal\(client, \{ requireVerified: true \}\)/);
+assert.match(builderAdapter,/from\("asset_library"\)\.select\("id,file_name,mime_type,category"\)\.eq\("user_id", userId\)\.in\("id", assetIds\)/);
+const contextBlock=builderAdapter.slice(builderAdapter.indexOf('async saveGeneratedProjectContext'),builderAdapter.indexOf('async loadModificationContext'));
+assert.match(contextBlock,/\.eq\("id", projectId\)\.eq\("owner_id", userId\)/);
+assert.match(contextBlock,/owner_id: userId/);
+assert.match(contextBlock,/from\("project_assets"\)\.upsert\(rows/);
 
 assert.match(migration,/revoke insert, update, delete on table public\.asset_library from anon/i);
 assert.match(migration,/revoke insert, update, delete on table public\.project_assets from anon/i);
@@ -73,5 +86,5 @@ assert.match(migration,/validate constraint asset_library_reference_safety_check
 console.log('✓ Upload Ref has exact MIME, file-count, source-size and compact-analysis payload bounds');
 console.log('✓ Missing reference analysis endpoint is restored with server auth and no-store private processing');
 console.log('✓ Private files save only to the current user folder/library and duplicate fingerprints are replay safe');
-console.log('✓ Generate re-validates asset ownership before mapping references into the new project');
+console.log('✓ Generate remains provider-opaque while LANERIQ Cloud re-authenticates, owner-scopes assets and binds project mappings');
 console.log('✓ Database contract blocks anonymous writes and cross-customer private-reference reuse flags');
