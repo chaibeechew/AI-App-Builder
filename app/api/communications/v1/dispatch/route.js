@@ -43,6 +43,7 @@ export async function POST(request){
   }catch{return privateJson({ok:false,error:"Service request ledger unavailable."},503);}
 
   if(claim.decision==="replay_nonce")return privateJson({ok:false,status:"replay_blocked"},409);
+  if(claim.decision==="idempotency_conflict")return privateJson({ok:false,status:"idempotency_conflict"},409);
   if(claim.decision==="idempotent_replay")return privateJson({ok:true,status:"already_claimed",requestId:claim.requestId},202);
   if(claim.decision!=="claimed"||!claim.requestId)return privateJson({ok:false,error:"Service request was not accepted."},409);
 
