@@ -88,6 +88,29 @@ assert.match(approveRoute,/owner_id", user\.id/);
 assert.match(approveRoute,/current_version_id !== listing\.version_id/);
 assert.match(publishRoute,/owner_id", user\.id/);
 assert.match(publishRoute,/customer_approved_at/);
+
+// Final preparation request must re-evaluate authoritative server-side readiness instead of
+// trusting a browser state or a customer_approved_at timestamp that could be written via API.
+for(const pattern of [
+  /buildStoreReadiness/,
+  /evaluateAuthoritativeStoreReadiness/,
+  /project_assets/,
+  /asset_library/,
+  /project_memory/,
+  /storePublishingDeclarations/,
+  /targetMetadataReady/,
+  /STORE_PLATFORM_METADATA_INCOMPLETE/,
+  /STORE_REVIEW_NOT_READY/,
+  /readyForCustomerReview:false/,
+  /readyForOfficialSubmission:false/,
+  /officialSubmissionConfirmed:false/,
+  /externalSigningVerified:false/,
+  /providerReference:null/,
+  /storeReviewVerified:false/,
+]) assert.match(publishRoute,pattern);
+assert.ok(publishRoute.indexOf("evaluateAuthoritativeStoreReadiness") < publishRoute.lastIndexOf("server_create_store_publish_request"),"Authoritative Store Readiness must run before the privileged publish-request RPC.");
+assert.doesNotMatch(publishRoute,/readyForOfficialSubmission:true|officialSubmissionConfirmed:true|externalSigningVerified:true|storeReviewVerified:true/,"Preparation must never auto-claim official store submission, signing or review success.");
+
 assert.doesNotMatch(approveRoute,/\.rpc\("approve_store_listing"/);
 assert.doesNotMatch(migration,/security definer/i);
 assert.doesNotMatch(migration,/approve_store_listing/);
@@ -96,5 +119,7 @@ assert.match(migration,/grant select on public\.store_listings to authenticated/
 
 console.log("✓ Publishing Agent checks icon, screenshots, customer declarations, device-permission purposes and Apple/Android external release requirements without claiming official submission success");
 console.log("✓ Customer can resolve Terms and permission-purpose gaps in project memory while official age-rating/store submission remain external evidence");
+console.log("✓ Final publish-preparation API re-evaluates exact-version Store Readiness and target-platform metadata before any privileged request write");
+console.log("✓ Store preparation response explicitly keeps official submission, external signing, provider reference and store review unverified");
 console.log("✓ Store listing approval, metadata saves and publish-request writes are owner-verified server-only operations; public client tables remain read-only");
 console.log("✓ Store Readiness stays client-mounted and scoped to /publish without creating an extra dynamic Vercel function");

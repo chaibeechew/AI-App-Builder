@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./production-e2e.module.css";
 
 const FRESH_WINDOW_MS = 20 * 60 * 1000;
+const COMMIT_SHA = /^[0-9a-f]{40}$/i;
 const SURFACES = [
   { id: "app-demo", label: "App Demo", path: (id) => `/a/${id}?demo=1` },
   { id: "website-preview", label: "Website Preview", path: (id) => `/website/${id}` },
@@ -19,6 +20,28 @@ async function readJson(response) {
   const type = response.headers.get("content-type") || "";
   if (!type.toLowerCase().includes("application/json")) return null;
   try { return await response.json(); } catch { return null; }
+}
+
+async function loadExactProductionBuild() {
+  const response = await fetch("/api/build-info", {
+    method: "GET",
+    cache: "no-store",
+    credentials: "same-origin",
+    redirect: "manual",
+    headers: { Accept: "application/json", "Cache-Control": "no-cache" },
+  });
+  if (response.type === "opaqueredirect" || response.status === 0) throw new Error("Unable to verify the LANERIQ AI deployment identity.");
+  const body = await readJson(response);
+  if (!response.ok || body?.ok !== true || body?.product !== "LANERIQ AI") throw new Error("Production build identity is unavailable or invalid.");
+
+  const commitSha = String(body.commitSha || "").trim();
+  const commitRef = String(body.commitRef || "").trim();
+  const environment = String(body.environment || "").trim().toLowerCase();
+  const exactProductionBuildVerified = environment === "production" && commitRef === "main" && COMMIT_SHA.test(commitSha);
+  if (!exactProductionBuildVerified) {
+    throw new Error(`Production evidence is locked to an exact main deployment. Detected environment=${environment || "unknown"}, ref=${commitRef || "unknown"}, sha=${commitSha || "unknown"}.`);
+  }
+  return { commitSha, commitRef, environment, exactProductionBuildVerified };
 }
 
 async function probeSurface(path, appName) {
@@ -109,6 +132,8 @@ export default function ProductionE2EClient() {
     setLoadError("");
     setCopyState("");
     try {
+      // A Preview deployment must never be able to mint a report labelled Production evidence.
+      const build = await loadExactProductionBuild();
       const detailResponse = await fetch(`/api/apps/${selected.id}`, { cache: "no-store", credentials: "same-origin", redirect: "manual" });
       if (detailResponse.type === "opaqueredirect" || detailResponse.status === 0 || detailResponse.status === 401) {
         window.location.replace(`/auth?next=${encodeURIComponent("/production-e2e")}`);
@@ -119,14 +144,22 @@ export default function ProductionE2EClient() {
 
       const currentVersion = detail.versions.find((version) => version.id === detail.app.current_version_id) || null;
       const createdAtMs = Date.parse(detail.app.created_at || "");
-      const ageMs = Number.isFinite(createdAtMs) ? Math.max(0, Date.now() - createdAtMs) : null;
-      const freshGeneration = ageMs !== null && ageMs <= FRESH_WINDOW_MS;
+      const rawAgeMs = Number.isFinite(createdAtMs) ? Date.now() - createdAtMs : null;
+      const freshGeneration = rawAgeMs !== null && rawAgeMs >= 0 && rawAgeMs <= FRESH_WINDOW_MS;
+      const freshnessDetail = rawAgeMs === null
+        ? "Project creation time unavailable."
+        : rawAgeMs < 0
+          ? `Project creation time is ${Math.ceil(Math.abs(rawAgeMs) / 1000)} seconds in the future; freshness evidence fails closed.`
+          : freshGeneration
+            ? `Project was created ${Math.round(rawAgeMs / 1000)} seconds ago.`
+            : `Project is ${Math.round(rawAgeMs / 60000)} minutes old; generate a new project immediately before rerunning to close fresh Generate→Save evidence.`;
       const checks = [
+        okCheck("production-build", "Exact Production main build", build.exactProductionBuildVerified, `Production main commit ${build.commitSha} verified through /api/build-info.`, "exact-production-build"),
         okCheck("persisted-app", "Persisted project record", Boolean(detail.app.id && detail.app.source_prompt), `Project ${detail.app.id} loaded from authenticated /api/apps/{id}.`),
         okCheck("version-history", "Version history exists", detail.versions.length > 0, `${detail.versions.length} persisted version(s) found.`),
         okCheck("current-version", "Current version resolves", Boolean(currentVersion), currentVersion ? `current_version_id resolves to version ${currentVersion.version_no}.` : "current_version_id did not resolve inside version history."),
         okCheck("specification", "Current version has generated specification", Boolean(currentVersion?.specification && typeof currentVersion.specification === "object"), currentVersion?.specification ? "Generated specification is persisted on the current version." : "Current specification missing."),
-        okCheck("fresh-generation", "Fresh generation evidence", freshGeneration, ageMs === null ? "Project creation time unavailable." : freshGeneration ? `Project was created ${Math.round(ageMs / 1000)} seconds ago.` : `Project is ${Math.round(ageMs / 60000)} minutes old; generate a new project immediately before rerunning to close fresh Generate→Save evidence.`, "fresh-generation-window"),
+        okCheck("fresh-generation", "Fresh generation evidence", freshGeneration, freshnessDetail, "fresh-generation-window"),
       ];
 
       const surfaces = [];
@@ -137,14 +170,22 @@ export default function ProductionE2EClient() {
       }
 
       const evidence = {
-        reportVersion: 1,
+        reportVersion: 2,
         product: "LANERIQ AI",
         generatedAt: new Date().toISOString(),
         evidenceLevel: "authenticated-production-browser",
+        exactProductionBuildVerified: build.exactProductionBuildVerified,
         physicalDeviceVerified: false,
-        providerOutputReplayed: false,
+        originalGenerationProviderVerified: false,
+        evidenceRunnerReplayedProviderOutput: false,
+        writesExercised: false,
         smsExercised: false,
         origin: window.location.origin,
+        build: {
+          commitSha: build.commitSha,
+          commitRef: build.commitRef,
+          environment: build.environment,
+        },
         project: {
           id: detail.app.id,
           name: detail.app.name,
@@ -161,6 +202,7 @@ export default function ProductionE2EClient() {
       };
       setReport(evidence);
     } catch (error) {
+      setReport(null);
       setLoadError(error?.message || "Production E2E evidence run failed.");
     } finally {
       setRunning(false);
@@ -183,7 +225,7 @@ export default function ProductionE2EClient() {
       <section className={styles.shell}>
         <div className={styles.eyebrow}>LANERIQ AI · AUTHENTICATED PRODUCTION E2E</div>
         <h1>Production E2E Evidence</h1>
-        <p className={styles.lead}>Use a real signed-in LANERIQ AI project. This verifier never creates a fake account, bypasses Auth, modifies a project, triggers SMS, or replays a mocked provider response.</p>
+        <p className={styles.lead}>Use a real signed-in LANERIQ AI project. Evidence is issued only on the exact Production main build. This verifier never creates a fake account, bypasses Auth, modifies a project, triggers SMS, or replays a mocked provider response.</p>
 
         <section className={styles.selectorCard}>
           <div>
@@ -209,7 +251,7 @@ export default function ProductionE2EClient() {
 
         {report ? <section className={styles.scoreCard}>
           <div><span>Authenticated lifecycle score</span><strong>{report.score}/100</strong></div>
-          <div><b>{report.project.name}</b><span>Version {report.project.currentVersionNo ?? "?"} · {report.project.versionCount} saved version(s)</span><span>{report.project.freshGenerationWithin20Minutes ? "Fresh generation window: PASS" : "Fresh generation window: rerun after a new build"}</span></div>
+          <div><b>{report.project.name}</b><span>Version {report.project.currentVersionNo ?? "?"} · {report.project.versionCount} saved version(s)</span><span>Production main · {report.build.commitSha.slice(0, 12)}</span><span>{report.project.freshGenerationWithin20Minutes ? "Fresh generation window: PASS" : "Fresh generation window: rerun after a new build"}</span></div>
         </section> : null}
 
         {report ? <section className={styles.grid}>
