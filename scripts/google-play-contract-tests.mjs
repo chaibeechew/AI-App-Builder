@@ -16,8 +16,11 @@ assert.equal(readiness.checks.find(item=>item.key==="google_data_safety")?.statu
 
 for(const pattern of [/getBuilderPrincipal\(\{requireVerified:true\}\)/,/Account verification is required/,/MAX_REQUEST_BYTES/,/REQUEST_ID/,/"google_play"/,/loadBuilderPublishPreparation/,/current_version_id !== versionId/,/evaluateReleaseReadiness/,/customer_approved_at/,/listing\.version_id !== versionId/,/createBuilderStorePublishRequest/,/officialSubmissionConfirmed:false/,/Nothing has been submitted to Apple or Google yet/,/private, no-store/])assert.match(route,pattern);
 assert.doesNotMatch(route,/lib\/supabase\/|@supabase\/|createAdminClient|server_create_store_publish_request/);
-assert.ok(route.indexOf("current_version_id !== versionId")<route.indexOf("createBuilderStorePublishRequest"));
-assert.ok(route.indexOf("customer_approved_at")<route.indexOf("createBuilderStorePublishRequest"));
+const publishInvocation='const created=await createBuilderStorePublishRequest';
+assert.ok(route.indexOf(publishInvocation)>0);
+assert.ok(route.indexOf("current_version_id !== versionId")<route.indexOf(publishInvocation));
+assert.ok(route.indexOf("customer_approved_at")<route.indexOf(publishInvocation));
+assert.ok(route.indexOf("evaluateAuthoritativeStoreReadiness")<route.indexOf(publishInvocation));
 
 assert.match(domain,/loadBuilderPublishPreparation/);assert.match(domain,/createBuilderStorePublishRequest/);assert.match(domain,/saveBuilderStoreListing/);
 const loadBlock=adapter.slice(adapter.indexOf('async loadPublishPreparation'),adapter.indexOf('async createStorePublishRequest'));
