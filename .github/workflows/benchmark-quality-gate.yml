@@ -9,7 +9,7 @@ on:
 jobs:
   benchmark-quality-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
     env:
@@ -30,7 +30,19 @@ jobs:
         run: npm run test:generation-outcome
       - name: Benchmark Factory & Automatic Quality Judge contracts
         run: npm run test:benchmark-factory
+      - name: Quality Autonomy 2 contracts
+        run: npm run test:quality-autonomy-2
+      - name: Deterministic zero-cost generation sample
+        run: npm run sample:release-quality
       - name: Autonomous Self-Heal integration contracts
         run: npm run test:self-heal
+      - name: Upload release quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laneriq-release-quality-${{ github.sha }}
+          path: artifacts/quality/release-quality-generation-sample.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Evidence boundary
-        run: echo "This gate is deterministic CODE/CI evidence. It does not claim live provider, browser, physical-device, store, legal originality or Production success."
+        run: echo "This gate is CODE/CI evidence plus deterministic zero-cost local generation sampling. It does not claim external-provider LIVE, Production browser, physical-device, store, market or legal originality success."
