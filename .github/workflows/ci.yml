@@ -73,6 +73,8 @@ jobs:
         run: node scripts/infrastructure-level0-contract-tests.mjs
       - name: Operational resilience infrastructure contract tests
         run: node scripts/infrastructure-operational-resilience-contract-tests.mjs
+      - name: Adaptive control plane infrastructure contract tests
+        run: node scripts/infrastructure-adaptive-control-plane-contract-tests.mjs
       - name: Zero-cost engine dynamic execution tests
         run: node scripts/zero-cost-engine-execution-tests.mjs
       - name: Game commercial policy contract tests
