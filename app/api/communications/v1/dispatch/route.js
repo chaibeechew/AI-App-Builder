@@ -11,6 +11,7 @@ const ROUTE_PATH="/api/communications/v1/dispatch";
 function privateJson(body,status=200){return NextResponse.json(body,{status,headers:{"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});}
 function serviceSecret(){return String(process.env.LANERIQ_COMMUNICATIONS_SERVICE_SECRET||"").trim();}
 function allowedClientId(){return String(process.env.LANERIQ_COMMUNICATIONS_SERVICE_CLIENT_ID||"laneriq-ai").trim();}
+function customerBilledEnabled(){return String(process.env.LANERIQ_COMMUNICATIONS_ALLOW_CUSTOMER_BILLED||"").trim().toLowerCase()==="true";}
 
 export async function POST(request){
   const secret=serviceSecret();
@@ -31,6 +32,7 @@ export async function POST(request){
   try{input=JSON.parse(bodyText);}catch{return privateJson({ok:false,error:"Invalid JSON body."},400);}
   let message;
   try{message=normalizeServiceMessage(input);}catch(error){return privateJson({ok:false,error:error?.message||"Invalid service message."},400);}
+  if(!customerBilledEnabled())message={...message,allowCustomerBilledProvider:false};
 
   const clientHash=privacyHmac(secret,"client",clientId);
   const nonceHash=privacyHmac(secret,"nonce",nonce);
