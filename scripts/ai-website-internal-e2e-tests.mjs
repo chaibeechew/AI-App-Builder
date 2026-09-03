@@ -73,9 +73,9 @@ assert.match(websitePreview,/version\.specification/);
 assert.match(websitePreview,/Customer Website/);
 assert.match(websitePreview,/Created with LANERIQ AI/);
 assert.match(websitePreview,/WebsiteEnquiryForm/);
-assert.match(websitePreview,/const enquiryEnabled=isPublished&&!isPinnedPreview/,"Pinned owner snapshots must remain side-effect free.");
+assert.match(websitePreview,/const enquiryEnabled=isPublished&&isPublishedVersion&&!isPinnedPreview/,"Only the exact published Website snapshot may accept real customer enquiries.");
 assert.match(websitePreview,/enabled=\{enquiryEnabled\}/);
-assert.match(websitePreview,/isOwner&&!isPinnedPreview&&<WebsiteEnquiryInbox/);
+assert.match(websitePreview,/isOwner&&isPublishedVersion&&!isPinnedPreview&&<WebsiteEnquiryInbox/,"The live enquiry inbox must render only alongside the exact published Website snapshot.");
 assert.doesNotMatch(websitePreview,/href="mailto:"/,"Generated Website must never ship an empty Contact CTA.");
 
 // Customer enquiry conversion path: real same-origin POST, stable retry identity, bounded PII and no automatic permissions.
@@ -148,6 +148,7 @@ assert.doesNotMatch(websitePreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
 
 console.log("✓ AI Website internal E2E locks Planning → verified Generate → atomic project/version save → authoritative Website Preview");
 console.log("✓ Generated customer Websites keep a real privacy-bounded enquiry conversion path instead of an empty Contact CTA");
+console.log("✓ Real enquiries and the owner inbox are enabled only for the exact published_version_id snapshot, never a newer working draft");
 console.log("✓ Public Website rendering is pinned to published_version_id so later AI Modify cannot silently replace the live reviewed version");
 console.log("✓ Public enquiry writes remain same-origin, POST-only, published-site-only, HMAC source-bound, replay-safe and atomically rate-limited");
 console.log("✓ Generated runtime enforces release-grade stability/privacy/comfort/naturalness evidence before App + Website rendering");
