@@ -35,14 +35,21 @@ for(const testCase of cases){
   assert.equal(normalized.productType,"app_website",`${testCase.label}: normal creation must remain one App + Website product`);
   for(const platform of ["ios","android","web"])assert.ok(normalized.platforms.includes(platform),`${testCase.label}: missing ${platform} platform`);
   assert.ok(Array.isArray(normalized.pages)&&normalized.pages.length>=5,`${testCase.label}: insufficient generated pages`);
-  assert.ok(Array.isArray(normalized.navigation)&&normalized.navigation.length>=normalized.pages.length,`${testCase.label}: navigation must cover the generated product`);
   assert.ok(normalized.pages.some(page=>page.route==="/"),`${testCase.label}: App/Website product requires a Home route`);
+  const routes=normalized.pages.map(page=>page.route);
+  assert.equal(new Set(routes).size,routes.length,`${testCase.label}: duplicate routes break App/Website simultaneous preview`);
+  assert.ok(Array.isArray(normalized.navigation)&&normalized.navigation.length>=3,`${testCase.label}: generated product requires a usable primary navigation`);
+  assert.ok(normalized.navigation.some(item=>item?.route==="/"),`${testCase.label}: primary navigation must include Home`);
+  for(const item of normalized.navigation){
+    assert.ok(routes.includes(item?.route),`${testCase.label}: navigation route ${item?.route||"<missing>"} must resolve to a generated page`);
+  }
   assert.ok(Array.isArray(normalized.visualAssets)&&normalized.visualAssets.length>=2,`${testCase.label}: visual direction must survive normalization`);
 
   const selfTest=selfTestGeneratedApp(normalized);
   assert.equal(selfTest.ok,true,`${testCase.label}: self-test failed: ${(selfTest.errors||[]).join("; ")}`);
   const execution=verifyGeneratedAppExecution(selfTest.normalizedSpec);
   assert.equal(execution.ok,true,`${testCase.label}: execution verification failed: ${(execution.errors||[]).join("; ")}`);
+  assert.equal(execution.checks?.runtimeRoutesValid,true,`${testCase.label}: every primary-navigation route must resolve safely`);
   const selfHeal=inspectProjectSpecification(execution.normalizedSpec);
   assert.equal(selfHeal.passed,true,`${testCase.label}: self-heal inspection failed`);
 
@@ -56,13 +63,11 @@ for(const testCase of cases){
   }
   assert.equal(readiness.releaseReady,true,`${testCase.label}: generated current version must be eligible for the Web Publish gate`);
 
-  const routes=normalized.pages.map(page=>page.route);
-  assert.equal(new Set(routes).size,routes.length,`${testCase.label}: duplicate routes break App/Website simultaneous preview`);
   assert.equal(normalized.security?.release?.defaultVisibility,"private",`${testCase.label}: generated product must start private`);
   assert.equal(normalized.security?.release?.defaultPublishStatus,"draft",`${testCase.label}: generated product must start draft`);
 }
 
 console.log(`✓ Zero-cost generation pipeline produced ${cases.length} real App + Website specifications through soolen-local only`);
-console.log("✓ Every generated product passed normalization, self-test, execution verification, self-heal and Secure-by-Default MAX");
+console.log("✓ Every generated product passed normalization, usable navigation, self-test, execution verification, self-heal and Secure-by-Default MAX");
 console.log("✓ Stability, security, privacy, comfort, beauty and naturalness each reached deterministic 100 with >=3 implementation-evidence entries");
 console.log("✓ The exact normalized output is Release-Gate ready while external provider, authenticated Production and real-device evidence remain separate truth levels");
