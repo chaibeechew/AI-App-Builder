@@ -22,7 +22,7 @@ assert.match(statusRoute,/Cache-Control/);
 assert.doesNotMatch(statusRoute,/process\.env\.[A-Z0-9_]*(TOKEN|SECRET|KEY)/);
 assert.match(dispatchRoute,/verifyServiceRequestSignature/);
 assert.match(dispatchRoute,/claimCommunicationServiceRequest/);
-assert.ok(dispatchRoute.indexOf("claimCommunicationServiceRequest")<dispatchRoute.indexOf("dispatchServiceMessage"),"Persistent replay/idempotency claim must happen before delivery.");
+assert.ok(dispatchRoute.indexOf("claim=await claimCommunicationServiceRequest")<dispatchRoute.indexOf("const result=await dispatchServiceMessage"),"Persistent replay/idempotency claim must happen before delivery.");
 assert.match(dispatchRoute,/LANERIQ_COMMUNICATIONS_SERVICE_SECRET/);
 assert.match(dispatchRoute,/LANERIQ_COMMUNICATIONS_SERVICE_CLIENT_ID/);
 assert.match(dispatchRoute,/replay_blocked/);
