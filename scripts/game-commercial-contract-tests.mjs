@@ -49,19 +49,18 @@ assert.match(gameTerms.customerFacingSummary,/owned by the creator/i);
 assert.match(gameTerms.customerFacingSummary,/5% LANERIQ AI share of game sales revenue/i);
 assert.match(gameTerms.customerFacingSummary,/outside LANERIQ AI/i);
 
-// Server response carries the same immutable commercial markers for generated Game requests.
 assert.match(gameRoute,/PRO_GAME_CREATOR_REQUIRED/);
 assert.match(gameRoute,/gameCommercialTerms\(\)/);
 assert.match(gameRoute,/X-LANERIQ-Game-Buyout","unavailable"/);
 assert.match(gameRoute,/X-LANERIQ-Game-Sales-Share","5-percent-all-sales-channels"/);
 assert.doesNotMatch(gameRoute,/X-LANERIQ-Game-Profit-Share/);
 
-// Main generation route cannot bypass the creator-plan Game gateway.
+// Main generation route cannot bypass the creator-plan Game gateway, and the gate remains before any entitlement/credit reservation using the Cloud-resolved identity.
 assert.match(mainGenerate,/PRO_GAME_CREATOR_REQUIRED/);
 assert.match(mainGenerate,/trustedGameGateway/);
-assert.ok(mainGenerate.indexOf('if(isMobileGameIdea(combinedInput))') < mainGenerate.indexOf('consumeAppBuilderEntitlement(user.id'));
+assert.match(mainGenerate,/const access=inputs\.builderAccess/);
+assert.ok(mainGenerate.indexOf('if(isMobileGameIdea(combinedInput))') < mainGenerate.indexOf('consumeAppBuilderEntitlement(userId'));
 
-// Customer-facing upgrade dialog states ownership, every-channel sales share and creator-friendly usage rules.
 assert.match(gameGate,/Game creation needs a creator plan/);
 assert.match(gameGate,/You keep ownership of your game/);
 assert.match(gameGate,/5% share of game sales revenue/i);
@@ -91,4 +90,5 @@ assert.doesNotMatch(readme,/game-profit-share/i);
 console.log('✓ Game creators retain ownership and Game buyout remains unavailable');
 console.log('✓ Commercialized LANERIQ AI-generated games use a continuing 5% share of game sales revenue across every sales channel');
 console.log('✓ Taxes, refunds and chargebacks are excluded while store/platform commissions do not reduce the sales-share basis');
+console.log('✓ Main Generate keeps the creator-plan Game gate before Cloud-resolved finance reservations');
 console.log('✓ Customer UI, server headers, pricing and README all carry the same all-channel sales-share policy');
