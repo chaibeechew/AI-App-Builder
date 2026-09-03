@@ -119,6 +119,7 @@ export default function AccountNav() {
     {open && <div className="accountMenu">
       <small>{PRODUCT_BRAND.name} · {PRODUCT_BRAND.capabilities}</small>
       <button onClick={() => go("/my-apps")}>📁 My Projects</button>
+      <button onClick={() => go("/account/security")}>🔐 Security & Email</button>
       <button onClick={() => go("/studio")}>✦ Studio</button>
       <button onClick={() => go("/community-chat")}>Community</button>
       <button onClick={() => go("/credits")}>Credits</button>
