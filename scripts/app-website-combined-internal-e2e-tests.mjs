@@ -50,21 +50,10 @@ assert.match(generate,/media:\{attached/);
 assert.match(generate,/project_memory/);
 
 // The actual zero-cost autonomous engine must generate App + Website outputs that survive all release gates, not only source inspection.
-assert.match(dynamicE2E,/runAutonomousEngine/);
-assert.match(dynamicE2E,/normalizeAppSpec/);
-assert.match(dynamicE2E,/selfTestGeneratedApp/);
-assert.match(dynamicE2E,/verifyGeneratedAppExecution/);
-assert.match(dynamicE2E,/inspectProjectSpecification/);
-assert.match(dynamicE2E,/assessBuildQuality/);
-assert.match(dynamicE2E,/evaluateReleaseReadiness/);
-assert.match(dynamicE2E,/quality\.overall,100/);
-assert.match(dynamicE2E,/readiness\.releaseReady,true/);
-assert.match(dynamicE2E,/property-zh/);
-assert.match(dynamicE2E,/restaurant-ms/);
-assert.match(dynamicE2E,/commerce-en/);
+for(const pattern of [/runAutonomousEngine/,/normalizeAppSpec/,/selfTestGeneratedApp/,/verifyGeneratedAppExecution/,/inspectProjectSpecification/,/assessBuildQuality/,/evaluateReleaseReadiness/,/quality\.overall,100/,/readiness\.releaseReady,true/,/property-zh/,/restaurant-ms/,/commerce-en/])assert.match(dynamicE2E,pattern);
 assert.match(packageJson,/"test:combined-e2e-code": "node scripts\/app-website-combined-internal-e2e-tests\.mjs && npm run test:generation-e2e-dynamic"/);
 
-// The original completion CTA still enters through the App demo route, but owner demo traffic is upgraded into Preview Both.
+// Completion enters owner Preview Both, where both frames pin the same exact working version.
 assert.match(home,/window\.location\.assign\(`\/a\/\$\{id\}\?demo=1`\)/);
 assert.match(appSurface,/query\?\.demo === "1"[\s\S]*redirect\(`\/preview\/\$\{id\}`\)/);
 assert.match(combinedPreview,/ONE PROJECT · ONE CURRENT VERSION/);
@@ -74,10 +63,11 @@ assert.equal((combinedPreview.match(/previewVersion=\$\{pinned\}/g)||[]).length,
 assert.match(combinedPreview,/data-surface="app"/);
 assert.match(combinedPreview,/data-surface="website"/);
 
-// Version pinning is owner-only and the selected version must still belong to the same project.
-assert.match(visibleRuntime,/requestedVersionId && isOwner \? requestedVersionId : app\.current_version_id/);
+// Version pinning is owner-only and every selected version stays bound to the same project.
+assert.match(visibleRuntime,/requestedVersionId && isOwner[\s\S]*app\.current_version_id[\s\S]*app\.published_version_id/);
 assert.match(visibleRuntime,/\.eq\("id", selectedVersionId\)[\s\S]*\.eq\("app_id", app\.id\)/);
 assert.match(visibleRuntime,/isPinnedPreview: Boolean\(requestedVersionId && isOwner\)/);
+assert.match(visibleRuntime,/isPublishedVersion: Boolean\(app\.published_version_id && version\.id === app\.published_version_id\)/);
 assert.match(appSurface,/versionId: requestedVersionId/);
 assert.match(appSurface,/data-project-version=\{version\.id\}/);
 assert.match(websiteSurface,/versionId:requestedVersionId/);
@@ -85,7 +75,7 @@ assert.match(websiteSurface,/data-project-version=\{version\.id\}/);
 assert.match(websiteSurface,/const enquiryEnabled=isPublished&&!isPinnedPreview/);
 assert.match(websiteSurface,/isOwner&&!isPinnedPreview&&<WebsiteEnquiryInbox/);
 
-// Owner snapshot frames are review surfaces, not customer traffic. They must never inflate App/Website analytics.
+// Owner snapshot frames are review surfaces, not customer traffic.
 assert.match(analyticsTracker,/function isEmbeddedPinnedPreview\(\)/);
 assert.match(analyticsTracker,/window\.parent===window/);
 assert.match(analyticsTracker,/params\.has\("previewVersion"\)/);
@@ -93,13 +83,14 @@ assert.match(analyticsTracker,/surface==="app"\|\|surface==="website"/);
 assert.match(analyticsTracker,/if\(isEmbeddedPinnedPreview\(\)\)return;/);
 assert.ok(analyticsTracker.indexOf("if(isEmbeddedPinnedPreview())return;")<analyticsTracker.indexOf("trackProjectEvent({appId,channel"),"Pinned Preview guard must execute before customer analytics tracking.");
 
-// AI Modify persists one new authoritative version; both surfaces resolve through the same apps.current_version_id lineage.
+// Modify advances the working version only. Public customers stay on published_version_id until another explicit Publish.
 assert.match(modify,/server_save_app_modification/);
 assert.match(modify,/p_expected_version_id:baseVersionId/);
 assert.match(modify,/\.eq\("id",baseVersionId\)\.eq\("app_id",appId\)/);
+assert.match(visibleRuntime,/isOwner[\s\S]*app\.current_version_id[\s\S]*app\.published_version_id/);
 
 console.log("✓ App + Website simultaneous E2E uses one Planning decision, one verified specification and one atomic initial persistence transaction");
-console.log("✓ Dynamic zero-cost autonomous generation reaches deterministic 100/100 and Release-Gate ready across multilingual industry cases");
-console.log("✓ Preview Both locks App and Website to the same owner-authorized project version with no shadow Website record");
-console.log("✓ Pinned Website preview cannot accept real enquiries and embedded owner snapshots do not inflate customer analytics");
-console.log("✓ Modify persists one authoritative version for both customer surfaces; real simultaneous external-provider rendering remains a separate LIVE evidence gate");
+console.log("✓ Dynamic zero-cost autonomous generation is wired to prove deterministic 100/100 and Release-Gate readiness across multilingual industry cases");
+console.log("✓ Preview Both locks App and Website to the same owner-authorized working version with no shadow Website record");
+console.log("✓ Anonymous App + Website production traffic stays pinned to published_version_id until an explicit new Publish");
+console.log("✓ Pinned owner snapshots do not inflate customer analytics; real authenticated Production generation remains a separate LIVE evidence gate");
