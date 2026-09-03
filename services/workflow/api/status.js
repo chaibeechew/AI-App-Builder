@@ -1,0 +1,1 @@
+export default function handler(_req,res){res.setHeader("Cache-Control","no-store");return res.status(200).json({service:"laneriq-workflow",contract:"wsvc1",evidenceLevel:"CODE_READY",capabilities:["plan","run","resume","cancel","status"],remoteEngineRequiredForLive:true});}
