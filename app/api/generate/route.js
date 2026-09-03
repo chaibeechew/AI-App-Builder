@@ -14,7 +14,14 @@ import { resolveWallpaperId } from "../../../lib/design/wallpaper-presets.js";
 import { mergeProjectMemory } from "../../../lib/project-memory.js";
 import { consumeAppBuilderEntitlement,bindAppBuilderProjectAccess,restoreFailedAppBuilderCreate,consumeAiCredits,refundAiCredits } from "../../../lib/app-builder-finance.js";
 
-const GENERATE_CREDIT_COST=Math.max(1,Number(process.env.APP_GENERATE_CREDIT_COST||10));const HEX_COLOR=/^#[0-9a-f]{6}$/i;
+const GENERATE_CREDIT_COST=Math.max(1,Number(process.env.APP_GENERATE_CREDIT_COST||10));
+const HEX_COLOR=/^#[0-9a-f]{6}$/i;
+const REQUEST_ID=/^[A-Za-z0-9._:-]{1,160}$/;
+const MAX_REQUEST_BYTES=64*1024;
+
+function json(payload,status=200){
+ return NextResponse.json(payload,{status,headers:{"Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","X-Content-Type-Options":"nosniff"}});
+}
 function verifyGeneration(result){const normalized=normalizeAppSpec(result?.specification);const selfTest=selfTestGeneratedApp(normalized);const execution=verifyGeneratedAppExecution(selfTest.normalizedSpec);const selfHeal=inspectProjectSpecification(execution.normalizedSpec);const errors=[...(selfTest.errors||[]),...(execution.errors||[]),...selfHeal.issues.filter(issue=>issue.severity==="error").map(issue=>issue.message)];return{passed:selfTest.ok&&execution.ok&&selfHeal.passed,selfTest,execution,selfHeal,errors,normalized:execution.normalizedSpec};}
 function buildBrandBrief(kit){if(!kit)return"";const rows=[kit.company_name&&`Brand/company: ${kit.company_name}`,kit.primary_color&&`Primary color: ${kit.primary_color}`,kit.secondary_color&&`Secondary color: ${kit.secondary_color}`,kit.accent_color&&`Accent color: ${kit.accent_color}`,kit.font_style&&`Typography direction: ${kit.font_style}`,kit.brand_voice&&`Brand voice: ${kit.brand_voice}`,kit.logo_url&&`Logo reference: ${kit.logo_url}`].filter(Boolean);return rows.length?`SAVED BRAND KIT\n${rows.join("\n")}\nUse this identity as a design system for the new App + Website. Keep the result original, readable, comfortable, natural and accessible. Do not imitate third-party branding/assets.`:"";}
 function pageText(page){return`${page?.name||""} ${page?.purpose||page?.description||""}`.toLowerCase();}
@@ -22,26 +29,124 @@ function choosePlacement(asset,pages=[]){const name=String(asset?.file_name||"")
 function safeColor(value){const v=String(value||"").trim();return HEX_COLOR.test(v)?v:"";}
 function cookieValue(request,key){const raw=String(request?.headers?.get?.("cookie")||"");for(const part of raw.split(";")){const[name,...rest]=part.trim().split("=");if(name===key){try{return decodeURIComponent(rest.join("="))}catch{return rest.join("=")}}}return"";}
 
+async function loadGenerationReplay(supabase,userId,requestId){
+ const{data:app,error:appError}=await supabase.from("apps").select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status").eq("owner_id",userId).eq("generation_request_id",requestId).maybeSingle();
+ if(appError)throw new Error(`Generation replay lookup failed: ${appError.message}`);
+ if(!app)return null;
+ if(!app.current_version_id)return{inProgress:true,app};
+ const{data:version,error:versionError}=await supabase.from("app_versions").select("id,version_no,specification,created_at").eq("id",app.current_version_id).eq("app_id",app.id).maybeSingle();
+ if(versionError)throw new Error(`Generation replay version lookup failed: ${versionError.message}`);
+ if(!version?.specification)return{inProgress:true,app};
+ const verified=verifyGeneration({specification:version.specification});
+ if(!verified.passed)throw new Error("Persisted generation replay failed integrity verification.");
+ const specification=verified.normalized;
+ return{
+  success:true,
+  replayed:true,
+  specification,
+  explanation:buildAppExplanation(specification),
+  selfTest:verified.selfTest,
+  executionVerification:verified.execution,
+  selfHeal:verified.selfHeal,
+  idempotency:{requestId,replayed:true,persisted:true},
+  credits:{charged:0,requestId},
+  app:{id:app.id,name:app.name,versionId:version.id,versionNo:version.version_no,visibility:app.visibility,publishStatus:app.publish_status}
+ };
+}
+
 export async function POST(request){
  let supabase=null,userId=null,charged=false,chargeRequestId=null,entitlementSource=null,entitlementReserved=false,createdAppId=null,accessBound=false;
  try{
-  supabase=await createClient();const{data:{user},error:userError}=await supabase.auth.getUser();if(userError||!user)return NextResponse.json({success:false,error:"Authentication required."},{status:401});userId=user.id;if(!user.confirmed_at&&!user.email_confirmed_at&&!user.phone_confirmed_at)return NextResponse.json({success:false,error:"Please verify your email or phone before creating an app."},{status:403});
-  const body=await request.json();const idea=String(body?.idea||body?.prompt||"").trim(),voiceTranscript=String(body?.voiceTranscript||body?.transcript||"").trim(),requestedName=String(body?.requestedName||"").trim().slice(0,200),assetIds=Array.isArray(body?.assetIds)?[...new Set(body.assetIds.filter(v=>typeof v==="string"&&v.trim()).map(v=>v.trim()))].slice(0,20):[],referenceImages=Array.isArray(body?.referenceImages||body?.imageRefs)?(body.referenceImages||body.imageRefs).filter(v=>typeof v==="string"&&v.trim()).slice(0,10):[];
+  const contentLength=Number(request.headers.get("content-length")||0);
+  if(contentLength>MAX_REQUEST_BYTES)return json({success:false,error:"App generation request is too large."},413);
+
+  supabase=await createClient();
+  const{data:{user},error:userError}=await supabase.auth.getUser();
+  if(userError||!user)return json({success:false,error:"Authentication required."},401);
+  userId=user.id;
+  if(!user.confirmed_at&&!user.email_confirmed_at&&!user.phone_confirmed_at)return json({success:false,error:"Please verify your email or phone before creating an app."},403);
+
+  const body=await request.json().catch(()=>null);
+  if(!body)return json({success:false,error:"Invalid app generation request."},400);
+  if(Buffer.byteLength(JSON.stringify(body),"utf8")>MAX_REQUEST_BYTES)return json({success:false,error:"App generation request is too large."},413);
+
+  const idea=String(body?.idea||body?.prompt||"").trim(),voiceTranscript=String(body?.voiceTranscript||body?.transcript||"").trim(),requestedName=String(body?.requestedName||"").trim().slice(0,200),assetIds=Array.isArray(body?.assetIds)?[...new Set(body.assetIds.filter(v=>typeof v==="string"&&v.trim()).map(v=>v.trim()))].slice(0,20):[],referenceImages=Array.isArray(body?.referenceImages||body?.imageRefs)?(body.referenceImages||body.imageRefs).filter(v=>typeof v==="string"&&v.trim()).slice(0,10):[];
   const language=String(body?.language||"en").trim(),industry=String(body?.industry||"technology").trim(),terminology=Array.isArray(body?.terminology)?body.terminology:[],createDemoVideo=Boolean(body?.createDemoVideo),themeMode=["auto","preset","custom"].includes(body?.themeMode)?body.themeMode:"auto",themePreset=String(body?.themePreset||"auto").trim().slice(0,60),primaryColor=safeColor(body?.primaryColor),accentColor=safeColor(body?.accentColor),backgroundColor=safeColor(body?.backgroundColor),styleRequest=String(body?.styleRequest||"").trim().slice(0,500),wallpaperCookie=cookieValue(request,"ai_build_wallpaper"),requestedWallpaper=String(body?.wallpaperPreset||wallpaperCookie||""),wallpaperMode=body?.wallpaperMode==="selected"||(!body?.wallpaperMode&&requestedWallpaper&&requestedWallpaper!=="random")?"selected":"random",wallpaperPreset=wallpaperMode==="selected"?resolveWallpaperId(requestedWallpaper,"moon-city"):"";
-  chargeRequestId=String(body?.requestId||crypto.randomUUID()).trim();if(!idea&&!voiceTranscript)return NextResponse.json({success:false,error:"Please describe the app you want to build."},{status:400});const combinedInput=[requestedName?`CUSTOMER-CHOSEN APP NAME: ${requestedName}`:"",idea,voiceTranscript].filter(Boolean).join("\n\n");if(combinedInput.length>8000)return NextResponse.json({success:false,error:"App description is too long."},{status:413});
-  if(isMobileGameIdea(combinedInput)){const access=await getAppBuilderAccess(supabase,user.id),trustedGameGateway=request.headers.get("x-soolen-game-gateway")==="professional-fair-use";if(!access.professional.active||!trustedGameGateway)return NextResponse.json({success:false,code:"PRO_GAME_CREATOR_REQUIRED",error:"Mobile Game Creator is a Professional feature. Start game creation from the Pro Game Creator so Fair Use protections apply.",upgradePath:"/game-builder"},{status:403});}
+
+  chargeRequestId=String(body?.requestId||"").trim();
+  if(!REQUEST_ID.test(chargeRequestId))return json({success:false,error:"A stable generation request ID is required."},400);
+  if(!idea&&!voiceTranscript)return json({success:false,error:"Please describe the app you want to build."},400);
+  const combinedInput=[requestedName?`CUSTOMER-CHOSEN APP NAME: ${requestedName}`:"",idea,voiceTranscript].filter(Boolean).join("\n\n");
+  if(combinedInput.length>8000)return json({success:false,error:"App description is too long."},413);
+
+  const replay=await loadGenerationReplay(supabase,user.id,chargeRequestId);
+  if(replay?.success)return json(replay);
+  if(replay?.inProgress)return json({success:false,code:"GENERATION_REQUEST_IN_PROGRESS",error:"This exact build request is already being saved. Retry the same request ID to recover the saved project without creating a duplicate."},409);
+
+  if(isMobileGameIdea(combinedInput)){const access=await getAppBuilderAccess(supabase,user.id),trustedGameGateway=request.headers.get("x-soolen-game-gateway")==="professional-fair-use";if(!access.professional.active||!trustedGameGateway)return json({success:false,code:"PRO_GAME_CREATOR_REQUIRED",error:"Mobile Game Creator is a Professional feature. Start game creation from the Pro Game Creator so Fair Use protections apply.",upgradePath:"/game-builder"},403);}
   const industryPlan=inferIndustryCapabilities({idea:combinedInput,industry});
   const{data:brandKit}=await supabase.from("brand_kits").select("company_name,logo_url,primary_color,secondary_color,accent_color,font_style,brand_voice").eq("user_id",user.id).maybeSingle(),brandBrief=buildBrandBrief(brandKit),buildInput=[combinedInput,industryPlan.brief,brandBrief].filter(Boolean).join("\n\n");
-  const entitlement=await consumeAppBuilderEntitlement(user.id,{operation:"create",appId:null,requestId:chargeRequestId});if(!entitlement?.allowed){const charge=await consumeAiCredits(user.id,{amount:GENERATE_CREDIT_COST,requestId:chargeRequestId,description:"AI app generation",metadata:{operation:"generate"}});charged=charge?.charged!==false;}else{entitlementSource=entitlement.source;entitlementReserved=true;}
+
+  const entitlement=await consumeAppBuilderEntitlement(user.id,{operation:"create",appId:null,requestId:chargeRequestId});
+  let creditCharge=null;
+  if(!entitlement?.allowed){
+    creditCharge=await consumeAiCredits(user.id,{amount:GENERATE_CREDIT_COST,requestId:chargeRequestId,description:"AI app generation",metadata:{operation:"generate"}});
+    charged=creditCharge?.charged===true;
+  }else{
+    entitlementSource=entitlement.source;
+    entitlementReserved=true;
+  }
+
+  const postReservationReplay=await loadGenerationReplay(supabase,user.id,chargeRequestId);
+  if(postReservationReplay?.success){
+    if(entitlementReserved&&!entitlement?.replayed){try{await restoreFailedAppBuilderCreate(user.id,{requestId:chargeRequestId})}catch{}}
+    return json(postReservationReplay);
+  }
+  if(postReservationReplay?.inProgress||entitlement?.replayed||creditCharge?.replayed){
+    return json({success:false,code:"GENERATION_REQUEST_IN_PROGRESS",error:"This exact build request is already running. Retry the same request ID to recover the saved project without creating a duplicate."},409);
+  }
+
   const generationOptions={voiceTranscript,referenceImages,language,industry,terminology,createDemoVideo,brandKit:brandKit||null,themeMode,themePreset,primaryColor,accentColor,backgroundColor,styleRequest,wallpaperMode,wallpaperPreset};
   const adult=await runSoolenAdultMode({taskType:"app-build",goal:buildInput,privateData:referenceImages.length>0||assetIds.length>0,requirements:{...(body?.requirements||{}),brandKit:brandKit||undefined,requestedName:requestedName||undefined,industryPlan:industryPlan.matched?{profileId:industryPlan.profileId,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit}:undefined,themeMode,themePreset,primaryColor,accentColor,backgroundColor,styleRequest,wallpaperMode,wallpaperPreset},executors:[{id:"soolen-autonomous-engine",available:true,local:false,requiresNetwork:true,baseScore:50,historicalSuccess:0.5}],permissions:{network:true,privateUpload:referenceImages.length>0||assetIds.length>0}},{execute:async()=>runAutonomousEngine(buildInput,generationOptions),verify:async result=>{const report=verifyGeneration(result);return{passed:report.passed,report}},repair:async({result,review,verification})=>{const report=verification?.report||verifyGeneration(result),criticFailures=(review?.failed||[]).map(x=>x.id),instruction=buildRepairInstruction(report.execution||{}),selfHealInstruction=buildSelfHealInstruction({specification:report.normalized});return runAutonomousEngine(`${buildInput}\n\nSOOLEN AUTONOMOUS REPAIR + SELF-HEAL MODE\n${instruction}\n\n${selfHealInstruction}\nCritic failures: ${criticFailures.join(", ")||"none"}\nSelf-test failures: ${(report.selfTest?.errors||[]).join(", ")||"none"}\nDo not remove working features. Preserve the saved Brand Kit and customer-selected color/theme/wallpaper direction unless it conflicts with accessibility or safety. Preserve the customer's chosen app name. Never invent external-provider success. Return the full corrected specification only.`,generationOptions)}});
-  if(adult.status!=="verified")throw new Error("Soolen Super Brain could not verify the generated app after autonomous repair attempts.");const verified=verifyGeneration(adult.result);if(!verified.passed)throw new Error(`Generated app failed final verification: ${verified.errors.join("; ")}`);const specification={...verified.normalized,name:requestedName||verified.normalized.name};
-  const{data:app,error:appError}=await supabase.from("apps").insert({owner_id:user.id,name:String(specification.name||"Untitled App").trim(),description:String(specification.description||"").trim(),source_prompt:combinedInput,visibility:"private",publish_status:"draft"}).select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status").single();if(appError)throw new Error(`App save failed: ${appError.message}`);createdAppId=app.id;const{data:version,error:versionError}=await supabase.from("app_versions").insert({app_id:app.id,version_no:1,specification,change_summary:brandBrief?"Initial verified + self-healed build with saved Brand Kit":"Initial Soolen Super Brain generated, repaired, self-healed and verified application",created_by:user.id}).select("id,version_no,created_at").single();if(versionError)throw new Error(`App version save failed: ${versionError.message}`);const{data:savedApp,error:appUpdateError}=await supabase.from("apps").update({current_version_id:version.id}).eq("id",app.id).eq("owner_id",user.id).select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status").single();if(appUpdateError)throw new Error(`App version link failed: ${appUpdateError.message}`);
+  if(adult.status!=="verified")throw new Error("Soolen Super Brain could not verify the generated app after autonomous repair attempts.");
+  const verified=verifyGeneration(adult.result);
+  if(!verified.passed)throw new Error(`Generated app failed final verification: ${verified.errors.join("; ")}`);
+  const specification={...verified.normalized,name:requestedName||verified.normalized.name};
+
+  const{data:app,error:appError}=await supabase.from("apps").insert({owner_id:user.id,name:String(specification.name||"Untitled App").trim(),description:String(specification.description||"").trim(),source_prompt:combinedInput,generation_request_id:chargeRequestId,visibility:"private",publish_status:"draft"}).select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status").single();
+  if(appError){
+   if(appError.code==="23505"){
+    const duplicateReplay=await loadGenerationReplay(supabase,user.id,chargeRequestId);
+    if(duplicateReplay?.success)return json(duplicateReplay);
+    return json({success:false,code:"GENERATION_REQUEST_IN_PROGRESS",error:"This exact build request is already being saved. Retry the same request ID to recover the saved project without creating a duplicate."},409);
+   }
+   throw new Error(`App save failed: ${appError.message}`);
+  }
+  createdAppId=app.id;
+  const{data:version,error:versionError}=await supabase.from("app_versions").insert({app_id:app.id,version_no:1,specification,change_summary:brandBrief?"Initial verified + self-healed build with saved Brand Kit":"Initial Soolen Super Brain generated, repaired, self-healed and verified application",created_by:user.id}).select("id,version_no,created_at").single();
+  if(versionError)throw new Error(`App version save failed: ${versionError.message}`);
+  const{data:savedApp,error:appUpdateError}=await supabase.from("apps").update({current_version_id:version.id}).eq("id",app.id).eq("owner_id",user.id).select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status").single();
+  if(appUpdateError)throw new Error(`App version link failed: ${appUpdateError.message}`);
+
   if(entitlementReserved){const binding=await bindAppBuilderProjectAccess(user.id,{appId:app.id,requestId:chargeRequestId});accessBound=Boolean(binding?.bound||binding?.replayed);}
   let mediaAssignments=[];if(assetIds.length){const{data:ownedAssets,error:assetError}=await supabase.from("asset_library").select("id,file_name,mime_type,category").eq("user_id",user.id).in("id",assetIds);if(assetError)console.warn("CUSTOMER_MEDIA_LOOKUP_ERROR:",assetError.message);const pages=Array.isArray(specification.pages)?specification.pages:[];mediaAssignments=(ownedAssets||[]).map(asset=>({app_id:app.id,asset_id:asset.id,owner_id:user.id,...choosePlacement(asset,pages)}));if(mediaAssignments.length){const{error:mapError}=await supabase.from("project_assets").upsert(mediaAssignments,{onConflict:"app_id,asset_id"});if(mapError)console.warn("PROJECT_MEDIA_MAP_ERROR:",mapError.message)}}
-  const finalDesign=specification?.designSystem||{},memoryScope=body?.innovationLearningConsent?"anonymized_patterns":"project_only",memoryPayload=mergeProjectMemory(null,{requestedName:requestedName||specification.name,brandPreferences:brandKit?{companyName:brandKit.company_name||"",logoReference:brandKit.logo_url||"",primaryColor:brandKit.primary_color||"",secondaryColor:brandKit.secondary_color||"",accentColor:brandKit.accent_color||"",fontStyle:brandKit.font_style||"",brandVoice:brandKit.brand_voice||""}:{},industryPlan:industryPlan.matched?{profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit}:{},visualPreferences:{themeMode:finalDesign.themeMode||themeMode,themePreset,primaryColor:finalDesign.primaryColor||primaryColor,accentColor:finalDesign.accentColor||accentColor,backgroundColor:finalDesign.backgroundColor||backgroundColor,styleRequest,wallpaperMode:finalDesign.wallpaperMode||wallpaperMode,wallpaperPreset:finalDesign.wallpaperPreset||wallpaperPreset},mediaPreferences:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role})),selfHeal:{score:verified.selfHeal.score,issues:verified.selfHeal.issues.length,passed:verified.selfHeal.passed},lastBuildAt:new Date().toISOString()});const{error:memoryError}=await supabase.from("project_memory").upsert({app_id:app.id,owner_id:user.id,memory_json:memoryPayload,learning_scope:memoryScope,updated_at:new Date().toISOString()},{onConflict:"app_id"});if(memoryError)console.warn("PROJECT_MEMORY_SAVE_ERROR:",memoryError.message);
-  const{error:referralError}=await supabase.rpc("record_first_app_referral_reward");if(referralError)console.warn("Referral qualification could not be recorded:",referralError.message);
-  return NextResponse.json({success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,selfHeal:verified.selfHeal,industryPlan:{matched:industryPlan.matched,profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit},brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},theme:memoryPayload.visualPreferences,media:{attached:mediaAssignments.length,assignments:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryScope,saved:!memoryError},superBrain:{mode:adult.mode,status:adult.status,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,selfHeal:verified.selfHeal.passed,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:savedApp.id,name:savedApp.name,versionId:version.id,versionNo:version.version_no,visibility:savedApp.visibility,publishStatus:savedApp.publish_status}});
- }catch(error){console.error("AI BUILD APP & WEB error:",error);if(supabase&&createdAppId&&!accessBound){try{await supabase.from("apps").delete().eq("id",createdAppId)}catch{}}if(entitlementReserved&&!accessBound&&chargeRequestId&&userId){try{await restoreFailedAppBuilderCreate(userId,{requestId:chargeRequestId})}catch{}}if(charged&&chargeRequestId&&userId){try{await refundAiCredits(userId,{requestId:chargeRequestId,amount:GENERATE_CREDIT_COST,description:"AI generation failed - automatic refund",metadata:{operation:"generate"}})}catch{}}
-  const message=String(error?.message||"");if(message.includes("Another creation request is already in progress"))return NextResponse.json({success:false,error:"Another build is already in progress. Wait for it to finish before starting another."},{status:409});if(message.includes("Insufficient credits"))return NextResponse.json({success:false,error:"Insufficient credits.",requiredCredits:GENERATE_CREDIT_COST},{status:402});if(message.includes("Server financial runtime is not configured"))return NextResponse.json({success:false,error:"Secure billing runtime is not configured yet."},{status:503});return NextResponse.json({success:false,error:message||"Unable to generate the app. Any charged credits were automatically refunded."},{status:500});}
+  const finalDesign=specification?.designSystem||{},memoryScope=body?.innovationLearningConsent?"anonymized_patterns":"project_only",memoryPayload=mergeProjectMemory(null,{requestedName:requestedName||specification.name,brandPreferences:brandKit?{companyName:brandKit.company_name||"",logoReference:brandKit.logo_url||"",primaryColor:brandKit.primary_color||"",secondaryColor:brandKit.secondary_color||"",accentColor:brandKit.accent_color||"",fontStyle:brandKit.font_style||"",brandVoice:brandKit.brand_voice||""}:{},industryPlan:industryPlan.matched?{profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit}:{},visualPreferences:{themeMode:finalDesign.themeMode||themeMode,themePreset,primaryColor:finalDesign.primaryColor||primaryColor,accentColor:finalDesign.accentColor||accentColor,backgroundColor:finalDesign.backgroundColor||backgroundColor,styleRequest,wallpaperMode:finalDesign.wallpaperMode||wallpaperMode,wallpaperPreset:finalDesign.wallpaperPreset||wallpaperPreset},mediaPreferences:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role})),selfHeal:{score:verified.selfHeal.score,issues:verified.selfHeal.issues.length,passed:verified.selfHeal.passed},lastBuildAt:new Date().toISOString()});
+  const{error:memoryError}=await supabase.from("project_memory").upsert({app_id:app.id,owner_id:user.id,memory_json:memoryPayload,learning_scope:memoryScope,updated_at:new Date().toISOString()},{onConflict:"app_id"});
+  if(memoryError)console.warn("PROJECT_MEMORY_SAVE_ERROR:",memoryError.message);
+  const{error:referralError}=await supabase.rpc("record_first_app_referral_reward");
+  if(referralError)console.warn("Referral qualification could not be recorded:",referralError.message);
+
+  const payload={success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,selfHeal:verified.selfHeal,industryPlan:{matched:industryPlan.matched,profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit},brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},theme:memoryPayload.visualPreferences,media:{attached:mediaAssignments.length,assignments:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryScope,saved:!memoryError},superBrain:{mode:adult.mode,status:adult.status,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,selfHeal:verified.selfHeal.passed,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},idempotency:{requestId:chargeRequestId,replayed:false,persisted:true},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:savedApp.id,name:savedApp.name,versionId:version.id,versionNo:version.version_no,visibility:savedApp.visibility,publishStatus:savedApp.publish_status}};
+  return json(payload);
+ }catch(error){
+  console.error("AI BUILD APP & WEB error:",error);
+  if(supabase&&createdAppId&&!accessBound){try{await supabase.from("apps").delete().eq("id",createdAppId)}catch{}}
+  if(entitlementReserved&&!accessBound&&chargeRequestId&&userId){try{await restoreFailedAppBuilderCreate(userId,{requestId:chargeRequestId})}catch{}}
+  if(charged&&chargeRequestId&&userId){try{await refundAiCredits(userId,{requestId:chargeRequestId,amount:GENERATE_CREDIT_COST,description:"AI generation failed - automatic refund",metadata:{operation:"generate"}})}catch{}}
+  const message=String(error?.message||"");
+  if(message.includes("Another creation request is already in progress"))return json({success:false,error:"Another build is already in progress. Wait for it to finish before starting another."},409);
+  if(message.includes("Insufficient credits"))return json({success:false,error:"Insufficient credits.",requiredCredits:GENERATE_CREDIT_COST},402);
+  if(message.includes("Server financial runtime is not configured"))return json({success:false,error:"Secure billing runtime is not configured yet."},503);
+  return json({success:false,error:message||"Unable to generate the app. Any charged credits were automatically refunded."},500);
+ }
 }
