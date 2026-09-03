@@ -1,0 +1,1 @@
+module.exports=async function handler(_req,res){res.setHeader("Cache-Control","private, no-store, max-age=0");return res.status(200).json({ok:true,service:"laneriq-memory",version:"1.0.0",mode:"standalone-ready",capabilities:["project.memory.load","project.memory.save"],evidenceLevel:"CODE",live:false});};
