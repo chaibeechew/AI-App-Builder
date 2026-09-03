@@ -96,7 +96,7 @@ The first legacy data path has started real adapter migration rather than remain
 - `app/api/apps/route.js` and `app/api/apps/[id]/route.js` call the provider-opaque `lib/cloud/projects.js` domain.
 - Current provider-specific session/query behavior lives behind `lib/cloud-adapters/project-data.js`.
 - The compatibility adapter keeps user-scoped access and explicit `owner_id` filtering; it does not use an admin/service-role bypass client.
-- CI applies a shrinking direct-provider route budget. The baseline was 56 route-level imports; after this batch the maximum accepted budget is 54. Future work may lower the number but may not increase it.
+- CI applies a shrinking direct-provider route budget. Full filesystem scanning established the real baseline at 79 route-level imports; after this batch the maximum accepted budget is 77. Future work may lower the number but may not increase it.
 
 A versioned private-data encryption envelope is now defined in `lib/cloud/encryption-envelope.js`:
 
