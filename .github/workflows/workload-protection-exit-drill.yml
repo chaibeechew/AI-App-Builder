@@ -1,0 +1,28 @@
+name: LANERIQ Workload Protection & Exit Drill
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  workload-protection-exit-drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Run workload protection and exit-drill contracts
+        run: node scripts/workload-protection-exit-drill-contract-tests.mjs
+      - name: Report
+        run: echo "LANERIQ workload protection and provider-exit dry-run contracts passed. This gate does not enable paid queues, live chaos, live provider cutover, dedicated servers, Email, or SMS."
