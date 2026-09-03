@@ -50,7 +50,10 @@ async function installPerformanceObservers(page) {
       const lcpObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
         const last = entries[entries.length - 1];
-        if (last) state.lcpMs = Number(last.startTime || last.renderTime || last.loadTime || 0);
+        if (last) {
+          const value = Number(last.startTime || last.renderTime || last.loadTime || 0);
+          state.lcpMs = Number.isFinite(value) && value > 0 ? value : null;
+        }
       });
       lcpObserver.observe({ type: "largest-contentful-paint", buffered: true });
       state.supported.largestContentfulPaint = true;
@@ -68,8 +71,14 @@ async function installPerformanceObservers(page) {
 }
 
 function roundMetric(value) {
+  if (value == null || value === "") return null;
   const numeric = Number(value);
   return Number.isFinite(numeric) ? Math.round(numeric * 100) / 100 : null;
+}
+
+function measuredPositiveTiming(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 }
 
 async function measureSurface(browser, entry, pathname) {
@@ -102,9 +111,12 @@ async function measureSurface(browser, entry, pathname) {
         const key = String(item.initiatorType || "other");
         byInitiator[key] = (byInitiator[key] || 0) + 1;
       }
+      const responseStart = nav ? Number(nav.responseStart) : NaN;
       return {
         navigation: nav ? {
-          ttfbMs: nav.responseStart,
+          // Some engines expose Navigation Timing but report responseStart=0 when that timing is unavailable.
+          // Treat that as unsupported/unknown instead of fabricating a perfect 0ms TTFB.
+          ttfbMs: Number.isFinite(responseStart) && responseStart > 0 ? responseStart : null,
           domContentLoadedMs: nav.domContentLoadedEventEnd,
           loadMs: nav.loadEventEnd,
           durationMs: nav.duration,
@@ -112,6 +124,9 @@ async function measureSurface(browser, entry, pathname) {
           encodedBodyBytes: Number(nav.encodedBodySize || 0),
           decodedBodyBytes: Number(nav.decodedBodySize || 0),
         } : null,
+        navigationSupport: {
+          ttfb: Number.isFinite(responseStart) && responseStart > 0,
+        },
         paint: { firstPaintMs: firstPaint, firstContentfulPaintMs: firstContentfulPaint },
         webVitals: {
           lcpMs: observer.lcpMs ?? null,
@@ -132,6 +147,7 @@ async function measureSurface(browser, entry, pathname) {
 
     assert(raw.navigation, `${entry.label} ${pathname} must expose Navigation Timing`);
     for (const [name, value] of Object.entries(raw.navigation)) {
+      if (value == null) continue;
       assert(Number.isFinite(Number(value)) && Number(value) >= 0, `${entry.label} ${pathname} invalid navigation metric ${name}=${value}`);
     }
     assert(Number.isInteger(raw.resources.count) && raw.resources.count >= 0, `${entry.label} ${pathname} invalid resource count`);
@@ -139,6 +155,9 @@ async function measureSurface(browser, entry, pathname) {
     const evidence = {
       path: pathname,
       navigation: Object.fromEntries(Object.entries(raw.navigation).map(([key, value]) => [key, roundMetric(value)])),
+      navigationSupport: {
+        ttfbMeasured: raw.navigationSupport?.ttfb === true,
+      },
       paint: {
         firstPaintMs: roundMetric(raw.paint.firstPaintMs),
         firstContentfulPaintMs: roundMetric(raw.paint.firstContentfulPaintMs),
@@ -157,15 +176,17 @@ async function measureSurface(browser, entry, pathname) {
         targetCls: MOBILE_PERFORMANCE_BUDGET.targetCls,
         lcpWithinTarget: raw.webVitals.lcpMs == null ? null : Number(raw.webVitals.lcpMs) <= MOBILE_PERFORMANCE_BUDGET.targetLcpMs,
         clsWithinTarget: raw.webVitals.cls == null ? null : Number(raw.webVitals.cls) <= MOBILE_PERFORMANCE_BUDGET.targetCls,
+        ttfbMeasured: raw.navigationSupport?.ttfb === true,
         inpMeasured: false,
         enforcement: "observational_browser_emulation_only",
       },
     };
 
+    const ttfb = evidence.navigation.ttfbMs == null ? "n/a" : `${evidence.navigation.ttfbMs}ms`;
     const fcp = evidence.paint.firstContentfulPaintMs == null ? "n/a" : `${evidence.paint.firstContentfulPaintMs}ms`;
     const lcp = evidence.webVitals.lcpMs == null ? "n/a" : `${evidence.webVitals.lcpMs}ms`;
     const cls = evidence.webVitals.cls == null ? "n/a" : evidence.webVitals.cls;
-    console.log(`✓ ${entry.label} ${pathname}: TTFB ${evidence.navigation.ttfbMs}ms · FCP ${fcp} · LCP ${lcp} · CLS ${cls} · resources ${evidence.resources.count}`);
+    console.log(`✓ ${entry.label} ${pathname}: TTFB ${ttfb} · FCP ${fcp} · LCP ${lcp} · CLS ${cls} · resources ${evidence.resources.count}`);
     return evidence;
   } finally {
     await context.close();
@@ -180,7 +201,7 @@ for (const entry of browserMatrix) assert(entry.device, `Missing Playwright devi
 
 const buildInfo = await verifyProductionBuild();
 const report = {
-  performanceEvidenceVersion: 1,
+  performanceEvidenceVersion: 2,
   evidenceLevel: "BROWSER_EMULATION",
   realDevicePerformanceVerified: false,
   realDeviceEvidenceRequired: MOBILE_PERFORMANCE_BUDGET.realDeviceEvidenceRequired,
@@ -189,7 +210,7 @@ const report = {
   buildInfo,
   generatedAt: new Date().toISOString(),
   budgets: MOBILE_PERFORMANCE_BUDGET,
-  interpretation: "Production browser-emulation measurements are useful regression evidence but do not replace physical-device/network LCP, INP or CLS proof.",
+  interpretation: "Production browser-emulation measurements are useful regression evidence. Missing/unsupported timings remain null and are never converted to 0; this evidence does not replace physical-device/network LCP, INP or CLS proof.",
   browsers: [],
 };
 
@@ -207,4 +228,5 @@ for (const entry of browserMatrix) {
 
 await fs.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 console.log(`✓ Production mobile performance evidence recorded for ${report.browsers.length}/${browserMatrix.length} browser/device profiles`);
+console.log("✓ Unsupported timing values remain n/a/null instead of being misreported as 0ms");
 console.log("✓ Performance evidence remains BROWSER_EMULATION; real iPhone/network evidence is still required for 100 LIVE VERIFIED");
