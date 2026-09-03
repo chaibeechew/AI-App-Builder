@@ -31,19 +31,40 @@ The current LANERIQ AI deployment supplies these through `runtime-port.js`. A fu
 
 `embedded_now_extractable_later`
 
-The public status endpoint is:
+Sanitized capability endpoint:
 
 `GET /api/communications/v1/status`
 
-It returns only sanitized capability/evidence information. It never returns provider tokens, recipients, message content or secrets.
+Signed service dispatch endpoint:
+
+`POST /api/communications/v1/dispatch`
+
+The dispatch endpoint requires a configured service client id, HMAC-SHA256 request signature, bounded timestamp, high-entropy nonce and stable idempotency key. Nonce and idempotency claims are persisted through a service-role-only ledger before any channel sender can execute. Paid/unknown-cost channels are still rejected by the server-side Zero-Cost Router even when a signed caller requests them.
+
+The status endpoint never returns provider tokens, recipients, message content or secrets. The dispatch endpoint never accepts unauthenticated arbitrary sends.
+
+## Signed request contract
+
+Headers:
+
+- `x-laneriq-client-id`
+- `x-laneriq-timestamp`
+- `x-laneriq-nonce`
+- `x-laneriq-signature`
+
+Canonical signature input:
+
+`clientId + timestamp + nonce + method + path + SHA256(body)`
+
+The HMAC secret must remain server-side. Requests older/newer than the allowed clock window are rejected. A nonce may only be claimed once. A stable message idempotency key may only be claimed once per service client, including when a retry uses a new nonce.
 
 ## Future extraction path
 
-1. Keep `service-core.js`, channel contracts, zero-cost policy and routing unchanged.
+1. Keep `service-core.js`, channel contracts, zero-cost policy, request-signature contract and routing unchanged.
 2. Move the runtime adapter into a dedicated communications deployment.
-3. Introduce authenticated service-to-service dispatch with replay-safe signed requests.
+3. Set `LANERIQ_COMMUNICATIONS_SERVICE_URL` in LANERIQ AI and use the signed remote client.
 4. Move delivery jobs/receipts/provider-health into the communications datastore.
-5. Point LANERIQ AI to the standalone service URL through a client adapter.
+5. Expand from one configured service client to a managed client-key registry if external LANERIQ products need access.
 6. Preserve the embedded adapter as a fallback until standalone production evidence is complete.
 
 ## Non-goals for this phase
@@ -51,4 +72,5 @@ It returns only sanitized capability/evidence information. It never returns prov
 - No dedicated server purchase.
 - No paid SMS activation.
 - No claim that provider-ready channels are LIVE.
-- No public arbitrary-send endpoint before replay-safe service authentication and persistent idempotency are present.
+- No unauthenticated arbitrary-send endpoint.
+- No multi-client public API key marketplace; service access remains private infrastructure.
