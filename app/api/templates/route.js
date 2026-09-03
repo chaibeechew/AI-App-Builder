@@ -8,6 +8,7 @@ import {
   getTrendingTemplates,
   searchTemplates,
 } from "../../../lib/templateCatalog.js";
+import { getTrendLearningStatus } from "../../../lib/trendLearningEngine.js";
 
 const NO_STORE = { "Cache-Control": "no-store, max-age=0" };
 
@@ -29,6 +30,7 @@ export async function GET(request) {
       return json({
         success: true,
         stats: TEMPLATE_CATALOG_STATS,
+        trendLearning: getTrendLearningStatus(),
         industries: INDUSTRIES,
         archetypes: ARCHETYPES.map(({ id: archetypeId, name }) => ({ id: archetypeId, name })),
         styles: STYLES,
@@ -44,7 +46,7 @@ export async function GET(request) {
     const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit")) || 24, 100));
     if (mode === "trending") {
       const templates = getTrendingTemplates(limit);
-      return json({ success: true, templates, total: templates.length, limit, offset: 0 });
+      return json({ success: true, templates, total: templates.length, limit, offset: 0, trendLearning: getTrendLearningStatus() });
     }
 
     const result = searchTemplates({
