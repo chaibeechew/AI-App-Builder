@@ -46,7 +46,7 @@ export default function CloudPage() {
 
       <div className="statusGrid">
         <div><span>Current shape</span><strong>Embedded module</strong><small>Designed to split into an independent LANERIQ Cloud service later.</small></div>
-        <div><span>Project data path</span><strong>Adapter migration started</strong><small>Project list and detail reads no longer import a provider directly.</small></div>
+        <div><span>Project + creator lifecycle</span><strong>Adapter migration advancing</strong><small>Project reads plus Preview, Security, Share and Demo no longer import the current provider directly.</small></div>
         <div><span>Security posture</span><strong>Default deny</strong><small>Private shared-cloud sync requires encrypt-before-cloud under the new contract.</small></div>
         <div><span>Own server</span><strong>Not required</strong><small>Migration is triggered by TCO + operational readiness, not a user-count target.</small></div>
       </div>
@@ -77,6 +77,7 @@ export default function CloudPage() {
         <div className="flags">
           <Flag ok={evidence.cloudDomainBoundaryInCode}>Cloud domain boundary in code</Flag>
           <Flag ok={evidence.projectReadAdapterMigrated}>Project read routes migrated behind adapter</Flag>
+          <Flag ok={evidence.creatorLifecycleAdapterMigrated}>Creator lifecycle routes migrated behind adapter</Flag>
           <Flag ok={evidence.clientSideEncryptionEnvelopeInCode}>Private encryption envelope in code</Flag>
           <Flag ok={evidence.providerAdaptersFullyMigrated}>All legacy provider calls migrated to adapters</Flag>
           <Flag ok={evidence.clientSideEncryptionFullyLive}>Client-side encryption fully LIVE</Flag>
