@@ -5,6 +5,7 @@ import { LAUNCH_MODE, isNoCreditsLaunchMode } from "../config/launch-mode.js";
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const layout = read("app/layout.js");
 const guard = read("app/components/LaunchModeGuard.js");
+const creditsLayout = read("app/credits/layout.js");
 const creditsPage = read("app/credits/page.js");
 const homeCostCss = read("app/local-first-cost-control.css");
 const home = read("app/page.js");
@@ -35,19 +36,21 @@ assert.match(guard, /location\.pathname\.startsWith\("\/admin"\)/);
 assert.match(guard, /MutationObserver/);
 assert.match(guard, /event\.preventDefault\(\)/);
 
-assert.match(creditsPage, /redirect\("\/"\)/);
-assert.doesNotMatch(creditsPage, /fetch\("\/api\/credits"/);
-assert.doesNotMatch(creditsPage, /Available Credits|Credit History|credit activity/i);
+assert.match(creditsLayout, /isNoCreditsLaunchMode\(\)/);
+assert.match(creditsLayout, /publicBalancePageEnabled === false/);
+assert.match(creditsLayout, /redirect\("\/"\)/);
+assert.match(creditsPage, /fetch\("\/api\/credits", \{ cache: "no-store" \}\)/);
+assert.match(creditsPage, /const ledger = Array\.isArray\(data\?\.ledger\) \? data\.ledger : \[\];/);
 
 assert.match(homeCostCss, /a\[href=\"\/credits\"\]\.credits[\s\S]*display:\s*none\s*!important/i);
 assert.match(homeCostCss, /\.premiumHome \.promiseRow \{ display:none !important; \}/);
 
-// Compatibility source may retain dormant labels while launch guards keep them out of the customer surface.
+// Dormant compatibility source can retain these references because the launch layout/guard makes them non-customer-facing.
 assert.match(home, /href="\/credits"/);
 assert.match(home, /insufficient credits/);
 assert.equal(LAUNCH_MODE.credits.backendEntitlementCompatibilityRetained, true);
 
 console.log("✓ No-Credits Launch Mode is the active customer access model");
-console.log("✓ Public Credits navigation/balance route are disabled while admin and backend compatibility remain intact");
-console.log("✓ Dynamic credit-shortage copy is neutralized without deleting historical entitlement infrastructure");
-console.log("✓ Existing homepage no-flash CSS continues hiding dormant Credits and promotional promise markup");
+console.log("✓ Public /credits is server-gated while the dormant server-backed balance/ledger component remains structurally intact");
+console.log("✓ Public Credits navigation, free-first-project copy and dynamic credit-shortage copy are suppressed by launch policy");
+console.log("✓ Admin/history/backend entitlement compatibility remains available without adding infrastructure or database migrations");
