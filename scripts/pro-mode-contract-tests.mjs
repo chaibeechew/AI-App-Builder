@@ -17,9 +17,10 @@ const adminCreatorOpportunity=read('app/api/admin/creator-opportunities/route.js
 const proPage=read('app/pro/[id]/page.js');
 const gameRoute=read('app/api/game/generate/route.js');
 const generate=read('app/api/generate/route.js');
+const builderDomain=read('lib/cloud/builder-projects.js');
+const builderAdapter=read('lib/cloud-adapters/builder-project-data.js');
 const gameGate=read('app/components/GameProGate.js');
 
-// Commercial creator product definition is stable and explicit.
 assert.match(policy,/id:\s*"professional"/);
 assert.match(policy,/professionalUsd:\s*68/);
 assert.match(policy,/professionalAccessDays:\s*365/);
@@ -36,7 +37,6 @@ assert.match(policy,/sameProjectAsStandard:\s*true/);
 assert.match(policy,/professionalModeDoesNotUnlockBasicQuality:\s*true/);
 assert.match(policy,/professionalModeUnlocksDeeperControl:\s*true/);
 
-// Account access is active only while the server-stored expiry is in the future and exposes Game plan/cooldown state.
 assert.match(access,/pro_valid_from,pro_valid_until,game_access_plan,game_cooldown_level,game_cooldown_until/);
 assert.match(access,/creator_opportunity_active,creator_opportunity_bonus_share_percent,creator_opportunity_approved_at,creator_opportunity_approved_by/);
 assert.match(access,/const active = Number\.isFinite\(untilMs\) && untilMs > now/);
@@ -49,21 +49,18 @@ assert.match(tier,/planCode:"professional_365"/);
 assert.match(tier,/professionalActive:true/);
 assert.match(tier,/professionalActive:false/);
 
-// Granting Professional access remains privileged and bounded.
 assert.match(runtime,/function public\.grant_pro_access\(p_user_id uuid, p_days integer default 365\)/);
 assert.match(runtime,/p_days < 1 or p_days > 730/);
 assert.match(runtime,/greatest\(now\(\), coalesce\(pro_valid_until, now\(\)\)\)/);
 assert.match(runtime,/revoke all on function public\.grant_pro_access\(uuid,integer\) from public, anon, authenticated/);
 assert.match(runtime,/grant execute on function public\.grant_pro_access\(uuid,integer\) to service_role/);
 
-// Full Access plan selection is service-role-only and clears ordinary Game cooldown state.
 assert.match(creatorPlanMigration,/server_set_game_access_plan/);
 assert.match(creatorPlanMigration,/game_access_plan in \('professional','full'\)/);
 assert.match(creatorPlanMigration,/excluded\.game_access_plan='full' then 0/);
 assert.match(creatorPlanMigration,/revoke all on function public\.server_set_game_access_plan\(uuid,text\) from public, anon, authenticated/);
 assert.match(creatorPlanMigration,/grant execute on function public\.server_set_game_access_plan\(uuid,text\) to service_role/);
 
-// Creator Opportunity is an individual-only Admin exception that grants Full Access without weakening normal Pro gates.
 assert.match(creatorOpportunityPolicy,/individualsOnly:\s*true/);
 assert.match(creatorOpportunityPolicy,/companiesAllowed:\s*false/);
 assert.match(creatorOpportunityPolicy,/teamsAllowed:\s*false/);
@@ -79,13 +76,11 @@ assert.match(adminCreatorOpportunity,/game_access_plan:"full"/);
 assert.match(adminCreatorOpportunity,/creator_opportunity_active:true/);
 assert.match(adminCreatorOpportunity,/creator_opportunity_bonus_share_percent:5/);
 
-// Professional project access expires safely and cannot be bound after account access expires.
 assert.match(serverEntitlement,/account_row\.pro_valid_until is not null and account_row\.pro_valid_until>now\(\)/);
 assert.match(serverEntitlement,/tier:='professional'/);
 assert.match(serverEntitlement,/Professional access expired before project binding/);
 assert.match(serverEntitlement,/project_row\.access_tier='professional' and project_row\.valid_until is not null and project_row\.valid_until>now\(\)/);
 
-// Pro workspace is authenticated, owner-scoped and visibly locks advanced workspace when creator access is inactive.
 assert.match(proPage,/auth\.getUser\(\)/);
 assert.match(proPage,/\.eq\("id",id\)\.eq\("owner_id",user\.id\)/);
 assert.match(proPage,/getAppBuilderAccess/);
@@ -94,7 +89,7 @@ assert.match(proPage,/Professional access is not active for this account/);
 assert.match(proPage,/only advanced Pro service access ends — your project is never deleted/);
 assert.match(proPage,/access\.professional\.daysRemaining/);
 
-// Game creation is double-gated: dedicated Game API and main Generate route both require active creator access.
+// Dedicated Game API remains direct today. Main Generate now gets the same server-derived access row through LANERIQ Cloud generation inputs.
 assert.match(gameRoute,/auth\.getUser\(\)/);
 assert.match(gameRoute,/getAppBuilderAccess/);
 assert.match(gameRoute,/if\(!access\.professional\.active\)/);
@@ -102,13 +97,18 @@ assert.match(gameRoute,/PRO_GAME_CREATOR_REQUIRED/);
 assert.match(gameRoute,/Game creation requires Professional or Full Access/);
 assert.match(gameRoute,/headers\.set\("x-soolen-game-gateway","professional-fair-use"\)/);
 assert.match(generate,/if\(isMobileGameIdea\(combinedInput\)\)/);
-assert.match(generate,/getAppBuilderAccess\(supabase,user\.id\)/);
+assert.match(generate,/loadBuilderGenerationInputs\(\{assetIds\}\)/);
+assert.match(generate,/const access=inputs\.builderAccess/);
 assert.match(generate,/trustedGameGateway=request\.headers\.get\("x-soolen-game-gateway"\)==="professional-fair-use"/);
-assert.match(generate,/!access\.professional\.active\|\|!trustedGameGateway/);
+assert.match(generate,/!access\?\.professional\?\.active\|\|!trustedGameGateway/);
 assert.match(generate,/PRO_GAME_CREATOR_REQUIRED/);
-assert.ok(generate.indexOf('if(isMobileGameIdea(combinedInput))') < generate.indexOf('consumeAppBuilderEntitlement(user.id'),'Game creator-plan gate must run before entitlement/credit consumption.');
+assert.match(builderDomain,/loadBuilderGenerationInputs/);
+assert.match(builderAdapter,/app_builder_account_access/);
+assert.match(builderAdapter,/normalizeBuilderAccess\(accessRow\)/);
+assert.match(builderAdapter,/\.eq\("user_id", userId\)/);
+assert.doesNotMatch(generate,/getAppBuilderAccess\(supabase|lib\/supabase\/|@supabase\//);
+assert.ok(generate.indexOf('if(isMobileGameIdea(combinedInput))') < generate.indexOf('consumeAppBuilderEntitlement(userId'),'Game creator-plan gate must run before entitlement/credit consumption.');
 
-// Normal-mode UI explains both creator plans and keeps App/Website available.
 assert.match(gameGate,/LANERIQ AI · CREATOR PLANS/);
 assert.match(gameGate,/Game creation needs a creator plan/);
 assert.match(gameGate,/US\$68 \/ 12 MONTHS/);
@@ -121,5 +121,5 @@ console.log('✓ Creator access is server-derived; approved individual Creator O
 console.log('✓ Professional grants, Full Access plan changes and Creator Opportunity approval are privileged');
 console.log('✓ Professional project access is exact-expiry bound and refuses expired binding');
 console.log('✓ Pro workspace authenticates, owner-scopes and locks advanced access when inactive');
-console.log('✓ Game creation has server-side double creator-plan gating before any entitlement/credit consumption');
+console.log('✓ Main Generate receives server-derived creator access through LANERIQ Cloud and gates Game creation before any entitlement/credit consumption');
 console.log('✓ Normal-mode Game requests expose clear Professional and Full Access choices while App/Website remain available');
