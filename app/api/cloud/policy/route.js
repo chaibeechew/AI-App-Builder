@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { publicBuilderProjectCloudBoundary } from "../../../../lib/cloud/builder-projects.js";
 import { publicCloudContract } from "../../../../lib/cloud/contracts.js";
 import { publicCreatorOperationsCloudBoundary } from "../../../../lib/cloud/creator-operations.js";
 import { publicEncryptionEnvelopePolicy } from "../../../../lib/cloud/encryption-envelope.js";
@@ -19,13 +20,16 @@ export async function GET() {
     encryptionEnvelope: publicEncryptionEnvelopePolicy(),
     projects: publicProjectCloudBoundary(),
     creatorOperations: publicCreatorOperationsCloudBoundary(),
+    builderProjects: publicBuilderProjectCloudBoundary(),
     router: publicResourceRouterPolicy(),
     serverEconomics: publicServerEconomicsPolicy(),
     evidence: {
       cloudDomainBoundaryInCode: true,
       projectReadAdapterMigrated: true,
       creatorLifecycleAdapterMigrated: true,
-      legacyDirectProviderRouteBudget: 73,
+      builderGenerateModifyPublishAdapterMigrated: true,
+      generatedProjectPersistenceAdapterMigrated: true,
+      legacyDirectProviderRouteBudget: 69,
       clientSideEncryptionEnvelopeInCode: true,
       providerAdaptersFullyMigrated: false,
       clientSideEncryptionFullyLive: false,
