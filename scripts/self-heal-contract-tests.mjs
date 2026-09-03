@@ -63,7 +63,7 @@ assert.match(generate,/buildRepairInstruction/);
 assert.match(generate,/buildSelfHealInstruction/);
 assert.match(generate,/repair:async/);
 assert.match(generate,/if\(adult\.status!=="verified"\)throw new Error/);
-assert.match(generate,/const verified=verifyGeneration\(adult\.result\);if\(!verified\.passed\)throw new Error/);
+assert.match(generate,/const verified=verifyGeneration\(adult\.result\);\s*if\(!verified\.passed\)throw new Error/);
 assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('.from("apps").insert'),'Create must finish final verification before saving the App.');
 
 // Modify path: quality regression repair + self-heal revalidation happen before atomic version persistence.
