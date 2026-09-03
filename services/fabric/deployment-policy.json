@@ -1,0 +1,16 @@
+{
+  "version":"deployment-policy1",
+  "principles":["zero-fixed-cost-default","no-dedicated-server-yet","gradual-extraction","no-silent-fallback","evidence-before-live-claim"],
+  "modes":{
+    "embedded":{"required":[],"claim":"MAIN_PRODUCTION_INTEGRATED"},
+    "remote_ready":{"required":["distinct_https_url","shared_secret_min_32","signed_request_contract","independent_ci"],"claim":"REMOTE_READY"},
+    "standalone_live":{"required":["distinct_production_project","exact_release_identity","signed_canary_success","runtime_error_check"],"claim":"STANDALONE_LIVE"}
+  },
+  "capacityMilestones":{
+    "0-20000_MAU":"provider-router + managed serverless + user-device compute where consented",
+    "20000-50000_MAU":"evaluate first dedicated/bare-metal LANERIQ node only when economics or workload evidence justify it",
+    "50000-100000_MAU":"small cluster when sustained load requires it",
+    "100000+_MAU":"multi-node gradual migration",
+    "million_scale":"multi-region"
+  }
+}
