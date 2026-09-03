@@ -49,8 +49,9 @@ assert.match(generate,/projectLearning/);
 assert.match(generate,/media:\{attached/);
 assert.match(generate,/project_memory/);
 
-// The actual zero-cost autonomous engine must generate App + Website outputs that survive all release gates, not only source inspection.
-for(const pattern of [/runAutonomousEngine/,/normalizeAppSpec/,/selfTestGeneratedApp/,/verifyGeneratedAppExecution/,/inspectProjectSpecification/,/assessBuildQuality/,/evaluateReleaseReadiness/,/quality\.overall,100/,/readiness\.releaseReady,true/,/property-zh/,/restaurant-ms/,/commerce-en/])assert.match(dynamicE2E,pattern);
+// The actual zero-cost provider router must generate App + Website outputs that survive all release gates, not only source inspection.
+for(const pattern of [/generateWithFallback/,/soolen-local/,/normalizeAppSpec/,/selfTestGeneratedApp/,/verifyGeneratedAppExecution/,/inspectProjectSpecification/,/assessBuildQuality/,/evaluateReleaseReadiness/,/quality\.overall,100/,/readiness\.releaseReady,true/,/property-zh/,/restaurant-ms/,/commerce-en/])assert.match(dynamicE2E,pattern);
+assert.doesNotMatch(dynamicE2E,/runAutonomousEngine/,"Pure Node release E2E must exercise the zero-cost provider router without importing Next request-context dependencies.");
 assert.match(packageJson,/"test:combined-e2e-code": "node scripts\/app-website-combined-internal-e2e-tests\.mjs && npm run test:generation-e2e-dynamic"/);
 
 // Completion enters owner Preview Both, where both frames pin the same exact working version.
@@ -90,7 +91,7 @@ assert.match(modify,/\.eq\("id",baseVersionId\)\.eq\("app_id",appId\)/);
 assert.match(visibleRuntime,/isOwner[\s\S]*app\.current_version_id[\s\S]*app\.published_version_id/);
 
 console.log("✓ App + Website simultaneous E2E uses one Planning decision, one verified specification and one atomic initial persistence transaction");
-console.log("✓ Dynamic zero-cost autonomous generation is wired to prove deterministic 100/100 and Release-Gate readiness across multilingual industry cases");
+console.log("✓ Dynamic zero-cost provider execution is wired to prove deterministic 100/100 and Release-Gate readiness across multilingual industry cases");
 console.log("✓ Preview Both locks App and Website to the same owner-authorized working version with no shadow Website record");
 console.log("✓ Anonymous App + Website production traffic stays pinned to published_version_id until an explicit new Publish");
 console.log("✓ Pinned owner snapshots do not inflate customer analytics; real authenticated Production generation remains a separate LIVE evidence gate");
