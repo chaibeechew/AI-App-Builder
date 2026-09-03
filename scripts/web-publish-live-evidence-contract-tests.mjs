@@ -5,6 +5,8 @@ const page=fs.readFileSync("app/web-publish-evidence/page.js","utf8");
 const client=fs.readFileSync("app/web-publish-evidence/WebPublishEvidenceClient.js","utf8");
 const css=fs.readFileSync("app/web-publish-evidence/web-publish-evidence.module.css","utf8");
 const detailRoute=fs.readFileSync("app/api/apps/[id]/route.js","utf8");
+const projectDomain=fs.readFileSync("lib/cloud/projects.js","utf8");
+const projectDataAdapter=fs.readFileSync("lib/cloud-adapters/project-data.js","utf8");
 const sessionSafetySource=fs.readFileSync("lib/auth/session-safety.js","utf8");
 const sessionSafety=await import(`data:text/javascript;base64,${Buffer.from(sessionSafetySource).toString("base64")}`);
 
@@ -55,8 +57,13 @@ for(const forbidden of [
   /sendBeacon/,
 ]) assert.doesNotMatch(client,forbidden);
 
-assert.match(detailRoute,/visibility, publish_status/);
-assert.match(detailRoute,/\.eq\("owner_id", user\.id\)/);
+// The owned project read path is now split: route -> provider-opaque LANERIQ Cloud domain -> compatibility adapter.
+// Keep the original publish-evidence guarantees at their new responsibility boundaries instead of weakening them.
+assert.match(detailRoute,/getCurrentUserProject/);
+assert.match(projectDomain,/cloud-adapters\/project-data\.js/);
+assert.match(projectDataAdapter,/visibility, publish_status/);
+assert.match(projectDataAdapter,/\.eq\("owner_id", principal\.principalId\)/);
+assert.doesNotMatch(detailRoute,/lib\/supabase\/|@supabase\//);
 assert.match(detailRoute,/Cache-Control": "private, no-store, max-age=0"/);
 
 assert.match(css,/min-height:100svh/);
@@ -71,3 +78,4 @@ console.log("✓ Web Publish live evidence is protected/noindex and only runs af
 console.log("✓ Pre-existing live projects are rejected and exact current version + 100/100 gate are rechecked before publish");
 console.log("✓ Public App/Website probes omit credentials, publish cleanup is armed before mutation, and finally enforces unpublish recovery");
 console.log("✓ Evidence runner cannot invoke Generate, Modify, SMS, service-role secrets, media permissions or persistent browser storage");
+console.log("✓ Owned project visibility/publish evidence now follows route → LANERIQ Cloud → adapter without weakening owner isolation");
