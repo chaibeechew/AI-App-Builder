@@ -64,7 +64,8 @@ assert.match(generate,/buildSelfHealInstruction/);
 assert.match(generate,/repair:async/);
 assert.match(generate,/if\(adult\.status!=="verified"\)throw new Error/);
 assert.match(generate,/const verified=verifyGeneration\(adult\.result\);\s*if\(!verified\.passed\)throw new Error/);
-assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('.from("apps").insert'),'Create must finish final verification before saving the App.');
+assert.match(generate,/server_persist_generated_project/);
+assert.ok(generate.indexOf('const verified=verifyGeneration(adult.result)') < generate.indexOf('server_persist_generated_project'),'Create must finish final verification before atomic App + Website persistence.');
 
 // Modify path: quality regression repair + self-heal revalidation happen before atomic version persistence.
 assert.match(modify,/function qualityRegressed/);
@@ -87,6 +88,6 @@ assert.match(policy,/Accessibility is explicitly disabled/i);
 
 console.log('✓ All 10 declared Self-Heal categories have executable deterministic checks');
 console.log('✓ Raw missing-page output is detected before normalization can hide the structural failure');
-console.log('✓ Create performs autonomous repair plus final deterministic verification before App persistence');
+console.log('✓ Create performs autonomous repair plus final deterministic verification before atomic App + Website persistence');
 console.log('✓ Modify blocks quality regression, re-verifies self-heal output and saves only after the candidate passes');
 console.log('✓ Unsafe routes, overflow, data contracts, credential fields, media and explicit accessibility failures are fail-closed');
