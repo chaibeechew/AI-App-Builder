@@ -1,0 +1,28 @@
+name: LANERIQ Artifact Materialization & Promotion
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  artifact-materialization-promotion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Run artifact materialization and promotion contracts
+        run: node scripts/artifact-materialization-promotion-contract-tests.mjs
+      - name: Report
+        run: echo "LANERIQ artifact materialization/promotion contracts passed. This gate verifies local/CI workspace materialization, receipts, preview-only canary planning and Production-review evidence; it does not execute provider deployment, mutate Production/DNS, add paid artifact storage, dedicated servers, Email, or SMS."
