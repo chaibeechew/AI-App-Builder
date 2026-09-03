@@ -148,8 +148,8 @@ for (const pattern of [
   /journeySurfaceCoverage:\{required:journeySurfaces\.length,passed:journeySurfaces\.filter\(x=>x\.ok\)\.length/,
 ]) assert.match(quickTest, pattern);
 
-assert.doesNotMatch(quickTest, /\/api\/credits|consumeAiCredits|standard_project_credits|SMS|signInWithOtp|verifyOtp/,
-  "Fresh zero-spend E2E must not touch credits or SMS/OTP internals.");
+assert.doesNotMatch(quickTest, /\/api\/credits|consumeAiCredits|standard_project_credits|signInWithOtp|verifyOtp|phone-auth|sms-auth|send_sms|sendSms/i,
+  "Fresh zero-spend E2E must not invoke credit or SMS/OTP execution internals; truthful explanatory copy may still mention those boundaries.");
 assert.doesNotMatch(quickTest, /officialStoreSubmissionVerified:true|originalGenerationProviderVerified:true|physicalDeviceVerified:true/,
   "Browser journey evidence must not impersonate physical-device, provider-LIVE or official-store evidence.");
 assert.doesNotMatch(quickTest, /\/api\/modify|\/api\/publish\/request|\/api\/store-metadata\/approve/,
@@ -183,4 +183,4 @@ console.log("✓ Batch 42 write runner verifies exact Production identity before
 console.log("✓ Batch 42 re-reads the persisted current version and verifies App, Website plus nine owner-scoped journey surfaces in the authenticated browser session");
 console.log("✓ Zero-spend reservation is service-role-only and can use only free-first-project or active Pro access; AI/project credits are impossible by contract");
 console.log("✓ Failed E2E attempts release their reservation; successful Generate binds the same stable request ID to the persisted project");
-console.log("✓ Browser journey evidence remains truthful: no physical-device, provider-LIVE, official-store or SMS claim is introduced");
+console.log("✓ Browser journey evidence remains truthful: no physical-device, provider-LIVE, official-store or SMS execution claim is introduced");
