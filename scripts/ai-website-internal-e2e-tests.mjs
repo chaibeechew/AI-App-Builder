@@ -5,6 +5,8 @@ import { buildAutonomousPlan, orchestrationBrief } from "../lib/build/orchestrat
 const home=fs.readFileSync("app/page.js","utf8");
 const engine=fs.readFileSync("engine/autonomous-engine.js","utf8");
 const generate=fs.readFileSync("app/api/generate/route.js","utf8");
+const runtimeGuard=fs.readFileSync("lib/generator/runtime-guard.js","utf8");
+const qualityBaseline=fs.readFileSync("lib/generator/generated-quality-baseline.js","utf8");
 const appPreview=fs.readFileSync("app/a/[id]/page.js","utf8");
 const websitePreview=fs.readFileSync("app/website/[id]/page.js","utf8");
 const websiteForm=fs.readFileSync("app/website/[id]/WebsiteEnquiryForm.js","utf8");
@@ -46,11 +48,16 @@ for(const pattern of [
   /verifyGeneration/,
   /loadGenerationReplay/,
   /generation_request_id/,
-  /\.from\("apps"\)\.insert/,
-  /\.from\("app_versions"\)\.insert/,
-  /current_version_id:version\.id/,
+  /server_persist_generated_project/,
+  /p_specification:specification/,
+  /p_source_prompt:combinedInput/,
   /App \+ Website/,
 ]) assert.match(generate,pattern);
+assert.match(generate,/stalePartial:true/);
+assert.match(generate,/recoveredPartial:Boolean\(persisted\.recovered_partial\)/);
+assert.match(runtimeGuard,/applyGeneratedQualityBaseline/);
+for(const dimension of ["stability","privacy","naturalness"])assert.match(qualityBaseline,new RegExp(`${dimension}:\\[`));
+assert.match(qualityBaseline,/App and Website share one project identity, current version, design language and customer terminology/);
 
 for(const source of [appPreview,websitePreview]){
   assert.match(source,/auth\.getUser\(\)/,"App and Website previews must resolve trusted owner identity.");
@@ -141,9 +148,9 @@ for(const pattern of [
 assert.doesNotMatch(appPreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
 assert.doesNotMatch(websitePreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
 
-console.log("✓ AI Website internal E2E locks Planning → verified Generate → durable save/version → authoritative Website Preview");
-console.log("✓ Generated customer Websites now have a functional enquiry conversion path instead of an empty Contact CTA");
+console.log("✓ AI Website internal E2E locks Planning → verified Generate → atomic project/version save → authoritative Website Preview");
+console.log("✓ Generated customer Websites have a functional enquiry conversion path instead of an empty Contact CTA");
 console.log("✓ Public enquiry writes are same-origin, POST-only, published-site-only, HMAC source-bound, replay-safe and atomically rate-limited");
 console.log("✓ Pinned owner snapshots remain same-project/version-bound and cannot create real enquiries or expose the live owner inbox");
-console.log("✓ Engine still requires pages, navigation, responsive web behavior and switchable language rather than a text-only landing mockup");
+console.log("✓ Generated runtime now enforces release-grade stability/privacy/naturalness baselines before App + Website rendering");
 console.log("✓ Real external AI-provider Website output remains LIVE evidence and is not claimed by this deterministic code gate");
