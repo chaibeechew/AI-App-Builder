@@ -57,6 +57,8 @@ const rootLayout=fs.readFileSync("app/layout.js","utf8");
 const saveRoute=fs.readFileSync("app/api/store-metadata/save/route.js","utf8");
 const approveRoute=fs.readFileSync("app/api/store-metadata/approve/route.js","utf8");
 const publishRoute=fs.readFileSync("app/api/publish/request/route.js","utf8");
+const builderDomain=fs.readFileSync("lib/cloud/builder-projects.js","utf8");
+const builderAdapter=fs.readFileSync("lib/cloud-adapters/builder-project-data.js","utf8");
 const migration=fs.readFileSync("supabase/migrations/20260827080003_store_publish_foundation.sql","utf8");
 assert.match(route,/buildStoreReadiness/);
 assert.match(route,/asset_library/);
@@ -82,21 +84,27 @@ assert.match(mount,/^.*\/publish\\\//m);
 assert.match(mount,/PublishingReadinessPanel/);
 assert.match(rootLayout,/PublishingReadinessMount/);
 assert.equal(fs.existsSync("app/publish/[id]/layout.js"),false,"Publishing readiness must not add a dynamic server layout/function");
-for(const source of [saveRoute,approveRoute,publishRoute])assert.match(source,/createAdminClient/);
-assert.match(saveRoute,/owner_id", user\.id/);
+
+// Store metadata save and final publish preparation have migrated behind LANERIQ Cloud; approval remains an explicit owner-verified server-only write.
+assert.match(saveRoute,/getBuilderPrincipal\(\{requireVerified:true\}\)/);
+assert.match(saveRoute,/saveBuilderStoreListing/);
+assert.doesNotMatch(saveRoute,/createAdminClient|lib\/supabase\//);
+assert.match(approveRoute,/createAdminClient/);
 assert.match(approveRoute,/owner_id", user\.id/);
 assert.match(approveRoute,/current_version_id !== listing\.version_id/);
-assert.match(publishRoute,/owner_id", user\.id/);
+assert.match(publishRoute,/getBuilderPrincipal\(\{requireVerified:true\}\)/);
+assert.match(publishRoute,/loadBuilderPublishPreparation/);
+assert.match(publishRoute,/createBuilderStorePublishRequest/);
+assert.doesNotMatch(publishRoute,/createAdminClient|lib\/supabase\/|server_create_store_publish_request/);
 assert.match(publishRoute,/customer_approved_at/);
+assert.match(builderDomain,/saveBuilderStoreListing/);
+assert.match(builderDomain,/loadBuilderPublishPreparation/);
+assert.match(builderDomain,/createBuilderStorePublishRequest/);
 
-// Final preparation request must re-evaluate authoritative server-side readiness instead of
-// trusting a browser state or a customer_approved_at timestamp that could be written via API.
+// Final preparation request must re-evaluate authoritative readiness from Cloud-loaded owner-scoped context instead of trusting browser state.
 for(const pattern of [
   /buildStoreReadiness/,
   /evaluateAuthoritativeStoreReadiness/,
-  /project_assets/,
-  /asset_library/,
-  /project_memory/,
   /storePublishingDeclarations/,
   /targetMetadataReady/,
   /STORE_PLATFORM_METADATA_INCOMPLETE/,
@@ -108,7 +116,18 @@ for(const pattern of [
   /providerReference:null/,
   /storeReviewVerified:false/,
 ]) assert.match(publishRoute,pattern);
-assert.ok(publishRoute.indexOf("evaluateAuthoritativeStoreReadiness") < publishRoute.lastIndexOf("server_create_store_publish_request"),"Authoritative Store Readiness must run before the privileged publish-request RPC.");
+const loadBlock=builderAdapter.slice(builderAdapter.indexOf('async loadPublishPreparation'),builderAdapter.indexOf('async createStorePublishRequest'));
+const createBlock=builderAdapter.slice(builderAdapter.indexOf('async createStorePublishRequest'),builderAdapter.indexOf('async saveStoreListing'));
+const saveBlock=builderAdapter.slice(builderAdapter.indexOf('async saveStoreListing'));
+for(const pattern of [/resolvePrincipal\(client, \{ requireVerified: true \}\)/,/\.eq\("id", appId\)\.eq\("owner_id", userId\)/,/project_assets/,/asset_library/,/project_memory/,/store_listings/])assert.match(loadBlock,pattern);
+assert.match(createBlock,/resolvePrincipal\(client, \{ requireVerified: true \}\)/);
+assert.match(createBlock,/createAdminClient\(\)/);
+assert.match(createBlock,/server_create_store_publish_request/);
+assert.ok(createBlock.indexOf('resolvePrincipal')<createBlock.indexOf('createAdminClient()'));
+assert.match(saveBlock,/\.eq\("id", appId\)\.eq\("owner_id", userId\)/);
+assert.match(saveBlock,/current_version_id !== versionId/);
+assert.match(saveBlock,/createAdminClient\(\)/);
+assert.ok(publishRoute.indexOf("evaluateAuthoritativeStoreReadiness") < publishRoute.lastIndexOf("createBuilderStorePublishRequest"),"Authoritative Store Readiness must run before Cloud publish-request persistence.");
 assert.doesNotMatch(publishRoute,/readyForOfficialSubmission:true|officialSubmissionConfirmed:true|externalSigningVerified:true|storeReviewVerified:true/,"Preparation must never auto-claim official store submission, signing or review success.");
 
 assert.doesNotMatch(approveRoute,/\.rpc\("approve_store_listing"/);
@@ -119,7 +138,7 @@ assert.match(migration,/grant select on public\.store_listings to authenticated/
 
 console.log("✓ Publishing Agent checks icon, screenshots, customer declarations, device-permission purposes and Apple/Android external release requirements without claiming official submission success");
 console.log("✓ Customer can resolve Terms and permission-purpose gaps in project memory while official age-rating/store submission remain external evidence");
-console.log("✓ Final publish-preparation API re-evaluates exact-version Store Readiness and target-platform metadata before any privileged request write");
+console.log("✓ Final publish-preparation API re-evaluates exact-version Store Readiness before provider-opaque Cloud persistence");
 console.log("✓ Store preparation response explicitly keeps official submission, external signing, provider reference and store review unverified");
-console.log("✓ Store listing approval, metadata saves and publish-request writes are owner-verified server-only operations; public client tables remain read-only");
+console.log("✓ Cloud adapter re-authenticates owner/version context before metadata/publish service-role writes; approval remains explicit owner-verified server-only");
 console.log("✓ Store Readiness stays client-mounted and scoped to /publish without creating an extra dynamic Vercel function");
