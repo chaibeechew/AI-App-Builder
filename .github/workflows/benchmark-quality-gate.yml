@@ -30,8 +30,12 @@ jobs:
         run: npm run test:generation-outcome
       - name: Benchmark Factory & Automatic Quality Judge contracts
         run: npm run test:benchmark-factory
-      - name: Quality Autonomy 2 contracts
+      - name: Quality Autonomy 2 core contracts
         run: npm run test:quality-autonomy-2
+      - name: 50-industry zero-cost local intelligence contracts
+        run: npm run test:zero-cost-industry-expander
+      - name: Runtime candidate integration contracts
+        run: npm run test:runtime-candidates
       - name: Deterministic zero-cost generation sample
         run: npm run sample:release-quality
       - name: Autonomous Self-Heal integration contracts
