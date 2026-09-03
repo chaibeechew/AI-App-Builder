@@ -4,6 +4,8 @@ import {detectIndustryIntent,selectIndustryTemplateBlend,buildIndustryIntelligen
 import {TRENDING_APP_REFERENCE_PATTERNS,selectTrendingAppReferences,buildTrendingReferenceContext} from '../lib/trendingAppReferences.js';
 import {extractGenerationIdea,enrichGenerationPrompt} from '../lib/ai/provider-prompt-intelligence.js';
 
+await import('./trend-learning-contract-tests.mjs');
+
 assert.equal(INDUSTRIES.length,50);
 assert.equal(TRENDING_APP_REFERENCE_PATTERNS.length,100);
 assert.equal(new Set(TRENDING_APP_REFERENCE_PATTERNS.map(x=>x.id)).size,100);
@@ -42,6 +44,7 @@ assert.match(extractGenerationIdea(rawPrompt),/real estate CRM/);
 const enriched=enrichGenerationPrompt(rawPrompt);
 assert.match(enriched,/LANERIQ AI Industry Intelligence Engine/);
 assert.match(enriched,/LANERIQ AI Trending App Reference Layer/);
+assert.match(enriched,/LANERIQ AI Continuous Trend Learning Layer/);
 assert.match(enriched,/properties/);
 assert.match(enriched,/Never reproduce third-party branding/);
 assert.equal(enrichGenerationPrompt('ordinary non-builder prompt'),'ordinary non-builder prompt');
