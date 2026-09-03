@@ -7,6 +7,7 @@ import { getBenchmarkCatalog, summarizeBenchmarkRun } from '../lib/ai/benchmark-
 import { assessGenerationQuality, GENERATION_QUALITY_JUDGE_POLICY } from '../lib/ai/generation-quality-judge.js';
 import { buildGenerationCandidateBudget, buildShadowCandidateInstruction, evaluateGenerationCandidatePool, buildCandidateSelfHealDirective, GENERATION_CANDIDATE_ORCHESTRATOR_POLICY } from '../lib/ai/generation-candidate-orchestrator.js';
 import { GOLDEN_QUALITY_FLOOR, buildDeterministicGenerationSamplePlan, summarizeDeterministicGenerationSample, evaluateReleaseQualityFloor, buildReleaseQualitySnapshot, buildReleaseQualityTrend, buildReleaseQualityStatus, RELEASE_QUALITY_INTELLIGENCE_POLICY } from '../lib/ai/release-quality-intelligence.js';
+import { expandZeroCostIndustrySpecification, ZERO_COST_INDUSTRY_EXPANDER_POLICY } from '../lib/ai/zero-cost-industry-expander.js';
 
 const root=process.cwd();
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
@@ -63,7 +64,9 @@ assert.equal(pool.selectedCandidateId,'strong');
 assert.ok(pool.ranking.find(item=>item.id==='weak').duplicatePenalty>0);
 assert.equal(pool.storesRawUserPrompt,false);
 assert.equal(GENERATION_CANDIDATE_ORCHESTRATOR_POLICY.freeModeMaxMeteredRemoteCalls,1);
+assert.match(GENERATION_CANDIDATE_ORCHESTRATOR_POLICY.activation,/runtime-integrated/);
 assert.match(buildCandidateSelfHealDirective(pool),/acceptance gate|requires/i);
+assert.equal(Object.isFrozen(pool.selectedSpecification),false,'Selected specification must remain mutable for downstream wallpaper/game/runtime normalization.');
 
 const planA=buildDeterministicGenerationSamplePlan(),planB=buildDeterministicGenerationSamplePlan();
 assert.equal(planA.sampleSize,50);
@@ -71,6 +74,18 @@ assert.equal(planA.industryCoverage,50);
 assert.equal(planA.fingerprint,planB.fingerprint);
 assert.equal(new Set(planA.cases.map(item=>item.id)).size,50);
 assert.equal(planA.providerPolicy,'zero-cost-local-only-for-ci-sample');
+
+for(const item of planA.cases){
+  const expanded=expandZeroCostIndustrySpecification({name:'Local Foundation',pages:[{name:'Home',route:'/',description:'Overview'}],features:[],actions:[],navigation:[{label:'Home',route:'/'}]},item.prompt);
+  assert.equal(expanded.zeroCostIndustryIntelligence.matched,true,`Zero-cost industry intelligence missed ${item.industry}`);
+  assert.equal(expanded.industry.name,item.industry,`Zero-cost industry mismatch for ${item.industry}: ${expanded.industry.name}`);
+  assert.ok(expanded.pages.length>=4,`${item.industry} local expansion needs industry-specific pages`);
+  assert.ok(expanded.features.length>=3,`${item.industry} local expansion needs industry-specific features`);
+  for(const dimension of ['stability','security','privacy','comfort','beauty','naturalness'])assert.ok(expanded.qualityPlan[dimension].length>=3,`${item.industry} ${dimension} quality evidence missing`);
+  assert.equal(expanded.zeroCostIndustryIntelligence.directCopyAllowed,false);
+}
+assert.equal(ZERO_COST_INDUSTRY_EXPANDER_POLICY.catalogIndustries,50);
+assert.equal(ZERO_COST_INDUSTRY_EXPANDER_POLICY.paidProviderRequired,false);
 
 const benchmarkRows=catalog.map(item=>({caseId:item.id,industry:item.industry,score:96,decision:'accept',passed:true,originalityScore:95,coverageScore:100,liuiScore:97,releaseReadinessScore:96}));
 const benchmarkSummary=summarizeBenchmarkRun(benchmarkRows,{label:'golden-floor-test'});
@@ -109,9 +124,17 @@ assert.match(route,/physicalDeviceVerified:false/);
 assert.match(route,/storeVerified:false/);
 assert.doesNotMatch(route,/process\.env/);
 assert.doesNotMatch(route,/service_role|api[_-]?key|secret/i);
+const autonomous=read('engine/autonomous-engine.js');
+assert.match(autonomous,/buildCostSafeCandidatePool/);
+assert.match(autonomous,/providers:\["soolen-local"\]/);
+assert.match(autonomous,/expandZeroCostIndustrySpecification/);
+assert.match(autonomous,/one-primary-plus-zero-cost-local-shadows/);
+assert.match(autonomous,/paidShadowCalls:0/);
+assert.match(autonomous,/selectedProvider\|\|primary\.provider/);
 
 console.log('✓ Automatic Quality Judge v2 adds workflow coherence and resilience/accessibility scoring');
-console.log('✓ Cost-safe candidate orchestration caps free-mode metered remote success paths at one and ranks up to five candidates');
+console.log('✓ Cost-safe candidate orchestration is runtime-integrated with one primary plus zero-cost local shadow candidates');
+console.log('✓ Zero-cost local generation expands all 50 benchmark industries through existing LANERIQ Industry Intelligence profiles');
 console.log('✓ Release Quality Intelligence builds a deterministic 50-industry zero-cost generation sample plan and privacy-safe quality history');
 console.log('✓ Golden Quality Floor and release trend evidence remain separate from external-provider LIVE, Production browser, device and store claims');
 console.log('✓ Sanitized /api/quality/status exposes aggregate CODE/CI capability only');
