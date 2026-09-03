@@ -27,7 +27,7 @@ assert.doesNotMatch(gateway.slice(catchIndex),/return embedded\(/,'Remote uncert
 assert.match(security,/timingSafeEqual/);
 assert.match(security,/MAX_SKEW=5\*60\*1000/);
 assert.match(operate,/GENERATION_ENGINE_ADAPTER_NOT_READY/);
-assert.match(operate,/authorization:`Bearer \$\{adapterSecret\}`/);
+assert.match(operate,/"authorization":`Bearer \$\{adapterSecret\}`/);
 assert.match(status,/live:false/);
 assert.equal(manifest.security.silentEmbeddedFallback,false);
 assert.equal(manifest.cost.fixedInfrastructureRequired,false);
