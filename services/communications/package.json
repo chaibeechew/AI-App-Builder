@@ -3,5 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "engines": { "node": ">=22" },
-  "scripts": { "test": "node test/contract.mjs" }
+  "scripts": {
+    "test": "node test/contract.mjs && node test/preflight-contract.mjs",
+    "preflight": "node preflight.mjs"
+  }
 }
