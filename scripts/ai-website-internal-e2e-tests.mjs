@@ -5,6 +5,8 @@ import { buildAutonomousPlan, orchestrationBrief } from "../lib/build/orchestrat
 const home=fs.readFileSync("app/page.js","utf8");
 const engine=fs.readFileSync("engine/autonomous-engine.js","utf8");
 const generate=fs.readFileSync("app/api/generate/route.js","utf8");
+const builderDomain=fs.readFileSync("lib/cloud/builder-projects.js","utf8");
+const builderAdapter=fs.readFileSync("lib/cloud-adapters/builder-project-data.js","utf8");
 const runtimeGuard=fs.readFileSync("lib/generator/runtime-guard.js","utf8");
 const qualityBaseline=fs.readFileSync("lib/generator/generated-quality-baseline.js","utf8");
 const appPreview=fs.readFileSync("app/a/[id]/page.js","utf8");
@@ -19,6 +21,7 @@ const rootProxy=fs.readFileSync("proxy.js","utf8");
 const publicRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
 const enquiryMigration=fs.readFileSync("supabase/migrations/20260903004110_website_enquiry_runtime.sql","utf8");
 const enquiryPolicy=fs.readFileSync("supabase/migrations/20260903004150_website_enquiry_service_policy.sql","utf8");
+const persistRestriction=fs.readFileSync("supabase/migrations/20260903122000_restrict_generated_project_persistence_service_role.sql","utf8");
 const publishPinMigration=fs.readFileSync("supabase/migrations/20260903105500_pin_published_project_version.sql","utf8");
 
 const plan=buildAutonomousPlan({idea:"Create a premium multilingual property website with listings, enquiry forms and mobile-first navigation"});
@@ -48,12 +51,17 @@ for(const pattern of [
   /runAutonomousEngine/,
   /verifyGeneration/,
   /loadGenerationReplay/,
-  /generation_request_id/,
-  /server_persist_generated_project/,
-  /p_specification:specification/,
-  /p_source_prompt:combinedInput/,
+  /loadBuilderGenerationReplay/,
+  /persistBuilderGeneratedProject/,
   /App \+ Website/,
 ]) assert.match(generate,pattern);
+assert.doesNotMatch(generate,/lib\/supabase\/|@supabase\/|createAdminClient/);
+assert.match(builderDomain,/persistBuilderGeneratedProject/);
+assert.match(builderAdapter,/generation_request_id/);
+assert.match(builderAdapter,/server_persist_generated_project/);
+assert.match(builderAdapter,/p_specification: specification/);
+assert.match(builderAdapter,/p_source_prompt: sourcePrompt/);
+assert.match(persistRestriction,/grant execute on function public\.server_persist_generated_project.*to service_role/s);
 assert.match(generate,/stalePartial:true/);
 assert.match(generate,/recoveredPartial:Boolean\(persisted\.recovered_partial\)/);
 assert.match(runtimeGuard,/applyGeneratedQualityBaseline/);
@@ -78,7 +86,6 @@ assert.match(websitePreview,/enabled=\{enquiryEnabled\}/);
 assert.match(websitePreview,/isOwner&&isPublishedVersion&&!isPinnedPreview&&<WebsiteEnquiryInbox/,"The live enquiry inbox must render only alongside the exact published Website snapshot.");
 assert.doesNotMatch(websitePreview,/href="mailto:"/,"Generated Website must never ship an empty Contact CTA.");
 
-// Customer enquiry conversion path: real same-origin POST, stable retry identity, bounded PII and no automatic permissions.
 assert.match(websiteForm,/\/api\/public\/website\/\$\{appId\}\/enquiries/);
 assert.match(websiteForm,/requestRef=useRef/);
 assert.match(websiteForm,/requestId\(\)/);
@@ -94,14 +101,12 @@ assert.match(publicEnquiryRoute,/submitWebsiteEnquiry/);
 assert.match(publicEnquiryRoute,/Cache-Control\":\"no-store/);
 assert.doesNotMatch(publicEnquiryRoute,/export async function GET|export async function PATCH|export async function DELETE/,"The unauthenticated Website enquiry endpoint must remain POST-only.");
 
-// Public auth bypass is exact UUID + exact POST, with cross-site mutation protection upstream.
 assert.match(sessionProxy,/PUBLIC_WEBSITE_ENQUIRY_POST=\/\^\\\/api\\\/public\\\/website/);
 assert.match(sessionProxy,/PUBLIC_WEBSITE_ENQUIRY_POST\.test\(pathname\)&&request\.method==="POST"/);
 assert.doesNotMatch(sessionProxy,/pathname\.startsWith\("\/api\/public"\)/);
 assert.match(rootProxy,/fetchSite==="cross-site"/);
 assert.match(rootProxy,/crossSiteMutation\(request\)/);
 
-// Server privacy + persistence: no raw IP storage, HMAC-only source fingerprint, service-only atomic RPC.
 assert.match(enquiryEngine,/createHmac\("sha256"/);
 assert.match(enquiryEngine,/LANERIQ_COMMUNICATIONS_HASH_SECRET/);
 assert.match(enquiryEngine,/SUPABASE_SERVICE_ROLE_KEY/);
@@ -124,7 +129,6 @@ for(const pattern of [
 ]) assert.match(enquiryMigration,pattern);
 assert.match(enquiryPolicy,/for all to service_role/i);
 
-// Owner inbox remains authenticated + exact-owner scoped and hides request/source fingerprints.
 assert.match(ownerEnquiryRoute,/auth\.getUser\(\)/);
 assert.match(ownerEnquiryRoute,/\.eq\("owner_id",user\.id\)/);
 assert.match(ownerEnquiryRoute,/\.eq\("owner_id",ctx\.user\.id\)/);
@@ -132,7 +136,6 @@ assert.doesNotMatch(ownerEnquiryRoute,/source_hash|request_id/);
 assert.match(websiteInbox,/website-enquiries\?limit=20/);
 assert.match(websiteInbox,/Mark contacted/);
 
-// Public Website is pinned to the reviewed publish version; owner preview keeps following current work.
 for(const pattern of [
   /current_version_id,published_version_id/,
   /if \(!isOwner && !isPublished\) return null/,
@@ -146,7 +149,8 @@ assert.match(publishPinMigration,/published_version_id=null/);
 assert.doesNotMatch(appPreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
 assert.doesNotMatch(websitePreview,/\.from\("apps"\)|\.from\("app_versions"\)/);
 
-console.log("✓ AI Website internal E2E locks Planning → verified Generate → atomic project/version save → authoritative Website Preview");
+console.log("✓ AI Website internal E2E locks Planning → verified Generate → LANERIQ Cloud atomic project/version save → authoritative Website Preview");
+console.log("✓ Generate route is provider-opaque; exact request replay and service-role persistence live behind the Cloud adapter");
 console.log("✓ Generated customer Websites keep a real privacy-bounded enquiry conversion path instead of an empty Contact CTA");
 console.log("✓ Real enquiries and the owner inbox are enabled only for the exact published_version_id snapshot, never a newer working draft");
 console.log("✓ Public Website rendering is pinned to published_version_id so later AI Modify cannot silently replace the live reviewed version");
