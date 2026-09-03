@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../lib/supabase/server.js";
-import { createAdminClient } from "../../../lib/supabase/admin.js";
 import { normalizeAppSpec } from "../../../lib/generator/runtime-guard.js";
 import { buildAppExplanation } from "../../../lib/generator/app-explanation.js";
 import { selfTestGeneratedApp } from "../../../lib/generator/self-test.js";
@@ -12,6 +10,7 @@ import { PRODUCT_BRAND,PREMIUM_VISUAL_AI_INSTRUCTION } from "../../../lib/ai/pre
 import { buildPreciseEditInstruction } from "../../../lib/editor/precise-edit-policy.js";
 import { inspectProjectSpecification,buildSelfHealInstruction } from "../../../lib/ai/project-self-heal-policy.js";
 import { consumeAppBuilderEntitlement,consumeAiCredits,refundAiCredits } from "../../../lib/app-builder-finance.js";
+import { getBuilderPrincipal,loadBuilderModificationContext,saveBuilderModification } from "../../../lib/cloud/builder-projects.js";
 
 export const maxDuration=120;
 
@@ -29,13 +28,14 @@ function preciseTargetFrom(body){const target=body?.preciseTarget;if(!target||ty
 function replayPayload({appId,version,specification,requestId}){const normalized=normalizeAppSpec(specification),selfTest=selfTestGeneratedApp(normalized),finalSpec=selfTest.normalizedSpec,quality=assessBuildQuality(finalSpec),selfHeal=inspectProjectSpecification(finalSpec);return{success:true,replayed:true,provider:null,specification:finalSpec,appId,version:{id:version.id,version_no:version.version_no,created_at:version.created_at,replayed:true},preciseEdit:{applied:false,target:null},selfHeal:{applied:false,report:selfHeal},projectMemory:{applied:true,updated:false,visualPreferences:visualMemory(finalSpec)},explanation:buildAppExplanation(finalSpec),selfTest,quality:{before:quality,after:quality,repairApplied:false,releaseReadiness:evaluateReleaseReadiness(quality)},entitlement:{source:"replay",charged:false},credits:{charged:0,requestId,balance:null}};}
 
 export async function POST(request){
- let supabase=null,userId=null,charged=false,chargeRequestId=null,charge=null;
+ let userId=null,charged=false,chargeRequestId=null,charge=null;
  try{
-  supabase=await createClient();
-  const{data:{user},error:userError}=await supabase.auth.getUser();
-  if(userError||!user)return NextResponse.json({error:"Authentication required."},{status:401});
-  userId=user.id;
-  if(!user.confirmed_at&&!user.email_confirmed_at&&!user.phone_confirmed_at)return NextResponse.json({error:"Please verify your email or phone before modifying an app."},{status:403});
+  const principal=await getBuilderPrincipal({requireVerified:true});
+  if(!principal.ok){
+    if(principal.code==="ACCOUNT_VERIFICATION_REQUIRED")return NextResponse.json({error:"Please verify your email or phone before modifying an app."},{status:403});
+    return NextResponse.json({error:"Authentication required."},{status:401});
+  }
+  userId=principal.principal.principalId;
 
   const body=await request.json();
   const instruction=String(body?.instruction||"").trim();
@@ -49,26 +49,27 @@ export async function POST(request){
   if(!instruction)return NextResponse.json({error:"Modification instruction is required."},{status:400});
   if(instruction.length>4000)return NextResponse.json({error:"Modification instruction is too long."},{status:413});
 
-  const{data:owned,error:ownedError}=await supabase.from("apps").select("id,current_version_id").eq("id",appId).eq("owner_id",user.id).single();
-  if(ownedError||!owned)return NextResponse.json({error:"App not found or access denied."},{status:404});
-
-  // End-to-end replay check happens before AI or charging. A retry returns the exact already-persisted specification.
-  const{data:replayVersion,error:replayError}=await supabase.from("app_versions").select("id,version_no,created_at,specification").eq("app_id",appId).eq("created_by",user.id).eq("source_request_id",chargeRequestId).maybeSingle();
-  if(replayError)throw new Error("Modification replay state could not be checked safely.");
+  const context=await loadBuilderModificationContext({appId,requestId:chargeRequestId});
+  if(!context.ok){
+    if(context.code==="PROJECT_NOT_FOUND")return NextResponse.json({error:"App not found or access denied."},{status:404});
+    if(context.code==="MODIFICATION_REPLAY_CHECK_FAILED")throw new Error("Modification replay state could not be checked safely.");
+    throw new Error(`Modification context unavailable: ${context.code}`);
+  }
+  const replayVersion=context.replayVersion;
   if(replayVersion?.specification)return NextResponse.json(replayPayload({appId,version:replayVersion,specification:replayVersion.specification,requestId:chargeRequestId}));
 
+  const owned=context.project;
   if(!owned.current_version_id)return NextResponse.json({error:"This project has no current saved version yet."},{status:409});
   if(expectedVersionId&&expectedVersionId!==owned.current_version_id)return NextResponse.json({error:"This project changed after the editor loaded. Refresh the project before applying this precise edit."},{status:409});
   const baseVersionId=owned.current_version_id;
-  const{data:currentVersion,error:versionError}=await supabase.from("app_versions").select("id,specification").eq("id",baseVersionId).eq("app_id",appId).maybeSingle();
-  if(versionError||!currentVersion?.specification)return NextResponse.json({error:"Current project version could not be loaded safely."},{status:409});
+  const currentVersion=context.currentVersion;
+  if(!currentVersion?.specification)return NextResponse.json({error:"Current project version could not be loaded safely."},{status:409});
   const effectiveSpecification=currentVersion.specification;
-  const{data:memory}=await supabase.from("project_memory").select("memory_json,learning_scope").eq("app_id",appId).eq("owner_id",user.id).maybeSingle();
-  const memoryRow=memory||null;
+  const memoryRow=context.memory||null;
 
-  const entitlement=await consumeAppBuilderEntitlement(user.id,{operation:"modify",appId,requestId:chargeRequestId});
+  const entitlement=await consumeAppBuilderEntitlement(userId,{operation:"modify",appId,requestId:chargeRequestId});
   const entitlementSource=entitlement?.allowed?entitlement.source:null;
-  if(!entitlement?.allowed){charge=await consumeAiCredits(user.id,{amount:MODIFY_CREDIT_COST,requestId:chargeRequestId,description:"AI app modification",metadata:{operation:"modify",appId}});charged=Boolean(charge?.charged);}
+  if(!entitlement?.allowed){charge=await consumeAiCredits(userId,{amount:MODIFY_CREDIT_COST,requestId:chargeRequestId,description:"AI app modification",metadata:{operation:"modify",appId}});charged=Boolean(charge?.charged);}
   const memoryBrief=buildProjectMemoryBrief(memoryRow),currentQuality=assessBuildQuality(normalizeAppSpec(effectiveSpecification));
   const effectiveInstruction=preciseTarget?buildPreciseEditInstruction({...preciseTarget,instruction}):instruction;
   const prompt=`You are the modification engine for ${PRODUCT_BRAND.name}, powered by SoolenAI. Modify the existing App + Website according to this instruction:\n"${effectiveInstruction}"\n${memoryBrief?`\n${memoryBrief}\n`:""}\n\nNON-NEGOTIABLE QUALITY STANDARD:\n${GENERATION_QUALITY_RULES}\n\nPREMIUM VISUAL IDEAL:\n${PREMIUM_VISUAL_AI_INSTRUCTION}\n\nCurrent specification:\n${JSON.stringify(effectiveSpecification)}\nReturn ONLY valid JSON with name, description, designSystem, visualAssets, qualityPlan, pages, features, data, dataModels, actions and navigation. Preserve and improve the existing qualityPlan with at least 3 concrete implementation decisions for every quality dimension. A current customer request about color, theme, style or wallpaper overrides older visual preferences and must coordinate the entire visual system. Preserve existing functionality and remembered project preferences unless the customer's current instruction explicitly changes them. Do not silently remove authentication, permissions, privacy, validation, loading/error states, responsive behavior or accessibility protections. Never reuse private assets across customers. No markdown.`;
@@ -90,23 +91,22 @@ export async function POST(request){
   }
 
   const finalSpec=candidate.specification,test=candidate.selfTest,finalQuality=candidate.quality,finalReadiness=evaluateReleaseReadiness(finalQuality);
-  const admin=createAdminClient();
-  const{data:version,error:saveError}=await admin.rpc("server_save_app_modification",{p_user_id:user.id,p_app_id:appId,p_expected_version_id:baseVersionId,p_request_id:chargeRequestId,p_specification:finalSpec,p_change_summary:instruction});
-  if(saveError)throw saveError;
+  const nextMemory=mergeProjectMemory(memoryRow?.memory_json,{requestedName:finalSpec.name,visualPreferences:visualMemory(finalSpec),lastModificationAt:new Date().toISOString(),lastModificationInstruction:instruction,lastPreciseTarget:preciseTarget||undefined,lastSelfHealApplied:selfHealApplied});
+  const save=await saveBuilderModification({appId,expectedVersionId:baseVersionId,requestId:chargeRequestId,specification:finalSpec,changeSummary:instruction,memoryJson:nextMemory,learningScope:memoryRow?.learning_scope||"project_only"});
+  if(!save.ok){
+    if(save.code==="PROJECT_CHANGED_DURING_MODIFICATION")throw new Error("Project changed during modification");
+    if(save.code==="MODIFICATION_REPLAY_LOAD_FAILED")throw new Error("Saved replay version could not be loaded safely.");
+    throw new Error(save.detail||`Modification save failed: ${save.code}`);
+  }
 
-  // A concurrent identical request may win the database race. Always return the exact persisted winner.
-  if(version?.replayed){
-    const{data:persisted,error:persistedError}=await supabase.from("app_versions").select("id,version_no,created_at,specification").eq("id",version.id).eq("app_id",appId).maybeSingle();
-    if(persistedError||!persisted?.specification)throw new Error("Saved replay version could not be loaded safely.");
+  if(save.replayed){
+    const persisted=save.version;
+    if(!persisted?.specification)throw new Error("Saved replay version could not be loaded safely.");
     return NextResponse.json(replayPayload({appId,version:persisted,specification:persisted.specification,requestId:chargeRequestId}));
   }
 
-  const savedVersion=version;
-  const nextMemory=mergeProjectMemory(memoryRow?.memory_json,{requestedName:finalSpec.name,visualPreferences:visualMemory(finalSpec),lastModificationAt:new Date().toISOString(),lastModificationInstruction:instruction,lastPreciseTarget:preciseTarget||undefined,lastSelfHealApplied:selfHealApplied});
-  const{error:memoryError}=await supabase.from("project_memory").upsert({app_id:appId,owner_id:user.id,memory_json:nextMemory,learning_scope:memoryRow?.learning_scope||"project_only",updated_at:new Date().toISOString()},{onConflict:"app_id"});
-  if(memoryError)console.warn("PROJECT_MEMORY_MODIFY_SAVE_ERROR",memoryError.message);
-
-  return NextResponse.json({success:true,replayed:false,provider:finalProvider,specification:finalSpec,appId,version:savedVersion,preciseEdit:{applied:Boolean(preciseTarget),target:preciseTarget},selfHeal:{applied:selfHealApplied,report:candidate.selfHeal},projectMemory:{applied:Boolean(memoryBrief),updated:true,visualPreferences:visualMemory(finalSpec)},explanation:buildAppExplanation(finalSpec),selfTest:test,quality:{before:currentQuality,after:finalQuality,repairApplied:qualityRepairApplied,releaseReadiness:finalReadiness},entitlement:{source:entitlementSource,charged},credits:{charged:charged?MODIFY_CREDIT_COST:0,requestId:chargeRequestId,balance:charge?.balance??null}});
+  const savedVersion=save.version;
+  return NextResponse.json({success:true,replayed:false,provider:finalProvider,specification:finalSpec,appId,version:savedVersion,preciseEdit:{applied:Boolean(preciseTarget),target:preciseTarget},selfHeal:{applied:selfHealApplied,report:candidate.selfHeal},projectMemory:{applied:Boolean(memoryBrief),updated:Boolean(save.memorySaved),visualPreferences:visualMemory(finalSpec)},explanation:buildAppExplanation(finalSpec),selfTest:test,quality:{before:currentQuality,after:finalQuality,repairApplied:qualityRepairApplied,releaseReadiness:finalReadiness},entitlement:{source:entitlementSource,charged},credits:{charged:charged?MODIFY_CREDIT_COST:0,requestId:chargeRequestId,balance:charge?.balance??null}});
  }catch(error){
   console.error("Modify API error:",error);
   if(charged&&chargeRequestId&&userId){try{await refundAiCredits(userId,{requestId:chargeRequestId,amount:MODIFY_CREDIT_COST,description:"AI modification failed - automatic refund",metadata:{operation:"modify"}})}catch{}}
@@ -115,7 +115,7 @@ export async function POST(request){
   if(message.includes("Project changed during modification"))return NextResponse.json({error:"This project changed while AI was working. Refresh the workspace and try the change again."},{status:409});
   if(message.includes("Insufficient credits"))return NextResponse.json({error:"Insufficient credits.",requiredCredits:MODIFY_CREDIT_COST},{status:402});
   if(message.includes("Server financial runtime is not configured"))return NextResponse.json({error:"Secure billing runtime is not configured yet."},{status:503});
-  if(message.includes("replay state could not be checked")||message.includes("replay version could not be loaded"))return NextResponse.json({error:"Modification retry state could not be verified safely. No new AI edit was accepted."},{status:503});
+  if(message.includes("replay state could not be checked")||message.includes("replay version could not be loaded")||message.includes("Saved replay version could not be loaded"))return NextResponse.json({error:"Modification retry state could not be verified safely. No new AI edit was accepted."},{status:503});
   if(/timed out|time budget/i.test(message))return NextResponse.json({error:"AI modification reached its safety time limit. No new version was accepted."},{status:504});
   if(message.includes("All authorized AI providers failed"))return NextResponse.json({error:"AI providers are temporarily unavailable. Please try again."},{status:503});
   return NextResponse.json({error:"Unable to modify the app. Any charged credits were automatically refunded."},{status:500});
