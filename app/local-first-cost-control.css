@@ -1,0 +1,9 @@
+/* LANERIQ current-stage cost strategy: keep cost governance internal rather than presenting Credits as the primary user model. */
+.premiumHome .topActions > a.credits,
+.premiumHome .topActions > a[href="/credits"].credits {
+  display: none !important;
+}
+
+.premiumHome .topActions {
+  justify-content: flex-end;
+}
