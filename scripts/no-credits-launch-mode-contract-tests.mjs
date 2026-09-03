@@ -7,6 +7,10 @@ const layout = read("app/layout.js");
 const guard = read("app/components/LaunchModeGuard.js");
 const creditsLayout = read("app/credits/layout.js");
 const creditsPage = read("app/credits/page.js");
+const creditsApi = read("app/api/credits/route.js");
+const finance = read("lib/app-builder-finance.js");
+const generate = read("app/api/generate/route.js");
+const modify = read("app/api/modify/route.js");
 const homeCostCss = read("app/local-first-cost-control.css");
 const home = read("app/page.js");
 
@@ -41,6 +45,17 @@ assert.match(creditsLayout, /publicBalancePageEnabled === false/);
 assert.match(creditsLayout, /redirect\("\/"\)/);
 assert.match(creditsPage, /fetch\("\/api\/credits", \{ cache: "no-store" \}\)/);
 assert.match(creditsPage, /const ledger = Array\.isArray\(data\?\.ledger\) \? data\.ledger : \[\];/);
+assert.match(creditsApi, /from\("credit_accounts"\)/);
+assert.match(creditsApi, /from\("credit_transactions"\)/);
+assert.match(creditsApi, /\.eq\("user_id", user\.id\)/);
+
+assert.match(finance, /import \{ isNoCreditsLaunchMode \} from "\.\.\/config\/launch-mode\.js"/);
+assert.match(finance, /if\(isNoCreditsLaunchMode\(\)\)return Promise\.resolve\(\{charged:false,balance:null,launchModeBypass:true,requestId\}\)/);
+assert.match(finance, /if\(isNoCreditsLaunchMode\(\)\)return Promise\.resolve\(\{refunded:false,balance:null,launchModeBypass:true,requestId\}\)/);
+assert.match(finance, /server_consume_ai_credits/,'Historical credit consumption RPC compatibility must remain dormant but available.');
+assert.match(finance, /server_refund_ai_credits/,'Historical credit refund RPC compatibility must remain dormant but available.');
+assert.match(generate, /consumeAiCredits/,'Generate retains the compatibility call site while the finance boundary prevents charging in launch mode.');
+assert.match(modify, /consumeAiCredits/,'Modify retains the compatibility call site while the finance boundary prevents charging in launch mode.');
 
 assert.match(homeCostCss, /a\[href=\"\/credits\"\]\.credits[\s\S]*display:\s*none\s*!important/i);
 assert.match(homeCostCss, /\.premiumHome \.promiseRow \{ display:none !important; \}/);
@@ -52,5 +67,6 @@ assert.equal(LAUNCH_MODE.credits.backendEntitlementCompatibilityRetained, true);
 
 console.log("✓ No-Credits Launch Mode is the active customer access model");
 console.log("✓ Public /credits is server-gated while the dormant server-backed balance/ledger component remains structurally intact");
+console.log("✓ Generate/Modify cannot charge or refund credits while No-Credits Launch Mode is active");
+console.log("✓ Historical credit RPC compatibility remains dormant and reversible for a future commercial phase");
 console.log("✓ Public Credits navigation, free-first-project copy and dynamic credit-shortage copy are suppressed by launch policy");
-console.log("✓ Admin/history/backend entitlement compatibility remains available without adding infrastructure or database migrations");
