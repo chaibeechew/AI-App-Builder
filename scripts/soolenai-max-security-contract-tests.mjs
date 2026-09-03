@@ -80,15 +80,18 @@ assert.ok(missingSecurity.score<100,"A missing MAX security manifest must not re
 assert.equal(missingSecurity.passed,false,"A missing MAX security manifest must fail the 100-point publish security dimension.");
 const hardenedQuality=assessBuildQuality(normalized);
 assert.equal(hardenedQuality.security.passed,true);
-assert.equal(hardenedQuality.methodology,"deterministic-spec-quality-gate-v6-soolenai-max-security");
+assert.equal(hardenedQuality.methodology,"deterministic-spec-quality-gate-v7-liui-v2-soolenai-max-security");
+assert.equal(hardenedQuality.liui.standard,"LANERIQ AI Living Intelligence UI™");
+assert.equal(hardenedQuality.liui.version,"2.0");
 
-// Generate and Modify already consume the shared quality rules + normalizer, making MAX inherited without per-route opt-in.
+// Generate and Modify consume the shared quality rules + normalizer, making MAX + LIUI inherited without per-route opt-in.
 assert.match(generate,/normalizeAppSpec/);
 assert.match(generate,/runAutonomousEngine/);
 assert.match(modify,/normalizeAppSpec/);
 assert.match(modify,/GENERATION_QUALITY_RULES/);
 assert.match(GENERATION_QUALITY_RULES,/SOOLENAI SECURE-BY-DEFAULT MAX/i);
 assert.match(GENERATION_QUALITY_RULES,/cannot be disabled, downgraded or overridden/i);
+assert.match(GENERATION_QUALITY_RULES,/LIVING INTELLIGENCE UI/i);
 assert.match(publish,/assessBuildQuality\(version\.specification/);
 assert.ok(publish.indexOf("assessBuildQuality(version.specification")<publish.indexOf("server_publish_web_project"),"MAX-aware quality/security must run before publish RPC.");
 
@@ -119,6 +122,6 @@ assert.match(capabilities,/not an absolute no-malware\/no-vulnerability guarante
 
 assert.ok(pkg.scripts?.["test:soolenai-security-max"]!==undefined,"package.json must expose the MAX security gate.");
 console.log("✓ SoolenAI Secure-by-Default MAX cannot be downgraded by adversarial generated/modified JSON");
-console.log("✓ Security 100 requires the MAX manifest; Publish remains downstream of the MAX-aware quality gate");
+console.log("✓ Security 100 requires the MAX manifest; Publish remains downstream of the MAX + LIUI-aware quality gate");
 console.log("✓ LANERIQ AI platform headers and cross-site mutation protection are locked by contract");
 console.log("✓ Upload malware defense remains defense-in-depth and never fabricates antivirus-clean evidence");
