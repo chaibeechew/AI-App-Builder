@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": { "api/*.js": { "maxDuration": 10 } },
+  "rewrites": [
+    { "source": "/api/communications/v1/status", "destination": "/api/status" },
+    { "source": "/api/communications/v1/dispatch", "destination": "/api/dispatch" }
+  ],
   "headers": [
     { "source": "/api/(.*)", "headers": [
       { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
