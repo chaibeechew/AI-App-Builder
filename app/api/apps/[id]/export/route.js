@@ -1,21 +1,74 @@
-import { NextResponse } from "next/server";
 import { createClient } from "../../../../../lib/supabase/server.js";
+import {
+  createPortableSourceExport,
+  LANERIQ_PORTABLE_SOURCE_EXPORT_MEDIA_TYPE,
+  portableSourceFilename,
+} from "../../../../../lib/ai/portable-source-export.js";
 
-export async function GET(_request,{params}){
-  try{
-    const {id}=await params;const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});
-    const {data:app}=await supabase.from("apps").select("id,name,description,created_at,updated_at,current_version_id,visibility,publish_status,owner_id").eq("id",id).eq("owner_id",user.id).single();if(!app)return NextResponse.json({error:"Project not found."},{status:404});
-    const [{data:versions},{data:backend},{data:workflows},{data:assets},{data:integrations},{data:offers},{data:memory}]=await Promise.all([
-      supabase.from("app_versions").select("id,version_no,specification,change_summary,created_at").eq("app_id",id).order("version_no",{ascending:true}),
-      supabase.from("app_backend_models").select("schema_json,status,updated_at").eq("app_id",id).eq("owner_id",user.id).maybeSingle(),
-      supabase.from("app_workflows").select("name,trigger_type,trigger_config,actions,enabled,created_at,updated_at").eq("app_id",id).eq("owner_id",user.id),
-      supabase.from("project_assets").select("asset_id,suggested_page,suggested_role,placement_reason,created_at").eq("app_id",id).eq("owner_id",user.id),
-      supabase.from("project_integrations").select("integration_type,display_name,enabled,config,updated_at").eq("app_id",id).eq("owner_id",user.id),
-      supabase.from("monetization_offers").select("name,description,amount,currency,billing_mode,enabled,created_at").eq("app_id",id).eq("owner_id",user.id),
-      supabase.from("project_memory").select("memory_json,learning_scope,updated_at").eq("app_id",id).eq("owner_id",user.id).maybeSingle()
-    ]);
-    const payload={format:"ai-app-builder-project-export-v1",exportedAt:new Date().toISOString(),ownership:{ownerUserId:user.id,projectId:app.id},project:{id:app.id,name:app.name,description:app.description,createdAt:app.created_at,updatedAt:app.updated_at,visibility:app.visibility,publishStatus:app.publish_status,currentVersionId:app.current_version_id},versions:versions||[],dataModel:backend||null,workflows:workflows||[],assetPlacements:assets||[],integrations:(integrations||[]).map(x=>({...x,note:"No provider secret or API key is included in exports."})),monetization:offers||[],projectLearning:memory||null};
-    const safe=(app.name||"project").replace(/[^a-zA-Z0-9_-]+/g,"-").slice(0,80)||"project";
-    return new NextResponse(JSON.stringify(payload,null,2),{status:200,headers:{"Content-Type":"application/json; charset=utf-8","Content-Disposition":`attachment; filename="${safe}-AI-App-Builder-export.json"`,"Cache-Control":"no-store"}});
-  }catch(error){console.error("PROJECT_EXPORT_ERROR",error);return NextResponse.json({error:"Unable to export this project."},{status:500});}
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function errorResponse(message, status) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "private, no-store, max-age=0",
+      Pragma: "no-cache",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}
+
+export async function GET(request, { params }) {
+  try {
+    const { id } = await params;
+    const requestedVersionId = String(new URL(request.url).searchParams.get("versionId") || "").trim();
+    if (requestedVersionId && !UUID.test(requestedVersionId)) {
+      return errorResponse("versionId must identify one exact saved project version.", 400);
+    }
+
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) return errorResponse("Authentication required.", 401);
+
+    const { data: app, error: appError } = await supabase
+      .from("apps")
+      .select("id,owner_id,current_version_id")
+      .eq("id", id)
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    if (appError || !app) return errorResponse("Project not found.", 404);
+
+    const versionId = requestedVersionId || String(app.current_version_id || "").trim();
+    if (!UUID.test(versionId)) return errorResponse("A saved project version is required for source export.", 409);
+
+    const { data: version, error: versionError } = await supabase
+      .from("app_versions")
+      .select("id,version_no,specification,change_summary,created_at")
+      .eq("id", versionId)
+      .eq("app_id", id)
+      .maybeSingle();
+    if (versionError || !version) return errorResponse("Saved project version not found.", 404);
+
+    const bundle = createPortableSourceExport({ app, version });
+    const body = `${JSON.stringify(bundle, null, 2)}\n`;
+    const filename = portableSourceFilename(app.id, version.version_no);
+
+    return new Response(body, {
+      status: 200,
+      headers: {
+        "Content-Type": `${LANERIQ_PORTABLE_SOURCE_EXPORT_MEDIA_TYPE}; charset=utf-8`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Cache-Control": "private, no-store, max-age=0",
+        Pragma: "no-cache",
+        "X-Content-Type-Options": "nosniff",
+        "X-LANERIQ-Project-ID": app.id,
+        "X-LANERIQ-Version-ID": version.id,
+        "X-LANERIQ-Bundle-Digest": bundle.bundleDigest,
+      },
+    });
+  } catch (error) {
+    console.error("PORTABLE_SOURCE_EXPORT_ERROR", error?.code || error?.name || "unknown");
+    return errorResponse("Unable to export this saved project version right now.", 500);
+  }
 }
