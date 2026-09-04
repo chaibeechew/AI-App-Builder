@@ -1,0 +1,40 @@
+name: Batch 67 Final Delta Bootstrap
+
+on:
+  push:
+    branches:
+      - batch67-rebased-oidc-20260904
+    paths:
+      - '.github/workflows/batch67-final-delta-bootstrap.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  final-delta:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Copy final Batch 67 runtime-evidence deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin batch67-live-defense-truth-foundation
+          files=(
+            '.github/workflows/vercel-malware-secret-sync.yml'
+            'app/api/malware/service-status/route.js'
+            'services/malware-defense/lib/master-roadmap-gate.js'
+          )
+          git checkout origin/batch67-live-defense-truth-foundation -- "${files[@]}"
+          rm -f .github/workflows/batch67-final-delta-bootstrap.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --all
+          if git diff --cached --quiet; then
+            echo 'No final Batch 67 delta remains.'
+            exit 0
+          fi
+          git commit -m 'Carry final Batch 67 adaptive runtime evidence deltas'
+          git push origin HEAD:batch67-rebased-oidc-20260904
