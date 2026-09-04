@@ -3,5 +3,5 @@
   "version":"0.1.0",
   "private":true,
   "type":"module",
-  "scripts":{"build":"node -e \"console.log('LANERIQ Cloud functions require no compile step')\"","test":"node test/contract.mjs"}
+  "scripts":{"build":"node -e \"console.log('LANERIQ Cloud functions require no compile step')\"","test":"node test/contract.mjs && node test/security-level5.mjs"}
 }
