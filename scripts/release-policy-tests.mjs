@@ -59,6 +59,7 @@ assert.equal(PRODUCT_POLICY.promotion.freeFirstProject.projectsPerEligibleCustom
 assert.equal(PRODUCT_POLICY.promotion.freeFirstProject.includesAppAndWebsiteGeneration,true);
 assert.equal(PRODUCT_POLICY.promotion.freeFirstProject.includesReasonableAiModificationUntilReady,true);
 assert.equal(PRODUCT_POLICY.promotion.freeFirstProject.endsWhenProjectIsPublished,true);
+assert.equal(PRODUCT_POLICY.promotion.freeFirstProject.buyoutLicenseOptionAvailable,false);
 
 assert.equal(PRODUCT_POLICY.pricing.standard.priceUsd,10);
 assert.equal(PRODUCT_POLICY.pricing.standard.billing,'one_time');
@@ -80,12 +81,24 @@ assert.equal(PRODUCT_POLICY.publishing.externalStoreFees.chargedByAiAppBuilder,f
 assert.equal(PRODUCT_POLICY.publishing.externalStoreFees.collectedByAiAppBuilder,false);
 assert.equal(PRODUCT_POLICY.publishing.customerMustReviewBeforeSubmission,true);
 
-assert.equal(PRODUCT_POLICY.monetization.buyout.oneAppOneLicense,true);
-assert.equal(PRODUCT_POLICY.monetization.buyout.personal.priceUsd,49);
-assert.equal(PRODUCT_POLICY.monetization.buyout.business.priceUsd,199);
-assert.equal(PRODUCT_POLICY.monetization.buyout.enterprise.priceUsd,499);
-assert.equal(PRODUCT_POLICY.monetization.buyout.gameBuyoutAvailable,false);
-assert.ok(PRODUCT_POLICY.monetization.buyout.excludedProjectTypes.includes('game'));
+const noBuyout=PRODUCT_POLICY.monetization.buyoutLicense;
+assert.equal(noBuyout.enabled,false);
+assert.equal(noBuyout.customerFacingOption,false);
+assert.equal(noBuyout.purchasable,false);
+assert.equal(noBuyout.newEntitlementCreationEnabled,false);
+assert.deepEqual(noBuyout.appliesToProjectTypes,[]);
+assert.equal(noBuyout.availableBeforePublish,false);
+assert.equal(noBuyout.availableAfterPublish,false);
+assert.equal(noBuyout.revenueShareRemovalAvailable,false);
+assert.equal(noBuyout.customQuoteAvailable,false);
+assert.equal(noBuyout.personalPriceUsd,null);
+assert.equal(noBuyout.businessPriceUsd,null);
+assert.equal(noBuyout.enterprisePriceUsd,null);
+assert.equal(noBuyout.sourceCodeAccessByBuyout,false);
+assert.equal(noBuyout.newBuyoutSourceFolderCreation,false);
+assert.match(noBuyout.note,/does not offer a buyout license option/i);
+assert.equal(PRODUCT_POLICY.monetization.referral.doesNotCreateBuyoutLicenseOption,true);
+
 assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.professionalOnly,true);
 assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.buyoutLicenseAvailable,false);
 assert.equal(PRODUCT_POLICY.monetization.gameCommercialization.platformSalesSharePercent,5);
@@ -103,5 +116,5 @@ console.log('✓ Production evidence contract fails closed until evidence is com
 console.log('✓ Free-first-project promotion policy remains intact');
 console.log('✓ Standard / Professional / Full Access creator pricing and Fair Use policy remain intact');
 console.log('✓ Apple / Google external fee separation remains intact');
-console.log('✓ Non-game buyout license plan remains intact');
-console.log('✓ Game policy is locked: creator ownership, no buyout, continuing 5% LANERIQ AI share of game sales revenue across all sales channels');
+console.log('✓ LANERIQ AI has no customer-facing or purchasable Buyout License option for App, Website, Game or Enterprise projects');
+console.log('✓ Game policy remains creator-owned with continuing 5% LANERIQ AI share of game sales revenue across all sales channels');
