@@ -1,0 +1,42 @@
+name: LANERIQ Canonical Capabilities Consumer Cutover Gate
+
+on:
+  pull_request:
+    paths:
+      - 'lib/auth/session-safety.js'
+      - 'scripts/production-stability-100.mjs'
+      - 'scripts/production-public-contract-tests.mjs'
+      - 'scripts/canonical-capabilities-consumer-cutover-contract-tests.mjs'
+      - 'app/api/laneriq/capabilities/**'
+      - 'app/api/soolenai/capabilities/**'
+      - '.github/workflows/canonical-capabilities-consumer-cutover-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laneriq-canonical-capabilities-consumer-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consumer-cutover:
+    name: Canonical capabilities consumer cutover
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify capabilities consumer cutover
+        run: node scripts/canonical-capabilities-consumer-cutover-contract-tests.mjs
+      - name: Verify Production public contract
+        run: node scripts/production-public-contract-tests.mjs
+      - name: Verify account/session compatibility
+        run: node scripts/account-session-contract-tests.mjs
