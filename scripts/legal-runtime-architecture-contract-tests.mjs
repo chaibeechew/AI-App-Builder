@@ -4,6 +4,8 @@ import { spawnSync } from "node:child_process";
 const files={
   migration:"supabase/migrations/20260904150000_legal_runtime_architecture.sql",
   rpc:"supabase/migrations/20260904150100_legal_runtime_service_rpc.sql",
+  legalDomain:"lib/cloud/legal-runtime.js",
+  legalAdapter:"lib/cloud-adapters/legal-runtime-data.js",
   documentApi:"app/api/legal/document/route.js",
   acceptanceApi:"app/api/legal/acceptance/route.js",
   truthGateApi:"app/api/legal/marketplace/truth-gate/route.js",
@@ -16,6 +18,8 @@ for(const [label,path] of Object.entries(files)){
 
 const migration=fs.readFileSync(files.migration,"utf8");
 const rpc=fs.readFileSync(files.rpc,"utf8");
+const legalDomain=fs.readFileSync(files.legalDomain,"utf8");
+const legalAdapter=fs.readFileSync(files.legalAdapter,"utf8");
 const documentApi=fs.readFileSync(files.documentApi,"utf8");
 const acceptanceApi=fs.readFileSync(files.acceptanceApi,"utf8");
 const truthGateApi=fs.readFileSync(files.truthGateApi,"utf8");
@@ -81,23 +85,30 @@ check("Service truth RPC is revoked from browsers",has(rpc,"revoke all on functi
 check("Service truth RPC is service-role only",has(rpc,"grant execute on function public.server_evaluate_app_sale_truth_gate(uuid) to service_role;"));
 check("No authenticated EXECUTE grant on service truth RPC",!new RegExp("grant\\s+execute[\\s\\S]*authenticated","i").test(rpc));
 
-check("Document API filters ACTIVE only",has(documentApi,'.eq("status","active")'));
+check("Legal API routes use provider-opaque LANERIQ domain",[documentApi,acceptanceApi,truthGateApi].every(source=>has(source,"lib/cloud/legal-runtime.js")));
+check("Legal API routes do not import Supabase provider",[documentApi,acceptanceApi,truthGateApi].every(source=>!has(source,"lib/supabase/")&&!has(source,"@supabase/")));
+check("Legal domain isolates provider behind compatibility adapter",has(legalDomain,"cloud-adapters/legal-runtime-data.js")&&!has(legalDomain,"lib/supabase/")&&!has(legalDomain,"@supabase/"));
+check("Legal adapter owns server identity dependency",has(legalAdapter,'../supabase/server.js')&&has(legalAdapter,"auth.getUser()"));
+check("Legal adapter owns privileged persistence dependency",has(legalAdapter,'../supabase/admin.js')&&has(legalAdapter,'.from("legal_acceptance_events")'));
+check("Legal adapter performs AAL lookup",has(legalAdapter,"getAuthenticatorAssuranceLevel()"));
+check("Legal adapter invokes service-only truth evaluator",has(legalAdapter,'admin.rpc("server_evaluate_app_sale_truth_gate"'));
+
 check("Document API does not expose approval identity",!has(documentApi,"approved_by")&&!has(documentApi,"approval_reference"));
-check("Acceptance API authenticates with getUser",has(acceptanceApi,"supabase.auth.getUser()"));
+check("Acceptance API authenticates through legal domain",has(acceptanceApi,"getCurrentLegalPrincipal()"));
 check("Acceptance API compares exact version and hash",has(acceptanceApi,"doc.version!==version||doc.document_hash!==documentHash"));
-check("Acceptance API requires AAL2 for high-assurance documents",has(acceptanceApi,"getAuthenticatorAssuranceLevel()")&&has(acceptanceApi,'aal?.currentLevel!=="aal2"'));
-check("Acceptance API uses server-only admin insertion",has(acceptanceApi,'.from("legal_acceptance_events")')&&has(acceptanceApi,"createAdminClient"));
+check("Acceptance API requires AAL2 for high-assurance documents",has(acceptanceApi,"getCurrentLegalAssurance()")&&has(acceptanceApi,'aal?.currentLevel!=="aal2"'));
+check("Acceptance API writes through legal domain",has(acceptanceApi,"insertLegalAcceptanceEvent("));
 check("Acceptance API does not accept raw evidence object",!has(acceptanceApi,"body?.evidence"));
 check("Acceptance API does not persist IP address",!has(acceptanceApi,"x-forwarded-for")&&!has(acceptanceApi,"request.ip"));
-check("Truth gate API authenticates user",has(truthGateApi,"supabase.auth.getUser()"));
+check("Truth gate API authenticates through legal domain",has(truthGateApi,"getCurrentLegalPrincipal()"));
 check("Truth gate API restricts to Seller/Buyer",has(truthGateApi,"tx.seller_user_id!==user.id&&tx.buyer_user_id!==user.id"));
-check("Truth gate API uses service-only database evaluator",has(truthGateApi,'admin.rpc("server_evaluate_app_sale_truth_gate"'));
+check("Truth gate API uses legal domain evaluator",has(truthGateApi,"evaluateAppSaleTruthGate(transactionId)"));
 
 check("Architecture declares zero ACTIVE seed",has(architecture,"zero ACTIVE legal versions"));
 check("Architecture preserves CODE versus LIVE truth boundary",has(architecture,"CODE / ARCHITECTURE READY")&&has(architecture,"not `100 LIVE`"));
 check("Architecture requires PR 237 and 244 before Batch 115",has(architecture,"PR #237")&&has(architecture,"PR #244"));
 
-for(const path of [files.documentApi,files.acceptanceApi,files.truthGateApi]){
+for(const path of [files.legalDomain,files.legalAdapter,files.documentApi,files.acceptanceApi,files.truthGateApi]){
   const syntax=spawnSync(process.execPath,["--check",path],{encoding:"utf8"});
   check(`JavaScript syntax: ${path}`,syntax.status===0);
   if(syntax.status!==0)process.stderr.write(syntax.stderr||syntax.stdout||"");
