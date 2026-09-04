@@ -1,8 +1,9 @@
 import { createClient } from "../../../../lib/supabase/server.js";
 import {
-  consumeZeroSpendAppBuilderEntitlement,
-  restoreFailedAppBuilderCreate,
-} from "../../../../lib/app-builder-finance.js";
+  PRODUCTION_E2E_ENTITLEMENT_SOURCE,
+  productionE2ERequestId,
+  publicProductionE2EIsolationPolicy,
+} from "../../../../lib/production-e2e-isolation.js";
 import {
   RequestBoundaryError,
   boundaryResponse,
@@ -42,7 +43,8 @@ export async function GET() {
     zeroSpendOnly: true,
     aiCreditsAllowed: false,
     projectCreditsAllowed: false,
-    supportedEntitlementSources: ["free_first_project_create", "pro_access"],
+    entitlementSource: PRODUCTION_E2E_ENTITLEMENT_SOURCE,
+    policy: publicProductionE2EIsolationPolicy(),
   });
 }
 
@@ -54,41 +56,38 @@ export async function POST(request) {
 
     const body = await readBoundedJson(request, MAX_BYTES);
     const action = String(body?.action || "reserve").trim();
-    const requestId = String(body?.requestId || "").trim();
-    if (!REQUEST_ID.test(requestId)) throw new RequestBoundaryError("A stable E2E request ID is required.", 400, "INVALID_REQUEST_ID");
+    const clientRequestId = String(body?.requestId || "").trim();
+    if (!REQUEST_ID.test(clientRequestId)) throw new RequestBoundaryError("A stable E2E request ID is required.", 400, "INVALID_REQUEST_ID");
+
+    const requestId = productionE2ERequestId(user.id);
+    if (!requestId) throw new RequestBoundaryError("Unable to derive isolated E2E identity.", 500, "E2E_IDENTITY_UNAVAILABLE");
 
     if (action === "release") {
-      const restored = await restoreFailedAppBuilderCreate(user.id, { requestId });
-      return privateJson({ success: true, released: restored?.restored === true, zeroSpendOnly: true });
+      return privateJson({
+        success: true,
+        released: false,
+        noReservationMutationRequired: true,
+        zeroSpendOnly: true,
+        requestId,
+      });
     }
     if (action !== "reserve") throw new RequestBoundaryError("Unsupported zero-spend action.", 400, "INVALID_ACTION");
-
-    const entitlement = await consumeZeroSpendAppBuilderEntitlement(user.id, { requestId });
-    if (!entitlement?.allowed) {
-      return privateJson({
-        success: false,
-        code: "ZERO_SPEND_ENTITLEMENT_REQUIRED",
-        error: "Fresh Production E2E generation is unavailable without using credits on this account.",
-        zeroSpendOnly: true,
-        aiCreditsCharged: 0,
-        projectCreditsCharged: 0,
-      }, 409);
-    }
-    if (!["free_first_project_create", "pro_access"].includes(String(entitlement.source || ""))) {
-      await restoreFailedAppBuilderCreate(user.id, { requestId }).catch(() => {});
-      return privateJson({ success: false, code: "ZERO_SPEND_POLICY_VIOLATION", zeroSpendOnly: true }, 409);
-    }
 
     return privateJson({
       success: true,
       reserved: true,
+      testOnly: true,
+      oneProjectPerAccount: true,
+      canonicalInputEnforced: true,
       zeroSpendOnly: true,
-      entitlementSource: entitlement.source,
+      entitlementSource: PRODUCTION_E2E_ENTITLEMENT_SOURCE,
       aiCreditsCharged: 0,
       projectCreditsCharged: 0,
+      clientRequestId,
       requestId,
+      policy: publicProductionE2EIsolationPolicy(),
     });
   } catch (error) {
-    return boundaryResponse(error, "Unable to prepare zero-spend Production E2E generation.");
+    return boundaryResponse(error, "Unable to prepare isolated zero-spend Production E2E generation.");
   }
 }
