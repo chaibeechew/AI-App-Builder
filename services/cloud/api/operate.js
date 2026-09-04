@@ -50,7 +50,7 @@ export default async function handler(req, res) {
   if (!burst.ok) return json(res, burst.status, { error: burst.error }, { "Retry-After": String(burst.retryAfter) });
 
   const adapter = validateAdapterUrl(process.env.LANERIQ_CLOUD_STORAGE_ADAPTER_URL);
-  const adapterSecret = String(process.env.LANERIQ_CLOUD_STORAGE_ADAPTER_SECRET || process.env.LANERIQ_CLOUD_SERVICE_SECRET || "");
+  const adapterSecret=String(process.env.LANERIQ_CLOUD_STORAGE_ADAPTER_SECRET||process.env.LANERIQ_CLOUD_SERVICE_SECRET||"");
   if (!adapter || adapterSecret.length < 32) return json(res, 503, { error: "CLOUD_STORAGE_ADAPTER_NOT_READY", evidenceLevel: "CODE_READY" });
 
   let response;
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        authorization: `Bearer ${adapterSecret}`,
+        "authorization":`Bearer ${adapterSecret}`,
         "x-laneriq-cloud-contract": "csvc1",
         "x-laneriq-cloud-request-id": checked.value.requestId,
         "x-laneriq-cloud-security-level": String(CLOUD_SECURITY_LEVEL),
