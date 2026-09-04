@@ -1,0 +1,63 @@
+name: LANERIQ App Builder Production Closure Gate
+
+on:
+  pull_request:
+    paths:
+      - "app/production-closure-e2e/route.js"
+      - "app/api/orchestrate/route.js"
+      - "app/api/generate/route.js"
+      - "app/api/production-e2e/zero-spend/route.js"
+      - "app/api/apps/[id]/route.js"
+      - "app/api/apps/[id]/quality/route.js"
+      - "app/api/apps/[id]/publish/route.js"
+      - "scripts/app-builder-production-closure-e2e-contract-tests.mjs"
+      - ".github/workflows/app-builder-production-closure-e2e.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/production-closure-e2e/route.js"
+      - "app/api/orchestrate/route.js"
+      - "app/api/generate/route.js"
+      - "app/api/production-e2e/zero-spend/route.js"
+      - "app/api/apps/[id]/route.js"
+      - "app/api/apps/[id]/quality/route.js"
+      - "app/api/apps/[id]/publish/route.js"
+      - "scripts/app-builder-production-closure-e2e-contract-tests.mjs"
+      - ".github/workflows/app-builder-production-closure-e2e.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  app-builder-production-closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      LANERIQ_EVIDENCE_LEVEL: CODE_CI_ONLY
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate App Builder closure contract
+        run: node scripts/app-builder-production-closure-e2e-contract-tests.mjs
+
+      - name: Build runtime integration
+        run: npm run build
+
+      - name: Evidence boundary
+        run: |
+          echo "✓ This gate proves CODE + CI + build integration only."
+          echo "✓ Authenticated Production execution still requires a real signed-in user session on exact main."
+          echo "✓ Physical-device, provider-LIVE, Email/SMS and official-store evidence remain independent."
