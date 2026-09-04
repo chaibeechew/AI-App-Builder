@@ -123,6 +123,8 @@ jobs:
         run: node scripts/batch65-page1-liui-completion-tests.mjs
       - name: LIUI 2026.2 18-page product surface tests
         run: node scripts/batch39-18-page-product-surface-tests.mjs
+      - name: LIUI runtime context, memory, accessibility and truth-state tests
+        run: npm run test:liui-runtime
       - name: AI Video Generator contract tests
         run: npm run test:video
       - name: AI Avatar Creator contract tests
