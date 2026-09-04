@@ -9,7 +9,9 @@ on:
       - "app/game-world-simulation/**"
       - "app/game-builder/layout.js"
       - "lib/game/game-world-simulation-intelligence-v1.js"
+      - "lib/game/game-world-reasoning-orchestrator-v1.js"
       - "scripts/game-world-simulation-intelligence-tests.mjs"
+      - "scripts/game-world-reasoning-orchestrator-tests.mjs"
       - ".github/workflows/game-world-simulation-intelligence.yml"
 
 permissions:
@@ -39,6 +41,8 @@ jobs:
         run: node scripts/game-world-generator-tests.mjs
       - name: Simulation Intelligence 100 contracts
         run: node scripts/game-world-simulation-intelligence-tests.mjs
+      - name: Multi-hypothesis Reasoning Orchestrator contracts
+        run: node scripts/game-world-reasoning-orchestrator-tests.mjs
       - name: Existing Game Runtime regression
         run: node scripts/game-runtime-v1-tests.mjs
       - name: Advanced 3D regression
