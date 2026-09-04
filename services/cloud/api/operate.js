@@ -54,18 +54,17 @@ async function verifyPeerAuthentication(req, raw) {
       status: 200,
       authenticationSource: "vercel-oidc",
       identity: oidc.identity,
+      migrationCompatibility: false,
     });
-  }
-  if (productionRuntime()) {
-    return Object.freeze({ ok: false, status: 401, error: "OIDC_REQUIRED" });
   }
   const signed = verifySignedCloudRequest(req, raw);
   if (!signed.ok) return signed;
   return Object.freeze({
     ok: true,
     status: 200,
-    authenticationSource: "hmac-sha256",
+    authenticationSource: productionRuntime() ? "hmac-sha256-migration" : "hmac-sha256",
     identity: null,
+    migrationCompatibility: productionRuntime(),
   });
 }
 
@@ -147,6 +146,8 @@ export default async function handler(req, res) {
     securityProfile: CLOUD_SECURITY_PROFILE,
     requestAuthenticationMode,
     oidcIdentityVerified: requestAuthenticationMode === "VERCEL_OIDC",
+    authenticationMigrationCompatibility: peer.migrationCompatibility === true,
+    authenticationMigrationState: requestAuthenticationMode === "VERCEL_OIDC" ? "OIDC_PRIMARY" : "HMAC_MIGRATION_FALLBACK",
     peerProject: peer.identity?.project || null,
     peerEnvironment: peer.identity?.environment || null,
     serviceReleaseSha: release.sha,
