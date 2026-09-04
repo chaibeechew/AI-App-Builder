@@ -1,0 +1,39 @@
+name: Legal Runtime Architecture
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/20260904150000_legal_runtime_architecture.sql"
+      - "supabase/migrations/20260904150100_legal_runtime_service_rpc.sql"
+      - "app/api/legal/**"
+      - "scripts/legal-runtime-architecture-contract-tests.mjs"
+      - "docs/legal/LANERIQ_LEGAL_RUNTIME_ARCHITECTURE_v1.md"
+      - ".github/workflows/legal-runtime-architecture.yml"
+  push:
+    branches:
+      - "batch115-legal-runtime-architecture"
+    paths:
+      - "supabase/migrations/20260904150000_legal_runtime_architecture.sql"
+      - "supabase/migrations/20260904150100_legal_runtime_service_rpc.sql"
+      - "app/api/legal/**"
+      - "scripts/legal-runtime-architecture-contract-tests.mjs"
+      - "docs/legal/LANERIQ_LEGAL_RUNTIME_ARCHITECTURE_v1.md"
+      - ".github/workflows/legal-runtime-architecture.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  legal-runtime-contract:
+    name: Legal runtime contract gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify legal runtime invariants
+        run: node scripts/legal-runtime-architecture-contract-tests.mjs
