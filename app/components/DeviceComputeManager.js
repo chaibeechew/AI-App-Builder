@@ -89,7 +89,7 @@ export default function DeviceComputeManager() {
 
     const updateThermal = () => { if (mounted) setThermalState(nativeThermalState()); };
     const updateSettings = (event) => {
-      if (!mounted || !event?.detail?.settings) return;
+      if (!mounted || event?.detail?.source !== "settings-ui" || !event?.detail?.settings) return;
       setSettings(sanitizeDeviceComputeSettings(event.detail.settings));
     };
     updateThermal();
