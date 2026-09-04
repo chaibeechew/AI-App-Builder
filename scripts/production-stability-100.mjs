@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 const BASE_URL=(process.env.LANERIQ_PRODUCTION_URL||"https://laneriq-ai.vercel.app").replace(/\/+$/g,"");
 const RUNS=Math.max(1,Math.min(1000,Number(process.env.LANERIQ_STABILITY_RUNS||1000)));
 const TIMEOUT_MS=Math.max(1000,Math.min(30000,Number(process.env.LANERIQ_STABILITY_TIMEOUT_MS||8000)));
-const ZERO_COST_PROVIDER_ALLOWLIST=new Set(["ollama","soolen-local"]);
 const FREE_READY_CAPABILITIES=[
   "multilingual-chat",
   "app-website-builder",
@@ -22,10 +21,9 @@ function validateCapabilityPayload(text,run){
   assert.equal(payload?.tier,"free",`run ${run} capabilities: signed-out discovery must resolve to free tier`);
   assert.equal(payload?.providers?.costMode,"zero",`run ${run} capabilities: Production cost mode must stay zero`);
   assert.equal(payload?.providers?.premiumRouting,false,`run ${run} capabilities: signed-out free tier must not use premium routing`);
-  assert.ok(Array.isArray(payload?.providers?.text)&&payload.providers.text.length>0,`run ${run} capabilities: at least one zero-cost text path must be ready`);
-  for(const provider of payload.providers.text){
-    assert.ok(ZERO_COST_PROVIDER_ALLOWLIST.has(provider),`run ${run} capabilities: unapproved zero-cost provider ${provider}`);
-  }
+  assert.equal(payload?.providers?.providerNamesHidden,true,`run ${run} capabilities: provider identities must stay hidden`);
+  assert.ok(Number(payload?.providers?.count||0)>=1,`run ${run} capabilities: at least one configured text path must exist`);
+  assert.equal(Object.prototype.hasOwnProperty.call(payload?.providers||{},"text"),false,`run ${run} capabilities: canonical API must not expose provider names`);
   assert.equal(payload?.policy?.failClosed,true,`run ${run} capabilities: provider policy must fail closed`);
   assert.equal(payload?.policy?.mode,"zero",`run ${run} capabilities: policy mode must stay zero`);
   assert.equal(payload?.policy?.meteredProvidersAllowed,false,`run ${run} capabilities: metered providers must remain blocked`);
@@ -124,4 +122,4 @@ console.log(JSON.stringify({
   latencyMs:{average,p50:percentile(.5),p95:percentile(.95),p99:percentile(.99),max},
   preflight,
 },null,2));
-console.log(`✓ LANERIQ AI Production passed ${RUNS} stability cycles across ${targets.length} surfaces with semantic zero-cost capability validation and 0 detected crash/network/5xx failures`);
+console.log(`✓ LANERIQ AI Production passed ${RUNS} stability cycles across ${targets.length} surfaces with provider-opaque zero-cost capability validation and 0 detected crash/network/5xx failures`);
