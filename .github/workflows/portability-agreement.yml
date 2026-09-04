@@ -1,4 +1,4 @@
-name: LANERIQ Portability Agreement Legal Gate
+name: LANERIQ Portability Agreement + No-Buyout Gate
 
 on:
   pull_request:
@@ -19,5 +19,5 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Verify Agreement draft and legal enforcement gate
+      - name: Verify Agreement legal gate and global no-buyout policy
         run: node scripts/project-portability-agreement-contract-tests.mjs
