@@ -1,0 +1,237 @@
+:root{
+  --liui-runtime-motion-fast:180ms;
+  --liui-runtime-motion-enter:260ms;
+  --liui-runtime-ease:cubic-bezier(.2,.8,.2,1);
+}
+
+.liuiSkipLink{
+  position:fixed;
+  z-index:2147483646;
+  top:max(8px,env(safe-area-inset-top));
+  left:12px;
+  transform:translateY(-160%);
+  padding:10px 14px;
+  border-radius:999px;
+  background:Canvas;
+  color:CanvasText;
+  border:1px solid color-mix(in srgb,CanvasText 30%,transparent);
+  font:600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  transition:transform var(--liui-runtime-motion-fast) var(--liui-runtime-ease);
+}
+.liuiSkipLink:focus-visible{transform:translateY(0)}
+
+.liuiRouteAnnouncement{
+  position:fixed!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+
+.liuiRuntimeContext{
+  position:fixed;
+  z-index:70;
+  top:max(12px,env(safe-area-inset-top));
+  left:50%;
+  translate:-50% 0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  max-width:min(86vw,560px);
+  padding:6px 10px 6px 8px;
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:999px;
+  background:color-mix(in srgb,rgba(12,18,28,.72) 86%,transparent);
+  box-shadow:0 10px 32px rgba(0,0,0,.16);
+  backdrop-filter:blur(18px) saturate(1.1);
+  -webkit-backdrop-filter:blur(18px) saturate(1.1);
+  color:#fff;
+  pointer-events:none;
+  animation:liuiRuntimeEnter var(--liui-runtime-motion-enter) var(--liui-runtime-ease) both;
+}
+.liuiRuntimePhase{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:0 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.14);
+  font-size:11px;
+  font-weight:750;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.liuiRuntimeName{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12px;
+  font-weight:680;
+}
+.liuiRuntimeProgress{
+  flex:none;
+  font-size:11px;
+  opacity:.78;
+}
+
+.liuiRuntimeResume{
+  position:fixed;
+  z-index:88;
+  left:max(14px,env(safe-area-inset-left));
+  bottom:calc(max(88px,env(safe-area-inset-bottom) + 76px));
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  width:min(390px,calc(100vw - 28px));
+  min-height:58px;
+  padding:8px 9px 8px 10px;
+  border:1px solid rgba(213,229,245,.24);
+  border-radius:20px;
+  background:rgba(8,21,32,.88);
+  color:#f7fbff;
+  box-shadow:0 18px 48px rgba(0,0,0,.26);
+  backdrop-filter:blur(22px) saturate(1.18);
+  -webkit-backdrop-filter:blur(22px) saturate(1.18);
+  font:500 13px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  animation:liuiRuntimeResumeEnter var(--liui-runtime-motion-enter) var(--liui-runtime-ease) both;
+}
+.liuiRuntimeResumeMark{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:13px;
+  background:linear-gradient(145deg,rgba(101,203,255,.22),rgba(143,112,255,.18));
+  border:1px solid rgba(194,222,255,.16);
+  font-weight:900;
+}
+.liuiRuntimeResumeCopy{min-width:0;display:grid;gap:2px}
+.liuiRuntimeResumeCopy small{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#aebfcd}
+.liuiRuntimeResumeCopy b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.liuiRuntimeResume a{
+  min-width:44px;
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 13px;
+  border-radius:14px;
+  border:1px solid rgba(141,202,255,.28);
+  background:rgba(99,178,236,.14);
+  color:#f7fbff;
+  text-decoration:none;
+  font-size:12px;
+  font-weight:800;
+  transition:transform var(--liui-runtime-motion-fast) var(--liui-runtime-ease),background var(--liui-runtime-motion-fast) ease;
+}
+.liuiRuntimeResume a:hover{background:rgba(99,178,236,.22);transform:translateY(-1px)}
+
+.liuiRuntimeState{
+  position:fixed;
+  z-index:90;
+  left:50%;
+  bottom:calc(max(76px,env(safe-area-inset-bottom) + 64px));
+  translate:-50% 0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  max-width:min(90vw,640px);
+  min-height:44px;
+  padding:9px 14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.24);
+  background:rgba(18,23,31,.88);
+  color:#fff;
+  box-shadow:0 16px 40px rgba(0,0,0,.22);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  font:500 13px/1.35 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  animation:liuiRuntimeStateEnter var(--liui-runtime-motion-enter) var(--liui-runtime-ease) both;
+}
+.liuiRuntimeState strong{text-transform:none;font-size:12px;letter-spacing:.02em;white-space:nowrap}
+.liuiRuntimeState span{opacity:.88}
+.liuiRuntimeState-error,.liuiRuntimeState-blocked{border-color:rgba(255,130,130,.48)}
+.liuiRuntimeState-offline,.liuiRuntimeState-reconnecting,.liuiRuntimeState-stale{border-color:rgba(255,210,120,.48)}
+
+@keyframes liuiRuntimeEnter{
+  from{opacity:0;translate:-50% -8px;filter:blur(3px)}
+  to{opacity:1;translate:-50% 0;filter:blur(0)}
+}
+@keyframes liuiRuntimeStateEnter{
+  from{opacity:0;translate:-50% 9px;scale:.985}
+  to{opacity:1;translate:-50% 0;scale:1}
+}
+@keyframes liuiRuntimeResumeEnter{
+  from{opacity:0;transform:translateY(10px);scale:.985}
+  to{opacity:1;transform:translateY(0);scale:1}
+}
+
+:where(a,button,input,textarea,select,[tabindex],summary):focus-visible{
+  outline:3px solid color-mix(in srgb,#8cc8ff 86%,white);
+  outline-offset:3px;
+}
+
+.liuiRealBottomNav a,
+.liuiRealBottomNav button{
+  min-width:44px;
+  min-height:44px;
+}
+
+@media (max-width:900px){
+  body[data-liui-decision-layer="present"] .liuiRuntimeState:not(.liuiRuntimeState-critical){
+    bottom:calc(158px + env(safe-area-inset-bottom));
+  }
+  .liuiRuntimeState-critical{
+    top:calc(max(62px,env(safe-area-inset-top) + 52px));
+    bottom:auto;
+  }
+}
+
+@media (max-width:720px){
+  .liuiRuntimeContext{
+    top:max(7px,env(safe-area-inset-top));
+    max-width:78vw;
+    min-height:34px;
+    padding:4px 8px 4px 6px;
+  }
+  .liuiRuntimeName{font-size:11px}
+  .liuiRuntimePhase{min-height:24px;padding:0 7px;font-size:10px}
+  .liuiRuntimeState{font-size:12px;max-width:calc(100vw - 22px)}
+  .liuiRuntimeResume{right:11px;left:11px;width:auto;bottom:calc(92px + env(safe-area-inset-bottom))}
+}
+
+@media (max-width:430px){
+  .liuiRuntimeResume{grid-template-columns:auto minmax(0,1fr)}
+  .liuiRuntimeResume a{grid-column:1 / -1;width:100%;min-height:44px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html:focus-within{scroll-behavior:auto!important}
+  *,*::before,*::after{
+    scroll-behavior:auto!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+  .liuiRuntimeResume a:hover{transform:none}
+}
+
+@media (forced-colors:active){
+  .liuiRuntimeContext,.liuiRuntimeState,.liuiRuntimeResume,.liuiSkipLink{
+    forced-color-adjust:auto;
+    background:Canvas;
+    color:CanvasText;
+    border:1px solid CanvasText;
+    box-shadow:none;
+    backdrop-filter:none;
+  }
+  .liuiRuntimeResume a,.liuiRuntimeResumeMark{background:Canvas;color:LinkText;border:1px solid CanvasText}
+}
