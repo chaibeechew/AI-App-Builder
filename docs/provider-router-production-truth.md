@@ -33,8 +33,14 @@ The default proactive switch threshold is 20% remaining quota and can be reduced
 
 A configured provider is not automatically LIVE. A successful response observed in one serverless instance is not automatically canonical LIVE. Preview, CI simulation and provider-ready adapters are not Production LIVE evidence.
 
-The status endpoint is:
+Public read-only status:
 
 `GET /api/ai/provider-router/status`
 
-Add `?canary=1` to run the bounded local zero-cost runtime canary. The canary does not invoke metered or external AI providers.
+This endpoint never executes a canary. Query parameters such as `?canary=1` do not authorize or trigger compute.
+
+Executable zero-cost canary:
+
+`POST /api/ai/provider-router/status`
+
+The POST mutation is session protected and requires an authenticated LANERIQ administrator. The route performs an additional admin-role check before the fixed local canary can run. It does not invoke metered or external AI providers. Anonymous or ordinary authenticated users cannot execute the canary.
