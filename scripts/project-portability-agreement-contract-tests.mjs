@@ -3,6 +3,7 @@ import fs from "node:fs";
 
 const read=(p)=>fs.readFileSync(p,"utf8");
 const agreement=read("docs/legal/LANERIQ_PROJECT_PORTABILITY_REVENUE_SHARE_AGREEMENT_v1.md");
+const intake=read("docs/legal/LANERIQ_CONTRACTING_PARTY_INTAKE_TEMPLATE.md");
 const policy=read("config/project-portability-policy.js");
 const productPolicy=read("config/product-policy.js");
 const route=read("app/api/apps/[id]/migration-agreement/route.js");
@@ -12,6 +13,11 @@ const legalGateMigration=read("supabase/migrations/20260904003300_block_draft_mi
 
 assert.match(agreement,/LANERIQ AI Project Portability & 10% Revenue Share Agreement/);
 assert.match(agreement,/DRAFT — NOT YET APPROVED FOR PRODUCTION ENFORCEMENT/);
+assert.match(agreement,/CURRENT INDIVIDUAL LEGAL NAME — PRIVATE INTAKE REQUIRED/);
+assert.match(agreement,/legal identity has \*\*not yet been confirmed/);
+assert.match(agreement,/Future Company \/ Corporate Novation/);
+assert.match(agreement,/does not increase, duplicate or restart the agreed Revenue Share percentage/);
+assert.match(agreement,/does not create a second Revenue Share/);
 assert.match(agreement,/10% of Project Software Revenue/);
 assert.match(agreement,/No Technical Platform Lock-In/);
 assert.match(agreement,/Excluded Revenue/);
@@ -23,13 +29,31 @@ assert.match(agreement,/within 30 days/);
 assert.match(agreement,/governing law/);
 assert.match(agreement,/Electronic Acceptance/);
 assert.match(agreement,/productionEnforcement = false/);
+assert.match(agreement,/currentContractingPartyIdentityConfirmed = false/);
+
+assert.match(intake,/DO NOT COMMIT COMPLETED PERSONAL DATA TO THE PUBLIC REPOSITORY/);
+assert.match(intake,/Legal name exactly as shown on government-issued identification/);
+assert.match(intake,/Nationality/);
+assert.match(intake,/Legal notice \/ correspondence address/);
+assert.match(intake,/Agreement notice email/);
+assert.match(intake,/Government ID number, passport number, bank account details/);
+assert.match(intake,/novation \/ accession protections/i);
+assert.match(intake,/does not increase, duplicate or restart an existing project Revenue Share/);
 
 assert.match(policy,/agreementVersion:\s*"LANERIQ-PORTABILITY-10PCT-v1-DRAFT"/);
 assert.match(policy,/status:\s*"DRAFT_LEGAL_REVIEW"/);
 assert.match(policy,/legalCounselApproved:\s*false/);
 assert.match(policy,/productionEnforcement:\s*false/);
 assert.match(policy,/externalMigrationAgreementSigningEnabled:\s*false/);
+assert.match(policy,/currentType:\s*"individual_pending_private_identity_confirmation"/);
+assert.match(policy,/currentLegalIdentityConfirmed:\s*false/);
+assert.match(policy,/publicRepositoryMayStoreCompletedPersonalNoticeData:\s*false/);
+assert.match(policy,/plannedSuccessorCompany:\s*true/);
+assert.match(policy,/novationOrAccessionRequired:\s*true/);
+assert.match(policy,/entityChangeMustNotIncreaseOrDuplicateRevenueShare:\s*true/);
+assert.match(policy,/creatorProjectOwnershipUnaffectedByLaneriqEntityChange:\s*true/);
 assert.match(policy,/revenueSharePercent:\s*10/);
+assert.match(policy,/appliesWhenNoActiveEligibleBuyout:\s*true/);
 assert.match(policy,/excludesUnderlyingCustomerBusinessTransactions:\s*true/);
 assert.match(policy,/notAdditiveWithOtherLaneriqRevenueShare:\s*true/);
 assert.match(policy,/customerOwnsProject:\s*true/);
@@ -80,6 +104,8 @@ assert.match(legalGateMigration,/Do not grant execute in Production until the ag
 assert.doesNotMatch(legalGateMigration,/grant execute on function public\.sign_project_migration_agreement/);
 
 console.log("✓ 10% Project Portability Agreement remains a versioned legal-review draft");
+console.log("✓ Individual LANERIQ legal identity stays unconfirmed until private owner-supplied intake is completed");
+console.log("✓ Future-company novation cannot duplicate or reset project Revenue Share and does not change Creator ownership");
 console.log("✓ Eligible non-Game projects retain the pre-publish 49/199/499 Buyout path");
 console.log("✓ An active Buyout bypasses the 10% migration agreement; Encourage Creator-supported projects cannot Buyout");
 console.log("✓ Production agreement signing still fails closed in API and database until legal approval");
