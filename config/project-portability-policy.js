@@ -7,6 +7,9 @@ export const PROJECT_PORTABILITY_POLICY = Object.freeze({
   platformLockIn: false,
   migrationFee: false,
   sourceWithholdingToForceSubscription: false,
+  buyoutLicenseAvailable: false,
+  buyoutAlternativeAvailable: false,
+  revenueShareCanBeBoughtOut: false,
   prerequisiteBeforeExternalMigration: "approved_and_signed_10_percent_revenue_share_agreement",
   productionMigrationGenerallyAvailable: false,
   migrationAgreement: {
@@ -25,6 +28,8 @@ export const PROJECT_PORTABILITY_POLICY = Object.freeze({
     excludesSeparatelyStatedTaxesRefundsChargebacks: true,
     notAdditiveWithOtherLaneriqRevenueShare: true,
     effectiveLaneriqRateAfterMigrationPercent: 10,
+    buyoutLicenseOptionAvailable: false,
+    revenueShareCanBeExtinguishedByBuyout: false,
     signedPerProject: true,
     requiredAfterPublishBeforeFullExport: true,
     customerReviewRequired: true,
