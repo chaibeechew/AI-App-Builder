@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  COMPUTE_MODES,
   DEVICE_COMPUTE_EVENT,
   DEVICE_COMPUTE_POLICY_VERSION,
   DEVICE_COMPUTE_STORAGE_KEY,
@@ -11,6 +10,10 @@ import {
   createDefaultDeviceComputeSettings,
   sanitizeDeviceComputeSettings,
 } from "../../lib/device-compute/policy.js";
+import {
+  createAdaptiveBurstPlan,
+  normalizeHighEnergyWorkload,
+} from "../../lib/device-compute/adaptive-burst.js";
 
 function installationId() {
   try {
@@ -24,16 +27,13 @@ function readSettings() {
   try {
     const raw = window.localStorage.getItem(DEVICE_COMPUTE_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
-    return sanitizeDeviceComputeSettings(parsed);
+    const safe = sanitizeDeviceComputeSettings(parsed);
+    if (!safe.installationId) safe.installationId = installationId();
+    window.localStorage.setItem(DEVICE_COMPUTE_STORAGE_KEY, JSON.stringify(safe));
+    return safe;
   } catch {
     return createDefaultDeviceComputeSettings();
   }
-}
-
-function writeSettings(settings) {
-  const safe = sanitizeDeviceComputeSettings(settings);
-  try { window.localStorage.setItem(DEVICE_COMPUTE_STORAGE_KEY, JSON.stringify(safe)); } catch {}
-  return safe;
 }
 
 function nativeThermalState() {
@@ -54,6 +54,12 @@ function deviceInputs() {
   };
 }
 
+function notifyNative(detail) {
+  try {
+    window.__LANERIQ_NATIVE_COMPUTE__?.setAdaptiveComputeState?.(detail);
+  } catch {}
+}
+
 export default function DeviceComputeManager() {
   const [settings, setSettings] = useState(() => createDefaultDeviceComputeSettings());
   const [ready, setReady] = useState(false);
@@ -61,6 +67,9 @@ export default function DeviceComputeManager() {
   const [battery, setBattery] = useState({ level: null, charging: false });
   const [thermalState, setThermalState] = useState("unknown");
   const [storagePersistent, setStoragePersistent] = useState(null);
+  const [computePhase, setComputePhase] = useState({ phase: "normal", workloadKind: "standard", plan: null });
+  const burstTimer = useRef(null);
+  const cooldownTimer = useRef(null);
 
   useEffect(() => {
     const initial = readSettings();
@@ -79,8 +88,13 @@ export default function DeviceComputeManager() {
     })();
 
     const updateThermal = () => { if (mounted) setThermalState(nativeThermalState()); };
+    const updateSettings = (event) => {
+      if (!mounted || !event?.detail?.settings) return;
+      setSettings(sanitizeDeviceComputeSettings(event.detail.settings));
+    };
     updateThermal();
     window.addEventListener("laneriq:native-telemetry", updateThermal);
+    window.addEventListener(DEVICE_COMPUTE_EVENT, updateSettings);
 
     let batteryManager = null;
     const updateBattery = () => {
@@ -107,8 +121,11 @@ export default function DeviceComputeManager() {
     return () => {
       mounted = false;
       window.removeEventListener("laneriq:native-telemetry", updateThermal);
+      window.removeEventListener(DEVICE_COMPUTE_EVENT, updateSettings);
       batteryManager?.removeEventListener?.("levelchange", updateBattery);
       batteryManager?.removeEventListener?.("chargingchange", updateBattery);
+      if (burstTimer.current) clearTimeout(burstTimer.current);
+      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
     };
   }, []);
 
@@ -130,71 +147,91 @@ export default function DeviceComputeManager() {
       settings,
       deviceClass,
       budget,
+      computePhase,
       storagePersistent,
       nativeThermalTelemetry: thermalState !== "unknown",
     };
-  }, [battery.charging, battery.level, ready, settings, storagePersistent, thermalState]);
+  }, [battery.charging, battery.level, computePhase, ready, settings, storagePersistent, thermalState]);
 
   useEffect(() => {
-    if (!snapshot) return;
+    if (!snapshot || !authenticated) return;
+
+    const clearTimers = () => {
+      if (burstTimer.current) clearTimeout(burstTimer.current);
+      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
+      burstTimer.current = null;
+      cooldownTimer.current = null;
+    };
+
+    const finishCooldown = () => {
+      const state = { phase: "normal", workloadKind: "standard", plan: null };
+      setComputePhase(state);
+      notifyNative(state);
+      window.dispatchEvent(new CustomEvent("laneriq:device-cooling", { detail: state }));
+    };
+
+    const enterCooldown = (plan) => {
+      clearTimers();
+      const state = { phase: "cooldown", workloadKind: plan.workloadKind, plan };
+      setComputePhase(state);
+      notifyNative(state);
+      window.dispatchEvent(new CustomEvent("laneriq:device-cooling", { detail: state }));
+      cooldownTimer.current = setTimeout(finishCooldown, Math.max(1, plan.cooldownSeconds) * 1000);
+      return state;
+    };
+
+    const beginHighEnergyWorkload = (workloadKind) => {
+      const normalized = normalizeHighEnergyWorkload(workloadKind);
+      const plan = createAdaptiveBurstPlan({
+        workloadKind: normalized,
+        deviceClass: snapshot.deviceClass,
+        thermalState: snapshot.budget.thermalState,
+        preventOverheatingEnabled: snapshot.settings.preventOverheatingEnabled,
+        baselineCpuShare: snapshot.budget.sustainedCpuShare,
+        baselineGpuShare: snapshot.budget.sustainedGpuShare,
+      });
+
+      clearTimers();
+      if (!plan.highEnergy) return plan;
+      if (plan.phase === "cooldown") {
+        enterCooldown(plan);
+        return plan;
+      }
+
+      const state = { phase: "burst", workloadKind: plan.workloadKind, plan };
+      setComputePhase(state);
+      notifyNative(state);
+      window.dispatchEvent(new CustomEvent("laneriq:device-burst", { detail: state }));
+      burstTimer.current = setTimeout(() => enterCooldown(plan), Math.max(1, plan.burstSeconds) * 1000);
+      return plan;
+    };
+
+    const endHighEnergyWorkload = (workloadKind) => {
+      const normalized = normalizeHighEnergyWorkload(workloadKind);
+      const active = computePhase?.plan;
+      if (!active?.highEnergy || active.workloadKind !== normalized) return null;
+      return enterCooldown(active);
+    };
+
     const api = Object.freeze({
       getSnapshot: () => snapshot,
+      beginHighEnergyWorkload,
+      endHighEnergyWorkload,
       policyVersion: DEVICE_COMPUTE_POLICY_VERSION,
+      automaticDeviceFirst: true,
+      onlyImageAndVideoHighEnergy: true,
+      providerSelectionUserVisible: false,
+      onlyUserSelectableComputeControl: "prevent_overheating",
       ownDevicesOnly: true,
       crossUserComputeAllowed: false,
     });
+
     window.__LANERIQ_DEVICE_COMPUTE__ = api;
     window.dispatchEvent(new CustomEvent(DEVICE_COMPUTE_EVENT, { detail: snapshot }));
     return () => {
       if (window.__LANERIQ_DEVICE_COMPUTE__ === api) delete window.__LANERIQ_DEVICE_COMPUTE__;
     };
-  }, [snapshot]);
+  }, [authenticated, computePhase, snapshot]);
 
-  async function saveDecision(decision) {
-    const next = writeSettings({
-      ...settings,
-      policyVersion: DEVICE_COMPUTE_POLICY_VERSION,
-      decision,
-      localComputeEnabled: decision === "local",
-      mode: decision === "local" ? "gaming" : settings.mode,
-      backgroundComputeEnabled: false,
-      ownDesktopRemoteComputeEnabled: false,
-      crossUserComputeEnabled: false,
-      thermalGuardianEnabled: true,
-      consentAt: new Date().toISOString(),
-      installationId: settings.installationId || installationId(),
-    });
-    setSettings(next);
-
-    if (decision === "local" && next.keepLocalProjectData && navigator?.storage?.persist) {
-      try {
-        const persisted = await navigator.storage.persist();
-        setStoragePersistent(Boolean(persisted));
-      } catch {}
-    }
-  }
-
-  if (!ready || !authenticated || settings.decision) return null;
-
-  return <div className="dcBackdrop" role="presentation">
-    <section className="dcCard" role="dialog" aria-modal="true" aria-labelledby="laneriq-local-compute-title">
-      <div className="dcEyebrow">LANERIQ AI · LOCAL-FIRST</div>
-      <h2 id="laneriq-local-compute-title">Use your device to help LANERIQ work faster?</h2>
-      <p className="dcLead">LANERIQ can use part of <b>this device&apos;s CPU, GPU or NPU</b> for your own AI processing, coding, previews and builds. It keeps cloud usage lower and can make local work faster.</p>
-      <div className="dcGrid">
-        <div><b>🎮 Gaming Mode</b><span>Balanced local compute with short performance bursts instead of constant maximum load.</span></div>
-        <div><b>🌡 Thermal Guardian</b><span>Always on. LANERIQ reduces or redirects heavy work when the device reports heat pressure.</span></div>
-        <div><b>🔒 Your jobs only</b><span>Your device is never used to compute another customer&apos;s LANERIQ work.</span></div>
-        <div><b>☁ Cloud fallback</b><span>If local compute is unavailable, LANERIQ can fall back to your own linked Desktop or cloud services.</span></div>
-      </div>
-      <p className="dcFine">Background compute and remote Desktop compute stay OFF until you enable them separately. Browser builds do not invent thermal readings; native thermal telemetry is used only when the installed app provides it. You can change this anytime in Device &amp; Compute settings.</p>
-      <div className="dcActions">
-        <button className="dcPrimary" type="button" onClick={() => void saveDecision("local")}>Allow Local Compute — Recommended</button>
-        <button className="dcSecondary" type="button" onClick={() => void saveDecision("cloud_only")}>Use Cloud Only</button>
-      </div>
-    </section>
-    <style jsx>{`
-      .dcBackdrop{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:max(18px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom));background:rgba(0,7,5,.72);backdrop-filter:blur(16px);font-family:Inter,system-ui,-apple-system,sans-serif;color:#edf7f2}.dcCard{width:min(720px,100%);max-height:calc(100svh - 36px);overflow:auto;padding:26px;border:1px solid rgba(230,202,104,.3);border-radius:26px;background:linear-gradient(180deg,rgba(5,28,21,.98),rgba(2,15,12,.98));box-shadow:0 32px 110px rgba(0,0,0,.62)}.dcEyebrow{font-size:10px;font-weight:1000;letter-spacing:.16em;color:#e5cb70}.dcCard h2{margin:9px 0 12px;font-size:clamp(28px,6vw,46px);line-height:1.04}.dcLead{margin:0;color:#bccdc5;line-height:1.65;font-size:14px}.dcLead b{color:#f3da82}.dcGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:20px 0 14px}.dcGrid div{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(255,255,255,.035)}.dcGrid b{display:block;font-size:12px;color:#f1d879}.dcGrid span{display:block;margin-top:5px;color:#9fb2a9;font-size:11px;line-height:1.5}.dcFine{font-size:10px;line-height:1.6;color:#82988e}.dcActions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}.dcActions button{min-height:52px;border-radius:15px;font-weight:1000;cursor:pointer;touch-action:manipulation}.dcPrimary{border:1px solid #efd66f;background:linear-gradient(135deg,#f2db7d,#b9872d);color:#06110d}.dcSecondary{border:1px solid rgba(255,255,255,.13);background:transparent;color:#d8e3de}@media(max-width:620px){.dcCard{padding:20px;border-radius:22px}.dcGrid,.dcActions{grid-template-columns:1fr}.dcActions button{min-height:54px}.dcLead{font-size:13px}}
-    `}</style>
-  </div>;
+  return null;
 }
