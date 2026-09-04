@@ -44,7 +44,7 @@ const cases = [
   },
   {
     id: "neural-voice",
-    pathname: "/api/soolenai/voice",
+    pathname: "/api/laneriq/voice",
     init: { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "provider-boundary-qa", language: "en" }) },
   },
   {

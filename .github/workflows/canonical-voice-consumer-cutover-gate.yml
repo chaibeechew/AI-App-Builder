@@ -1,0 +1,42 @@
+name: LANERIQ Canonical Voice Consumer Cutover Gate
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/production-provider-boundary-qa.mjs'
+      - 'scripts/provider-boundary-security-contract-tests.mjs'
+      - 'scripts/canonical-voice-consumer-cutover-contract-tests.mjs'
+      - 'app/api/laneriq/voice/**'
+      - 'lib/laneriq/voice-compatibility-adapter.js'
+      - 'app/api/soolenai/voice/**'
+      - '.github/workflows/canonical-voice-consumer-cutover-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laneriq-canonical-voice-consumer-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consumer-cutover:
+    name: Canonical Voice consumer cutover
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify consumer cutover
+        run: node scripts/canonical-voice-consumer-cutover-contract-tests.mjs
+      - name: Verify canonical Voice API
+        run: node scripts/laneriq-canonical-voice-contract-tests.mjs
+      - name: Verify provider boundary
+        run: node scripts/provider-boundary-security-contract-tests.mjs
