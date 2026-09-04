@@ -28,6 +28,41 @@ function focusPrimaryIntent() {
   return true;
 }
 
+function inferMainRuntime(pageId, main) {
+  if (!main) return null;
+  if (pageId === 1) {
+    const error = main.querySelector(".errorBox");
+    if (error?.textContent?.trim()) return { state: "error", message: error.textContent.trim().slice(0, 180) };
+    const progress = main.querySelector(".buildProgress");
+    if (progress) {
+      const label = progress.querySelector("b")?.textContent?.trim() || "LANERIQ AI is working";
+      return { state: "ai-working", message: label.slice(0, 180) };
+    }
+    const ready = main.querySelector(".journeyPanel .goldNotice");
+    if (ready) return { state: "success", message: "Build ready. Review the result before release." };
+    return { state: "idle", message: "" };
+  }
+  if (pageId === 2) {
+    const error = main.querySelector(".builder .error");
+    if (error?.textContent?.trim()) return { state: "error", message: error.textContent.trim().slice(0, 180) };
+    const buildButton = main.querySelector(".builder .build");
+    if (buildButton?.disabled && /building/i.test(buildButton.textContent || "")) {
+      return { state: "ai-working", message: "Building the App + Website and preparing connected project modules." };
+    }
+    const planButton = main.querySelector(".builder .plan");
+    if (planButton?.disabled && /planning/i.test(planButton.textContent || "")) {
+      return { state: "ai-thinking", message: "Planning pages, features, data and workflows." };
+    }
+    const message = main.querySelector(".builder .message")?.textContent?.trim() || "";
+    if (message) {
+      const done = /ready|generated|open my projects/i.test(message);
+      return { state: done ? "success" : "ai-working", message: message.slice(0, 180) };
+    }
+    return { state: "idle", message: "" };
+  }
+  return null;
+}
+
 export default function LIUIRuntimeCapabilityLayer() {
   const pathname = usePathname() || "/";
   const [context, setContext] = useState(() => resolveLiuiRouteContext(pathname));
@@ -60,6 +95,19 @@ export default function LIUIRuntimeCapabilityLayer() {
       main.dataset.liuiRuntimeMain = "true";
     }
   }, [pathname]);
+
+  useEffect(() => {
+    const main = document.querySelector("main");
+    if (!main || ![1, 2].includes(context.pageId)) return;
+    const sync = () => {
+      const inferred = inferMainRuntime(context.pageId, main);
+      if (inferred) setRuntimeState(current => current.state === inferred.state && current.message === inferred.message ? current : inferred);
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(main, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class", "disabled"] });
+    return () => observer.disconnect();
+  }, [context.pageId, pathname]);
 
   useEffect(() => {
     const syncConnection = () => setOnline(navigator.onLine !== false);
