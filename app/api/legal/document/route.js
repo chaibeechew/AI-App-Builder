@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "../../../../lib/supabase/admin.js";
+import { getActiveLegalDocument } from "../../../../lib/cloud/legal-runtime.js";
 
 const DOCUMENT_KEY=/^[a-z0-9][a-z0-9_]{1,79}$/;
 const HEADERS={"Cache-Control":"public, max-age=0, must-revalidate","X-Content-Type-Options":"nosniff"};
@@ -12,13 +12,7 @@ export async function GET(request){
       return NextResponse.json({active:false,error:"Valid legal document key required."},{status:400,headers:HEADERS});
     }
 
-    const admin=createAdminClient();
-    const {data,error}=await admin
-      .from("legal_document_versions")
-      .select("document_key,version,document_hash,acceptance_level,effective_at,activated_at")
-      .eq("document_key",documentKey)
-      .eq("status","active")
-      .maybeSingle();
+    const {data,error}=await getActiveLegalDocument(documentKey);
 
     if(error){
       console.error("LEGAL_DOCUMENT_LOOKUP_ERROR",error.code||"unknown");
