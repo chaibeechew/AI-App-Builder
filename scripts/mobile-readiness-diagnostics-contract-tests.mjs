@@ -10,6 +10,9 @@ const creatorEncouragement = fs.readFileSync("app/components/CreatorEncouragemen
 
 assert.equal(isPublicAccountPath("/mobile-readiness"), true, "Real-device diagnostics must be reachable before sign-in.");
 assert.equal(isPublicAccountPath("/mobile-readiness/private"), false, "The diagnostics public exception must stay exact and bounded.");
+for (const publicPath of ["/", "/auth", "/mobile-readiness", "/ai-app-game-website-builder"]) {
+  assert.equal(isPublicAccountPath(publicPath), true, `${publicPath} must stay classified as a public account surface.`);
+}
 
 assert.match(page, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/, "Diagnostics must stay out of public search indexing.");
 assert.match(page, /MobileReadinessClient/);
@@ -56,8 +59,9 @@ assert.doesNotMatch(client, /file\.name/, "Picker evidence must not collect cust
 assert.doesNotMatch(client, /signInWithOtp|verifyOtp|sms-auth|phone-auth|SMS Login/i, "SMS/OTP execution remains on hold and must not be part of mobile readiness diagnostics.");
 
 assert.match(creatorEncouragement, /usePathname/, "Global Creator Support must observe the active route before loading private status.");
-assert.match(creatorEncouragement, /pathname==="\/mobile-readiness"\)return/, "Creator Support status fetch must be disabled on the public mobile readiness diagnostic surface.");
-assert.match(creatorEncouragement, /pathname!=="\/mobile-readiness"\)void load\(\)/, "Creator Support must only auto-load outside the mobile readiness diagnostic route.");
+assert.match(creatorEncouragement, /isPublicAccountPath/, "Creator Support must reuse the canonical public-account route classifier.");
+assert.match(creatorEncouragement, /if\(isPublicAccountPath\(pathname\)\)return/, "Creator Support status fetch must be disabled on every canonical public account surface.");
+assert.match(creatorEncouragement, /if\(!isPublicAccountPath\(pathname\)\)void load\(\)/, "Creator Support must only auto-load private status on non-public account routes.");
 
 for (const pattern of [
   /100svh/,
@@ -77,7 +81,7 @@ for (const pattern of [
 assert.ok(stability.includes('path:"/mobile-readiness"'), "The real-device diagnostics surface must be covered by Production stability.");
 
 console.log("✓ Mobile readiness baseline remains public-but-noindex, exact-path bounded and permission-free");
-console.log("✓ Global Creator Support no longer leaks signed-out private status requests into mobile readiness diagnostics");
+console.log("✓ Global Creator Support cannot leak signed-out private status requests into canonical public account surfaces");
 console.log("✓ Microphone, Photos and Camera checks are explicit user-tap self-tests and stay local to the device");
 console.log("✓ Diagnostic microphone streams are released immediately; picker reports omit customer file names");
 console.log("✓ Device report keeps physicalDeviceVerified=false until real-device evidence is externally reviewed");
