@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, batch99-liui-living-runtime-v2]
+    branches: [main]
 
 jobs:
   living-runtime-v2:
