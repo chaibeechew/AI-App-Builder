@@ -47,7 +47,7 @@ for (const stage of report.stages) {
 
 assert.equal(stage10k.decisions.critical.decision, "admit");
 assert.equal(stage10k.decisions.interactive.decision, "admit");
-assert.equal(stage10k.decisions.normal.decision, "defer");
+assert.equal(stage10k.decisions.normal.decision, "shed");
 assert.equal(stage10k.decisions.background.decision, "shed");
 
 const syntheticAppClaim = capacityClaimAllowed({
