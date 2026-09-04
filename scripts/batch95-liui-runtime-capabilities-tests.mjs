@@ -88,6 +88,11 @@ assert.ok(component.includes('href="#laneriq-main-content"'), "skip navigation t
 assert.ok(component.includes('event.key !== "/"'), "intent-focus keyboard shortcut is required");
 assert.ok(component.includes("sanitizeLiuiMemory"), "personal UI memory must pass through sanitizer");
 assert.ok(!component.includes("projectId:"), "runtime memory layer must not persist project identifiers");
+assert.ok(component.includes("new MutationObserver(sync)"), "real create-flow runtime state inference must remain connected");
+assert.ok(component.includes('main.querySelector(".buildProgress")'), "Page 1 build progress must drive runtime truth state");
+assert.ok(component.includes('main.querySelector(".builder .build")'), "Create-page build state must drive runtime truth state");
+assert.ok(component.includes('main.querySelector(".builder .plan")'), "Create-page planning state must drive runtime truth state");
+assert.ok(component.includes('main.querySelector(".errorBox")'), "Page 1 errors must drive runtime error state");
 
 assert.ok(css.includes("@media (prefers-reduced-motion:reduce)"), "reduced motion support is required");
 assert.ok(css.includes("@media (forced-colors:active)"), "forced colors support is required");
