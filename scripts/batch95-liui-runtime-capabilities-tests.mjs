@@ -84,7 +84,9 @@ assert.ok(component.includes('window.addEventListener("laneriq:ui-state"'), "tru
 assert.ok(component.includes('window.addEventListener("offline"'), "offline awareness is required");
 assert.ok(component.includes('window.addEventListener("online"'), "reconnect awareness is required");
 assert.ok(component.includes('aria-live="polite"'), "route/state announcements are required");
-assert.ok(component.includes('href="#laneriq-main-content"'), "skip navigation target is required");
+assert.ok(component.includes('if (!main.id) main.id = "laneriq-main-content"'), "skip navigation must create a safe default main target when one is absent");
+assert.ok(component.includes("setMainTargetId(main.id)"), "skip navigation must preserve an existing page main id");
+assert.ok(component.includes('href={`#${mainTargetId}`}'), "skip navigation must target the resolved main id");
 assert.ok(component.includes('event.key !== "/"'), "intent-focus keyboard shortcut is required");
 assert.ok(component.includes("sanitizeLiuiMemory"), "personal UI memory must pass through sanitizer");
 assert.ok(!component.includes("projectId:"), "runtime memory layer must not persist project identifiers");

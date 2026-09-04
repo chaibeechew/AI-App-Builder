@@ -1,16 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { I18N_STORAGE_KEY, normalizeLanguage, translateUiText } from "../../lib/i18n/catalog.js";
+import { liuiRuntimeText } from "../../lib/i18n/liui-runtime-translations.js";
 import {
   LIUI_RUNTIME_STATES,
   getLiuiCreationProgress,
   resolveLiuiRouteContext,
+  resolveLiuiSafeResume,
   sanitizeLiuiMemory,
 } from "../../lib/design/liui-runtime-capabilities.js";
 
 const MEMORY_KEY = "laneriq-liui-memory-v1";
+const LAST_WORKSPACE_KEY = "laneriq-liui-last-workspace-v1";
 const validStates = new Set(LIUI_RUNTIME_STATES);
+const criticalStates = new Set(["error", "blocked", "offline"]);
 
 function isTypingTarget(target) {
   if (!target) return false;
@@ -63,18 +69,48 @@ function inferMainRuntime(pageId, main) {
   return null;
 }
 
+function readSafeResume() {
+  try {
+    const raw = localStorage.getItem(LAST_WORKSPACE_KEY);
+    return raw ? resolveLiuiSafeResume(JSON.parse(raw), Date.now()) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function LIUIRuntimeCapabilityLayer() {
   const pathname = usePathname() || "/";
   const [context, setContext] = useState(() => resolveLiuiRouteContext(pathname));
   const [online, setOnline] = useState(true);
   const [runtimeState, setRuntimeState] = useState({ state: "idle", message: "" });
   const [announcement, setAnnouncement] = useState("");
+  const [language, setLanguage] = useState("en");
+  const [safeResume, setSafeResume] = useState(null);
+  const [decisionPresent, setDecisionPresent] = useState(false);
+  const [decisionOpen, setDecisionOpen] = useState(false);
+  const [mainTargetId, setMainTargetId] = useState("laneriq-main-content");
   const progress = useMemo(() => getLiuiCreationProgress(context.pageId), [context.pageId]);
+
+  useEffect(() => {
+    const currentLanguage = () => {
+      try {
+        return normalizeLanguage(window.__LANERIQ_LANGUAGE__ || localStorage.getItem(I18N_STORAGE_KEY) || navigator.language || "en");
+      } catch {
+        return "en";
+      }
+    };
+    setLanguage(currentLanguage());
+    const handleLanguage = (event) => setLanguage(normalizeLanguage(event?.detail?.language || currentLanguage()));
+    window.addEventListener("laneriq-language-change", handleLanguage);
+    return () => window.removeEventListener("laneriq-language-change", handleLanguage);
+  }, []);
 
   useEffect(() => {
     const next = resolveLiuiRouteContext(pathname, window.location.search || "");
     setContext(next);
-    setAnnouncement(next.primaryAction ? `${next.name}. ${next.primaryAction}.` : next.name);
+    const canonicalName = translateUiText(String(next.name || "LANERIQ AI"), language);
+    const canonicalAction = translateUiText(String(next.primaryAction || ""), language);
+    setAnnouncement(canonicalAction ? `${canonicalName}. ${canonicalAction}.` : canonicalName);
 
     const memory = sanitizeLiuiMemory({
       pageId: next.pageId,
@@ -82,23 +118,33 @@ export default function LIUIRuntimeCapabilityLayer() {
       phase: next.phase,
       timestamp: Date.now(),
     });
-    try { localStorage.setItem(MEMORY_KEY, JSON.stringify(memory)); } catch {}
+    try {
+      if (next.pageId === 1) setSafeResume(readSafeResume());
+      else if (next.pageId > 1) {
+        localStorage.setItem(LAST_WORKSPACE_KEY, JSON.stringify(memory));
+        setSafeResume(null);
+      }
+      localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+    } catch {
+      setSafeResume(null);
+    }
 
-    document.documentElement.dataset.liuiRuntime = "2026.09-v1";
+    document.documentElement.dataset.liuiRuntime = "2026.09-v2";
     document.body.dataset.liuiPage = String(next.pageId || 0);
     if (next.phase) document.body.dataset.liuiPhase = next.phase.toLowerCase().replace(/\s+/g, "-");
     else delete document.body.dataset.liuiPhase;
 
     const main = document.querySelector("main");
-    if (main && !main.id) {
-      main.id = "laneriq-main-content";
+    if (main) {
+      if (!main.id) main.id = "laneriq-main-content";
       main.dataset.liuiRuntimeMain = "true";
+      setMainTargetId(main.id);
     }
-  }, [pathname]);
+  }, [pathname, language]);
 
   useEffect(() => {
     const main = document.querySelector("main");
-    if (!main || ![1, 2].includes(context.pageId)) return;
+    if (!main || ![1, 2].includes(context.pageId)) return undefined;
     const sync = () => {
       const inferred = inferMainRuntime(context.pageId, main);
       if (inferred) setRuntimeState(current => current.state === inferred.state && current.message === inferred.message ? current : inferred);
@@ -108,6 +154,31 @@ export default function LIUIRuntimeCapabilityLayer() {
     observer.observe(main, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class", "disabled"] });
     return () => observer.disconnect();
   }, [context.pageId, pathname]);
+
+  useEffect(() => {
+    const body = document.body;
+    let frame = 0;
+    const syncDecision = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const intelligence = document.querySelector('[data-liui-context-intelligence="true"]');
+        const details = intelligence?.querySelector("details");
+        const present = Boolean(intelligence);
+        setDecisionPresent(present);
+        setDecisionOpen(Boolean(details?.open));
+        if (present) body.dataset.liuiDecisionLayer = "present";
+        else delete body.dataset.liuiDecisionLayer;
+      });
+    };
+    syncDecision();
+    const observer = new MutationObserver(syncDecision);
+    observer.observe(body, { subtree: true, childList: true, attributes: true, attributeFilter: ["open"] });
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+      delete body.dataset.liuiDecisionLayer;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const syncConnection = () => setOnline(navigator.onLine !== false);
@@ -149,26 +220,38 @@ export default function LIUIRuntimeCapabilityLayer() {
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
 
+  const t = (key) => liuiRuntimeText(key, language);
+  const canonical = (text) => translateUiText(String(text || ""), language);
   const visibleState = online ? runtimeState.state : "offline";
-  const visibleMessage = online
-    ? runtimeState.message
-    : "Offline. Some actions need a connection; LANERIQ will not pretend they completed.";
+  const visibleMessage = online ? t(runtimeState.message) : t("Offline. Some actions need a connection; LANERIQ will not pretend they completed.");
   const showState = visibleState !== "idle" && (visibleState !== "success" || visibleMessage);
+  const critical = criticalStates.has(visibleState);
+  const showStateWithDecision = showState && (!decisionOpen || critical);
+  const showResume = context.pageId === 1 && safeResume && visibleState === "idle";
 
   return <>
-    <a className="liuiSkipLink" href="#laneriq-main-content">Skip to main content</a>
+    <a className="liuiSkipLink" href={`#${mainTargetId}`}>{t("Skip to main content")}</a>
     <div className="liuiRouteAnnouncement" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
 
-    {context.pageId > 1 && <aside className="liuiRuntimeContext" data-liui-context={context.surface || "product"} aria-label="Current LANERIQ context">
-      <span className="liuiRuntimePhase">{context.phase}</span>
-      <span className="liuiRuntimeName">{context.name}</span>
-      {progress && <span className="liuiRuntimeProgress" aria-label={`Creation journey step ${progress.index + 1} of ${progress.total}`}>
+    {context.pageId > 1 && !decisionPresent && <aside className="liuiRuntimeContext" data-liui-context={context.surface || "product"} aria-label={t("Current LANERIQ context")}>
+      <span className="liuiRuntimePhase">{canonical(context.phase)}</span>
+      <span className="liuiRuntimeName">{canonical(context.name)}</span>
+      {progress && <span className="liuiRuntimeProgress" aria-label={`${t("Creation journey step")} ${progress.index + 1} / ${progress.total}`}>
         {progress.index + 1}/{progress.total}
       </span>}
     </aside>}
 
-    {showState && <div className={`liuiRuntimeState liuiRuntimeState-${visibleState}`} role={visibleState === "error" || visibleState === "blocked" ? "alert" : "status"} aria-live="polite">
-      <strong>{visibleState.replace(/-/g, " ")}</strong>
+    {showResume && <aside className="liuiRuntimeResume" aria-label={t("Continue where you left off")}>
+      <span className="liuiRuntimeResumeMark" aria-hidden="true">↗</span>
+      <span className="liuiRuntimeResumeCopy">
+        <small>{t("Last workspace")}</small>
+        <b>{canonical(safeResume.phase || safeResume.primaryNav)}</b>
+      </span>
+      <Link href={safeResume.href}>{t("Continue")}</Link>
+    </aside>}
+
+    {showStateWithDecision && <div className={`liuiRuntimeState liuiRuntimeState-${visibleState}${critical ? " liuiRuntimeState-critical" : ""}`} role={visibleState === "error" || visibleState === "blocked" ? "alert" : "status"} aria-live="polite">
+      <strong>{t(visibleState)}</strong>
       {visibleMessage && <span>{visibleMessage}</span>}
     </div>}
   </>;
