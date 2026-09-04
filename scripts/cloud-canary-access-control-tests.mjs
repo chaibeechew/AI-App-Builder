@@ -26,7 +26,7 @@ assert.match(postSource, /if \(!access\.ok\)/, "Unauthorized Cloud canary attemp
 assert.match(postSource, /operation:\s*"project\.read"/, "Protected canary must preserve the established bounded project.read probe");
 assert.match(postSource, /fetch\(target/, "Only protected POST may execute the remote Cloud canary");
 assert.match(postSource, /expectedAuthenticationMode = oidc\.token \? "VERCEL_OIDC" : "HMAC_SHA256"/);
-assert.match(postSource, /PRODUCTION_CLOUD_OIDC_REQUIRED/);
+assert.match(route, /PRODUCTION_CLOUD_OIDC_REQUIRED/, "Cloud configuration truth must continue to fail closed when Production OIDC evidence is unavailable");
 assert.match(postSource, /PRODUCTION_LIVE_OIDC_EXACT_SHA/);
 assert.match(postSource, /exactReleaseIdentity/);
 assert.match(postSource, /canarySessionAuthority:\s*access\.sessionAuthority/);
