@@ -1,0 +1,28 @@
+name: LANERIQ Device Media Burst & Cooldown Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify image/video-only high-energy bridge
+        run: node scripts/device-media-burst-bridge-contract-tests.mjs
+      - name: Evidence boundary
+        run: |
+          echo "CODE/CI contract only."
+          echo "No paid AI provider call, SMS, Email, Production mutation, physical-device NPU/GPU claim or store evidence is exercised by this gate."
