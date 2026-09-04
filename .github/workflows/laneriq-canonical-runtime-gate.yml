@@ -1,0 +1,39 @@
+name: LANERIQ Canonical Runtime Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/laneriq/**'
+      - 'lib/laneriq/**'
+      - 'app/api/soolenai/**'
+      - 'lib/soolen/**'
+      - 'scripts/laneriq-canonical-runtime-contract-tests.mjs'
+      - '.github/workflows/laneriq-canonical-runtime-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laneriq-canonical-runtime-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canonical-runtime-contract:
+    name: Canonical runtime contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify LANERIQ canonical runtime
+        run: node scripts/laneriq-canonical-runtime-contract-tests.mjs
+      - name: Verify existing Soolen compatibility contract
+        run: node scripts/soolen-platform-operator-contract-tests.mjs
