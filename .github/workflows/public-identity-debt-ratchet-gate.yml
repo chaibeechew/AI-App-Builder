@@ -1,0 +1,37 @@
+name: LANERIQ Public Identity Debt Ratchet Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'lib/product-brand.js'
+      - 'lib/soolen/video-engine.js'
+      - 'lib/platform/public-identity-debt-manifest.js'
+      - 'scripts/public-identity-debt-ratchet-contract-tests.mjs'
+      - 'scripts/chat-public-identity-contract-tests.mjs'
+      - '.github/workflows/public-identity-debt-ratchet-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laneriq-public-identity-debt-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-identity-debt:
+    name: Public identity debt ratchet
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Verify public identity debt ratchet
+        run: node scripts/public-identity-debt-ratchet-contract-tests.mjs
+      - name: Verify Chat remains LANERIQ-only
+        run: node scripts/chat-public-identity-contract-tests.mjs
