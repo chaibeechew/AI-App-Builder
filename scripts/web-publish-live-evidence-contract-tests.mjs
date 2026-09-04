@@ -93,3 +93,4 @@ console.log("✓ Pre-existing live projects are rejected and exact current versi
 console.log("✓ Public App/Website probes omit credentials, publish cleanup is armed before mutation, and finally enforces unpublish recovery");
 console.log("✓ Evidence runner cannot invoke Generate, Modify, SMS, service-role secrets, media permissions or persistent browser storage");
 console.log("✓ Owned project visibility/publish evidence now follows route → LANERIQ Cloud → adapter without weakening owner isolation");
+// This contract intentionally carries no runtime mutation itself; it exists only to lock the exact-head Production evidence boundary.
