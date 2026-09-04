@@ -38,10 +38,13 @@ assert.match(page,/No paid SMS fallback/);
 assert.doesNotMatch(page,/via authorized|Connect Ollama|providers connected|Supabase|GitHub|Vercel|Meta/);
 
 assert.match(chat,/PLATFORM_OPERATOR_INSTRUCTION/);
+assert.match(chat,/You are LANERIQ AI/);
 assert.match(chat,/User-facing platform stages are only Build, Verify, Deploy and Publish/);
 assert.match(chat,/never instruct them to connect, configure or visit Supabase, GitHub, Vercel, Meta/);
 assert.match(chat,/Infrastructure providers are replaceable implementation details and must stay opaque/);
-assert.match(chat,/managedBy: "SoolenAI Platform Operator"/);
+assert.match(chat,/managedBy: "LANERIQ AI"/);
+assert.match(chat,/LANERIQ AI returned no content/);
+assert.doesNotMatch(chat,/managedBy: "SoolenAI Platform Operator"|Soolen AI returned no content|User" : "Soolen AI"/);
 assert.doesNotMatch(chat,/provider:\s*result\?\.provider/);
 
 // Professional stays simple by default; deep controls are an explicit Edit action.
@@ -76,7 +79,7 @@ assert.match(whatsappHook,/Webhook.*standardwebhooks/);
 assert.match(whatsappHook,/WHATSAPP_OTP_TEMPLATE_NAME/);
 assert.doesNotMatch(whatsappHook,/console\.(log|info|warn|error|debug)/);
 
-console.log('✓ SoolenAI Platform Operator owns the one-app LANERIQ customer control plane');
+console.log('✓ LANERIQ AI is the public Chat identity while the legacy operator stays an internal compatibility implementation');
 console.log('✓ Ordinary users see only Build / Verify / Deploy / Publish and never infrastructure provider setup');
 console.log('✓ Provider names and secrets are blocked from standard customer API/UI surfaces');
 console.log('✓ Professional advanced controls stay hidden until the user explicitly presses Edit');
