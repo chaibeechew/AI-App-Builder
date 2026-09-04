@@ -51,12 +51,15 @@ export default function VersionRollbackButton({ appId, versionId, versionNo, isC
 
   return (
     <div className="rollbackWrap">
+      <a className="exportButton" href={`/api/apps/${appId}/export?versionId=${encodeURIComponent(versionId)}`}>
+        Export v{versionNo} source
+      </a>
       <button type="button" onClick={rollback} disabled={isCurrent || loading} className={isCurrent ? "currentButton" : "rollbackButton"}>
         {isCurrent ? "Current version" : loading ? "Restoring…" : `Restore v${versionNo}`}
       </button>
       {message ? <small>{message}</small> : null}
       <style jsx>{`
-        .rollbackWrap{display:grid;gap:6px;justify-items:end}.rollbackButton,.currentButton{border-radius:11px;padding:10px 13px;font-weight:900;font:inherit}.rollbackButton{border:1px solid rgba(223,196,104,.4);background:#d8bf62;color:#07130e;cursor:pointer}.currentButton{border:1px solid rgba(120,210,165,.25);background:rgba(120,210,165,.08);color:#8de0bb}.rollbackButton:disabled,.currentButton:disabled{cursor:default;opacity:.8}.rollbackWrap small{color:#b9c8c2;max-width:220px;text-align:right}
+        .rollbackWrap{display:grid;gap:6px;justify-items:end}.exportButton,.rollbackButton,.currentButton{border-radius:11px;padding:10px 13px;font-weight:900;font:inherit}.exportButton{text-decoration:none;border:1px solid rgba(216,191,98,.24);background:rgba(216,191,98,.06);color:#e5cf7b}.rollbackButton{border:1px solid rgba(223,196,104,.4);background:#d8bf62;color:#07130e;cursor:pointer}.currentButton{border:1px solid rgba(120,210,165,.25);background:rgba(120,210,165,.08);color:#8de0bb}.rollbackButton:disabled,.currentButton:disabled{cursor:default;opacity:.8}.rollbackWrap small{color:#b9c8c2;max-width:220px;text-align:right}
       `}</style>
     </div>
   );
