@@ -38,6 +38,12 @@ Build App Web & Game
 Apps • Games • Web  
 Create Anything. From One Idea.
 
+## License model — no Buyout License
+
+LANERIQ AI does **not** offer a Buyout License option for App, Website, Game or Enterprise projects. There is no personal, business, enterprise or custom-quote one-time buyout that removes an otherwise applicable continuing revenue-share obligation. Customer project ownership and portability are handled separately from any buyout concept.
+
+Historical database migrations may retain earlier internal `buyout` naming for migration integrity and legacy compatibility. Those historical names are not a current customer-facing product or purchasable license option.
+
 ## Creator-first Game policy
 
 LANERIQ AI is designed to encourage creators to keep building.
