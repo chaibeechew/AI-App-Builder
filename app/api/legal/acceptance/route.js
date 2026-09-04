@@ -1,7 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { createServerClient } from "../../../../lib/supabase/server.js";
-import { createAdminClient } from "../../../../lib/supabase/admin.js";
+import {
+  getActiveLegalDocument,
+  getAppOwner,
+  getCurrentLegalAssurance,
+  getCurrentLegalPrincipal,
+  getLegalSaleTransaction,
+  insertLegalAcceptanceEvent,
+} from "../../../../lib/cloud/legal-runtime.js";
 
 export const runtime="nodejs";
 
@@ -34,8 +40,7 @@ export async function POST(request){
       return NextResponse.json({error:"Legal acceptance request is too large."},{status:413,headers:NO_STORE});
     }
 
-    const supabase=await createServerClient();
-    const {data:{user},error:authError}=await supabase.auth.getUser();
+    const {user,error:authError}=await getCurrentLegalPrincipal();
     if(authError||!user){
       return NextResponse.json({error:"Authentication required."},{status:401,headers:NO_STORE});
     }
@@ -67,14 +72,7 @@ export async function POST(request){
       return NextResponse.json({error:"Invalid transaction identifier."},{status:400,headers:NO_STORE});
     }
 
-    const admin=createAdminClient();
-    const {data:doc,error:docError}=await admin
-      .from("legal_document_versions")
-      .select("id,document_key,version,document_hash,acceptance_level,status,effective_at")
-      .eq("document_key",documentKey)
-      .eq("status","active")
-      .maybeSingle();
-
+    const {data:doc,error:docError}=await getActiveLegalDocument(documentKey);
     if(docError){
       console.error("LEGAL_ACCEPTANCE_DOCUMENT_LOOKUP_ERROR",docError.code||"unknown");
       return NextResponse.json({error:"Legal runtime is not ready."},{status:503,headers:NO_STORE});
@@ -90,11 +88,7 @@ export async function POST(request){
       if(!transactionId){
         return NextResponse.json({error:"Material transaction acceptance requires a transaction identifier."},{status:400,headers:NO_STORE});
       }
-      const {data:tx,error:txError}=await admin
-        .from("app_sale_transactions")
-        .select("id,app_id,seller_user_id,buyer_user_id,status")
-        .eq("id",transactionId)
-        .maybeSingle();
+      const {data:tx,error:txError}=await getLegalSaleTransaction(transactionId);
       if(txError||!tx){
         return NextResponse.json({error:"Sale transaction not found."},{status:404,headers:NO_STORE});
       }
@@ -110,7 +104,7 @@ export async function POST(request){
       }
       appId=tx.app_id;
     }else if(appId){
-      const {data:app}=await admin.from("apps").select("id,owner_id").eq("id",appId).maybeSingle();
+      const {data:app}=await getAppOwner(appId);
       if(!app||app.owner_id!==user.id){
         return NextResponse.json({error:"You are not authorized for this app."},{status:403,headers:NO_STORE});
       }
@@ -121,7 +115,7 @@ export async function POST(request){
     let highAssuranceVerified=false;
 
     if(doc.acceptance_level==="strong"||doc.acceptance_level==="bilateral"){
-      const {data:aal,error:aalError}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const {data:aal,error:aalError}=await getCurrentLegalAssurance();
       if(aalError||aal?.currentLevel!=="aal2"){
         return NextResponse.json({
           error:"High-assurance reauthentication is required before this legal document can be signed.",
@@ -138,34 +132,30 @@ export async function POST(request){
     const locale=cleanText(request.headers.get("accept-language")?.split(",")[0]||"und",20).replace(/[^A-Za-z0-9_-]/g,"")||"und";
     const userAgentHash=sha256(request.headers.get("user-agent")||"unknown");
 
-    const {data:event,error:insertError}=await admin
-      .from("legal_acceptance_events")
-      .insert({
-        user_id:user.id,
-        document_version_id:doc.id,
-        document_key_snapshot:doc.document_key,
-        version_snapshot:doc.version,
-        document_hash_snapshot:doc.document_hash,
-        acceptance_level:doc.acceptance_level,
-        actor_role:actorRole,
-        app_id:appId,
-        transaction_id:transactionId,
-        acceptance_scope:acceptanceScope,
-        reauth_method:reauthMethod,
-        terms_presented_at:termsPresentedAt,
-        accepted_at:acceptedAt,
-        evidence:{
-          request_id:requestId,
-          ui_surface:uiSurface,
-          locale,
-          user_agent_hash:userAgentHash,
-          assurance_level:assuranceLevel,
-          high_assurance_verified:highAssuranceVerified,
-          session_user_id:user.id
-        }
-      })
-      .select("id,accepted_at,document_key_snapshot,version_snapshot,document_hash_snapshot,acceptance_level,actor_role,app_id,transaction_id")
-      .single();
+    const {data:event,error:insertError}=await insertLegalAcceptanceEvent({
+      user_id:user.id,
+      document_version_id:doc.id,
+      document_key_snapshot:doc.document_key,
+      version_snapshot:doc.version,
+      document_hash_snapshot:doc.document_hash,
+      acceptance_level:doc.acceptance_level,
+      actor_role:actorRole,
+      app_id:appId,
+      transaction_id:transactionId,
+      acceptance_scope:acceptanceScope,
+      reauth_method:reauthMethod,
+      terms_presented_at:termsPresentedAt,
+      accepted_at:acceptedAt,
+      evidence:{
+        request_id:requestId,
+        ui_surface:uiSurface,
+        locale,
+        user_agent_hash:userAgentHash,
+        assurance_level:assuranceLevel,
+        high_assurance_verified:highAssuranceVerified,
+        session_user_id:user.id
+      }
+    });
 
     if(insertError){
       console.error("LEGAL_ACCEPTANCE_INSERT_ERROR",insertError.code||"unknown");
