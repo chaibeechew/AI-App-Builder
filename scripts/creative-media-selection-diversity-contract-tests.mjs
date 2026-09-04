@@ -5,7 +5,7 @@ import { buildCreativeMediaParetoFront } from '../lib/ai/creative-pareto-selecto
 import { assessCreativeHumanApproval } from '../lib/ai/creative-human-approval-gate.js';
 import { buildCreativePublishCandidatePack } from '../lib/ai/creative-publish-candidate-pack.js';
 
-const hash=char=>String(char).repeat(64);
+const hash=char=>(/^[a-f0-9]$/i.test(String(char||''))?String(char).toLowerCase():'a').repeat(64);
 const candidate=(id,{quality=90,risk=5,costClass='zero',costUsd=0,latencyMs=1200,approval=false,sensitivity=[],provenance=true}={})=>({
   candidateId:`cand:${id}`,assetId:`asset:${id}`,modality:'image',costClass,costUsd,latencyMs,requiresHumanApproval:approval,sensitivity,
   metrics:{qualityScore:quality,consistencyScore:92,promptAdherence:93,brandFit:91,providerReliability:95,riskScore:risk},
