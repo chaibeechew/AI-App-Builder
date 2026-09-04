@@ -85,10 +85,12 @@ assert.equal(LANERIQ_18_PAGE_AI_RULES.selfHealMayNotLowerQualityGates,true);
 assert.equal(LANERIQ_18_PAGE_AI_RULES.secretsStayServerSide,true);
 assert.equal(LANERIQ_18_PAGE_AI_RULES.smsOnHold,true);
 
+assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.designAuthority,'LIUI-2026.2');
+assert.equal(Object.prototype.hasOwnProperty.call(LANERIQ_18_PAGE_DESIGN_RULES,'legacyDesignCompatibility'),true,'LIUI contract must explicitly declare legacy compatibility policy');
+assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.legacyDesignCompatibility,false,'Legacy design compatibility must remain disabled');
 assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.intentFirst,true);
 assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.contextAdaptive,true);
 assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.liquidIntelligenceGlass,true);
-assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.legacyDesignCompatibility,false);
 assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.homeFirstPaint,'Future City + People');
 assert.match(LANERIQ_18_PAGE_DESIGN_RULES.primaryPromptSurface,/light\/warm/i);
 assert.match(LANERIQ_18_PAGE_DESIGN_RULES.longPromptBehavior,/large editor/i);
