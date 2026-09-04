@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "../../../../../lib/supabase/server.js";
+import { createAdminClient } from "../../../../../lib/supabase/admin.js";
+import {
+  LANERIQ_SESSION_COOKIE,
+  LANERIQ_SESSION_MODE_COOKIE,
+  isLaneriqPrimarySessionMode,
+  validateLaneriqSessionToken,
+} from "../../../../../lib/auth/laneriq-session.js";
 import { providerRouterProductionTruth, runZeroCostProviderRouterCanary } from "../../../../../lib/ai/provider-router-truth.js";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +57,54 @@ function publicStatusPayload(truth) {
   };
 }
 
+function authErrorPayload(code, error) {
+  return {
+    success: false,
+    service: "laneriq-provider-router",
+    contract: "prtr1",
+    error,
+    code,
+  };
+}
+
+async function resolveAdminRequest(request) {
+  const token = String(request.cookies.get(LANERIQ_SESSION_COOKIE)?.value || "");
+  const sessionMode = request.cookies.get(LANERIQ_SESSION_MODE_COOKIE)?.value;
+  let laneriqSession = null;
+
+  try {
+    laneriqSession = await validateLaneriqSessionToken(token);
+  } catch {
+    return { error: authErrorPayload("SESSION_NOT_READY", "Authentication service is temporarily unavailable."), status: 503 };
+  }
+
+  if (laneriqSession?.userId) {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.getUserById(laneriqSession.userId);
+    const user = data?.user;
+    if (error || !user?.id || user.id !== laneriqSession.userId) {
+      return { error: authErrorPayload("ACCOUNT_NOT_READY", "Account identity is temporarily unavailable."), status: 503 };
+    }
+    const role = String(user.app_metadata?.role || "").trim().toLowerCase();
+    if (role !== "admin") return { error: authErrorPayload("ADMIN_PERMISSION_REQUIRED", "Admin permission required."), status: 403 };
+    return { user, sessionAuthority: "laneriq" };
+  }
+
+  if (isLaneriqPrimarySessionMode(sessionMode)) {
+    return { error: authErrorPayload("AUTHENTICATION_REQUIRED", "Authentication required."), status: 401 };
+  }
+
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) return { error: authErrorPayload("AUTHENTICATION_REQUIRED", "Authentication required."), status: 401 };
+  const role = String(user.app_metadata?.role || "").trim().toLowerCase();
+  if (role !== "admin") return { error: authErrorPayload("ADMIN_PERMISSION_REQUIRED", "Admin permission required."), status: 403 };
+  return { user, sessionAuthority: "legacy_bridge" };
+}
+
 export async function GET() {
   try {
     return json(publicStatusPayload(providerRouterProductionTruth()));
@@ -68,34 +123,10 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(request) {
   try {
-    const supabase = await createServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return json({
-        success: false,
-        service: "laneriq-provider-router",
-        contract: "prtr1",
-        error: "Authentication required.",
-        code: "AUTHENTICATION_REQUIRED",
-      }, 401);
-    }
-
-    const role = String(user.app_metadata?.role || "").trim().toLowerCase();
-    if (role !== "admin") {
-      return json({
-        success: false,
-        service: "laneriq-provider-router",
-        contract: "prtr1",
-        error: "Admin permission required.",
-        code: "ADMIN_PERMISSION_REQUIRED",
-      }, 403);
-    }
+    const access = await resolveAdminRequest(request);
+    if (access.error) return json(access.error, access.status);
 
     const truthBefore = providerRouterProductionTruth();
     if (!truthBefore.zeroCostLaunchMode) {
@@ -132,6 +163,7 @@ export async function POST() {
       runtimeCanary,
       canaryExecutionMethod: "ADMIN_POST_ONLY",
       canaryRequiresAdmin: true,
+      canarySessionAuthority: access.sessionAuthority,
       launchModeLive,
       evidenceLevel: launchModeLive ? "PRODUCTION_ZERO_COST_ROUTER_CANARY" : "RUNTIME_ZERO_COST_ROUTER_CANARY",
     });
