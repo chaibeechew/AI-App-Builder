@@ -1,0 +1,35 @@
+name: Cloud OIDC Production Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/cloud/**'
+      - 'lib/cloud-service/**'
+      - 'services/cloud/**'
+      - 'scripts/cloud-security-decoupling-contract-tests.mjs'
+      - '.github/workflows/cloud-oidc-production-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-oidc-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cloud-oidc-contract:
+    name: Cloud OIDC contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Verify Cloud OIDC contract
+        run: node services/cloud/test/contract.mjs
+      - name: Verify Cloud security decoupling
+        run: node scripts/cloud-security-decoupling-contract-tests.mjs

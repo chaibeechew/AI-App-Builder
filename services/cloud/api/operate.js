@@ -8,6 +8,9 @@ import {
   validateCloudRequestEnvelope,
   verifySignedCloudRequest,
 } from "../lib/security.js";
+import { verifyLaneriqMainProductionPeer } from "../lib/vercel-oidc.js";
+
+const EXACT_SHA = /^[a-f0-9]{40}$/i;
 
 function secureHeaders(res) {
   res.setHeader("Cache-Control", "no-store, private, max-age=0");
@@ -25,6 +28,47 @@ function json(res, status, body, extraHeaders = {}) {
   return res.status(status).json(body);
 }
 
+function hasBearerAuthorization(req) {
+  return String(req?.headers?.authorization || req?.headers?.Authorization || "").trim().startsWith("Bearer ");
+}
+
+function productionRuntime() {
+  return String(process.env.VERCEL_ENV || "").toLowerCase() === "production";
+}
+
+function releaseIdentity() {
+  const sha = String(process.env.VERCEL_GIT_COMMIT_SHA || "").trim();
+  return Object.freeze({
+    sha: EXACT_SHA.test(sha) ? sha.toLowerCase() : null,
+    environment: String(process.env.VERCEL_ENV || "").trim().toLowerCase() || "unknown",
+    projectId: String(process.env.VERCEL_PROJECT_ID || "").trim() || null,
+  });
+}
+
+async function verifyPeerAuthentication(req, raw) {
+  if (hasBearerAuthorization(req)) {
+    const oidc = await verifyLaneriqMainProductionPeer(req);
+    if (!oidc.ok) return oidc;
+    return Object.freeze({
+      ok: true,
+      status: 200,
+      authenticationSource: "vercel-oidc",
+      identity: oidc.identity,
+    });
+  }
+  if (productionRuntime()) {
+    return Object.freeze({ ok: false, status: 401, error: "OIDC_REQUIRED" });
+  }
+  const signed = verifySignedCloudRequest(req, raw);
+  if (!signed.ok) return signed;
+  return Object.freeze({
+    ok: true,
+    status: 200,
+    authenticationSource: "hmac-sha256",
+    identity: null,
+  });
+}
+
 export default async function handler(req, res) {
   secureHeaders(res);
   if (req.method !== "POST") return json(res, 405, { error: "METHOD_NOT_ALLOWED" }, { Allow: "POST" });
@@ -33,8 +77,8 @@ export default async function handler(req, res) {
   const envelope = validateCloudRequestEnvelope(req, raw);
   if (!envelope.ok) return json(res, envelope.status, { error: envelope.error });
 
-  const signed = verifySignedCloudRequest(req, raw);
-  if (!signed.ok) return json(res, signed.status, { error: signed.error });
+  const peer = await verifyPeerAuthentication(req, raw);
+  if (!peer.ok) return json(res, peer.status, { error: peer.error });
 
   let input;
   try {
@@ -92,6 +136,8 @@ export default async function handler(req, res) {
     return json(res, status, { error: String(data?.error || "CLOUD_STORAGE_ADAPTER_FAILED").slice(0, 120) });
   }
 
+  const requestAuthenticationMode = peer.authenticationSource === "vercel-oidc" ? "VERCEL_OIDC" : "HMAC_SHA256";
+  const release = releaseIdentity();
   return json(res, 200, {
     ...data,
     service: "laneriq-cloud-data",
@@ -99,5 +145,12 @@ export default async function handler(req, res) {
     requestId: checked.value.requestId,
     securityLevel: CLOUD_SECURITY_LEVEL,
     securityProfile: CLOUD_SECURITY_PROFILE,
+    requestAuthenticationMode,
+    oidcIdentityVerified: requestAuthenticationMode === "VERCEL_OIDC",
+    peerProject: peer.identity?.project || null,
+    peerEnvironment: peer.identity?.environment || null,
+    serviceReleaseSha: release.sha,
+    serviceEnvironment: release.environment,
+    serviceProjectId: release.projectId,
   });
 }
