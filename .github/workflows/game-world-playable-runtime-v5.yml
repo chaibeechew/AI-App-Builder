@@ -1,0 +1,61 @@
+name: Game World Playable Runtime V5 Gate
+
+on:
+  push:
+    branches:
+      - batch139-game-world-playable-runtime-v5
+  pull_request:
+    paths:
+      - "app/game-world-playable/**"
+      - "app/game-builder/layout.js"
+      - "lib/game/game-world-playable-runtime-v5.js"
+      - "scripts/game-world-playable-runtime-v5-tests.mjs"
+      - ".github/workflows/game-world-playable-runtime-v5.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-world-v5-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playable-runtime-v5:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      GEMINI_API_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Game World Generator regression
+        run: node scripts/game-world-generator-tests.mjs
+      - name: Simulation Intelligence regression
+        run: node scripts/game-world-simulation-intelligence-tests.mjs
+      - name: Reasoning Orchestrator regression
+        run: node scripts/game-world-reasoning-orchestrator-tests.mjs
+      - name: Unified Game World readiness regression
+        run: node scripts/game-world-readiness-tests.mjs
+      - name: World Model V2 regression
+        run: node scripts/game-world-latest-tech-v2-tests.mjs
+      - name: Spatial Hybrid V3 regression
+        run: node scripts/game-world-spatial-hybrid-v3-tests.mjs
+      - name: Neural Reconstruction V4 regression
+        run: node scripts/game-world-neural-reconstruction-embodied-v4-tests.mjs
+      - name: Playable Runtime V5 contracts
+        run: node scripts/game-world-playable-runtime-v5-tests.mjs
+      - name: Existing Game Runtime regression
+        run: node scripts/game-runtime-v1-tests.mjs
+      - name: Advanced 3D regression
+        run: node scripts/advanced-3d-gameplay-tests.mjs
+      - name: Content Pipeline regression
+        run: node scripts/content-production-pipeline-tests.mjs
+      - name: Next.js production build
+        run: npm run build
