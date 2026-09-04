@@ -1,0 +1,39 @@
+name: LANERIQ Independent Route Gate
+
+on:
+  pull_request:
+    paths:
+      - 'lib/platform/independent-route.js'
+      - 'app/api/platform/independent-route/**'
+      - 'lib/ai/provider-router*'
+      - 'lib/cloud/**'
+      - 'lib/cloud-adapters/**'
+      - 'services/**'
+      - 'scripts/independent-route-contract-tests.mjs'
+      - 'scripts/cloud-security-decoupling-contract-tests.mjs'
+      - '.github/workflows/independent-route-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: independent-route-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  independent-route-contract:
+    name: Independent route contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Verify LANERIQ independent route
+        run: node scripts/independent-route-contract-tests.mjs
+      - name: Verify Cloud provider-opaque boundary
+        run: node scripts/cloud-security-decoupling-contract-tests.mjs
