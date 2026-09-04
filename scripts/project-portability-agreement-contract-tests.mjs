@@ -7,6 +7,7 @@ const policy=read("config/project-portability-policy.js");
 const route=read("app/api/apps/[id]/migration-agreement/route.js");
 const panel=read("app/components/ProjectPortabilityPanel.js");
 const migration=read("supabase/migrations/20260904003000_creator_support_and_portability.sql");
+const legalGateMigration=read("supabase/migrations/20260904003300_block_draft_migration_agreement_signing.sql");
 
 assert.match(agreement,/LANERIQ AI Project Portability & 10% Revenue Share Agreement/);
 assert.match(agreement,/DRAFT — NOT YET APPROVED FOR PRODUCTION ENFORCEMENT/);
@@ -53,7 +54,13 @@ assert.match(migration,/revenue_share_percent numeric\(5,2\) not null default 10
 assert.match(migration,/acknowledged_customer_ownership boolean not null default true/);
 assert.match(migration,/acknowledged_no_platform_lock_in boolean not null default true/);
 
+assert.match(legalGateMigration,/revoke all on function public\.sign_project_migration_agreement\(uuid,text,boolean\)/);
+assert.match(legalGateMigration,/from public, anon, authenticated, service_role/);
+assert.match(legalGateMigration,/legal-review draft/i);
+assert.match(legalGateMigration,/Do not grant execute in Production until the agreement version is formally approved/i);
+assert.doesNotMatch(legalGateMigration,/grant execute on function public\.sign_project_migration_agreement/);
+
 console.log("✓ 10% Project Portability Agreement exists as a versioned legal-review draft");
 console.log("✓ Customer ownership, no technical lock-in, revenue-base exclusions and no double-share policy are explicit");
-console.log("✓ Production signing fails closed until legal counsel approval + policy activation");
+console.log("✓ Production signing fails closed in both API code and the database RPC boundary until legal approval");
 console.log("✓ UI truthfully shows DRAFT instead of presenting a binding agreement prematurely");
