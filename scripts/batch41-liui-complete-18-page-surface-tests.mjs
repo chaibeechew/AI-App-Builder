@@ -32,6 +32,12 @@ const routeContracts = [
   ["/^\\/workflows\\//", "workflow"],
   ["/^\\/analytics\\//", "analytics"],
   ["/^\\/studio\\/?$/", "more"],
+  ["/^\\/image-studio\\/?$/", "media"],
+  ["/^\\/video-studio\\/?$/", "media"],
+  ["/^\\/avatar-studio\\/?$/", "media"],
+  ["/^\\/brand-kit\\/?$/", "brand"],
+  ["/^\\/asset-library\\/?$/", "assets"],
+  ["/^\\/account\\/device-compute\\/?$/", "account"],
   ["/^\\/editor\\//", "editor"],
   ["/^\\/database\\//", "database"],
   ["/^\\/operations\\//", "quality"],
@@ -42,7 +48,7 @@ for (const [route, surface] of routeContracts) {
   assert(component.includes(`"${surface}"`), `LIUI coordinator must expose ${surface}`);
 }
 
-const expectedNav = ["Home", "Create", "Creations", "Templates", "More"];
+const expectedNav = ["Home", "Projects", "Create", "Templates", "More"];
 let cursor = -1;
 for (const label of expectedNav) {
   const next = component.indexOf(`label: "${label}"`, cursor + 1);
@@ -51,7 +57,7 @@ for (const label of expectedNav) {
 }
 assert.match(component, /data-liui-nav="canonical"/, "canonical nav must be explicitly identified");
 
-// Global surfaces must not be polluted with the active-project six-step tracker.
+// Global surfaces must not be polluted with the active-project lifecycle tracker.
 for (const forbidden of ["Idea → Plan", "Idea / Plan / Design", "Idea→Plan→Design", "Preview → Launch"]) {
   assert(!component.includes(forbidden), `global navigation must not add lifecycle tracker text: ${forbidden}`);
   assert(!css.includes(forbidden), `global LIUI CSS must not add lifecycle tracker text: ${forbidden}`);
@@ -85,7 +91,8 @@ assert.match(browserQa, /physicalDeviceVerified:\s*false/, "browser emulation mu
 assert.match(browserQa, /liveProviderVerified:\s*false/, "browser emulation must never be mislabeled as provider-LIVE evidence");
 assert.match(browserQa, /officialStoreVerified:\s*false/, "browser emulation must never be mislabeled as official-store evidence");
 
-console.log("✓ Batch 41 complete 18-page LIUI surface contract passed");
+console.log("✓ Batch 41 complete LIUI surface contract passed");
+console.log("✓ Canonical navigation is Home / Projects / Create / Templates / More");
 console.log("✓ Real execution engines and safety boundaries remain intact");
-console.log("✓ Mobile QA now validates five visible canonical LIUI navigation targets without hidden legacy false failures");
+console.log("✓ Mobile QA validates five visible canonical LIUI navigation targets without hidden legacy false failures");
 console.log("✓ Evidence remains CODE/CI until Preview/Production runtime checks complete");
