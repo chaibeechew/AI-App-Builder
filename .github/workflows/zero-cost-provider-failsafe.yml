@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - batch116-zero-cost-provider-failsafe
+      - batch117-zero-cost-provider-failsafe
     paths:
       - lib/soolen/cost-policy.js
       - scripts/zero-cost-provider-failsafe-contract-tests.mjs
