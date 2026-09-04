@@ -33,6 +33,6 @@ export default function handler(_req, res) {
     serviceSecretReady: secretReady,
     storageAdapterReady: adapterReady,
     evidenceLevel: "CODE_READY",
-    live: false,
+    live:false,
   });
 }
