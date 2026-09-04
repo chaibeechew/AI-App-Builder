@@ -6,7 +6,9 @@ import { filterProvidersByCost, getSoolenCostMode } from "../lib/soolen/cost-pol
 const read = (file) => fs.readFileSync(file, "utf8");
 const community = read("app/api/community-chat/route.js");
 const transcription = read("app/api/voice/transcribe/route.js");
-const voice = read("app/api/soolenai/voice/route.js");
+const canonicalVoice = read("app/api/laneriq/voice/route.js");
+const voiceAdapter = read("lib/laneriq/voice-compatibility-adapter.js");
+const legacyVoice = read("app/api/soolenai/voice/route.js");
 const clone = read("app/api/admin/soolenai-voice/clone/route.js");
 const productionWorkflow = read(".github/workflows/production-mobile-browser-qa.yml");
 const productionRuntime = read("scripts/production-provider-boundary-qa.mjs");
@@ -39,20 +41,28 @@ for (const pattern of [
 assert.ok(transcription.indexOf("mode !== \"paid\"") < transcription.indexOf("https://api.openai.com/v1/audio/transcriptions"), "Paid-mode guard must execute before the metered OpenAI endpoint is reachable.");
 assert.doesNotMatch(transcription, /detail:\s*detail|await response\.text\(\).*detail/);
 
-// Neural TTS is a Professional capability; metered TTS is blocked unless operator cost mode explicitly allows spend.
+// The public neural-voice route is LANERIQ-owned. Legacy provider/config dependencies stay behind one adapter.
+for (const pattern of [/handleLaneriqVoiceRequest/, /laneriqVoicePublicStatus/, /X-LANERIQ-Authority/]) assert.match(canonicalVoice, pattern);
+assert.doesNotMatch(canonicalVoice, /lib\/soolen|supabase|SOOLENAI_VOICE|api\.elevenlabs\.io|ELEVENLABS_API_KEY/i);
 for (const pattern of [
+  /createServerClient/,
   /auth\.getUser\(\)/,
   /getSoolenSubscription/,
   /requirePaidTier/,
   /Professional access is required for neural voice generation/,
-  /MAX_VOICE_BYTES\s*=\s*16\s*\*\s*1024\s*\*\s*1024/,
+  /LANERIQ_VOICE_MAX_BYTES\s*=\s*16\s*\*\s*1024\s*\*\s*1024/,
+  /LANERIQ_VOICE_MAX_TEXT\s*=\s*5000/,
   /getSoolenCostMode\(\)/,
   /mode !== "paid" && mode !== "balanced"/,
   /Metered voice generation is disabled by the current cost policy/,
-  /SOOLENAI_VOICE\.paidProvider/,
   /api\.elevenlabs\.io\/v1\/text-to-speech/,
-]) assert.match(voice, pattern);
-assert.ok(voice.indexOf("mode !== \"paid\"") < voice.indexOf("https://api.elevenlabs.io/v1/text-to-speech"), "TTS paid-mode guard must execute before the metered provider endpoint is reachable.");
+  /providerLiveVerified:\s*false/,
+  /realOutputQualityVerified:\s*false/,
+]) assert.match(voiceAdapter, pattern);
+assert.ok(voiceAdapter.indexOf("mode !== \"paid\"") < voiceAdapter.indexOf("https://api.elevenlabs.io/v1/text-to-speech"), "LANERIQ TTS paid-mode guard must execute before the metered provider endpoint is reachable.");
+
+// Legacy Voice remains compatibility-only until Production telemetry proves it can be retired.
+for (const pattern of [/auth\.getUser\(\)/, /requirePaidTier/, /MAX_VOICE_BYTES/, /SOOLENAI_VOICE/, /api\.elevenlabs\.io\/v1\/text-to-speech/]) assert.match(legacyVoice, pattern);
 
 // Admin voice cloning trusts only server-controlled app_metadata and needs two explicit operator gates.
 for (const pattern of [
@@ -88,7 +98,8 @@ const elevenDirect = apiFiles.filter((file) => /api\.elevenlabs\.io/.test(read(f
 assert.deepEqual(elevenDirect, [
   path.join("app", "api", "admin", "soolenai-voice", "clone", "route.js"),
   path.join("app", "api", "soolenai", "voice", "route.js"),
-].sort(), "Only the two explicitly cost-gated voice adapters may contain ElevenLabs endpoints.");
+].sort(), "Only compatibility/admin API adapters may still contain direct ElevenLabs endpoints; the LANERIQ canonical API route may not.");
+assert.match(voiceAdapter, /api\.elevenlabs\.io/, "Temporary provider-specific implementation is isolated in the LANERIQ compatibility adapter until Provider Router migration.");
 
 // Exact-SHA Production access-control proof is mandatory before the existing WebKit/Chromium browser-emulation gate.
 for (const pattern of [
@@ -105,7 +116,7 @@ for (const pattern of [
   /LANERIQ_EXPECTED_SHA/,
   /\/api\/community-chat/,
   /\/api\/voice\/transcribe/,
-  /\/api\/soolenai\/voice/,
+  /\/api\/laneriq\/voice/,
   /\/api\/admin\/soolenai-voice\/clone/,
   /response\.status, 401/,
   /application\\\/json/,
@@ -116,6 +127,7 @@ for (const pattern of [
   /physicalDeviceVerified:\s*false/,
   /officialStoreVerified:\s*false/,
 ]) assert.match(productionRuntime, pattern);
+assert.doesNotMatch(productionRuntime, /\/api\/soolenai\/voice/, "Production provider-boundary QA must exercise the LANERIQ canonical Voice API, not the legacy consumer path.");
 assert.doesNotMatch(productionRuntime, /Authorization:\s*`Bearer|GEMINI_API_KEY|OPENAI_API_KEY|ELEVENLABS_API_KEY/, "Production access-control QA must not possess provider credentials or execute authenticated provider calls.");
 
 const hostile = { SOOLEN_COST_MODE: "zero", SOOLEN_ZERO_COST_PROVIDERS: "openai,gemini,ollama,soolen-local" };
@@ -124,7 +136,8 @@ assert.deepEqual(filterProvidersByCost(["openai", "gemini", "ollama", "soolen-lo
 
 console.log("✓ Community Chat cannot bypass the unified zero-cost Soolen AI router");
 console.log("✓ Voice transcription requires auth + Professional access, bounds audio, and blocks metered STT in zero/free mode");
-console.log("✓ Neural voice requires Professional access and blocks metered TTS unless paid/balanced mode is explicit");
+console.log("✓ LANERIQ canonical Voice is now the Production consumer boundary while legacy Voice remains compatibility-only");
+console.log("✓ Neural voice keeps Professional, cost, size, timeout and truthful Provider-LIVE gates inside the LANERIQ adapter");
 console.log("✓ Admin voice cloning trusts app_metadata only and needs explicit operator enablement plus paid/balanced mode");
 console.log("✓ App API provider scan prevents future direct Gemini/OpenAI/ElevenLabs bypasses outside approved guarded adapters");
-console.log("✓ Exact-SHA Production HTTP provider-boundary proof is permanently chained before browser-emulation QA and cannot be mislabeled LIVE_PROVIDER");
+console.log("✓ Exact-SHA Production HTTP provider-boundary proof is chained before browser-emulation QA and cannot be mislabeled LIVE_PROVIDER");
