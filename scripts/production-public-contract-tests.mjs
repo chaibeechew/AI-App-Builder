@@ -8,7 +8,8 @@ const vercel=fs.readFileSync("vercel.json","utf8");
 
 assert.equal(isPublicAccountPath("/robots.txt"),true);
 assert.equal(isPublicAccountPath("/sitemap.xml"),true);
-assert.equal(isPublicAccountPath("/api/soolenai/capabilities"),true,'Capability discovery must stay public and return JSON before sign-in');
+assert.equal(isPublicAccountPath("/api/laneriq/capabilities"),true,'Canonical LANERIQ capability discovery must stay public and return JSON before sign-in');
+assert.equal(isPublicAccountPath("/api/soolenai/capabilities"),true,'Legacy capability discovery must remain public during compatibility migration');
 assert.equal(isPublicAccountPath("/mobile-readiness"),true,'Permission-free real-device diagnostics must stay public before sign-in');
 assert.equal(isPublicAccountPath("/mobile-readiness/private"),false,'Mobile readiness public routing must stay exact and bounded');
 for(const path of PUBLIC_DISCOVERY_PATHS)assert.equal(isPublicAccountPath(path),true,`${path} must remain publicly crawlable`);
@@ -23,9 +24,10 @@ assert.match(workflow,/LANERIQ_STABILITY_RUNS: '1000'/);
 assert.match(workflow,/timeout-minutes: 60/);
 assert.match(workflow,/Run final 1000 production stability cycles/);
 
-for(const path of ["/","/auth","/api/templates?mode=meta","/api/soolenai/capabilities","/api/apps","/mobile-readiness","/robots.txt","/sitemap.xml","/ai-app-game-website-builder"]){
+for(const path of ["/","/auth","/api/templates?mode=meta","/api/laneriq/capabilities","/api/apps","/mobile-readiness","/robots.txt","/sitemap.xml","/ai-app-game-website-builder"]){
   assert.ok(stability.includes(`path:"${path}"`),`Final Production stability test missing ${path}`);
 }
+assert.doesNotMatch(stability,/path:"\/api\/soolenai\/capabilities"/,"Production stability must exercise LANERIQ canonical capability discovery instead of the legacy consumer path");
 assert.match(stability,/path:"\/api\/apps",expect:\[401\],body:\/"code"/);
 assert.match(stability,/AUTHENTICATION_REQUIRED/);
 assert.match(stability,/path:"\/mobile-readiness",expect:\[200\]/);
@@ -61,7 +63,8 @@ assert.match(vercel,/"framework"\s*:\s*"nextjs"/);
 assert.match(vercel,/"buildCommand"\s*:\s*"npm run build"/);
 assert.doesNotMatch(vercel,/"deploymentEnabled"\s*:\s*false/);
 
-console.log("✓ Production surface code keeps SEO/capability/mobile diagnostics public while private customer routes remain authenticated");
+console.log("✓ Production surface code keeps LANERIQ capability/mobile/SEO discovery public while private customer routes remain authenticated");
+console.log("✓ Legacy SoolenAI capability discovery stays public only as compatibility; Production stability uses the LANERIQ canonical path");
 console.log("✓ Final stability run is manual-only, exactly 1000 cycles and checks 9 surfaces: eight public 200s plus one protected API JSON 401");
 console.log("✓ Every capability probe validates zero-cost semantics, approved providers, eight free-ready core capabilities and fail-closed Professional access");
 console.log("✓ Mobile readiness transport is part of Production stability while real iPhone pass/fail evidence remains separately user-run");
