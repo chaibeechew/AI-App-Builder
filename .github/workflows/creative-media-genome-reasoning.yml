@@ -1,0 +1,51 @@
+name: Creative Media Genome Reasoning Transfer
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/ai/creative-genome-*.js'
+      - 'scripts/creative-media-genome-contract-tests.mjs'
+      - '.github/workflows/creative-media-genome-reasoning.yml'
+  push:
+    branches:
+      - main
+      - 'batch*-creative-media-*'
+    paths:
+      - 'lib/ai/creative-genome-*.js'
+      - 'scripts/creative-media-genome-contract-tests.mjs'
+      - '.github/workflows/creative-media-genome-reasoning.yml'
+
+jobs:
+  genome-reasoning-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Creative Genome transfer contract
+        run: node scripts/creative-media-genome-contract-tests.mjs
+      - name: Creative Media control-plane regression
+        run: node scripts/creative-media-control-plane-contract-tests.mjs
+      - name: Creative Media quality regression
+        run: node scripts/creative-media-quality-runtime-contract-tests.mjs
+      - name: Image Studio regression
+        run: npm run test:image-studio
+      - name: AI Video regression
+        run: npm run test:video
+      - name: AI Avatar regression
+        run: npm run test:avatar
+      - name: Truth boundary
+        run: echo 'Creative Genome CODE/CI composes productizable reasoning contracts. It does not transfer hidden model weights, prove provider support, count stored templates, or establish real-output LIVE quality.'
