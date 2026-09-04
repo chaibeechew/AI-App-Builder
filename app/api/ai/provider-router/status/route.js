@@ -25,6 +25,11 @@ export async function GET(request) {
       truthAfter.zeroCostLaunchMode &&
       truthAfter.exactReleaseIdentity
     );
+    const evidenceLevel = launchModeLive
+      ? "PRODUCTION_ZERO_COST_ROUTER_CANARY"
+      : truthAfter.externalProvidersLiveVerified
+        ? "PRODUCTION_PROVIDER_LIVE_EVIDENCE"
+        : "CODE_READY";
 
     return NextResponse.json({
       success: true,
@@ -49,11 +54,12 @@ export async function GET(request) {
       blockedByCost: truthAfter.blockedByCost,
       codeCapabilities: truthAfter.codeCapabilities,
       providerIdentityInternalOnly: true,
+      providerEvidence: truthAfter.providerEvidence,
       runtimeCanary,
       launchModeLive,
-      externalProvidersLiveVerified: false,
-      externalProviderEvidenceLevel: "EVIDENCE_REQUIRED",
-      evidenceLevel: launchModeLive ? "PRODUCTION_ZERO_COST_ROUTER_CANARY" : "CODE_READY",
+      externalProvidersLiveVerified: truthAfter.externalProvidersLiveVerified,
+      externalProviderEvidenceLevel: truthAfter.externalProviderEvidenceLevel,
+      evidenceLevel,
     }, { headers: headers() });
   } catch (error) {
     console.error("PROVIDER_ROUTER_STATUS_ERROR", error?.code || error?.name || "unknown");
