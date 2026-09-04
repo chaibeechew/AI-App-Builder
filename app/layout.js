@@ -16,6 +16,7 @@ import "./mobile-feature-hardening.css";
 import "./liui-real-product-surface.css";
 import "./liui-complete-18-page-surface.css";
 import "./liui-context-intelligence.css";
+import "./liui-runtime-capabilities.css";
 import "./home-liui-v5.css";
 import AccountNav from "./components/AccountNav";
 import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
@@ -35,6 +36,7 @@ import AuthFlowGuard from "./components/AuthFlowGuard";
 import DeviceComputeManager from "./components/DeviceComputeManager";
 import LIUIRealProductSurface from "./components/LIUIRealProductSurface";
 import LIUIContextIntelligence from "./components/LIUIContextIntelligence";
+import LIUIRuntimeCapabilityLayer from "./components/LIUIRuntimeCapabilityLayer";
 import CreatorEncouragement from "./components/CreatorEncouragement";
 import ProjectPortabilityMount from "./components/ProjectPortabilityMount";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
@@ -84,6 +86,7 @@ export default function RootLayout({ children }) {
         <script dangerouslySetInnerHTML={{ __html: earlyHomeLoadGuard }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
+        <LIUIRuntimeCapabilityLayer />
         <HomeLoadGuard />
         <LanguageRuntime />
         <AuthFlowGuard />
