@@ -1,0 +1,25 @@
+name: LANERIQ LIUI Living Runtime v2 Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  living-runtime-v2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Validate localized continuity and intelligence composition
+        run: node scripts/batch99-liui-living-runtime-v2-tests.mjs
+      - name: Evidence boundary
+        run: echo "Living Runtime v2 validates UI code/CI only. Production exact SHA, protected-browser runtime, providers, malware, devices and stores remain separate evidence."
