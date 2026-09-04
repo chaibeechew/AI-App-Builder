@@ -16,6 +16,8 @@ This plan separates five evidence levels:
 
 A higher level never backfills independent evidence such as physical iPhone/Android QA or App Store / Google Play submission evidence.
 
+Every capacity result used for merge or release decisions must be tied to the exact PR or Production commit SHA being evaluated.
+
 ## Stage targets
 
 The first capacity gate uses three synthetic concurrent-user targets:
