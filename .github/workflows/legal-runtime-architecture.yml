@@ -5,6 +5,8 @@ on:
     paths:
       - "supabase/migrations/20260904150000_legal_runtime_architecture.sql"
       - "supabase/migrations/20260904150100_legal_runtime_service_rpc.sql"
+      - "lib/cloud/legal-runtime.js"
+      - "lib/cloud-adapters/legal-runtime-data.js"
       - "app/api/legal/**"
       - "scripts/legal-runtime-architecture-contract-tests.mjs"
       - "docs/legal/LANERIQ_LEGAL_RUNTIME_ARCHITECTURE_v1.md"
@@ -15,6 +17,8 @@ on:
     paths:
       - "supabase/migrations/20260904150000_legal_runtime_architecture.sql"
       - "supabase/migrations/20260904150100_legal_runtime_service_rpc.sql"
+      - "lib/cloud/legal-runtime.js"
+      - "lib/cloud-adapters/legal-runtime-data.js"
       - "app/api/legal/**"
       - "scripts/legal-runtime-architecture-contract-tests.mjs"
       - "docs/legal/LANERIQ_LEGAL_RUNTIME_ARCHITECTURE_v1.md"
