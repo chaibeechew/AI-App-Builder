@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - batch118-provider-router-canary-access-control-r2
+      - batch121-production-integrate-provider-router-canary
     paths:
       - app/api/ai/provider-router/status/route.js
       - lib/supabase/proxy.js
