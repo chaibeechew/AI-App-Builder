@@ -1,6 +1,6 @@
-/* LANERIQ AI Living Intelligence homepage template v5.
-   This is the final visual authority for Page 1 and corrects the remaining
-   legacy dark-input/template overrides without changing generation behavior. */
+/* LANERIQ AI Living Intelligence homepage template v6.
+   Page 1 is intent-first. This file is the final visual authority for the
+   customer-facing homepage and must override retired Big Moon / legacy layout layers. */
 
 .premiumHome{
   --liui-v5-gold:#f2c862;
@@ -8,6 +8,25 @@
   --liui-v5-muted:#a9bac8;
   --liui-v5-glass:rgba(4,20,38,.68);
   --liui-v5-line:rgba(120,185,232,.26);
+  padding-bottom:max(168px,calc(142px + env(safe-area-inset-bottom)))!important;
+  scroll-padding-bottom:180px;
+}
+
+/* Page 1 visual authority: Future City + People. Wallpaper runtime must not
+   replace this first-paint artwork on the homepage. */
+.premiumHome .bg{
+  background-color:#03101f!important;
+  background-image:
+    linear-gradient(180deg,rgba(0,7,18,.04) 0%,rgba(0,8,18,.02) 30%,rgba(0,8,20,.18) 58%,rgba(0,7,18,.70) 82%,rgba(0,6,15,.98) 100%),
+    url('/laneriq-future-city-people.webp')!important;
+  background-position:center top!important;
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+}
+.premiumHome .veil{
+  background:
+    radial-gradient(circle at 78% 18%,rgba(92,136,255,.16),transparent 34%),
+    linear-gradient(180deg,rgba(1,8,19,.08),rgba(1,8,19,.28) 48%,rgba(1,8,19,.78))!important;
 }
 
 /* Brand hierarchy from the approved 18-page Master Product Specification. */
@@ -15,6 +34,19 @@
 .premiumHome .heroCopy h1 strong::after{content:'LIVING INTELLIGENCE'!important;color:#f4d57c!important;letter-spacing:.20em!important}
 .premiumHome .heroCopy p::before{content:'Build App • Game • Web'!important;font-style:normal!important;font-family:Inter,system-ui,-apple-system,sans-serif!important;font-size:clamp(15px,3vw,22px)!important;font-weight:760!important;letter-spacing:.035em!important;color:#fff!important}
 .premiumHome .powered::after{content:'Tell LANERIQ AI what you want to create.'!important;color:#dbe8f2!important}
+
+/* Intent-first order. Keep DOM behavior intact while the authoritative Page 1
+   sequence is Hero → Intent Composer → Creator Tools → Style → Templates → Build. */
+body[data-liui-surface="creation"] .premiumHome .frame{display:flex!important;flex-direction:column!important}
+body[data-liui-surface="creation"] .premiumHome .topbar{order:0}
+body[data-liui-surface="creation"] .premiumHome .heroCopy{order:1}
+body[data-liui-surface="creation"] .premiumHome .promptCard{order:2}
+body[data-liui-surface="creation"] .premiumHome .featureCards{order:3}
+body[data-liui-surface="creation"] .premiumHome .choiceCard:not(.templateCard){order:4}
+body[data-liui-surface="creation"] .premiumHome .templateCard{order:5}
+body[data-liui-surface="creation"] .premiumHome :where(.buildCta,.buildProgress){order:6}
+body[data-liui-surface="creation"] .premiumHome .errorBox{order:7}
+body[data-liui-surface="creation"] .premiumHome .promiseRow{order:8;margin-bottom:18px!important}
 
 /* LIUI rule: glass surrounds the intent surface, but the typing surface itself is light/warm for legibility. */
 .premiumHome .promptCard{
@@ -39,8 +71,8 @@
 .premiumHome .promptCard textarea::placeholder{color:#66727c!important;opacity:1!important}
 .premiumHome .promptCard textarea:focus{outline:2px solid rgba(94,165,231,.58)!important;outline-offset:2px!important}
 
-/* Creator tools sit below the prompt, matching Page 1. */
-.premiumHome .featureCards{margin-top:10px!important}
+/* Creator tools sit below the prompt, matching the approved Page 1 stack. */
+.premiumHome .featureCards{margin:10px 0 14px!important}
 .premiumHome .feature{
   background:linear-gradient(155deg,rgba(8,29,52,.70),rgba(7,16,34,.64))!important;
   border-color:rgba(125,183,229,.25)!important;
@@ -59,25 +91,37 @@
 }
 .premiumHome .choiceCard :where(button,a){min-height:44px!important}
 
-/* Golden primary action remains visually dominant. */
+/* Golden primary action remains visually dominant and can always scroll above the fixed nav. */
 .premiumHome .buildCta{
   min-height:60px!important;
+  margin-bottom:10px!important;
   background:linear-gradient(180deg,#ffe58b 0%,#f0c14e 48%,#c98b1f 100%)!important;
   border-color:#ffe89a!important;
   box-shadow:0 0 34px rgba(240,193,78,.28),0 18px 46px rgba(0,0,0,.38)!important;
 }
 .premiumHome .buildCta span::after{content:'BUILD APP • GAME • WEB'!important}
 
-/* Canonical LIUI bottom nav is 5 items. Any retired homepage nav remains hidden by LIUIRealProductSurface. */
+/* Canonical LIUI bottom nav is the only primary homepage nav. */
 body[data-liui-surface="creation"] .bottomNav{display:none!important}
 
 /* Creator Encouragement uses the same living-glass family as the main template. */
 .creatorEncourage .creatorSpark{border-color:rgba(242,200,98,.42)!important;background:linear-gradient(145deg,rgba(12,20,45,.90),rgba(6,31,37,.88))!important}
 
 @media(max-width:520px){
-  .premiumHome .heroCopy{min-height:470px!important}
+  /* Do not consume most of the first viewport with branding. The intent composer
+     must be reachable in the first screen / first natural thumb scroll. */
+  .premiumHome .heroCopy{
+    min-height:clamp(250px,34svh,330px)!important;
+    padding-top:4px!important;
+    padding-bottom:12px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:center!important;
+  }
   .premiumHome .promptCard textarea{min-height:126px!important;max-height:320px!important}
   .premiumHome .heroCopy h1 strong::after{font-size:9px!important;letter-spacing:.17em!important}
+  .premiumHome .featureCards{margin-top:8px!important}
+  .premiumHome{padding-bottom:max(184px,calc(154px + env(safe-area-inset-bottom)))!important}
 }
 
 @media(prefers-reduced-motion:reduce){
