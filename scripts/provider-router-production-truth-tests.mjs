@@ -113,15 +113,23 @@ try {
   assert.equal(productionTruth.providerIdentityInternalOnly, true);
 
   const route = fs.readFileSync("app/api/ai/provider-router/status/route.js", "utf8");
+  const truthModule = fs.readFileSync("lib/ai/provider-router-truth.js", "utf8");
+  const proxy = fs.readFileSync("lib/supabase/proxy.js", "utf8");
   assert.match(route, /PRODUCTION_ZERO_COST_ROUTER_CANARY/);
   assert.match(route, /externalProvidersLiveVerified: false/);
   assert.match(route, /externalProviderEvidenceLevel: "EVIDENCE_REQUIRED"/);
   assert.match(route, /providerIdentityInternalOnly: true/);
   assert.doesNotMatch(route, /OPENAI_API_KEY|GROQ_API_KEY|GEMINI_API_KEY|CLOUDFLARE_AI_API_TOKEN|HF_TOKEN/, "public truth route must not inspect or expose provider secrets");
+  assert.match(truthModule, /providers:\s*\["soolen-local"\]/, "public canary implementation must pin execution to the local zero-cost provider");
+  assert.doesNotMatch(truthModule, /OPENAI_API_KEY|GROQ_API_KEY|GEMINI_API_KEY|CLOUDFLARE_AI_API_TOKEN|HF_TOKEN/, "public canary implementation must not inspect provider credentials");
+  assert.match(proxy, /PUBLIC_PROVIDER_ROUTER_LIVE_CANARY_ENDPOINTS\s*=\s*new Set\(\["\/api\/ai\/provider-router\/status"\]\)/, "proxy must expose only the exact Provider Router observability path");
+  assert.match(proxy, /PUBLIC_PROVIDER_ROUTER_LIVE_CANARY_ENDPOINTS\.has\(pathname\)\s*&&\s*\(request\.method === "GET" \|\| request\.method === "HEAD"\)/, "Provider Router auth bypass must remain read-only");
+  assert.doesNotMatch(proxy, /pathname\.startsWith\(["']\/api\/ai\//, "proxy must never introduce a broad AI API authentication bypass");
 
   console.log("✓ Zero mode blocks metered providers before execution and fails over from a real 429 simulation to local zero-cost execution");
   console.log("✓ Successful near-quota response headers arm a proactive guard; the next request skips the provider without a network attempt");
   console.log("✓ Production Router canary proves the local zero-cost execution path without invoking an external provider");
+  console.log("✓ Provider Router evidence path is an exact GET/HEAD-only observability bypass; all other AI APIs remain session protected");
   console.log("✓ External provider LIVE remains EVIDENCE_REQUIRED even when runtime observations exist; provider identities stay internal");
 } finally {
   globalThis.fetch = originalFetch;
