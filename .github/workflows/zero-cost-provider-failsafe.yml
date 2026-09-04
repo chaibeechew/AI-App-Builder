@@ -1,0 +1,41 @@
+name: Zero-cost provider failsafe
+
+on:
+  push:
+    branches:
+      - main
+      - batch116-zero-cost-provider-failsafe
+    paths:
+      - lib/soolen/cost-policy.js
+      - scripts/zero-cost-provider-failsafe-contract-tests.mjs
+      - scripts/zero-cost-readiness-contract-tests.mjs
+      - lib/soolen/capability-registry.js
+      - .github/workflows/zero-cost-provider-failsafe.yml
+  pull_request:
+    paths:
+      - lib/soolen/cost-policy.js
+      - scripts/zero-cost-provider-failsafe-contract-tests.mjs
+      - scripts/zero-cost-readiness-contract-tests.mjs
+      - lib/soolen/capability-registry.js
+      - .github/workflows/zero-cost-provider-failsafe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zero-cost-provider-failsafe:
+    name: Zero-cost provider failsafe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify malformed provider configuration fails safe
+        run: node scripts/zero-cost-provider-failsafe-contract-tests.mjs
+      - name: Re-run full zero-cost safety regression
+        run: npm run test:zero-cost
