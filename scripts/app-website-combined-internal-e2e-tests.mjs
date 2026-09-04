@@ -16,6 +16,8 @@ const analyticsRoute=fs.readFileSync("app/api/analytics/event/route.js","utf8");
 const analyticsPage=fs.readFileSync("app/analytics/[id]/page.js","utf8");
 const analyticsMigration=fs.readFileSync("supabase/migrations/20260904150000_anonymous_aggregate_analytics.sql","utf8");
 const analyticsPolicy=fs.readFileSync("docs/LANERIQ_ANONYMOUS_AGGREGATE_ANALYTICS_POLICY.md","utf8");
+const masterProduct=fs.readFileSync("lib/product/laneriq-18-page-master.js","utf8");
+const masterSpec=fs.readFileSync("docs/LANERIQ_AI_18_PAGE_MASTER_PRODUCT_SPEC.md","utf8");
 const visibleRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
 const dynamicE2E=fs.readFileSync("scripts/app-website-dynamic-release-e2e-tests.mjs","utf8");
 const packageJson=fs.readFileSync("package.json","utf8");
@@ -98,7 +100,7 @@ assert.match(analyticsRoute,/server_record_anonymous_analytics_event/);
 assert.match(analyticsRoute,/anonymous-aggregate-only/);
 assert.match(analyticsRoute,/FORBIDDEN_FIELDS/);
 assert.match(analyticsRoute,/"sessionId"[\s\S]*"metadata"[\s\S]*"userId"[\s\S]*"ip"[\s\S]*"path"[\s\S]*"referrer"/);
-assert.doesNotMatch(analyticsRoute,/\.from\("analytics_events"\)|session_id|cleanMetadata/,"API must never write legacy event-level analytics.");
+assert.doesNotMatch(analyticsRoute,/\.from\("analytics_events"\)|cleanMetadata|insert\(\{[^}]*session_id/,"API must never write legacy event-level analytics or session identifiers.");
 
 assert.match(analyticsPage,/\.from\("analytics_daily_aggregates"\)/);
 assert.match(analyticsPage,/Anonymous Aggregate Analytics Only/);
@@ -114,6 +116,12 @@ assert.match(analyticsMigration,/truncate table public\.analytics_events/);
 assert.match(analyticsMigration,/revoke all on table public\.analytics_events from public, anon, authenticated, service_role/);
 assert.match(analyticsPolicy,/Anonymous Aggregate Analytics Only/);
 assert.match(analyticsPolicy,/must not answer "What did this specific visitor do\?"/);
+assert.match(masterProduct,/anonymousAggregateAnalyticsOnly:true/);
+assert.match(masterProduct,/neverBuildVisitorBehaviorProfiles:true/);
+assert.match(masterProduct,/data:\["analytics_daily_aggregates","anonymous aggregate counts"\]/);
+assert.doesNotMatch(masterProduct,/data:\["analytics_events"/);
+assert.match(masterSpec,/analytics_daily_aggregates/);
+assert.match(masterSpec,/Anonymous Aggregate Analytics Only/);
 
 // Modify advances the working version only. Cloud adapter owns the service-only atomic write and re-checks the exact version.
 assert.match(modify,/saveBuilderModification/);
