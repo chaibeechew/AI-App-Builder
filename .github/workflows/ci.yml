@@ -119,18 +119,10 @@ jobs:
         run: npm run test:upload-ref
       - name: Image Studio contract tests
         run: npm run test:image-studio
-      - name: Big Moon Valley creator services contract tests
-        run: node scripts/big-moon-valley-creator-services-contract-tests.mjs
-      - name: Big Moon Valley project intelligence contract tests
-        run: node scripts/big-moon-valley-project-intelligence-contract-tests.mjs
-      - name: Big Moon Valley creative assets contract tests
-        run: node scripts/big-moon-valley-creative-assets-contract-tests.mjs
-      - name: Big Moon Valley data and automation contract tests
-        run: node scripts/big-moon-valley-data-automation-contract-tests.mjs
-      - name: Big Moon Valley Game and Pro commerce contract tests
-        run: node scripts/big-moon-valley-game-pro-commerce-contract-tests.mjs
-      - name: Big Moon Valley discovery and community contract tests
-        run: node scripts/big-moon-valley-discovery-community-contract-tests.mjs
+      - name: LIUI 2026.2 Page 1 contract tests
+        run: node scripts/batch65-page1-liui-completion-tests.mjs
+      - name: LIUI 2026.2 18-page product surface tests
+        run: node scripts/batch39-18-page-product-surface-tests.mjs
       - name: AI Video Generator contract tests
         run: npm run test:video
       - name: AI Avatar Creator contract tests
@@ -201,5 +193,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI code gates passed, live Email sync remains explicitly ON HOLD, and Production mobile browser-emulation architecture is regression-gated. External authenticated, physical-device, provider, transport, malware-scanner or store evidence remains evidence-gated."
+        run: echo "LANERIQ AI LIUI-2026.2 code gates passed. Live Email remains ON HOLD and Production exact-SHA/browser-emulation evidence stays separate from authenticated, physical-device, provider, transport, malware-scanner and store evidence."
       # This workflow validates code only. It never substitutes code for authenticated live, physical-device, transport, malware-scanner or store evidence.

@@ -16,7 +16,7 @@ const studio = read("app/components/StudioLauncher.js");
 const wallpaper = read("app/components/AdaptiveWallpaperEngine.js");
 const layout = read("app/layout.js");
 const homeInputSafety = read("app/home-mobile-input-safety.css");
-const homeMobileFinal = read("app/home-signature-mobile-final.css");
+const liuiHome = read("app/home-liui-v5.css");
 
 for (const pattern of [
   /VERCEL_GIT_COMMIT_SHA/,
@@ -138,14 +138,29 @@ for (const pattern of [
 ]) assert.match(layout, pattern);
 assert.match(layout, /new Set\(\["\/credits","\/my-apps","\/templates","\/studio","\/image-studio","\/design-studio"\]\)/);
 assert.match(layout, /home-mobile-input-safety\.css/);
+assert.match(layout, /home-liui-v5\.css/);
+for(const retired of ['home-water-premium.css','home-water-static.css','home-signature-mobile-final.css','home-big-moon-valley.css','local-first-cost-control.css']){
+  assert.equal(layout.includes(retired),false,`Retired homepage layer must not load in Production: ${retired}`);
+}
+assert.match(layout, /href="\/laneriq-future-city-people\.webp"/,'Future City + People must be the sole Page 1 preload');
+
 assert.match(homeInputSafety, /@media\s*\(max-width:\s*820px\)/);
 assert.match(homeInputSafety, /\.premiumHome \.promptCard textarea/);
 assert.match(homeInputSafety, /\.premiumHome \.promptCard input:not\(\[type="hidden"\]\)/);
 assert.match(homeInputSafety, /\.premiumHome \.promptCard select/);
 assert.match(homeInputSafety, /\.premiumHome textarea/);
 assert.match(homeInputSafety, /font-size:\s*16px\s*!important/);
-assert.match(homeMobileFinal, /@media\(max-width:520px\)[\s\S]*\.premiumHome \.promptCard textarea\{min-height:94px!important;font-size:16px!important\}/);
-assert.doesNotMatch(homeMobileFinal, /\.premiumHome \.promptCard textarea\{[^}]*font-size:(?:1[0-5]|[0-9](?:\.[0-9]+)?)px!important/);
+
+assert.match(liuiHome, /url\('\/laneriq-future-city-people\.webp'\)!important/);
+assert.match(liuiHome, /min-height:clamp\(250px,34svh,330px\)!important/);
+assert.doesNotMatch(liuiHome, /min-height:\s*(470|500)px!important/,'Production LIUI must not restore the oversized legacy mobile hero');
+assert.match(liuiHome, /font-size:max\(16px,1em\)!important/,'LIUI intent input must stay at least 16px on iPhone');
+assert.match(liuiHome, /padding-bottom:max\(184px,calc\(154px \+ env\(safe-area-inset-bottom\)\)\)!important/,'LIUI must reserve bottom navigation safe area');
+assert.match(liuiHome, /\.promptCard\{order:2\}/);
+assert.match(liuiHome, /\.featureCards\{order:3\}/);
+assert.match(liuiHome, /\.templateCard\{order:5\}/);
+assert.match(liuiHome, /:where\(\.buildCta,\.buildProgress\)\{order:6\}/);
+assert.doesNotMatch(liuiHome, /laneriq-water-home|moon-city/i,'Retired water/moon Page 1 identifiers must not return through LIUI');
 
 for (const pattern of [
   /"\/"/,
@@ -174,16 +189,15 @@ assert.doesNotMatch(layout, /<StudioLauncher\s*\/>|<ReferenceUploader\s*\/>|<Soo
 assert.match(wallpaper, /wallpaperControlHidden/);
 assert.match(wallpaper, /path==="\/auth"/);
 assert.match(wallpaper, /path==="\/mobile-readiness"/);
+assert.match(wallpaper, /if\(hidden\|\|homeSurface\(\)\)return/,'Adaptive wallpaper must never replace Page 1 first paint');
+assert.doesNotMatch(wallpaper, /big-moon-valley|moon-city/i,'Retired Page 1 design identifiers must not remain in wallpaper runtime');
 
 console.log("✓ Public build identity, Image Studio readiness and Video Renderer readiness are privacy-safe, exact-path, no-store and GET/HEAD-only before sign-in");
 console.log("✓ Session protection preserves signed-out SESSION_REQUIRED 401 semantics for every mutable/protected API");
 console.log("✓ Production mobile QA is pinned to Playwright 1.62.1 with WebKit/iPhone and Chromium/Pixel evidence");
 console.log("✓ New Production iPhone entry QA proves microphone/Photos/camera test controls are deployed at 44px+ without clicking permission surfaces");
-console.log("✓ Home pre-hydration guard prevents viewport prefetch of protected Credits, Projects, Templates, Studio, Image Studio and Design UI links without weakening route protection");
-console.log("✓ Mobile QA recognizes both WebKit and Chromium generic 401 console wording while exact response-level URL/status checks remain authoritative");
-console.log("✓ Mobile QA classifies only exact signed-out GET /api/auth/session 401 responses as expected and fails all unexpected HTTP errors");
-console.log("✓ Final mobile visual authority and safety layer both force homepage editable controls to >=16px");
-console.log("✓ Auth/home/readiness browser evidence fails if the floating Wallpaper control overlaps primary mobile surfaces");
-console.log("✓ Browser QA preserves failure screenshots/report details, including undersized editable-control diagnostics");
-console.log("✓ Browser QA stays permission-free and labels evidence as browser emulation, never physical-device proof");
+console.log("✓ Home pre-hydration guard prevents viewport prefetch of protected routes without weakening route protection");
+console.log("✓ LIUI-2026.2 is the sole mobile homepage visual authority with Future City + People first paint");
+console.log("✓ Mobile intent input is >=16px, hero height is bounded, and fixed navigation safe-area spacing is enforced");
+console.log("✓ Browser QA preserves failure screenshots/report details and remains permission-free browser emulation, never physical-device proof");
 console.log("✓ Public discovery, landing and Templates surfaces do not mount private builder overlays; Studio eager prefetch is disabled");

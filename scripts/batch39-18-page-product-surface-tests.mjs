@@ -8,6 +8,8 @@ import {
   LANERIQ_POWER_WORKSPACE_CHAIN,
   LANERIQ_REAL_EXECUTION_CHAIN,
   LANERIQ_GLOBAL_NAV,
+  LANERIQ_APPROVED_CREATION_JOURNEY,
+  LANERIQ_APPROVED_HOME_STACK,
   resolveMasterProductPage,
 } from '../lib/product/laneriq-18-page-master.js';
 
@@ -25,7 +27,9 @@ for(const page of LANERIQ_18_PAGES) assert.ok(fs.existsSync(page.routeFile),`Phy
 assert.deepEqual(LANERIQ_CORE_CREATION_CHAIN,[1,2,3,4,5,6]);
 assert.deepEqual(LANERIQ_POWER_WORKSPACE_CHAIN,[13,17,18]);
 assert.deepEqual(LANERIQ_REAL_EXECUTION_CHAIN,[1,2,3,13,17,18]);
-assert.deepEqual(LANERIQ_GLOBAL_NAV.map(item=>item.label),['Home','Create','Creations','Templates','More']);
+assert.deepEqual(LANERIQ_GLOBAL_NAV.map(item=>item.label),['Home','Projects','Create','Templates','More']);
+assert.deepEqual(LANERIQ_APPROVED_CREATION_JOURNEY,['Idea','Plan','Build','Preview','Launch','Manage']);
+assert.deepEqual(LANERIQ_APPROVED_HOME_STACK,['Hero','Intent Composer','Create Image / Design UI','Style','Templates','Build CTA']);
 
 assert.equal(resolveMasterProductPage(1)?.slug,'home');
 assert.equal(resolveMasterProductPage('17')?.slug,'ai-testing-self-heal');
@@ -81,9 +85,13 @@ assert.equal(LANERIQ_18_PAGE_AI_RULES.selfHealMayNotLowerQualityGates,true);
 assert.equal(LANERIQ_18_PAGE_AI_RULES.secretsStayServerSide,true);
 assert.equal(LANERIQ_18_PAGE_AI_RULES.smsOnHold,true);
 
+assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.designAuthority,'LIUI-2026.2');
+assert.equal(Object.prototype.hasOwnProperty.call(LANERIQ_18_PAGE_DESIGN_RULES,'legacyDesignCompatibility'),true,'LIUI contract must explicitly declare legacy compatibility policy');
+assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.legacyDesignCompatibility,false,'Legacy design compatibility must remain disabled');
 assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.intentFirst,true);
 assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.contextAdaptive,true);
 assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.liquidIntelligenceGlass,true);
+assert.equal(LANERIQ_18_PAGE_DESIGN_RULES.homeFirstPaint,'Future City + People');
 assert.match(LANERIQ_18_PAGE_DESIGN_RULES.primaryPromptSurface,/light\/warm/i);
 assert.match(LANERIQ_18_PAGE_DESIGN_RULES.longPromptBehavior,/large editor/i);
 
@@ -93,6 +101,7 @@ assert.match(doc,/SMS remains ON HOLD/i);
 assert.match(doc,/CODE \/ structural capability/i);
 assert.match(doc,/Production exact SHA/i);
 assert.match(doc,/physical iPhone\/Android device/i);
+assert.match(doc,/LIUI-2026\.2 is the only active LANERIQ AI design authority/i);
 
 const statusRoute=fs.readFileSync('app/api/product-surface/status/route.js','utf8');
 assert.doesNotMatch(statusRoute,/process\.env/,'Public product-surface status must not read or expose environment secrets');
@@ -104,7 +113,8 @@ assert.match(statusRoute,/physicalDeviceVerified:false/);
 assert.match(statusRoute,/storeVerified:false/);
 
 console.log('✓ LANERIQ 18-page master surface contains exactly 18 ordered, unique pages');
-console.log('✓ Every master page resolves to an existing real LANERIQ route file');
+console.log('✓ Approved LIUI-2026.2 navigation, home stack and Idea→Manage journey are locked');
+console.log('✓ LIUI-2026.2 is the only active design authority; legacy design compatibility is disabled');
 console.log('✓ Pages 1-3 remain connected to the real orchestrate/generate path and stable recovery contract');
 console.log('✓ Critical Database, Self-Heal and Publish surfaces remain human-approved and recoverable');
 console.log('✓ Templates keep 3000+ LANERIQ structures primary and popular apps secondary/anti-clone');
