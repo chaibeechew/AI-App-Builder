@@ -14,10 +14,16 @@ assert.equal(isPublicAccountPath("/api/soolenai/capabilities"), true, "Legacy ca
 assert.match(stability, /path:"\/api\/laneriq\/capabilities"/);
 assert.doesNotMatch(stability, /path:"\/api\/soolenai\/capabilities"/);
 assert.match(stability, /run \$\{run\} \/api\/laneriq\/capabilities: invalid JSON/);
+assert.match(stability, /providerNamesHidden,true/);
+assert.match(stability, /hasOwnProperty\.call\(payload\?\.providers\|\|\{\},"text"\),false/);
+assert.doesNotMatch(stability, /providers\.text|ZERO_COST_PROVIDER_ALLOWLIST/);
 assert.match(productionPublic, /Production stability must exercise LANERIQ canonical capability discovery/);
+assert.match(productionPublic, /Provider names stay hidden/);
 
 assert.match(canonicalRoute, /X-LANERIQ-Authority/);
 assert.match(canonicalRoute, /authority:\s*"laneriq"/);
+assert.match(canonicalRoute, /providerNamesHidden:\s*true/);
+assert.doesNotMatch(canonicalRoute, /text:\s*providers\.text/);
 assert.doesNotMatch(canonicalRoute, /lib\/soolen|supabase|OPENAI_API_KEY|GEMINI_API_KEY/i);
 
 // Legacy route is intentionally retained until telemetry shows supported clients no longer depend on it.
@@ -25,6 +31,7 @@ assert.match(legacyRoute, /export async function GET/);
 assert.match(legacyRoute, /resolveSoolenCapabilities/);
 
 console.log("✓ Production stability consumes /api/laneriq/capabilities");
-console.log("✓ Canonical capability discovery remains public and LANERIQ-owned");
+console.log("✓ Canonical capability discovery remains public, LANERIQ-owned and provider-opaque");
+console.log("✓ Zero-cost readiness proof uses policy + provider count + capability state rather than provider-name leakage");
 console.log("✓ Legacy capability discovery remains public compatibility instead of being deleted early");
 console.log("✓ Production stability cannot silently regress to the legacy SoolenAI capability path");
