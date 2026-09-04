@@ -1,0 +1,38 @@
+name: LANERIQ Canonical Capability Copy Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/laneriq/capabilities/**'
+      - 'lib/laneriq/legacy-runtime-adapter.js'
+      - 'lib/soolen/capability-registry.js'
+      - 'scripts/canonical-capability-copy-contract-tests.mjs'
+      - '.github/workflows/canonical-capability-copy-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laneriq-canonical-capability-copy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canonical-capability-copy:
+    name: Canonical capability copy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify canonical capability identity
+        run: node scripts/canonical-capability-copy-contract-tests.mjs
+      - name: Verify canonical runtime contract
+        run: node scripts/laneriq-canonical-runtime-contract-tests.mjs
