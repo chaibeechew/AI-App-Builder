@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { I18N_STORAGE_KEY, normalizeLanguage, translateUiText } from "../../lib/i18n/catalog.js";
-import { LANERIQ_18_PAGES, CREATION_JOURNEY } from "../../lib/product/laneriq-18-page-master.js";
+import { LANERIQ_18_PAGES, LANERIQ_APPROVED_CREATION_JOURNEY } from "../../lib/product/laneriq-18-page-master.js";
 import { liuiContextText } from "../../lib/i18n/liui-context-translations.js";
 
 const PAGE_BY_ID = new Map(LANERIQ_18_PAGES.map((page) => [page.id, page]));
@@ -37,9 +37,9 @@ function resolvePage(pathname, searchParams) {
 
 function evidenceKey(value) {
   const normalized = String(value || "code-only").toLowerCase();
-  if (normalized.includes("external") || normalized.includes("store")) return "External publication evidence";
-  if (normalized.includes("release") || normalized.includes("production")) return "Release evidence";
-  if (normalized.includes("runtime") || normalized.includes("live")) return "Live runtime evidence";
+  if (normalized.includes("store") || normalized.includes("external")) return "External publication evidence";
+  if (normalized.includes("production") || normalized.includes("release")) return "Release evidence";
+  if (normalized.includes("runtime") || normalized.includes("browser") || normalized.includes("live")) return "Live runtime evidence";
   return "Code evidence";
 }
 
@@ -89,9 +89,9 @@ export default function LIUIContextIntelligence() {
     if (!page) return undefined;
     const body = document.body;
     body.dataset.liuiContextPage = String(page.id);
-    body.dataset.liuiContextRisk = String(page.riskLevel || "low").toLowerCase();
+    body.dataset.liuiContextRisk = String(page.risk || "low").toLowerCase();
     body.dataset.liuiContextApproval = page.humanApproval ? "required" : "bounded";
-    body.dataset.liuiContextEvidence = String(page.evidenceRequirement || "code-only");
+    body.dataset.liuiContextEvidence = String(page.evidence || "code-only");
 
     let frame = 0;
     const scheduleAnnotation = () => {
@@ -116,16 +116,16 @@ export default function LIUIContextIntelligence() {
   const t = (key) => liuiContextText(key, language);
   const canonical = (text) => translateUiText(String(text || ""), language);
   const journeyIndex = page.id >= 1 && page.id <= 6 ? page.id - 1 : -1;
-  const risk = t(riskKey(page.riskLevel));
-  const evidence = t(evidenceKey(page.evidenceRequirement));
-  const stage = journeyIndex >= 0 ? canonical(CREATION_JOURNEY[journeyIndex]) : canonical(page.name);
+  const risk = t(riskKey(page.risk));
+  const evidence = t(evidenceKey(page.evidence));
+  const stage = journeyIndex >= 0 ? canonical(LANERIQ_APPROVED_CREATION_JOURNEY[journeyIndex]) : canonical(page.name);
 
   return (
     <aside
       className="liuiContextIntelligence"
       data-liui-context-intelligence="true"
       data-page-id={page.id}
-      data-risk={String(page.riskLevel || "low").toLowerCase()}
+      data-risk={String(page.risk || "low").toLowerCase()}
       data-approval={page.humanApproval ? "required" : "bounded"}
       aria-label={t("Page intelligence")}
     >
@@ -162,7 +162,7 @@ export default function LIUIContextIntelligence() {
             <section className="liuiContextJourney" aria-label={t("Creation journey")}>
               <small>{t("Creation journey")}</small>
               <ol>
-                {CREATION_JOURNEY.map((item, index) => (
+                {LANERIQ_APPROVED_CREATION_JOURNEY.map((item, index) => (
                   <li key={item} data-state={index < journeyIndex ? "done" : index === journeyIndex ? "current" : "next"}>
                     <span aria-hidden="true">{index < journeyIndex ? "✓" : index + 1}</span>
                     <b>{canonical(item)}</b>
