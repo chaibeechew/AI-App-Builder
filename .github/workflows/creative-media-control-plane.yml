@@ -5,23 +5,36 @@ on:
     branches: [main]
     paths:
       - 'lib/ai/creative-media-control-plane.js'
+      - 'lib/ai/creative-media-quality-judge.js'
+      - 'lib/ai/creative-media-provider-selection.js'
+      - 'lib/ai/creative-image-generation-gateway.js'
       - 'lib/ai/media-capabilities.js'
       - 'lib/ai/image-generation-gateway.js'
       - 'lib/video/**'
       - 'app/api/images/**'
       - 'app/api/video/**'
       - 'scripts/creative-media-control-plane-contract-tests.mjs'
+      - 'scripts/creative-media-quality-runtime-contract-tests.mjs'
       - '.github/workflows/creative-media-control-plane.yml'
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'batch*-ai-image-video-*'
+      - 'batch*-image-*'
+      - 'batch*-video-*'
     paths:
       - 'lib/ai/creative-media-control-plane.js'
+      - 'lib/ai/creative-media-quality-judge.js'
+      - 'lib/ai/creative-media-provider-selection.js'
+      - 'lib/ai/creative-image-generation-gateway.js'
       - 'lib/ai/media-capabilities.js'
       - 'lib/ai/image-generation-gateway.js'
       - 'lib/video/**'
       - 'app/api/images/**'
       - 'app/api/video/**'
       - 'scripts/creative-media-control-plane-contract-tests.mjs'
+      - 'scripts/creative-media-quality-runtime-contract-tests.mjs'
+      - '.github/workflows/creative-media-control-plane.yml'
 
 jobs:
   creative-media-contract:
@@ -44,6 +57,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Creative media control-plane contract
         run: node scripts/creative-media-control-plane-contract-tests.mjs
+      - name: Creative media quality and provider runtime contract
+        run: node scripts/creative-media-quality-runtime-contract-tests.mjs
       - name: Image Studio regression
         run: npm run test:image-studio
       - name: AI Video regression
@@ -51,4 +66,4 @@ jobs:
       - name: AI Avatar regression
         run: npm run test:avatar
       - name: Truth boundary
-        run: echo 'Creative media CODE readiness does not imply provider or Production LIVE evidence.'
+        run: echo 'Creative media CODE/CI readiness does not imply provider, browser, Production or real-output quality evidence.'
