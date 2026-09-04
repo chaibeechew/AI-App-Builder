@@ -4,6 +4,7 @@ const base={textDecoration:"none",border:"1px solid #fff3",borderRadius:999,padd
 
 export default function GameBuilderLayout({children}){
   return <>{children}<div style={{position:"fixed",right:18,bottom:"calc(18px + env(safe-area-inset-bottom))",zIndex:80,display:"grid",gap:8,justifyItems:"end",maxHeight:"calc(100vh - 36px)",overflowY:"auto",paddingLeft:8}}>
+    <Link href="/game-world" aria-label="Open LANERIQ AI Game World Generator" style={{...base,background:"#f0d978",color:"#07110d",fontSize:12}}>Game World Generator →</Link>
     <Link href="/game-e2e-lab" aria-label="Open Real Game End-to-End Lab" style={{...base,background:"#fff3b0",color:"#07110d",fontSize:12}}>Real Game E2E Lab →</Link>
     <Link href="/game-creation-studio" aria-label="Open Complete Game Studio" style={{...base,background:"#e7cd70",color:"#07110d",fontSize:12}}>Complete Game Studio →</Link>
     <Link href="/game-autonomy-v4-lab" aria-label="Open Autonomous Game Development Agent V4 Lab" style={{...base,background:"#5a4a1f",color:"#fff8c7"}}>Development Agent V4 →</Link>
