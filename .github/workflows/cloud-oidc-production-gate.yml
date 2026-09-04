@@ -1,6 +1,18 @@
 name: Cloud OIDC Production Gate
 
 on:
+  push:
+    branches:
+      - batch123-production-integrate-cloud-canary
+    paths:
+      - 'app/api/cloud/**'
+      - 'lib/cloud-service/**'
+      - 'lib/auth/admin-authority.js'
+      - 'lib/supabase/proxy.js'
+      - 'services/cloud/**'
+      - 'scripts/cloud-canary-access-control-tests.mjs'
+      - 'scripts/cloud-security-decoupling-contract-tests.mjs'
+      - '.github/workflows/cloud-oidc-production-gate.yml'
   pull_request:
     paths:
       - 'app/api/cloud/**'
