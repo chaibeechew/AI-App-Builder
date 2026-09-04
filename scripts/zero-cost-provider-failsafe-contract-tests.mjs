@@ -79,6 +79,20 @@ assert.deepEqual(
   "Free-tier provider config must also retain the non-metered local fallback.",
 );
 
+for (const mode of ["paid", "balanced"]) {
+  const env = { SOOLEN_COST_MODE: mode };
+  assert.deepEqual(
+    filterProvidersByCost(["openai"], env),
+    ["openai"],
+    `${mode} routing must remain unchanged and must not inject the local fallback.`,
+  );
+  const policy = zeroCostPolicy(env);
+  assert.equal(policy.mode, mode);
+  assert.equal(policy.meteredProvidersAllowed, true);
+  assert.equal(policy.allowedProviders, null, `${mode} policy must not be rewritten into a zero/free allowlist.`);
+  assert.equal(policy.externalSpendCap, null);
+}
+
 for (const env of [blankZeroEnv, invalidZeroEnv, ollamaOnlyButUnconfiguredEnv, configuredOllamaEnv]) {
   const capabilities = resolveSoolenCapabilities({ tier: "free", env });
   assert.equal(capabilities.providers.costMode, "zero");
@@ -100,4 +114,5 @@ console.log("✓ Malformed/blank zero-cost provider env cannot remove the built-
 console.log("✓ Metered provider keys remain blocked even when the zero-cost allowlist is invalid");
 console.log("✓ Ollama preference is preserved when configured, but unconfigured Ollama cannot zero out free text readiness");
 console.log("✓ Free-tier provider configuration also retains the local fallback instead of becoming empty");
+console.log("✓ Paid/balanced routing remains unchanged and never receives an injected local fallback");
 console.log("✓ Core free chat/app-builder/coding capabilities remain ready at externalSpendCap=0");
