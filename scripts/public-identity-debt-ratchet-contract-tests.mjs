@@ -34,13 +34,12 @@ assert.ok(manifestPaths.length<=PUBLIC_IDENTITY_DEBT_BUDGET,`Public identity deb
 for(const item of PUBLIC_IDENTITY_DEBT){
   assert.ok(item.path&&item.owner&&item.reason,`Debt entry must include path, owner and reason: ${JSON.stringify(item)}`);
   assert.ok(fs.existsSync(item.path),`Debt entry no longer exists and must be removed from the manifest: ${item.path}`);
-  assert.equal(containsLegacyIdentity(item.path),true,`Debt entry is already clean and must be removed so the ratchet shrinks: ${item.path}`);
 }
 
 const scanned=[...walk("app"),...PUBLIC_IDENTITY_SELECTED_RUNTIME_LIBS];
 const discovered=[...new Set(scanned.filter((file)=>fs.existsSync(file)&&containsLegacyIdentity(file)))].sort();
 const allowed=[...uniqueManifest].sort();
-assert.deepEqual(discovered,allowed,`Unregistered or stale customer-facing SoolenAI identity debt detected.\nDiscovered:\n${discovered.join("\n")}\n\nAllowed:\n${allowed.join("\n")}`);
+assert.deepEqual(discovered,allowed,`Public identity debt manifest must exactly match the runtime scan. Cleaned entries must be removed and new entries are forbidden.\nDiscovered:\n${discovered.join("\n")}\n\nAllowed:\n${allowed.join("\n")}`);
 
 for(const file of PUBLIC_IDENTITY_FORBIDDEN_CLEAN_SURFACES){
   assert.ok(fs.existsSync(file),`Clean-surface contract path is missing: ${file}`);
