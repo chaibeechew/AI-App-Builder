@@ -4,6 +4,7 @@ const base={textDecoration:"none",border:"1px solid #fff3",borderRadius:999,padd
 
 export default function GameBuilderLayout({children}){
   return <>{children}<div style={{position:"fixed",right:18,bottom:"calc(18px + env(safe-area-inset-bottom))",zIndex:80,display:"grid",gap:8,justifyItems:"end",maxHeight:"calc(100vh - 36px)",overflowY:"auto",paddingLeft:8}}>
+    <Link href="/game-world-v2" aria-label="Open LANERIQ AI World Model V2" style={{...base,background:"#9ee6cd",color:"#07110d",fontSize:12}}>World Model V2 →</Link>
     <Link href="/game-world-simulation" aria-label="Open LANERIQ AI Game World Simulation Intelligence" style={{...base,background:"#d9c56e",color:"#07110d",fontSize:12}}>World Simulation Intelligence →</Link>
     <Link href="/game-world" aria-label="Open LANERIQ AI Game World Generator" style={{...base,background:"#f0d978",color:"#07110d",fontSize:12}}>Game World Generator →</Link>
     <Link href="/game-e2e-lab" aria-label="Open Real Game End-to-End Lab" style={{...base,background:"#fff3b0",color:"#07110d",fontSize:12}}>Real Game E2E Lab →</Link>
