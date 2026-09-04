@@ -43,7 +43,7 @@ jobs:
       - name: Creative Media readiness matrix contract
         run: node scripts/creative-media-readiness-matrix-tests.mjs
       - name: Creative Media control plane regression
-        run: node scripts/creative-media-control-plane-tests.mjs
+        run: node scripts/creative-media-control-plane-contract-tests.mjs
       - name: Image Studio regression
         run: npm run test:image-studio
       - name: AI Video regression
