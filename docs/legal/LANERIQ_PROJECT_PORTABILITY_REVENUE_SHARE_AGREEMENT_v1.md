@@ -2,12 +2,12 @@
 
 **Agreement Version:** LANERIQ-PORTABILITY-10PCT-v1-DRAFT  
 **Status:** DRAFT — NOT YET APPROVED FOR PRODUCTION ENFORCEMENT  
-**Current LANERIQ Party for Legal Review:** **CHAI BEE CHEW**, a Malaysian individual operating under the LANERIQ AI name pending future incorporation  
-**Planned Successor Entity:** a future Malaysian company controlled by CHAI BEE CHEW, subject to a legally valid accession/assignment/novation  
+**Current LANERIQ Party for Legal Review:** `[CURRENT INDIVIDUAL LEGAL NAME — PRIVATE INTAKE REQUIRED]`, an individual operating under the LANERIQ AI name before incorporation  
+**Planned Successor Entity:** a future company controlled directly or indirectly by the current individual, subject to a legally valid accession, assignment or novation  
 **Applies:** Per migrated project without an already-active eligible Buyout License  
 **LANERIQ Revenue Share:** 10% of Project Software Revenue  
 
-> This document is a product agreement draft for legal review. It must be reviewed and approved by qualified legal counsel before LANERIQ AI enables contractual Production enforcement. Private notice details, residential/contact addresses and signing email records must be stored in the private signing record, not published in the public source repository.
+> This document is a product agreement draft for legal review. The current individual contracting party's legal identity has **not yet been confirmed for this draft** and must not be inferred from a GitHub username, account name, email address or other public identifier. The completed legal name, nationality, notice address and notice email must be supplied through the private contracting-party intake process and reviewed by qualified legal counsel before binding Production signing is enabled.
 
 ## 1. Purpose
 
@@ -17,36 +17,42 @@ LANERIQ AI does not require a project to remain technically locked to the platfo
 
 A project with an already-active eligible Buyout License follows the Buyout terms instead and is not intended to incur this additional 10% migration revenue share for the same post-Buyout Project Software Revenue.
 
-The specific project that redeemed LANERIQ AI Encourage Creator support is not eligible for Buyout and therefore, if externally migrated, must use the applicable approved Revenue Share Agreement path.
+The specific project that actually redeemed LANERIQ AI Encourage Creator support is not eligible for Buyout and therefore, if externally migrated, must use the applicable approved Revenue Share Agreement path. Unrelated eligible projects owned by the same Creator continue to follow the normal Buyout policy.
 
 ## 2. Parties
 
 This Agreement is intended to be between:
 
-1. **CHAI BEE CHEW**, a Malaysian individual currently operating under the **LANERIQ AI** name before incorporation ("LANERIQ AI"), or the valid successor LANERIQ contracting entity described below; and
+1. the individual whose exact legal identity is recorded in the private LANERIQ AI contracting-party execution record and who is currently operating under the **LANERIQ AI** name before incorporation (the "Current LANERIQ Party"), or the valid successor LANERIQ contracting entity described below; and
 2. the person or legal entity that owns the LANERIQ AI account and the specific project identified at acceptance (the "Project Owner").
 
-The current private notice address and notice email for CHAI BEE CHEW / LANERIQ AI must be stored in the private execution record and may be inserted into the final signed copy after legal review. They must not be exposed merely because the source-code repository is public.
+The Current LANERIQ Party's completed legal name, nationality, legal notice address and notice email must be confirmed privately before the final Agreement is approved. Residential addresses, private notice email addresses, government ID numbers and banking information must not be published in the public source repository merely to make this draft complete.
 
-### 2.1 Future Malaysian Company / Corporate Novation
+### 2.1 Future Company / Corporate Novation
 
-CHAI BEE CHEW intends that LANERIQ AI may later be operated through a company incorporated in Malaysia and controlled directly or indirectly by CHAI BEE CHEW (the "Successor Company").
+The Current LANERIQ Party may later incorporate, acquire, designate or operate LANERIQ AI through a company controlled directly or indirectly by that individual (the "Successor Company"). The final company name, jurisdiction, registration number, registered office and legal notice details will be completed after incorporation and legal review.
 
-Subject to applicable law and the final legally approved agreement, CHAI BEE CHEW may transfer the LANERIQ contracting position to the Successor Company through an appropriate accession, assignment or novation document and written/electronic notice to the Project Owner.
+Subject to applicable law and the final legally approved Agreement, the Current LANERIQ Party may transfer the LANERIQ contracting position to the Successor Company through an appropriate accession, assignment or novation document and legally sufficient written or electronic notice to the Project Owner. Where applicable law or the final Agreement requires the Project Owner's consent to a novation, that consent must be obtained affirmatively.
 
-The intended commercial rule is that a valid transition from CHAI BEE CHEW personally to the Successor Company:
+A valid transition from the Current LANERIQ Party personally to the Successor Company must be structured so that it:
 
-- does not increase or duplicate the agreed Revenue Share percentage;
-- does not reset the Project Owner's obligations or accrued rights merely because LANERIQ incorporates;
+- does not increase, duplicate or restart the agreed Revenue Share percentage merely because LANERIQ AI incorporates;
+- does not reset the Project Owner's project-specific Agreement term or acceptance history;
 - does not transfer ownership of the Project Owner's project to LANERIQ AI;
-- preserves accrued rights and liabilities up to the effective novation date; and
-- causes the Successor Company to assume the applicable future LANERIQ rights and obligations from the effective novation date, to the extent permitted by the final novation document and applicable law.
+- preserves accrued rights, obligations and liabilities up to the effective novation date;
+- causes the Successor Company to assume the applicable future LANERIQ rights and obligations from the effective novation date, to the extent stated in the executed novation/accession and permitted by law;
+- preserves the exact Project ID and Agreement Version attached to the original acceptance record; and
+- does not create a second Revenue Share on the same unit of Project Software Revenue.
 
-Until a valid novation/accession becomes effective, CHAI BEE CHEW remains the intended LANERIQ contracting party for this draft structure.
+Until a valid novation/accession becomes effective, the Current LANERIQ Party remains the intended LANERIQ contracting party for this draft structure.
 
-### 2.2 No Double Charge on Entity Change
+### 2.2 No Double Charge on LANERIQ Entity Change
 
-The formation or substitution of a future LANERIQ company does not by itself create a second Revenue Share, restart the commercial term, or convert a 10% obligation into 20%.
+The formation, incorporation, restructuring or substitution of a Successor Company does not by itself create a second Revenue Share, restart the commercial term or convert a 10% obligation into 20%.
+
+### 2.3 Private Contracting-Party Intake
+
+The minimum information required before final legal approval is defined in `docs/legal/LANERIQ_CONTRACTING_PARTY_INTAKE_TEMPLATE.md`. Completed personal data must be kept in a private legal/execution record rather than committed to the public repository.
 
 ## 3. Project Covered
 
@@ -85,7 +91,7 @@ There is no separate mandatory migration fee under this Agreement. Optional cons
 
 After external migration under this Agreement, the Project Owner agrees to pay LANERIQ AI **10% of Project Software Revenue** attributable to the migrated project.
 
-This 10% path is intended for projects that do not have an already-active eligible Buyout License. An active eligible Buyout License is intended to carry the Buyout policy's post-Buyout LANERIQ revenue-share rate instead.
+This 10% path is intended for projects that do not have an already-active eligible Buyout License. An active eligible Buyout License follows the Buyout policy instead. The normal Buyout prices remain **Personal US$49, Business US$199 and Enterprise US$499** for eligible non-Game projects, subject to the Buyout terms. Game projects and the specific project that redeemed Encourage Creator support do not offer Buyout under the current product policy.
 
 ### 6.1 Project Software Revenue
 
@@ -142,7 +148,7 @@ LANERIQ AI does not receive permission under this Agreement to inspect unrelated
 
 **Product default for legal review:** amounts due to LANERIQ AI are payable within 30 days after the end of each quarterly reporting period.
 
-Before Production enforcement, the final agreement must specify:
+Before Production enforcement, the final Agreement must specify:
 
 - accepted payment currency or currencies;
 - supported payment method;
@@ -207,11 +213,11 @@ A LANERIQ AI export or migration does not automatically transfer third-party sub
 
 ## 16. Taxes
 
-Each party is responsible for its own taxes as required by applicable law. The final Production agreement must specify how sales taxes, withholding taxes, VAT/GST/SST and similar amounts affect the calculation and payment of the Revenue Share where legally required.
+Each party is responsible for its own taxes as required by applicable law. The final Production Agreement must specify how sales taxes, withholding taxes, VAT/GST/SST and similar amounts affect the calculation and payment of the Revenue Share where legally required.
 
 ## 17. Suspension for Material Breach
 
-The final legally approved agreement may permit LANERIQ AI to suspend migration-related support or pursue contractual remedies for material breach, fraud or intentional under-reporting.
+The final legally approved Agreement may permit LANERIQ AI to suspend migration-related support or pursue contractual remedies for material breach, fraud or intentional under-reporting.
 
 LANERIQ AI must not remotely disable or seize an externally migrated project merely because a payment dispute exists unless such action is expressly lawful, technically appropriate, contractually agreed and legally reviewed.
 
@@ -223,15 +229,15 @@ The final Agreement must specify the exact survival provisions.
 
 ## 19. Changes to This Agreement
 
-LANERIQ AI may publish a future agreement version, but a material change to an already migrated project's Revenue Share obligations must not be silently imposed retroactively.
+LANERIQ AI may publish a future Agreement version, but a material change to an already migrated project's Revenue Share obligations must not be silently imposed retroactively.
 
 Where legally required or where the commercial terms materially change, LANERIQ AI must obtain a new affirmative acceptance from the Project Owner.
 
-The acceptance record must retain the exact agreement version that the Project Owner accepted.
+The acceptance record must retain the exact Agreement version that the Project Owner accepted.
 
 ## 20. Disputes, Governing Law and Notices
 
-**To be completed after legal review.** The final Production agreement must identify:
+**To be completed after legal review.** The final Production Agreement must identify:
 
 - governing law;
 - courts, arbitration or other dispute-resolution process;
@@ -239,7 +245,7 @@ The acceptance record must retain the exact agreement version that the Project O
 - language controlling in case of translation differences; and
 - any mandatory consumer/business disclosures required by applicable jurisdictions.
 
-The current LANERIQ party is Malaysian and the planned successor company is expected to be incorporated in Malaysia, but the final governing-law and dispute clauses must still be approved by qualified legal counsel rather than inferred automatically.
+Neither the Current LANERIQ Party's jurisdiction nor the Successor Company's jurisdiction should be inferred from a public account profile. Those facts must be confirmed through the private intake and then reviewed by qualified legal counsel.
 
 ## 21. Electronic Acceptance
 
@@ -269,14 +275,18 @@ Until this document has an approved legal status, LANERIQ AI must enforce the fo
 - `productionEnforcement = false`
 - `externalMigrationAgreementSigning = disabled`
 - `agreementStatus = DRAFT_LEGAL_REVIEW`
+- `currentContractingPartyIdentityConfirmed = false`
 - the UI may show **Review Draft Agreement**, but not **Sign Binding Agreement**
 - private LANERIQ notice details remain in the private execution record rather than public source
-- no external migration should be blocked by a falsely represented finalized contract; the migration feature remains **not yet generally available** until the approved agreement and export workflow are both ready
+- no external migration should be blocked by a falsely represented finalized contract; the migration feature remains **not yet generally available** until the approved Agreement and export workflow are both ready
 
 ## Required Before Production Activation
 
-- [ ] final LANERIQ contracting-party wording approved for CHAI BEE CHEW prior to incorporation
-- [ ] future Malaysian Successor Company novation/accession wording approved
+- [ ] current individual LANERIQ legal name confirmed privately
+- [ ] nationality and country of residence/principal business confirmed privately
+- [ ] legal notice address and Agreement notice email confirmed privately
+- [ ] future Successor Company jurisdiction/structure confirmed
+- [ ] future Successor Company novation/accession wording approved
 - [ ] governing law and dispute process approved
 - [ ] revenue-share duration legally approved
 - [ ] payment currency/method approved
