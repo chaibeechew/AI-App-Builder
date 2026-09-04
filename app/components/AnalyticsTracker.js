@@ -2,12 +2,8 @@
 
 import { useEffect } from "react";
 
-function sessionId(){
-  try{
-    let id=sessionStorage.getItem("soolenAnalyticsSession");
-    if(!id){id=crypto.randomUUID();sessionStorage.setItem("soolenAnalyticsSession",id)}
-    return id;
-  }catch{return ""}
+function clearLegacyAnalyticsSession(){
+  try{sessionStorage.removeItem("soolenAnalyticsSession")}catch{}
 }
 
 function isEmbeddedPinnedPreview(){
@@ -19,15 +15,16 @@ function isEmbeddedPinnedPreview(){
   }catch{return false}
 }
 
-export async function trackProjectEvent({appId,eventName,channel="app",metadata={}}){
+export async function trackProjectEvent({appId,eventName,channel="app"}){
   if(!appId||!eventName)return;
-  try{await fetch("/api/analytics/event",{method:"POST",headers:{"Content-Type":"application/json"},keepalive:true,body:JSON.stringify({appId,eventName,channel,sessionId:sessionId(),metadata})})}catch{}
+  try{await fetch("/api/analytics/event",{method:"POST",headers:{"Content-Type":"application/json"},keepalive:true,body:JSON.stringify({appId,eventName,channel})})}catch{}
 }
 
 export default function AnalyticsTracker({appId,channel="app",eventName}){
   useEffect(()=>{
+    clearLegacyAnalyticsSession();
     if(isEmbeddedPinnedPreview())return;
-    trackProjectEvent({appId,channel,eventName:eventName||`${channel}_view`,metadata:{path:window.location.pathname}});
+    trackProjectEvent({appId,channel,eventName:eventName||`${channel}_view`});
   },[appId,channel,eventName]);
   return null;
 }
