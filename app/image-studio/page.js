@@ -12,6 +12,8 @@ function outputExtension(image){const value=String(image||"").toLowerCase();if(v
 function isHttpImage(image){return /^https:\/\//i.test(String(image||""));}
 function newRequestId(prefix){try{return`${prefix}:${crypto.randomUUID()}`}catch{return`${prefix}:${Date.now()}:${Math.random().toString(36).slice(2)}`}}
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+function beginImageBurst(){try{return window.__LANERIQ_DEVICE_COMPUTE__?.beginHighEnergyWorkload?.("image_generation")||null}catch{return null}}
+function endImageBurst(){try{window.__LANERIQ_DEVICE_COMPUTE__?.endHighEnergyWorkload?.("image_generation")}catch{}}
 
 export default function ImageStudio(){
   const[tab,setTab]=useState("create");const[prompt,setPrompt]=useState("");const[mode,setMode]=useState("wallpaper");const[style,setStyle]=useState("Cinematic");const[palette,setPalette]=useState("auto");const[count,setCount]=useState(4);const[primary,setPrimary]=useState("#173f35");const[accent,setAccent]=useState("#d8bf62");const[background,setBackground]=useState("#06120f");const[images,setImages]=useState([]);const[loading,setLoading]=useState(false);const[savingId,setSavingId]=useState("");const[error,setError]=useState("");const[message,setMessage]=useState("");const generationRequestId=useRef("");
@@ -24,16 +26,16 @@ export default function ImageStudio(){
   }
 
   async function generate(){
-    if(!prompt.trim()||loading)return;setLoading(true);setError("");setMessage("");const requestId=generationRequestId.current||newRequestId("image");generationRequestId.current=requestId;
+    if(!prompt.trim()||loading)return;setLoading(true);setError("");setMessage("");const requestId=generationRequestId.current||newRequestId("image");generationRequestId.current=requestId;const burstPlan=beginImageBurst();
     const payload={requestId,prompt:prompt.trim(),mode,style:style.toLowerCase(),palette,count,primaryColor:palette==="custom"?primary:"",accentColor:palette==="custom"?accent:"",backgroundColor:palette==="custom"?background:""};
     try{
       const{r,d}=await postGeneration(payload);if(!r.ok){generationRequestId.current="";throw new Error(d?.error||"Unable to create visuals right now.");}
       const next=Array.isArray(d.images)?d.images:[];if(!next.length){generationRequestId.current="";throw new Error("No usable visual output was returned.");}
       generationRequestId.current="";setImages(next);
-      setMessage(d.source==="model"?(d.replayed?"Recovered the same provider visuals from your private Asset Library without running the provider twice.":"Connected model visuals are ready and already secured in your private Asset Library before display."):d.modelFallback?"The connected model did not complete, so no model output was claimed. Original local visual directions are ready instead.":"Original local visual directions are ready. Connect an approved image runtime for model-generated photographic or illustrative output.");
+      setMessage(d.source==="model"?(d.replayed?"Recovered the same provider visuals from your private Asset Library without running the provider twice.":"Connected model visuals are ready and already secured in your private Asset Library before display."):d.modelFallback?"The connected model did not complete, so no model output was claimed. Original local visual directions are ready instead.":burstPlan?.highEnergy?"Original local visual directions are ready. LANERIQ used the eligible image high-energy device window and started automatic cooldown.":"Original local visual directions are ready. Connect an approved image runtime for model-generated photographic or illustrative output.");
     }catch(e){
       const text=String(e?.message||"Unable to create image.");const ambiguous=e instanceof TypeError||/network|fetch|load failed|connection/i.test(text);if(!ambiguous)generationRequestId.current="";setError(`${text.slice(0,210)}${ambiguous?" Retry will resume the same request instead of creating a duplicate.":""}`.slice(0,260));
-    }finally{setLoading(false)}
+    }finally{endImageBurst();setLoading(false)}
   }
 
   async function saveToLibrary(item){
