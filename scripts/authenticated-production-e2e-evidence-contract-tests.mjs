@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { isPublicAccountPath } from "../lib/auth/session-safety.js";
+import "./app-builder-production-closure-e2e-contract-tests.mjs";
 
 const page = fs.readFileSync("app/production-e2e/page.js", "utf8");
 const client = fs.readFileSync("app/production-e2e/ProductionE2EClient.js", "utf8");
