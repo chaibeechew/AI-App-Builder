@@ -1,11 +1,26 @@
 name: Cloud OIDC Production Gate
 
 on:
+  push:
+    branches:
+      - batch123-production-integrate-cloud-canary
+    paths:
+      - 'app/api/cloud/**'
+      - 'lib/cloud-service/**'
+      - 'lib/auth/admin-authority.js'
+      - 'lib/supabase/proxy.js'
+      - 'services/cloud/**'
+      - 'scripts/cloud-canary-access-control-tests.mjs'
+      - 'scripts/cloud-security-decoupling-contract-tests.mjs'
+      - '.github/workflows/cloud-oidc-production-gate.yml'
   pull_request:
     paths:
       - 'app/api/cloud/**'
       - 'lib/cloud-service/**'
+      - 'lib/auth/admin-authority.js'
+      - 'lib/supabase/proxy.js'
       - 'services/cloud/**'
+      - 'scripts/cloud-canary-access-control-tests.mjs'
       - 'scripts/cloud-security-decoupling-contract-tests.mjs'
       - '.github/workflows/cloud-oidc-production-gate.yml'
   workflow_dispatch:
@@ -29,7 +44,11 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '22'
+      - name: Verify Cloud canary access boundary
+        run: node scripts/cloud-canary-access-control-tests.mjs
       - name: Verify Cloud OIDC contract
         run: node services/cloud/test/contract.mjs
       - name: Verify Cloud security decoupling
         run: node scripts/cloud-security-decoupling-contract-tests.mjs
+      - name: Verify LANERIQ session authority
+        run: node scripts/laneriq-session-authority-contract-tests.mjs
