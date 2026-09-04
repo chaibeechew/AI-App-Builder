@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
       contents: read
@@ -201,5 +201,5 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       - name: Report
-        run: echo "LANERIQ AI code gates passed, live Email sync remains explicitly ON HOLD, and Production mobile browser-emulation architecture is regression-gated. External authenticated, physical-device, provider, transport and store evidence remains evidence-gated."
+        run: echo "LANERIQ AI code gates passed, live Email sync remains explicitly ON HOLD, and Production mobile browser-emulation architecture is regression-gated. External authenticated, physical-device, provider, transport, malware-scanner or store evidence remains evidence-gated."
       # This workflow validates code only. It never substitutes code for authenticated live, physical-device, transport, malware-scanner or store evidence.
