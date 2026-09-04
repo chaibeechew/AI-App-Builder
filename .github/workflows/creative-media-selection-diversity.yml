@@ -1,0 +1,59 @@
+name: Creative Media Selection Diversity 100
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/ai/creative-candidate-selection.js'
+      - 'lib/ai/creative-diversity-selector.js'
+      - 'lib/ai/creative-pareto-selector.js'
+      - 'lib/ai/creative-human-approval-gate.js'
+      - 'lib/ai/creative-publish-candidate-pack.js'
+      - 'scripts/creative-media-selection-diversity-contract-tests.mjs'
+      - '.github/workflows/creative-media-selection-diversity.yml'
+  push:
+    branches:
+      - main
+      - 'batch*-creative-media-*'
+    paths:
+      - 'lib/ai/creative-candidate-selection.js'
+      - 'lib/ai/creative-diversity-selector.js'
+      - 'lib/ai/creative-pareto-selector.js'
+      - 'lib/ai/creative-human-approval-gate.js'
+      - 'lib/ai/creative-publish-candidate-pack.js'
+      - 'scripts/creative-media-selection-diversity-contract-tests.mjs'
+      - '.github/workflows/creative-media-selection-diversity.yml'
+
+jobs:
+  selection-diversity-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Creative Media selection and diversity contract
+        run: node scripts/creative-media-selection-diversity-contract-tests.mjs
+      - name: Creative Media control-plane regression
+        run: node scripts/creative-media-control-plane-contract-tests.mjs
+      - name: Creative Media quality regression
+        run: node scripts/creative-media-quality-runtime-contract-tests.mjs
+      - name: Image Studio regression
+        run: npm run test:image-studio
+      - name: AI Video regression
+        run: npm run test:video
+      - name: AI Avatar regression
+        run: npm run test:avatar
+      - name: Truth boundary
+        run: echo 'Selection CODE/CI contracts do not imply real perceptual measurements, human approval, provider output quality, Production publishing, or LIVE evidence.'
