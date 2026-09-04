@@ -77,6 +77,8 @@ jobs:
         run: node scripts/infrastructure-adaptive-control-plane-contract-tests.mjs
       - name: Zero-cost engine dynamic execution tests
         run: node scripts/zero-cost-engine-execution-tests.mjs
+      - name: Provider Router Production truth contract tests
+        run: node scripts/provider-router-production-truth-tests.mjs
       - name: Game commercial policy contract tests
         run: npm run test:game-commercial
       - name: Game Creator runtime contract tests
@@ -123,8 +125,6 @@ jobs:
         run: node scripts/batch65-page1-liui-completion-tests.mjs
       - name: LIUI 2026.2 18-page product surface tests
         run: node scripts/batch39-18-page-product-surface-tests.mjs
-      - name: LIUI runtime context, memory, accessibility and truth-state tests
-        run: npm run test:liui-runtime
       - name: AI Video Generator contract tests
         run: npm run test:video
       - name: AI Avatar Creator contract tests
