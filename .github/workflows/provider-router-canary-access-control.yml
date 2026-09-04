@@ -1,0 +1,51 @@
+name: Provider Router canary access control
+
+on:
+  push:
+    branches:
+      - main
+      - batch118-provider-router-canary-access-control-r3
+    paths:
+      - app/api/ai/provider-router/status/route.js
+      - lib/supabase/proxy.js
+      - lib/ai/provider-router-truth.js
+      - lib/auth/laneriq-session.js
+      - lib/auth/admin-authority.js
+      - docs/provider-router-production-truth.md
+      - scripts/provider-router-production-truth-tests.mjs
+      - scripts/provider-router-canary-access-control-tests.mjs
+      - .github/workflows/provider-router-canary-access-control.yml
+  pull_request:
+    paths:
+      - app/api/ai/provider-router/status/route.js
+      - lib/supabase/proxy.js
+      - lib/ai/provider-router-truth.js
+      - lib/auth/laneriq-session.js
+      - lib/auth/admin-authority.js
+      - docs/provider-router-production-truth.md
+      - scripts/provider-router-production-truth-tests.mjs
+      - scripts/provider-router-canary-access-control-tests.mjs
+      - .github/workflows/provider-router-canary-access-control.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  access-control:
+    name: Provider Router canary access control
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify canary access boundary
+        run: node scripts/provider-router-canary-access-control-tests.mjs
+      - name: Re-run Provider Router production truth contract
+        run: node scripts/provider-router-production-truth-tests.mjs
+      - name: Re-run LANERIQ session authority contract
+        run: node scripts/laneriq-session-authority-contract-tests.mjs
