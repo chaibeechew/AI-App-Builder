@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { resolveLaneriqAdminRequest } from "../../../../lib/auth/admin-authority.js";
 
 export const dynamic = "force-dynamic";
 
@@ -70,55 +71,113 @@ function response(body, status = 200) {
   return NextResponse.json(body, {
     status,
     headers: {
-      "Cache-Control": "no-store, private",
+      "Cache-Control": "no-store, private, max-age=0",
+      "Pragma": "no-cache",
       "X-Content-Type-Options": "nosniff",
     },
   });
 }
 
-export async function GET(request) {
+function authorizationError(access) {
+  return {
+    success: false,
+    live: false,
+    service: "laneriq-cloud-data",
+    contract: CONTRACT,
+    evidenceLevel: "CANARY_AUTHORIZATION_REQUIRED",
+    error: access.error,
+    code: access.code,
+    canaryExecutionMethod: "ADMIN_POST_ONLY",
+    canaryRequiresAdmin: true,
+  };
+}
+
+function configurationTruth() {
   const baseUrl = remoteBaseUrl();
-  const secret = serviceSecret();
   const oidc = runtimeOidcIdentity();
+  const secret = serviceSecret();
   const production = productionRuntime();
   const localRelease = releaseIdentity();
+  const remoteConfigured = Boolean(baseUrl);
+  const authenticationConfigured = production ? Boolean(oidc.token) : Boolean(oidc.token || secret);
+
+  let evidenceLevel = "CODE_READY";
+  let error = null;
+  if (!remoteConfigured) {
+    evidenceLevel = "NOT_CONFIGURED";
+    error = "REMOTE_CLOUD_NOT_CONFIGURED";
+  } else if (production && !oidc.token) {
+    evidenceLevel = "OIDC_EVIDENCE_REQUIRED";
+    error = "PRODUCTION_CLOUD_OIDC_REQUIRED";
+  } else if (!production && !oidc.token && !secret) {
+    evidenceLevel = "NOT_CONFIGURED";
+    error = "REMOTE_CLOUD_NOT_CONFIGURED";
+  }
+
+  return Object.freeze({
+    baseUrl,
+    oidc,
+    secret,
+    production,
+    localRelease,
+    remoteConfigured,
+    authenticationConfigured,
+    evidenceLevel,
+    error,
+  });
+}
+
+function publicStatusPayload(truth) {
+  return {
+    success: truth.remoteConfigured && truth.authenticationConfigured,
+    live: false,
+    service: "laneriq-cloud-data",
+    contract: CONTRACT,
+    remoteConfigured: truth.remoteConfigured,
+    authenticationConfigured: truth.authenticationConfigured,
+    oidcTokenSource: truth.oidc.source,
+    localReleaseSha: truth.localRelease.sha || null,
+    localEnvironment: truth.localRelease.environment,
+    exactReleaseIdentity: false,
+    storageAdapterRoundTrip: false,
+    canaryExecutionMethod: "ADMIN_POST_ONLY",
+    canaryRequiresAdmin: true,
+    runtimeCanary: null,
+    evidenceLevel: truth.evidenceLevel,
+    error: truth.error,
+  };
+}
+
+export async function GET() {
+  const truth = configurationTruth();
+  return response(publicStatusPayload(truth), truth.remoteConfigured && truth.authenticationConfigured ? 200 : 503);
+}
+
+export async function POST(request) {
+  const access = await resolveLaneriqAdminRequest(request);
+  if (!access.ok) return response(authorizationError(access), access.status);
+
+  const truth = configurationTruth();
+  const { baseUrl, secret, oidc, production, localRelease } = truth;
 
   if (!baseUrl) {
     return response({
-      success: false,
-      live: false,
-      service: "laneriq-cloud-data",
-      evidenceLevel: "NOT_CONFIGURED",
-      error: "REMOTE_CLOUD_NOT_CONFIGURED",
-      oidcTokenSource: oidc.source,
-      localReleaseSha: localRelease.sha || null,
-      localEnvironment: localRelease.environment,
+      ...publicStatusPayload(truth),
+      canarySessionAuthority: access.sessionAuthority,
     }, 503);
   }
 
   if (production && !oidc.token) {
     return response({
-      success: false,
-      live: false,
-      service: "laneriq-cloud-data",
-      evidenceLevel: "OIDC_EVIDENCE_REQUIRED",
-      error: "PRODUCTION_CLOUD_OIDC_REQUIRED",
-      oidcTokenSource: oidc.source,
-      localReleaseSha: localRelease.sha || null,
-      localEnvironment: localRelease.environment,
+      ...publicStatusPayload(truth),
+      canarySessionAuthority: access.sessionAuthority,
     }, 503);
   }
 
   if (!production && !oidc.token && !secret) {
     return response({
-      success: false,
-      live: false,
-      service: "laneriq-cloud-data",
-      evidenceLevel: "NOT_CONFIGURED",
-      error: "REMOTE_CLOUD_NOT_CONFIGURED",
-      oidcTokenSource: oidc.source,
-      localReleaseSha: localRelease.sha || null,
-      localEnvironment: localRelease.environment,
+      ...publicStatusPayload(truth),
+      canarySessionAuthority: access.sessionAuthority,
     }, 503);
   }
 
@@ -127,8 +186,12 @@ export async function GET(request) {
       success: false,
       live: false,
       service: "laneriq-cloud-data",
+      contract: CONTRACT,
       evidenceLevel: "NOT_DISTINCT",
       error: "REMOTE_CLOUD_MUST_BE_DISTINCT",
+      canaryExecutionMethod: "ADMIN_POST_ONLY",
+      canaryRequiresAdmin: true,
+      canarySessionAuthority: access.sessionAuthority,
     }, 503);
   }
 
@@ -173,12 +236,16 @@ export async function GET(request) {
       success: false,
       live: false,
       service: "laneriq-cloud-data",
+      contract: CONTRACT,
       evidenceLevel: "UNREACHABLE",
       error: "REMOTE_CLOUD_UNREACHABLE",
       expectedAuthenticationMode,
       oidcTokenSource: oidc.source,
       localReleaseSha: localRelease.sha || null,
       localEnvironment: localRelease.environment,
+      canaryExecutionMethod: "ADMIN_POST_ONLY",
+      canaryRequiresAdmin: true,
+      canarySessionAuthority: access.sessionAuthority,
     }, 503);
   }
 
@@ -230,5 +297,8 @@ export async function GET(request) {
     evidenceLevel,
     upstreamStatus: upstream.status,
     error: canaryPassed ? null : String(data?.error || "REMOTE_CLOUD_CANARY_FAILED"),
+    canaryExecutionMethod: "ADMIN_POST_ONLY",
+    canaryRequiresAdmin: true,
+    canarySessionAuthority: access.sessionAuthority,
   }, canaryPassed ? 200 : 502);
 }
