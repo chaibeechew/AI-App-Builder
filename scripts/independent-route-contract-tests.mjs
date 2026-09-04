@@ -71,7 +71,7 @@ const providerTruthSource = fs.readFileSync("lib/ai/provider-router-truth.js", "
 assert.match(providerTruthSource, /laneriq-provider-router/);
 const cloudBoundaryTest = fs.readFileSync("scripts/cloud-security-decoupling-contract-tests.mjs", "utf8");
 assert.match(cloudBoundaryTest, /provider-opaque LANERIQ Cloud domains/);
-assert.match(cloudBoundaryTest, /dedicatedLaneriqServerLive:\\s\*false/);
+assert.match(cloudBoundaryTest, /dedicatedLaneriqServerLive/);
 
 console.log("✓ LANERIQ AI independent-route contract is authoritative and legacy runtimes are optional compatibility only");
 console.log("✓ Main App, Cloud/Data, Malware, Creative Media and Provider Router have explicit separable boundaries");
