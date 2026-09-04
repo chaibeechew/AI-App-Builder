@@ -1,7 +1,38 @@
-export default function handler(_req,res){
- const secretReady=String(process.env.LANERIQ_CLOUD_SERVICE_SECRET||"").length>=32;
- const adapterUrl=String(process.env.LANERIQ_CLOUD_STORAGE_ADAPTER_URL||"").trim();
- let adapterReady=false;try{adapterReady=new URL(adapterUrl).protocol==="https:"}catch{}
- res.setHeader("Cache-Control","no-store");
- res.status(200).json({service:"laneriq-cloud-data",contract:"csvc1",mode:"standalone",signedRequestsRequired:true,tripleScopeRequired:true,arbitraryQueryAllowed:false,providerOpaque:true,serviceSecretReady:secretReady,storageAdapterReady:adapterReady,evidenceLevel:"CODE_READY",live:false});
+import { CLOUD_MAX_REQUEST_BYTES, CLOUD_MAX_UPSTREAM_RESPONSE_BYTES, CLOUD_SECURITY_LEVEL, CLOUD_SECURITY_PROFILE, validateAdapterUrl } from "../lib/security.js";
+
+export default function handler(_req, res) {
+  const secretReady = String(process.env.LANERIQ_CLOUD_SERVICE_SECRET || "").length >= 32;
+  const adapterReady = Boolean(validateAdapterUrl(process.env.LANERIQ_CLOUD_STORAGE_ADAPTER_URL));
+  res.setHeader("Cache-Control", "no-store, private, max-age=0");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.status(200).json({
+    service: "laneriq-cloud-data",
+    contract: "csvc1",
+    mode: "standalone",
+    securityLevel: CLOUD_SECURITY_LEVEL,
+    securityProfile: CLOUD_SECURITY_PROFILE,
+    signedRequestsRequired: true,
+    timestampFreshnessRequired: true,
+    replayNonceDefense: true,
+    tripleScopeRequired: true,
+    arbitraryQueryAllowed: false,
+    providerOpaque: true,
+    requestSizeBound: CLOUD_MAX_REQUEST_BYTES,
+    upstreamResponseSizeBound: CLOUD_MAX_UPSTREAM_RESPONSE_BYTES,
+    jsonOnly: true,
+    prototypePollutionBlocked: true,
+    rawSecretsBlocked: true,
+    privateNetworkAdapterTargetsBlocked: true,
+    redirectsBlocked: true,
+    localBurstDefense: true,
+    binaryUploadsAllowed: false,
+    activeContentExecutionAllowed: false,
+    malwareScannerCleanClaimWithoutEvidence: false,
+    serviceSecretReady: secretReady,
+    storageAdapterReady: adapterReady,
+    evidenceLevel: "CODE_READY",
+    live: false,
+  });
 }
