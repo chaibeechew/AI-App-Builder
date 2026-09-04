@@ -1,6 +1,6 @@
 /* LANERIQ AI Living Intelligence homepage template v6.
    Page 1 is intent-first. This file is the final visual authority for the
-   customer-facing homepage and must override retired Big Moon / legacy layout layers. */
+   customer-facing homepage under LIUI-2026.2. */
 
 .premiumHome{
   --liui-v5-gold:#f2c862;
@@ -11,6 +11,12 @@
   padding-bottom:max(168px,calc(142px + env(safe-area-inset-bottom)))!important;
   scroll-padding-bottom:180px;
 }
+
+/* Launch-year cost policy stays internal: Credits are not a primary customer journey. */
+.premiumHome .topActions > a.credits,
+.premiumHome .topActions > a[href="/credits"].credits{display:none!important}
+.premiumHome .topActions{justify-content:flex-end!important}
+.premiumHome .promiseRow{display:none!important}
 
 /* Page 1 visual authority: Future City + People. Wallpaper runtime must not
    replace this first-paint artwork on the homepage. */
