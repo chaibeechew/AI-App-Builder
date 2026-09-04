@@ -3,10 +3,12 @@
   "contract":"csvc1",
   "root":"services/cloud",
   "deploymentModes":["embedded","remote","device"],
-  "requiredEnvironment":["LANERIQ_CLOUD_SERVICE_SECRET","LANERIQ_CLOUD_STORAGE_ADAPTER_URL"],
-  "optionalEnvironment":["LANERIQ_CLOUD_STORAGE_ADAPTER_SECRET"],
+  "requiredEnvironment":["LANERIQ_CLOUD_STORAGE_ADAPTER_URL"],
+  "requiredAnyOf":[["LANERIQ_CLOUD_STORAGE_ADAPTER_SECRET","LANERIQ_CLOUD_SERVICE_SECRET"]],
+  "optionalEnvironment":["LANERIQ_CLOUD_SERVICE_SECRET","LANERIQ_CLOUD_STORAGE_ADAPTER_SECRET"],
+  "peerAuthentication":{"preferred":"VERCEL_OIDC","fallback":"HMAC_SHA256_MIGRATION_ONLY","productionSourceProject":"laneriq-ai","productionEnvironment":"production","productionRequiresOidcForLive":true,"productionAllowsSignedHmacDuringRollingUpgrade":true,"legacyHmacRemovalGate":"OIDC_EXACT_SHA_LIVE_EVIDENCE","sharedPeerSecretRequired":false},
   "adapterAuthentication":"dedicated adapter secret when supplied, otherwise LANERIQ Cloud service secret",
-  "security":{"httpsOnly":true,"signedInbound":true,"tripleScopeRequired":true,"arbitraryQueryAllowed":false,"rawProviderCredentialsForbidden":true,"silentEmbeddedFallback":false},
+  "security":{"httpsOnly":true,"signedInbound":true,"oidcIdentityVerification":true,"tripleScopeRequired":true,"arbitraryQueryAllowed":false,"rawProviderCredentialsForbidden":true,"silentEmbeddedFallback":false,"productionOidcFailClosedForLive":true,"rollingUpgradeNoDowntime":true},
   "cost":{"fixedInfrastructureRequired":false,"automaticPaidEscalation":false},
-  "evidence":{"codeReady":true,"standaloneLive":false,"signedCanaryRequired":true}
+  "evidence":{"codeReady":true,"standaloneLive":false,"signedCanaryRequired":true,"secretlessPeerCanaryRequiredForOidcLive":true,"exactReleaseIdentityRequiredForLive":true,"productionRuntimeEvidenceRequired":true,"hmacCompatibilityDoesNotCountAsLive":true}
 }
