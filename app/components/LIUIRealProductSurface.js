@@ -19,16 +19,24 @@ const SURFACES = [
   [/^\/workflows\//, "workflow"],
   [/^\/analytics\//, "analytics"],
   [/^\/studio\/?$/, "more"],
+  [/^\/image-studio\/?$/, "media"],
+  [/^\/video-studio\/?$/, "media"],
+  [/^\/avatar-studio\/?$/, "media"],
+  [/^\/brand-kit\/?$/, "brand"],
+  [/^\/asset-library\/?$/, "assets"],
+  [/^\/account\/device-compute\/?$/, "account"],
   [/^\/editor\//, "editor"],
   [/^\/database\//, "database"],
   [/^\/operations\//, "quality"],
   [/^\/publish\//, "publish"],
 ];
 
+// Approved LIUI-2026.2 global information architecture.
+// The five primary destinations stay stable while creation/project subflows adapt contextually.
 const NAV = [
   { label: "Home", href: "/", icon: "⌂" },
+  { label: "Projects", href: "/my-apps", icon: "▣" },
   { label: "Create", href: "/create", icon: "✦" },
-  { label: "Creations", href: "/my-apps", icon: "▣" },
   { label: "Templates", href: "/templates", icon: "▦" },
   { label: "More", href: "/studio", icon: "≡" },
 ];
@@ -42,7 +50,12 @@ function selectedLabel(pathname){
   if(pathname === "/") return "Home";
   if(pathname === "/create" || pathname === "/create/") return "Create";
   if(pathname === "/templates" || pathname === "/templates/" || pathname?.startsWith("/templates/")) return "Templates";
-  if(pathname === "/studio" || pathname === "/studio/" || pathname === "/soolen-ai" || pathname === "/soolen-ai/") return "More";
+  if(
+    pathname === "/studio" || pathname === "/studio/" || pathname === "/soolen-ai" || pathname === "/soolen-ai/" ||
+    pathname === "/image-studio" || pathname === "/image-studio/" || pathname === "/video-studio" || pathname === "/video-studio/" ||
+    pathname === "/avatar-studio" || pathname === "/avatar-studio/" || pathname === "/brand-kit" || pathname === "/brand-kit/" ||
+    pathname === "/asset-library" || pathname === "/asset-library/" || pathname === "/account/device-compute" || pathname === "/account/device-compute/"
+  ) return "More";
   if(
     pathname === "/my-apps" || pathname === "/my-apps/" ||
     pathname?.startsWith("/app-dashboard/") || pathname?.startsWith("/preview/") ||
@@ -50,7 +63,7 @@ function selectedLabel(pathname){
     pathname?.startsWith("/analytics/") || pathname?.startsWith("/editor/") ||
     pathname?.startsWith("/database/") || pathname?.startsWith("/operations/") ||
     pathname?.startsWith("/publish/")
-  ) return "Creations";
+  ) return "Projects";
   return "";
 }
 
