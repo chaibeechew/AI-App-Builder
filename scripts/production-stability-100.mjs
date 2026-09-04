@@ -17,7 +17,7 @@ const FREE_READY_CAPABILITIES=[
 
 function validateCapabilityPayload(text,run){
   let payload;
-  try{payload=JSON.parse(text);}catch(error){throw new Error(`run ${run} /api/soolenai/capabilities: invalid JSON: ${error.message}`);}
+  try{payload=JSON.parse(text);}catch(error){throw new Error(`run ${run} /api/laneriq/capabilities: invalid JSON: ${error.message}`);}
   assert.equal(payload?.success,true,`run ${run} capabilities: success must be true`);
   assert.equal(payload?.tier,"free",`run ${run} capabilities: signed-out discovery must resolve to free tier`);
   assert.equal(payload?.providers?.costMode,"zero",`run ${run} capabilities: Production cost mode must stay zero`);
@@ -54,7 +54,7 @@ const targets=[
   {path:"/",expect:[200],body:/LANERIQ AI/i},
   {path:"/auth",expect:[200],body:/LANERIQ AI/i},
   {path:"/api/templates?mode=meta",expect:[200],body:/total|industries|styles/i},
-  {path:"/api/soolenai/capabilities",expect:[200],body:/"success"\s*:\s*true[\s\S]*"providers"/i,validate:validateCapabilityPayload},
+  {path:"/api/laneriq/capabilities",expect:[200],body:/"success"\s*:\s*true[\s\S]*"providers"/i,validate:validateCapabilityPayload},
   {path:"/api/apps",expect:[401],body:/"code"\s*:\s*"AUTHENTICATION_REQUIRED"/i},
   {path:"/mobile-readiness",expect:[200],body:/Mobile Readiness|REAL DEVICE EVIDENCE|LANERIQ AI/i},
   {path:"/robots.txt",expect:[200],body:/user-agent/i},
