@@ -54,6 +54,7 @@ import AuthFlowGuard from "./components/AuthFlowGuard";
 import DeviceComputeManager from "./components/DeviceComputeManager";
 import LIUIRealProductSurface from "./components/LIUIRealProductSurface";
 import CreatorEncouragement from "./components/CreatorEncouragement";
+import ProjectPortabilityMount from "./components/ProjectPortabilityMount";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
 import { SEO_CORE_KEYWORDS, SEO_INDEXING_ENABLED, SEO_SITE_URL, absoluteSeoUrl, buildOrganizationJsonLd, buildSoftwareJsonLd } from "../lib/seo-foundation.js";
 
@@ -113,6 +114,7 @@ export default function RootLayout({ children }) {
         <GameProGate />
         <GameCommercialTermsNotice />
         {children}
+        <ProjectPortabilityMount />
         <CreatorEncouragement />
         <LIUIRealProductSurface />
         <CreationCapabilityBanner />
