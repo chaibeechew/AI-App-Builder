@@ -12,8 +12,8 @@ const input={prompt:"Reconstructable living fantasy fortress city with villages 
 const v3=compileSpatialHybridGameWorldV3(input);
 
 ok("Reconstruction V4 plans multi-view capture with privacy defaults and no LIVE overclaim",()=>{
-  const plan=createReconstructionCapturePlan({project:v3.project,captures:[{id:"a",assetRef:"asset_img_001"},{id:"b",assetRef:"https://unsafe.example/a.jpg"},{id:"c",assetRef:"asset_img_003"},{id:"d",assetRef:"asset_img_004"}],mode:"photo-set"});
-  assert.equal(GAME_WORLD_RECONSTRUCTION_V4.faceIdentityExtractionDefault,false);assert.equal(plan.privacy.faceIdentityExtraction,false);assert.equal(plan.privacy.geolocationInference,false);assert.equal(plan.privacy.rawUrlsAccepted,false);assert.ok(plan.frames.every(x=>!/^https?:/i.test(x.assetRef)));assert.equal(auditReconstructionV4(plan).score,100);
+  const plan=createReconstructionCapturePlan({project:v3.project,captures:[{id:"a",assetRef:"asset_img_001"},{id:"b",assetRef:"https://unsafe.example/a.jpg"},{id:"c",assetRef:"asset_img_003"},{id:"d",assetRef:"asset_img_004"},{id:"e",assetRef:"asset_img_005"}],mode:"photo-set"});
+  assert.equal(GAME_WORLD_RECONSTRUCTION_V4.faceIdentityExtractionDefault,false);assert.equal(plan.privacy.faceIdentityExtraction,false);assert.equal(plan.privacy.geolocationInference,false);assert.equal(plan.privacy.rawUrlsAccepted,false);assert.ok(plan.frames.every(x=>!/^https?:/i.test(x.assetRef)));assert.equal(plan.frames.length,4);assert.equal(auditReconstructionV4(plan).score,100);
   const quality=estimateReconstructionQuality(plan);assert.equal(quality.measured,false);assert.equal(quality.measurementRequiredForLive,true);assert.equal(createReconstructionProviderContract().liveVerified,false);
 });
 
