@@ -15,7 +15,7 @@ export default async function BuyoutLicensePage({params}){
     if(result?.code==="AUTHENTICATION_REQUIRED")redirect("/auth");
     redirect(`/app-dashboard/${id}`);
   }
-  const {project,license,policy}=result.data;
+  const {project,license}=result.data;
   if(!license){
     return <main className="page"><div className="wrap"><Link className="back" href={`/app-dashboard/${id}`}>← Project Dashboard</Link><section className="empty"><small>BUYOUT LICENSE</small><h1>No Buyout License has been issued for this project.</h1><p>Normal eligible non-Game projects keep the existing Buyout pricing: <b>Personal US$49</b>, <b>Business US$199</b>, <b>Enterprise US$499</b>. Game projects and the specific project that redeemed Encourage Creator support do not offer Buyout.</p><p>A Buyout License is issued only after the applicable payment is confirmed and before publication.</p></section></div><style>{styles}</style></main>;
   }
@@ -35,7 +35,7 @@ export default async function BuyoutLicensePage({params}){
         <div><small>ISSUED</small><strong>{dateText(license.issued_at||license.accepted_at)}</strong></div>
         <div><small>TERMS VERSION</small><strong>{license.terms_version}</strong></div>
       </div>
-      <div className="rights"><h2>What this record confirms</h2><p>For this licensed project, LANERIQ AI records an active project-specific Buyout License, customer project ownership remains preserved, and the future LANERIQ AI revenue-share rate after Buyout is <b>0%</b>, subject to the applicable Buyout License terms and third-party/open-source rights.</p><p>Active Buyout projects receive the source-code access defined by the LANERIQ AI Buyout policy. This certificate does not transfer LANERIQ AI platform infrastructure, provider accounts, third-party licenses, private keys or unrelated proprietary platform services.</p></div>
+      <div className="rights"><h2>What this record confirms</h2><p>For this licensed project, LANERIQ AI records an active project-specific Buyout License and customer project ownership remains preserved. <b>Future LANERIQ AI revenue share after this Buyout License is 0%</b> for this licensed project, subject to the applicable Buyout License terms and third-party/open-source rights.</p><p>Active Buyout projects receive the source-code access defined by the LANERIQ AI Buyout policy. This certificate does not transfer LANERIQ AI platform infrastructure, provider accounts, third-party licenses, private keys or unrelated proprietary platform services.</p></div>
       <div className="delivery"><div><small>DASHBOARD COPY</small><strong>Permanent account record</strong><p>This Dashboard copy is the source of truth for the issued License.</p></div><div><small>EMAIL COPY</small><strong>{String(license.email_delivery_status||"not_attempted").replaceAll("_"," ").toUpperCase()}</strong><p>Email delivery problems do not invalidate an already-issued active License.</p></div></div>
       <footer><span>Certificate Version · {license.certificate_version||BUYOUT_LICENSE_ISSUANCE_POLICY.certificateVersion}</span><span>LANERIQ AI · Project-specific electronic license record</span></footer>
     </section>
