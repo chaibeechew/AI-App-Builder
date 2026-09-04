@@ -12,6 +12,20 @@ const sessionSafety=await import(`data:text/javascript;base64,${Buffer.from(sess
 
 assert.match(page,/title: "Web Publish Evidence — LANERIQ AI"/);
 assert.match(page,/robots: \{ index: false, follow: false \}/);
+assert.match(page,/export const dynamic = "force-dynamic"/);
+assert.match(page,/VERCEL_GIT_COMMIT_SHA/);
+assert.match(page,/VERCEL_GIT_COMMIT_REF/);
+assert.match(page,/VERCEL_ENV/);
+assert.match(page,/environment==="production"/);
+assert.match(page,/commitRef==="main"/);
+assert.match(page,/COMMIT_SHA\.test\(commitSha\)/);
+assert.match(page,/exactProductionBuildVerified/);
+assert.match(page,/Production evidence is locked/);
+assert.match(page,/data-laneriq-production-evidence="exact-main"/);
+assert.match(page,/data-production-sha=\{build\.commitSha\}/);
+assert.match(page,/data-production-ref=\{build\.commitRef\}/);
+assert.match(page,/data-production-environment=\{build\.environment\}/);
+assert.ok(page.indexOf("if(!build.exactProductionBuildVerified)") < page.indexOf("<WebPublishEvidenceClient />"),"Exact Production main identity must be verified before the live Publish evidence client can render.");
 assert.equal(sessionSafety.isPublicAccountPath("/web-publish-evidence"),false,"Live lifecycle evidence must require authentication.");
 
 for(const pattern of [
@@ -74,7 +88,7 @@ assert.match(css,/min-height:44px/);
 assert.match(css,/touch-action:manipulation/);
 assert.match(css,/prefers-reduced-motion:reduce/);
 
-console.log("✓ Web Publish live evidence is protected/noindex and only runs after explicit checkbox + button consent");
+console.log("✓ Web Publish live evidence is protected/noindex and only renders its mutation client on an exact Production main SHA");
 console.log("✓ Pre-existing live projects are rejected and exact current version + 100/100 gate are rechecked before publish");
 console.log("✓ Public App/Website probes omit credentials, publish cleanup is armed before mutation, and finally enforces unpublish recovery");
 console.log("✓ Evidence runner cannot invoke Generate, Modify, SMS, service-role secrets, media permissions or persistent browser storage");
