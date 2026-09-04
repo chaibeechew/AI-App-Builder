@@ -5,7 +5,7 @@ const html = String.raw`<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>LANERIQ AI Zero-Spend Production Journey E2E</title>
+<title>LANERIQ AI Isolated Production Journey E2E</title>
 <style>
   :root{color-scheme:dark}
   *{box-sizing:border-box}
@@ -16,6 +16,7 @@ const html = String.raw`<!doctype html>
   p{color:#aebbb5;line-height:1.5}
   .card{margin-top:18px;padding:18px;border:1px solid #92762e75;border-radius:22px;background:#071420d9;box-shadow:0 26px 80px #0007;backdrop-filter:blur(16px)}
   textarea{width:100%;min-height:190px;border:1px solid #d7c58a;background:#f5f0e2;color:#17221f;padding:16px;border-radius:16px;font:inherit;font-size:16px;line-height:1.45;resize:vertical}
+  textarea[readonly]{opacity:.96}
   button,.link{display:block;width:100%;margin-top:14px;border:0;border-radius:16px;padding:16px 18px;min-height:50px;font-weight:900;font-size:16px;text-align:center;text-decoration:none;touch-action:manipulation}
   button{background:linear-gradient(135deg,#efc75c,#a66a12);color:#07110d}
   button:disabled{opacity:.45}
@@ -33,17 +34,17 @@ const html = String.raw`<!doctype html>
 <body>
 <main>
   <div class="brand">LANERIQ AI · AUTHENTICATED PRODUCTION JOURNEY</div>
-  <h1>Zero-Spend App + Website E2E</h1>
+  <h1>Isolated Zero-Credit App + Website E2E</h1>
   <p>This signed-in evidence runner verifies the exact Production main build, then runs Planning → Generate → atomic Save → bootstrap → persisted-version proof → App / Website previews → key owner-scoped product surfaces.</p>
   <div class="card">
-    <textarea id="idea">Create a simple property CRM app and responsive website with clients, properties, enquiries, appointments and notes.</textarea>
+    <textarea id="idea" readonly>LANERIQ AI fixed Production E2E diagnostic: create a simple property CRM mobile app and responsive companion website with clients, properties, enquiries, appointments and notes.</textarea>
     <button id="build">RUN ZERO-SPEND PRODUCTION JOURNEY</button>
     <a class="link" href="/auth?next=%2Fquick-test">Sign in / Verify Email</a>
-    <div class="rule"><b>Hard rule:</b> this runner reserves only free-first-project or active Pro access. If either is unavailable, it stops before AI credits or project credits can be charged. It never sends SMS, submits to an app store, or claims a physical-device/provider-LIVE result.</div>
+    <div class="rule"><b>Hard rule:</b> the server issues one deterministic, isolated diagnostic project identity per signed-in account and enforces fixed test input. It cannot be used to generate an arbitrary free customer project. AI Credits and Project Credits stay at 0; normal free-first-project / Pro / Credits rules are unchanged. The runner never sends SMS or submits to an app store.</div>
     <div id="status">Ready. Sign in first, then run the authenticated Production journey.</div>
     <div id="result"></div>
   </div>
-  <p class="muted">Evidence level: authenticated Production browser journey. Physical iPhone/Android, external provider-LIVE and official Apple/Google Store evidence remain separate.</p>
+  <p class="muted">Evidence level: authenticated Production browser journey. Physical iPhone/Android, external provider-LIVE/provider billing and official Apple/Google Store evidence remain separate.</p>
 </main>
 <script>
 (function(){
@@ -52,10 +53,11 @@ const html = String.raw`<!doctype html>
   const status=document.getElementById('status');
   const result=document.getElementById('result');
   const COMMIT_SHA=/^[0-9a-f]{40}$/i;
+  const E2E_ID=/^production-e2e-v4-[0-9a-f]{32}$/i;
 
   function setStatus(text,kind){status.textContent=text;status.className=kind||'';}
   function showResult(value){result.style.display='block';result.textContent=typeof value==='string'?value:JSON.stringify(value,null,2);}
-  function requestId(){try{return 'production-e2e-'+crypto.randomUUID()}catch{return 'production-e2e-'+Date.now()}}
+  function clientRequestId(){try{return 'production-e2e-client-'+crypto.randomUUID()}catch{return 'production-e2e-client-'+Date.now()}}
   async function readJsonResponse(response){
     const text=await response.text();
     try{return text?JSON.parse(text):{}}catch{return {raw:text}}
@@ -108,7 +110,6 @@ const html = String.raw`<!doctype html>
 
   build.addEventListener('click',async()=>{
     const prompt=idea.value.trim();
-    if(!prompt){setStatus('Please enter an App + Website idea.','bad');return}
     build.disabled=true;result.style.display='none';
     let createRequestId='';
     let reservationHeld=false;
@@ -116,41 +117,35 @@ const html = String.raw`<!doctype html>
       setStatus('1/7 Verifying exact Production main build…');
       const buildIdentity=await verifyExactProductionBuild();
 
-      setStatus('2/7 Planning project…');
+      setStatus('2/7 Planning fixed diagnostic project…');
       const planned=await post('/api/orchestrate',{idea:prompt,assetCount:0},45000);
       const plan=planned.plan||{};
 
-      createRequestId=requestId();
-      setStatus('3/7 Reserving zero-spend creation entitlement…');
-      const reservation=await post('/api/production-e2e/zero-spend',{action:'reserve',requestId:createRequestId},15000);
-      if(reservation.zeroSpendOnly!==true||reservation.aiCreditsCharged!==0||reservation.projectCreditsCharged!==0)throw new Error('Zero-spend reservation contract failed.');
+      setStatus('3/7 Issuing isolated zero-credit Production E2E identity…');
+      const reservation=await post('/api/production-e2e/zero-spend',{action:'reserve',requestId:clientRequestId()},15000);
+      createRequestId=String(reservation.requestId||'').trim();
+      if(!E2E_ID.test(createRequestId)||reservation.zeroSpendOnly!==true||reservation.aiCreditsCharged!==0||reservation.projectCreditsCharged!==0||reservation.testOnly!==true||reservation.oneProjectPerAccount!==true||reservation.canonicalInputEnforced!==true)throw new Error('Isolated zero-credit reservation contract failed.');
       reservationHeld=true;
 
-      setStatus('4/7 Generating and atomically saving real App + Website…');
-      const buildIdea=[
-        prompt,
-        Array.isArray(plan.selectedModules)&&plan.selectedModules.length?'AUTONOMOUS MODULE PLAN: '+plan.selectedModules.join(', '):'',
-        Array.isArray(plan.workflows)&&plan.workflows.length?'STARTER WORKFLOWS: '+plan.workflows.map(x=>x.name).filter(Boolean).join(', '):'',
-        'ONE-CLICK BUILD RULE: Create one coherent functional mobile-first App and responsive Website.',
-        'PREMIUM DESIGN RULE: Keep every page polished, readable, responsive and production-like.',
-        'E2E COST RULE: Do not require paid external providers.'
-      ].filter(Boolean).join('\n\n');
-
+      setStatus('4/7 Generating and atomically saving isolated App + Website…');
       const generated=await post('/api/generate',{
-        idea:buildIdea,
+        productionE2E:true,
+        idea:prompt,
         assetIds:[],
         requestId:createRequestId,
         themeMode:'preset',
         themePreset:'luxury-gold',
-        styleRequest:'Premium mobile-first responsive product UI with clear hierarchy and accessible controls.',
         wallpaperMode:'selected',
         wallpaperPreset:'moon-city'
       },150000);
+      if(generated&&generated.credits&&Number(generated.credits.charged||0)!==0)throw new Error('Generation unexpectedly charged customer credits.');
+      if(generated&&generated.productionE2E&&generated.productionE2E.testOnly!==true)throw new Error('Generation lost the isolated E2E contract.');
       reservationHeld=false;
 
       const appId=generated&&generated.app&&generated.app.id;
       const versionId=generated&&generated.app&&generated.app.versionId;
       if(!appId||!versionId)throw new Error('Generate did not return persisted App/version identity.');
+      if(String(generated.app.visibility||'private')!=='private'||String(generated.app.publishStatus||'draft')!=='draft')throw new Error('Isolated E2E project must remain private and draft.');
 
       setStatus('5/7 Installing starter data and workflows…');
       let bootstrap=null;
@@ -187,11 +182,15 @@ const html = String.raw`<!doctype html>
       const pages=Array.isArray(generated&&generated.specification&&generated.specification.pages)?generated.specification.pages.map(x=>x&&x.name).filter(Boolean):[];
       const summary={
         success:true,
-        reportVersion:3,
+        reportVersion:4,
         evidenceLevel:'AUTHENTICATED_PRODUCTION_BROWSER_JOURNEY',
         exactProductionBuildVerified:true,
+        isolatedE2EProject:true,
+        oneProjectPerAccount:true,
+        canonicalInputEnforced:true,
         physicalDeviceVerified:false,
         originalGenerationProviderVerified:false,
+        externalProviderSpendVerified:false,
         officialStoreSubmissionVerified:false,
         storeSubmissionExercised:false,
         smsExercised:false,
@@ -221,7 +220,7 @@ const html = String.raw`<!doctype html>
         releasePath:'/release/'+appId,
         productionEvidencePath:'/production-e2e'
       };
-      setStatus('SUCCESS — authenticated zero-spend Production journey completed.','ok');
+      setStatus('SUCCESS — authenticated isolated Production journey completed with 0 customer credits.','ok');
       showResult(summary);
 
       const row=document.createElement('div');row.className='row';
@@ -235,10 +234,9 @@ const html = String.raw`<!doctype html>
         try{await post('/api/production-e2e/zero-spend',{action:'release',requestId:createRequestId},15000)}catch{}
       }
       const auth=e.status===401||e.status===403;
-      const zeroSpend=e.status===409&&e.data&&e.data.code==='ZERO_SPEND_ENTITLEMENT_REQUIRED';
-      const prefix=zeroSpend?'ZERO-SPEND STOP — no credits charged: ':(auth?'AUTH / ACCESS: ':'FAILED: ');
+      const prefix=auth?'AUTH / ACCESS: ':'FAILED — no customer credits charged: ';
       setStatus(prefix+(e.message||'Unknown error'),'bad');
-      showResult({success:false,reportVersion:3,evidenceLevel:'AUTHENTICATED_PRODUCTION_BROWSER_JOURNEY',status:e.status||0,error:e.message||String(e),physicalDeviceVerified:false,originalGenerationProviderVerified:false,officialStoreSubmissionVerified:false,smsExercised:false,zeroSpendOnly:true,aiCreditsCharged:0,projectCreditsCharged:0,details:e.data||null});
+      showResult({success:false,reportVersion:4,evidenceLevel:'AUTHENTICATED_PRODUCTION_BROWSER_JOURNEY',status:e.status||0,error:e.message||String(e),isolatedE2EProject:true,physicalDeviceVerified:false,originalGenerationProviderVerified:false,externalProviderSpendVerified:false,officialStoreSubmissionVerified:false,smsExercised:false,zeroSpendOnly:true,aiCreditsCharged:0,projectCreditsCharged:0,details:e.data||null});
     }finally{build.disabled=false}
   });
 })();
