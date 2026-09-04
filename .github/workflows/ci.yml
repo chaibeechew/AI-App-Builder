@@ -77,6 +77,8 @@ jobs:
         run: node scripts/infrastructure-adaptive-control-plane-contract-tests.mjs
       - name: Zero-cost engine dynamic execution tests
         run: node scripts/zero-cost-engine-execution-tests.mjs
+      - name: Provider Router Production truth contract tests
+        run: node scripts/provider-router-production-truth-tests.mjs
       - name: Game commercial policy contract tests
         run: npm run test:game-commercial
       - name: Game Creator runtime contract tests
