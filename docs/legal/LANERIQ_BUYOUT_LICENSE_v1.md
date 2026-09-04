@@ -70,7 +70,22 @@ An active eligible Buyout License satisfies the Buyout commercial path for that 
 
 Third-party services, open-source components, app-store accounts, domains, API accounts and non-transferable licenses remain subject to their own terms. A LANERIQ AI Buyout License cannot grant rights LANERIQ AI does not own.
 
-## 10. Legal review gate
+## 10. Stamp duty and governmental charges
+
+Unless applicable law mandatorily allocates a particular liability to another person, the **Buyout Customer is responsible for any stamp duty, adjudication, filing, payment and related governmental charge attributable to the Buyout License or its execution**.
+
+Accordingly:
+
+- LANERIQ AI does not automatically calculate, assess, adjudicate, file, stamp or pay stamp duty on the Customer's behalf;
+- LANERIQ AI does not automatically deduct stamp duty from the Buyout fee or charge a guessed duty amount;
+- the Customer is responsible for determining whether any stamping or filing is required and for completing any required process within the applicable legal framework;
+- the Customer is responsible for obtaining its own tax or legal advice where needed;
+- LANERIQ AI may preserve the License ID, Project ID, exact Buyout terms version/hash, execution timestamp and any later stamping evidence supplied by the responsible person; and
+- where mandatory law assigns liability differently, that mandatory legal allocation prevails to the extent required.
+
+Nothing in this section represents that every Buyout License is necessarily chargeable, exempt or subject to a particular stamp-duty rate. LANERIQ AI keeps stamp-duty handling **MANUAL REVIEW ONLY** unless a later separately approved legal/tax implementation changes that policy.
+
+## 11. Legal review gate
 
 Before general Production self-service activation, qualified legal counsel should confirm at minimum:
 
@@ -79,7 +94,7 @@ Before general Production self-service activation, qualified legal counsel shoul
 - exact rights granted by the Buyout License;
 - treatment of pre-Buyout accrued revenue-share obligations;
 - transfer/assignment rules;
-- tax treatment;
+- tax and stamp-duty treatment, including the intended Customer cost allocation subject to mandatory law;
 - refund/cancellation policy;
 - electronic acceptance requirements; and
 - interaction with the Project Portability Agreement and platform Terms of Service.
