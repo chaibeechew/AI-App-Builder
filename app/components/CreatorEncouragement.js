@@ -2,12 +2,13 @@
 
 import { useEffect,useState } from "react";
 import { usePathname } from "next/navigation";
+import { isPublicAccountPath } from "../../lib/auth/session-safety.js";
 
 export default function CreatorEncouragement(){
   const pathname=usePathname();
   const[status,setStatus]=useState(null);const[open,setOpen]=useState(false);const[reason,setReason]=useState("");const[code,setCode]=useState("");const[busy,setBusy]=useState(false);const[message,setMessage]=useState("");const[error,setError]=useState("");
-  async function load(){if(pathname==="/mobile-readiness")return;try{const r=await fetch("/api/creator-support",{cache:"no-store",credentials:"same-origin"});if(!r.ok){if(r.status===401)return;throw new Error("Unable to load Creator Support.")}const d=await r.json();setStatus(d);if(d?.verifyCode&&!code)setCode(d.verifyCode)}catch{}}
-  useEffect(()=>{if(pathname!=="/mobile-readiness")void load()},[pathname]);
+  async function load(){if(isPublicAccountPath(pathname))return;try{const r=await fetch("/api/creator-support",{cache:"no-store",credentials:"same-origin"});if(!r.ok){if(r.status===401)return;throw new Error("Unable to load Creator Support.")}const d=await r.json();setStatus(d);if(d?.verifyCode&&!code)setCode(d.verifyCode)}catch{}}
+  useEffect(()=>{if(!isPublicAccountPath(pathname))void load()},[pathname]);
   async function act(payload){setBusy(true);setError("");setMessage("");try{const r=await fetch("/api/creator-support",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw new Error(d.error||"Unable to continue.");if(payload.action==="request")setMessage(d.status==="approved"?"Creator Support approved. Your one-time Verify Code is ready below.":"Request received. Admin will review it.");else setMessage("Creator Support activated. All currently available LANERIQ AI functions are unlocked for 3 months.");await load()}catch(e){setError(e.message||"Unable to continue.")}finally{setBusy(false)}}
   if(!status?.showButton&&!status?.active&&!status?.request)return null;
   const pending=status?.request?.status==="pending";const approved=status?.request?.status==="approved";const canRequest=status?.eligible===true;
