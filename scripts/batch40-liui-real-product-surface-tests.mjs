@@ -9,11 +9,14 @@ const editor=fs.readFileSync('app/editor/[id]/page.js','utf8');
 const operations=fs.readFileSync('app/operations/[id]/page.js','utf8');
 const publish=fs.readFileSync('app/publish/[id]/page.js','utf8');
 
-assert.match(layout,/liui-real-product-surface\.css/,'LIUI override stylesheet must load last');
+assert.match(layout,/liui-real-product-surface\.css/,'LIUI override stylesheet must load after legacy presentation layers');
 assert.match(layout,/LIUIRealProductSurface/,'LIUI runtime coordinator must be mounted');
 assert.match(coordinator,/usePathname/,'Surface coordinator must follow actual route changes');
 for(const surface of ['creation','editor','quality','publish','launch','preview']) assert.match(coordinator,new RegExp(`"${surface}"`),`Missing ${surface} surface mapping`);
-for(const label of ['Home','Create','Creations','Templates','More']) assert.match(coordinator,new RegExp(`label: "${label}"`),`Missing ${label} in canonical mobile nav`);
+for(const label of ['Home','Projects','Create','Templates','More']) assert.match(coordinator,new RegExp(`label: "${label}"`),`Missing ${label} in canonical mobile nav`);
+const approvedOrder=['Home','Projects','Create','Templates','More'];
+let navCursor=-1;
+for(const label of approvedOrder){const next=coordinator.indexOf(`label: "${label}"`,navCursor+1);assert.ok(next>navCursor,`Canonical nav must preserve ${approvedOrder.join(' / ')} order`);navCursor=next;}
 
 assert.match(css,/body\[data-liui-surface="creation"\] \.premiumHome \.promptCard\{order:3\}/,'Main prompt must be ordered before creative image entries');
 assert.match(css,/body\[data-liui-surface="creation"\] \.premiumHome \.featureCards\{order:4\}/,'Create/Design image entries must be below the main prompt');
@@ -35,7 +38,7 @@ assert.doesNotMatch(css,/display:\s*none[^}]*\.error/i,'LIUI must not hide error
 assert.doesNotMatch(coordinator,/fetch\(/,'Navigation coordinator must not add network calls or spend');
 
 console.log('✓ LIUI runtime coordinator is mounted on real priority routes');
-console.log('✓ Canonical mobile navigation is Home / Create / Creations / Templates / More');
+console.log('✓ Canonical mobile navigation is Home / Projects / Create / Templates / More');
 console.log('✓ Main prompt is warm/light and Create/Design image entries are below it');
 console.log('✓ Editor, Quality and Publish keep their real APIs, ownership and evidence boundaries');
 console.log('✓ Cinematic glass UI and reduced-motion accessibility are enforced without replacing engines');

@@ -11,7 +11,7 @@ const creditsApi = read("app/api/credits/route.js");
 const finance = read("lib/app-builder-finance.js");
 const generate = read("app/api/generate/route.js");
 const modify = read("app/api/modify/route.js");
-const homeCostCss = read("app/local-first-cost-control.css");
+const liuiHomeCss = read("app/home-liui-v5.css");
 const home = read("app/page.js");
 
 assert.equal(isNoCreditsLaunchMode(), true);
@@ -30,6 +30,8 @@ assert.equal(LAUNCH_MODE.infrastructure.fixedCostIncreaseRequired, false);
 
 assert.match(layout, /import LaunchModeGuard from "\.\/components\/LaunchModeGuard"/);
 assert.match(layout, /<LaunchModeGuard \/>/);
+assert.match(layout, /home-liui-v5\.css/);
+assert.doesNotMatch(layout, /local-first-cost-control\.css/,'Retired visual cost-control layer must not be active.');
 
 assert.match(guard, /a\[href=\"\/credits\"\]/);
 assert.match(guard, /CREDIT_NAV_TEXT/);
@@ -57,8 +59,8 @@ assert.match(finance, /server_refund_ai_credits/,'Historical credit refund RPC c
 assert.match(generate, /consumeAiCredits/,'Generate retains the compatibility call site while the finance boundary prevents charging in launch mode.');
 assert.match(modify, /consumeAiCredits/,'Modify retains the compatibility call site while the finance boundary prevents charging in launch mode.');
 
-assert.match(homeCostCss, /a\[href=\"\/credits\"\]\.credits[\s\S]*display:\s*none\s*!important/i);
-assert.match(homeCostCss, /\.premiumHome \.promiseRow \{ display:none !important; \}/);
+assert.match(liuiHomeCss, /a\[href=\"\/credits\"\]\.credits\{display:none!important\}/i);
+assert.match(liuiHomeCss, /\.premiumHome \.promiseRow\{display:none!important\}/);
 
 // Dormant compatibility source can retain these references because the launch layout/guard makes them non-customer-facing.
 assert.match(home, /href="\/credits"/);
@@ -69,4 +71,4 @@ console.log("✓ No-Credits Launch Mode is the active customer access model");
 console.log("✓ Public /credits is server-gated while the dormant server-backed balance/ledger component remains structurally intact");
 console.log("✓ Generate/Modify cannot charge or refund credits while No-Credits Launch Mode is active");
 console.log("✓ Historical credit RPC compatibility remains dormant and reversible for a future commercial phase");
-console.log("✓ Public Credits navigation, free-first-project copy and dynamic credit-shortage copy are suppressed by launch policy");
+console.log("✓ LIUI suppresses public Credits navigation, free-first-project copy and dynamic credit-shortage copy without restoring the retired visual layer");

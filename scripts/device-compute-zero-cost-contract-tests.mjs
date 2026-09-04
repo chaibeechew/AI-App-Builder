@@ -16,7 +16,7 @@ const manager = fs.readFileSync("app/components/DeviceComputeManager.js", "utf8"
 const settingsPage = fs.readFileSync("app/account/device-compute/page.js", "utf8");
 const accountNav = fs.readFileSync("app/components/AccountNav.js", "utf8");
 const layout = fs.readFileSync("app/layout.js", "utf8");
-const costCss = fs.readFileSync("app/local-first-cost-control.css", "utf8");
+const liuiHomeCss = fs.readFileSync("app/home-liui-v5.css", "utf8");
 
 const defaults = createDefaultDeviceComputeSettings();
 assert.equal(defaults.decision, null);
@@ -172,11 +172,12 @@ for (const pattern of [
 
 assert.match(layout, /import DeviceComputeManager from "\.\/components\/DeviceComputeManager"/);
 assert.match(layout, /<DeviceComputeManager\s*\/>/);
-assert.match(layout, /local-first-cost-control\.css/);
+assert.match(layout, /home-liui-v5\.css/,'Invisible-cost UI policy must live in the active LIUI design layer.');
+assert.doesNotMatch(layout, /local-first-cost-control\.css/,'Retired homepage/cost visual layer must not return to the active runtime.');
 assert.match(accountNav, /\/account\/device-compute/);
 assert.doesNotMatch(accountNav, /go\("\/credits"\)/, "Credits must not remain a primary Account menu item during the current invisible-cost-governor stage.");
-assert.match(costCss, /\.premiumHome \.topActions > a\.credits/);
-assert.match(costCss, /display:\s*none\s*!important/);
+assert.match(liuiHomeCss, /\.premiumHome \.topActions > a\.credits/);
+assert.match(liuiHomeCss, /display:\s*none\s*!important/);
 
 console.log("✓ LANERIQ Local-First Device Compute requires an explicit first-use choice and keeps Cloud Only available");
 console.log("✓ Mobile/tablet/laptop/desktop budgets are separate, Gaming Mode is adaptive, and Thermal Guardian cannot be disabled");
@@ -185,4 +186,4 @@ console.log("✓ Severe/critical heat, low battery and background rules can redi
 console.log("✓ Browser thermal telemetry remains UNKNOWN unless an installed native LANERIQ wrapper supplies a real thermal signal");
 console.log("✓ Cross-customer compute is forced OFF; only the customer's own devices may participate in distributed compute");
 console.log("✓ Local project storage, persistent-storage request, delta-sync preference and invisible cost governance are encoded as product policy");
-console.log("✓ User-facing Credits are removed from the primary home/account journey while internal cost controls remain available");
+console.log("✓ User-facing Credits are removed from the primary home/account journey while internal cost controls remain available through LIUI");

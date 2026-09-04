@@ -1,0 +1,67 @@
+name: LANERIQ Page 1 LIUI Completion Gate
+
+on:
+  pull_request:
+    paths:
+      - "app/page.js"
+      - "app/home-liui-v5.css"
+      - "app/components/AdaptiveWallpaperEngine.js"
+      - "app/components/LIUIRealProductSurface.js"
+      - "lib/product/laneriq-18-page-master.js"
+      - "docs/LANERIQ_AI_18_PAGE_MASTER_PRODUCT_SPEC.md"
+      - "scripts/batch65-page1-liui-completion-tests.mjs"
+      - ".github/workflows/page1-liui-completion-gate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/page.js"
+      - "app/home-liui-v5.css"
+      - "app/components/AdaptiveWallpaperEngine.js"
+      - "app/components/LIUIRealProductSurface.js"
+      - "lib/product/laneriq-18-page-master.js"
+      - "docs/LANERIQ_AI_18_PAGE_MASTER_PRODUCT_SPEC.md"
+      - "scripts/batch65-page1-liui-completion-tests.mjs"
+      - ".github/workflows/page1-liui-completion-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  page1-liui-completion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      LANERIQ_EVIDENCE_LEVEL: CODE_CI_ONLY
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Page 1 LIUI completion contract
+        run: node scripts/batch65-page1-liui-completion-tests.mjs
+
+      - name: Re-run 18-page and LIUI regression contracts
+        run: |
+          node scripts/batch39-18-page-product-surface-tests.mjs
+          node scripts/batch40-liui-real-product-surface-tests.mjs
+          node scripts/batch41-liui-complete-18-page-surface-tests.mjs
+
+      - name: Build runtime integration
+        run: npm run build
+
+      - name: Evidence boundary
+        run: |
+          echo "✓ Batch 65 proves CODE + CI + build integration for Page 1."
+          echo "✓ It does not by itself prove Production exact SHA or physical-device rendering."
+          echo "✓ Production deployment + browser/mobile runtime evidence remains required after merge."

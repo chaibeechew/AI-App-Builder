@@ -42,7 +42,7 @@ for (const [route, surface] of routeContracts) {
   assert(component.includes(`"${surface}"`), `LIUI coordinator must expose ${surface}`);
 }
 
-const expectedNav = ["Home", "Create", "Creations", "Templates", "More"];
+const expectedNav = ["Home", "Projects", "Create", "Templates", "More"];
 let cursor = -1;
 for (const label of expectedNav) {
   const next = component.indexOf(`label: "${label}"`, cursor + 1);

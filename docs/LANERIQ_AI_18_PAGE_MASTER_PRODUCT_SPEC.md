@@ -1,8 +1,8 @@
 # LANERIQ AI 18-Page Master Product Specification
 
-Version: 2026.09-v1
+Version: 2026.09-v3 / LIUI-2026.2
 
-This is the implementation contract for the 18-page LANERIQ AI product surface. It is not a screenshot catalog. It defines navigation, ownership, AI behavior, release risk and evidence boundaries for the real App/Web builder.
+This is the implementation contract for the 18-page LANERIQ AI product surface. It is not a screenshot catalog and it is not an 18-step wizard. It defines navigation, ownership, AI behavior, release risk and evidence boundaries for the real App/Web/iOS/Android/Desktop builder.
 
 ## Master flow
 
@@ -33,6 +33,10 @@ Power workspace:
 17. AI Testing & Self-Heal
 18. Publish & Deployment Center
 
+The user-facing creation journey is:
+
+`Idea → Plan → Build → Preview → Launch → Manage`
+
 The high-value real execution chain is:
 
 `Idea → Plan → Build → AI Editor → Testing/Self-Heal → Publish`
@@ -41,25 +45,36 @@ The high-value real execution chain is:
 
 Global bottom navigation is fixed to:
 
-`Home / Create / Creations / Templates / More`
+`Home / Projects / Create / Templates / More`
 
-The six-step creation journey is a contextual progress system, not a global tutorial. It should appear only while a user is inside an active creation flow. Global pages such as Templates, Analytics and Settings should not pretend that they are build-step screens.
+The six-step creation journey is a contextual progress system, not a global tutorial. It should appear only while a user is inside an active creation flow. Global pages such as Projects, Templates, Analytics and Settings should not pretend that they are build-step screens.
+
+## Homepage structure contract
+
+The approved Page 1 stack is:
+
+`Hero → Intent Composer → Create Image / Design UI → Style → Templates → Build CTA`
+
+The first useful action should be reachable within two taps. Long intent text expands into a large editor without losing the draft. The main Build action remains visually dominant.
 
 ## UI contract
 
-All 18 pages use LANERIQ AI Living Intelligence UI / LIUI 2026:
+All 18 pages use **LANERIQ AI Living Intelligence UI™ / Adaptive Generative Interface System 2026 (LIUI-2026.2)** as the current design authority.
 
 - intent-first interaction
-- context-adaptive layout
+- context-adaptive / generative layout
 - Adaptive Bento where useful
-- semi-transparent Living Cards / Liquid Intelligence Glass
-- cinematic contextual photo backgrounds with readable contrast
+- Living Cards with explicit Idle / Listening / Thinking / Working / Needs Attention / Success / Error / Offline states
+- selective semi-transparent Liquid Intelligence Glass instead of an all-page glass sheet
+- contextual cinematic backgrounds with automatic readability protection
 - restrained gold primary actions and blue/purple AI-state accents
 - semantic motion that communicates state rather than decoration
 - voice-native and universal AI command access
 - accessibility, trust, permission and performance adaptation by default
 - light/warm primary prompt surfaces for readability
 - long prompts expand into a large editor instead of shrinking text
+
+**LIUI-2026.2 is the only active LANERIQ AI design authority.** Legacy product-shell designs, compatibility styles and retired visual presets are not part of the active runtime or CI contract. The current homepage first-paint authority is **Future City + People**. Future contextual/adaptive backgrounds may evolve inside the LIUI system without restoring an older shell.
 
 ## Data and ownership contract
 
