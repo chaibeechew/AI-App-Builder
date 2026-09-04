@@ -4,9 +4,11 @@ import fs from "node:fs";
 const read=(p)=>fs.readFileSync(p,"utf8");
 const agreement=read("docs/legal/LANERIQ_PROJECT_PORTABILITY_REVENUE_SHARE_AGREEMENT_v1.md");
 const policy=read("config/project-portability-policy.js");
+const productPolicy=read("config/product-policy.js");
 const route=read("app/api/apps/[id]/migration-agreement/route.js");
 const panel=read("app/components/ProjectPortabilityPanel.js");
 const migration=read("supabase/migrations/20260904003000_creator_support_and_portability.sql");
+const legalGateMigration=read("supabase/migrations/20260904003300_block_draft_migration_agreement_signing.sql");
 
 assert.match(agreement,/LANERIQ AI Project Portability & 10% Revenue Share Agreement/);
 assert.match(agreement,/DRAFT — NOT YET APPROVED FOR PRODUCTION ENFORCEMENT/);
@@ -33,6 +35,19 @@ assert.match(policy,/notAdditiveWithOtherLaneriqRevenueShare:\s*true/);
 assert.match(policy,/customerOwnsProject:\s*true/);
 assert.match(policy,/platformLockIn:\s*false/);
 assert.match(policy,/migrationFee:\s*false/);
+assert.match(policy,/buyoutLicenseAvailable:\s*false/);
+assert.match(policy,/buyoutAlternativeAvailable:\s*false/);
+assert.match(policy,/revenueShareCanBeBoughtOut:\s*false/);
+assert.match(policy,/buyoutLicenseOptionAvailable:\s*false/);
+assert.match(policy,/revenueShareCanBeExtinguishedByBuyout:\s*false/);
+
+assert.match(productPolicy,/buyoutLicense:\s*\{/);
+assert.match(productPolicy,/customerFacingOption:\s*false/);
+assert.match(productPolicy,/purchasable:\s*false/);
+assert.match(productPolicy,/newEntitlementCreationEnabled:\s*false/);
+assert.match(productPolicy,/revenueShareRemovalAvailable:\s*false/);
+assert.match(productPolicy,/customQuoteAvailable:\s*false/);
+assert.match(productPolicy,/does not offer a buyout license option/i);
 
 assert.match(route,/PROJECT_PORTABILITY_POLICY/);
 assert.match(route,/AGREEMENT_NOT_LEGALLY_APPROVED/);
@@ -53,7 +68,14 @@ assert.match(migration,/revenue_share_percent numeric\(5,2\) not null default 10
 assert.match(migration,/acknowledged_customer_ownership boolean not null default true/);
 assert.match(migration,/acknowledged_no_platform_lock_in boolean not null default true/);
 
+assert.match(legalGateMigration,/revoke all on function public\.sign_project_migration_agreement\(uuid,text,boolean\)/);
+assert.match(legalGateMigration,/from public, anon, authenticated, service_role/);
+assert.match(legalGateMigration,/legal-review draft/i);
+assert.match(legalGateMigration,/Do not grant execute in Production until the agreement version is formally approved/i);
+assert.doesNotMatch(legalGateMigration,/grant execute on function public\.sign_project_migration_agreement/);
+
 console.log("✓ 10% Project Portability Agreement exists as a versioned legal-review draft");
 console.log("✓ Customer ownership, no technical lock-in, revenue-base exclusions and no double-share policy are explicit");
-console.log("✓ Production signing fails closed until legal counsel approval + policy activation");
+console.log("✓ Global product and portability policy expose no purchasable Buyout License or buyout-based revenue-share removal path");
+console.log("✓ Production signing fails closed in both API code and the database RPC boundary until legal approval");
 console.log("✓ UI truthfully shows DRAFT instead of presenting a binding agreement prematurely");

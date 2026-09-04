@@ -57,19 +57,20 @@ export const ENTERPRISE_PRICING = Object.freeze({
       ],
     },
   ],
-  buyout: {
-    enabled: true,
-    appliesBeforePublish: true,
-    revenueShareAfterBuyout: 0,
-    pricing: "custom_quote",
-    rule: "A buyout may be purchased before publishing or later to stop future platform revenue share. Revenue already generated before the buyout remains subject to the applicable agreement.",
+  buyoutLicense: {
+    enabled: false,
+    customerFacingOption: false,
+    purchasable: false,
+    customQuoteAvailable: false,
+    revenueShareRemovalAvailable: false,
+    rule: "LANERIQ AI does not offer an Enterprise buyout license or a one-time payment that removes an otherwise applicable continuing revenue-share obligation.",
   },
   revenueShare: {
     enabled: true,
     defaultRatePercent: 5,
     appliesOnlyToAppRevenue: true,
     doesNotApplyToCustomerBusinessTransactions: true,
-    buyoutRemovesFutureShare: true,
+    removableByBuyout: false,
   },
   classification: {
     deviceCountDoesNotCreateEnterprise: true,
