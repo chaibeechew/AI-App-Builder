@@ -40,28 +40,48 @@ const cases = [
   ["referral AI use", () => assert(PRODUCT_POLICY.monetization.referral.allowedUses.includes("ai_processing"))],
   ["referral premium use", () => assert(PRODUCT_POLICY.monetization.referral.allowedUses.includes("premium_creation_tools"))],
   ["referral anti-fraud", () => assert.equal(PRODUCT_POLICY.monetization.referral.antiFraudRequired, true)],
-  ["buyout one app one licence", () => assert.equal(PRODUCT_POLICY.monetization.buyout.oneAppOneLicense, true)],
-  ["personal buyout price", () => assert.equal(PRODUCT_POLICY.monetization.buyout.personal.priceUsd, 49)],
-  ["business buyout price", () => assert.equal(PRODUCT_POLICY.monetization.buyout.business.priceUsd, 199)],
-  ["enterprise buyout price", () => assert.equal(PRODUCT_POLICY.monetization.buyout.enterprise.priceUsd, 499)],
-  ["buyout removes revenue share", () => assert.equal(PRODUCT_POLICY.monetization.buyout.futureRevenueShareAfterBuyoutPercent, 0)],
-  ["buyout before publish", () => assert.equal(PRODUCT_POLICY.monetization.buyout.selectionRequiredBeforePublish, true)],
-  ["buyout unavailable after publish", () => assert.equal(PRODUCT_POLICY.monetization.buyout.unavailableAfterPublish, true)],
-  ["buyout cannot be purchased after publish", () => assert.equal(PRODUCT_POLICY.monetization.buyout.cannotBePurchasedAfterPublish, true)],
-  ["buyout policy model", () => assert.equal(BUYOUT_LICENSE_POLICY.model, "one_app_one_license")],
-  ["buyout personal policy", () => assert.equal(BUYOUT_LICENSE_POLICY.personalPriceUsd, 49)],
-  ["buyout business policy", () => assert.equal(BUYOUT_LICENSE_POLICY.businessPriceUsd, 199)],
-  ["buyout enterprise policy", () => assert.equal(BUYOUT_LICENSE_POLICY.enterprisePriceUsd, 499)],
-  ["buyout policy zero share", () => assert.equal(BUYOUT_LICENSE_POLICY.revenueShareAfterBuyoutPercent, 0)],
-  ["buyout must be selected before publish", () => assert.equal(BUYOUT_LICENSE_POLICY.mustSelectBeforePublish, true)],
-  ["published app buyout unavailable", () => assert.equal(BUYOUT_LICENSE_POLICY.publishedAppBuyoutAvailable, false)],
-  ["source code stored in customer folder", () => assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.storedInsideCustomerAppFolder, true)],
-  ["source code hidden folder", () => assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.hiddenFolder, true)],
-  ["buyout customer source read", () => assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.buyoutCustomerCanRead, true)],
-  ["buyout customer source write", () => assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.buyoutCustomerCanWrite, true)],
-  ["non-buyout source read denied", () => assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.nonBuyoutCustomerCanRead, false)],
-  ["non-buyout source write denied", () => assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.nonBuyoutCustomerCanWrite, false)],
-  ["source access server enforced", () => assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.serverSideAccessControlRequired, true)],
+  ["buyout pricing and zero-share model", () => {
+    assert.equal(PRODUCT_POLICY.monetization.buyout.oneAppOneLicense, true);
+    assert.equal(PRODUCT_POLICY.monetization.buyout.personal.priceUsd, 49);
+    assert.equal(PRODUCT_POLICY.monetization.buyout.business.priceUsd, 199);
+    assert.equal(PRODUCT_POLICY.monetization.buyout.enterprise.priceUsd, 499);
+    assert.equal(PRODUCT_POLICY.monetization.buyout.futureRevenueShareAfterBuyoutPercent, 0);
+  }],
+  ["buyout publish timing", () => {
+    assert.equal(PRODUCT_POLICY.monetization.buyout.selectionRequiredBeforePublish, true);
+    assert.equal(PRODUCT_POLICY.monetization.buyout.unavailableAfterPublish, true);
+    assert.equal(PRODUCT_POLICY.monetization.buyout.cannotBePurchasedAfterPublish, true);
+  }],
+  ["game projects excluded from buyout", () => {
+    assert.equal(PRODUCT_POLICY.monetization.buyout.gameBuyoutAvailable, false);
+    assert(PRODUCT_POLICY.monetization.buyout.excludedProjectTypes.includes("game"));
+  }],
+  ["Encourage Creator restriction is project-specific", () => {
+    assert.equal(PRODUCT_POLICY.monetization.buyout.creatorEncouragementSupportedProjectEligible, false);
+    assert.equal(PRODUCT_POLICY.monetization.buyout.creatorEncouragementRestrictionScope, "supported_project_only");
+    assert.equal(PRODUCT_POLICY.monetization.buyout.unrelatedProjectsOfCreatorRemainEligible, true);
+  }],
+  ["buyout policy mirrors 49 199 499 and zero share", () => {
+    assert.equal(BUYOUT_LICENSE_POLICY.model, "one_app_one_license");
+    assert.equal(BUYOUT_LICENSE_POLICY.personalPriceUsd, 49);
+    assert.equal(BUYOUT_LICENSE_POLICY.businessPriceUsd, 199);
+    assert.equal(BUYOUT_LICENSE_POLICY.enterprisePriceUsd, 499);
+    assert.equal(BUYOUT_LICENSE_POLICY.revenueShareAfterBuyoutPercent, 0);
+  }],
+  ["buyout policy requires pre-publish selection", () => {
+    assert.equal(BUYOUT_LICENSE_POLICY.mustSelectBeforePublish, true);
+    assert.equal(BUYOUT_LICENSE_POLICY.publishedAppBuyoutAvailable, false);
+    assert.equal(BUYOUT_LICENSE_POLICY.encourageCreatorSupportedProjectBuyoutAvailable, false);
+  }],
+  ["buyout source access is server-enforced", () => {
+    assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.storedInsideCustomerAppFolder, true);
+    assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.hiddenFolder, true);
+    assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.buyoutCustomerCanRead, true);
+    assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.buyoutCustomerCanWrite, true);
+    assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.nonBuyoutCustomerCanRead, false);
+    assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.nonBuyoutCustomerCanWrite, false);
+    assert.equal(BUYOUT_LICENSE_POLICY.sourceCodeFolder.serverSideAccessControlRequired, true);
+  }],
   ["referral credit policy type", () => assert.equal(REFERRAL_CREDIT_POLICY.rewardType, "ai_app_credits")],
   ["referral credit internal redemption", () => assert.equal(REFERRAL_CREDIT_POLICY.redeemableOnlyInsidePlatform, true)],
   ["referral credit no cash", () => assert.equal(REFERRAL_CREDIT_POLICY.cashPayout, false)],
