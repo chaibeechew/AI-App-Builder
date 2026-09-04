@@ -30,9 +30,12 @@ assert.match(terms.note,/5% share of game sales revenue/i);
 assert.match(terms.note,/including outside LANERIQ AI/i);
 assert.doesNotMatch(terms.note,/share of game profit|game-profit/i);
 
-assert.equal(PRODUCT_POLICY.monetization.buyout.gameBuyoutAvailable,false);
-assert.ok(PRODUCT_POLICY.monetization.buyout.excludedProjectTypes.includes('game'));
-assert.equal(PRODUCT_POLICY.monetization.buyout.futureRevenueShareAfterBuyoutPercent,0,'Non-game buyout policy must remain separate from Game policy.');
+const noBuyout=PRODUCT_POLICY.monetization.buyoutLicense;
+assert.equal(noBuyout.enabled,false);
+assert.equal(noBuyout.customerFacingOption,false);
+assert.equal(noBuyout.purchasable,false);
+assert.equal(noBuyout.revenueShareRemovalAvailable,false,'No project type may use a buyout to remove continuing revenue share.');
+assert.deepEqual(noBuyout.appliesToProjectTypes,[]);
 
 const gameTerms=GAME_CREATOR_POLICY.commercialTerms;
 assert.equal(GAME_CREATOR_POLICY.accessTier,'professional');
@@ -88,6 +91,7 @@ assert.match(readme,/direct\/off-platform sales/i);
 assert.doesNotMatch(readme,/game-profit-share/i);
 
 console.log('✓ Game creators retain ownership and Game buyout remains unavailable');
+console.log('✓ Global policy exposes no customer-facing or purchasable Buyout License option');
 console.log('✓ Commercialized LANERIQ AI-generated games use a continuing 5% share of game sales revenue across every sales channel');
 console.log('✓ Taxes, refunds and chargebacks are excluded while store/platform commissions do not reduce the sales-share basis');
 console.log('✓ Main Generate keeps the creator-plan Game gate before Cloud-resolved finance reservations');
