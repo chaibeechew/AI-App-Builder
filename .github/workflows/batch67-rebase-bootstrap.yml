@@ -1,0 +1,57 @@
+name: Batch 67 Exact Rebase Bootstrap
+
+on:
+  push:
+    branches:
+      - batch67-rebased-oidc-20260904
+    paths:
+      - '.github/workflows/batch67-rebase-bootstrap.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  exact-migrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Copy only Batch 67 intended files onto latest-main base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin batch67-live-defense-truth-foundation
+          files=(
+            '.github/workflows/malware-defense-level10.yml'
+            '.github/workflows/malware-live-canary.yml'
+            'app/api/malware/knowledge-store/route.js'
+            'lib/security/vercel-peer-oidc.js'
+            'lib/supabase/proxy.js'
+            'scripts/malware-live-canary-contract-tests.mjs'
+            'services/malware-defense/api/knowledge-status.js'
+            'services/malware-defense/api/scan.js'
+            'services/malware-defense/api/truth-status.js'
+            'services/malware-defense/lib/adaptive-defensive-intelligence.js'
+            'services/malware-defense/lib/adaptive-knowledge-store.js'
+            'services/malware-defense/lib/independent-defensive-evidence.js'
+            'services/malware-defense/lib/recovery-executor.js'
+            'services/malware-defense/package.json'
+            'services/malware-defense/test/adaptive-defensive-intelligence.mjs'
+            'services/malware-defense/test/adaptive-knowledge-store.mjs'
+            'services/malware-defense/test/recovery-independent-evidence.mjs'
+            'services/malware-defense/vercel.json'
+            'supabase/migrations/20260904072419_laneriq_malware_adaptive_knowledge_store.sql'
+            'supabase/migrations/20260904084500_harden_malware_adaptive_knowledge_runtime.sql'
+          )
+          git checkout origin/batch67-live-defense-truth-foundation -- "${files[@]}"
+          rm -f .github/workflows/batch67-rebase-bootstrap.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --all
+          if git diff --cached --quiet; then
+            echo 'No Batch 67 differences remain to migrate.'
+            exit 0
+          fi
+          git commit -m 'Rebase Batch 67 onto secretless OIDC main'
+          git push origin HEAD:batch67-rebased-oidc-20260904
