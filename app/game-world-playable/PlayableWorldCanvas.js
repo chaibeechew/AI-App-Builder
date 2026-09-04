@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect,useRef,useState} from "react";
+import styles from "./PlayableWorldCanvas.module.css";
 
 function mul(a,b){const o=new Float32Array(16);for(let r=0;r<4;r++)for(let c=0;c<4;c++)o[c*4+r]=a[0*4+r]*b[c*4+0]+a[1*4+r]*b[c*4+1]+a[2*4+r]*b[c*4+2]+a[3*4+r]*b[c*4+3];return o;}
 function perspective(fov,aspect,near,far){const f=1/Math.tan(fov/2),nf=1/(near-far);return new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0]);}
@@ -27,7 +28,7 @@ export default function PlayableWorldCanvas({runtime}){
     state.current.pos=[...(runtime.spawn?.position||[0,14,34])];state.current.yaw=Number(runtime.spawn?.yaw??Math.PI);
     const onKeyDown=e=>{state.current.keys.add(e.key.toLowerCase());if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(e.key.toLowerCase()))e.preventDefault();};
     const onKeyUp=e=>state.current.keys.delete(e.key.toLowerCase());
-    const onDown=e=>{state.current.drag=true;state.current.lastX=e.clientX;state.current.lastY=e.clientY;};
+    const onDown=e=>{state.current.drag=true;state.current.lastX=e.clientX;state.current.lastY=e.clientY;canvas.setPointerCapture?.(e.pointerId);};
     const onMove=e=>{if(!state.current.drag)return;const dx=e.clientX-state.current.lastX,dy=e.clientY-state.current.lastY;state.current.lastX=e.clientX;state.current.lastY=e.clientY;state.current.yaw-=dx*.005;state.current.pitch=Math.max(-1.1,Math.min(.55,state.current.pitch-dy*.004));};
     const onUp=()=>state.current.drag=false;
     window.addEventListener("keydown",onKeyDown,{passive:false});window.addEventListener("keyup",onKeyUp);canvas.addEventListener("pointerdown",onDown);window.addEventListener("pointermove",onMove);window.addEventListener("pointerup",onUp);
@@ -38,10 +39,10 @@ export default function PlayableWorldCanvas({runtime}){
       const dpr=Math.min(2,window.devicePixelRatio||1),w=Math.max(1,Math.floor(canvas.clientWidth*dpr)),h=Math.max(1,Math.floor(canvas.clientHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}gl.viewport(0,0,w,h);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(p);
       const dir=[Math.sin(s.yaw)*Math.cos(s.pitch),Math.sin(s.pitch),-Math.cos(s.yaw)*Math.cos(s.pitch)],center=[s.pos[0]+dir[0],s.pos[1]+dir[1],s.pos[2]+dir[2]],vp=mul(perspective(Math.PI/3,w/h,.1,900),lookAt(s.pos,center));gl.uniformMatrix4fv(vpLoc,false,vp);
       let resident=0;for(const c of chunkBuffers){const dist=Math.hypot(s.pos[0]-c.center[0],s.pos[2]-c.center[2]);if(dist>runtime.terrain.profile.chunkMeters*2.2)continue;resident++;bind(c.gpu);gl.drawArrays(gl.TRIANGLES,0,c.gpu.count);}bind(poi);gl.drawArrays(gl.TRIANGLES,0,poi.count);
-      frames++;if(now-fpsClock>700){setStatus({api:gl instanceof WebGL2RenderingContext?"WebGL2 LIVE":"WebGL1 LIVE",fps:Math.round(frames*1000/(now-fpsClock)),resident,error:""});frames=0;fpsClock=now;}raf=requestAnimationFrame(loop);
+      frames++;if(now-fpsClock>700){const is2=typeof WebGL2RenderingContext!=="undefined"&&gl instanceof WebGL2RenderingContext;setStatus({api:is2?"WebGL2 LIVE":"WebGL1 LIVE",fps:Math.round(frames*1000/(now-fpsClock)),resident,error:""});frames=0;fpsClock=now;}raf=requestAnimationFrame(loop);
     };
     raf=requestAnimationFrame(loop);
     return()=>{cancelAnimationFrame(raf);window.removeEventListener("keydown",onKeyDown);window.removeEventListener("keyup",onKeyUp);canvas.removeEventListener("pointerdown",onDown);window.removeEventListener("pointermove",onMove);window.removeEventListener("pointerup",onUp);for(const c of chunkBuffers)gl.deleteBuffer(c.gpu.buffer);gl.deleteBuffer(poi.buffer);gl.deleteProgram(p);};
   },[runtime]);
-  return <div className="playableWorldRuntime"><canvas ref={ref} aria-label="LANERIQ playable 3D world" tabIndex={0}/><div className="runtimeHud"><b>{status.api}</b><span>{status.fps?`${status.fps} FPS`:"GPU probe"}</span><span>{status.resident} chunks resident</span><small>WASD / arrows · drag to look · Shift sprint</small>{status.error?<em>{status.error}</em>:null}</div></div>;
+  return <div className={styles.runtime}><canvas ref={ref} aria-label="LANERIQ playable 3D world" tabIndex={0}/><div className={styles.hud}><b>{status.api}</b><span>{status.fps?`${status.fps} FPS`:"GPU probe"}</span><span>{status.resident} chunks resident</span><small>WASD / arrows · drag to look · Shift sprint</small>{status.error?<em>{status.error}</em>:null}</div></div>;
 }
