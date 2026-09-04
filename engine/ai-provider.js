@@ -4,6 +4,7 @@ import { generateWithZeroCostRules } from "./zero-cost-provider.js";
 import { enrichGenerationPrompt } from "../lib/ai/provider-prompt-intelligence.js";
 
 const REQUEST_TIMEOUT_MS = Number(process.env.AI_REQUEST_TIMEOUT_MS || 30000);
+const PROACTIVE_QUOTA_SWITCH_REMAINING_RATIO = Math.min(0.5, Math.max(0.01, Number(process.env.AI_PROACTIVE_QUOTA_SWITCH_REMAINING_RATIO || 0.2)));
 const LOCAL_PROVIDERS = new Set(["ollama", "soolen-local"]);
 const ORDER = [
   "gateway", "openrouter", "groq", "gemini", "cloudflare", "huggingface",
@@ -12,6 +13,16 @@ const ORDER = [
 ];
 
 const runtime = globalThis.__SOOLEN_PROVIDER_RUNTIME || { cursor: 0, providers: new Map() };
+if (!(runtime.providers instanceof Map)) runtime.providers = new Map();
+runtime.summary ||= {
+  requests: 0,
+  successes: 0,
+  failovers: 0,
+  proactiveQuotaSwitches: 0,
+  blockedByCost: 0,
+  remoteSuccesses: 0,
+  localSuccesses: 0,
+};
 globalThis.__SOOLEN_PROVIDER_RUNTIME = runtime;
 
 function providerError(provider, message, status = 0, retryAfterMs = 0) {
@@ -24,7 +35,15 @@ function providerError(provider, message, status = 0, retryAfterMs = 0) {
 
 function state(provider) {
   if (!runtime.providers.has(provider)) {
-    runtime.providers.set(provider, { failures: 0, successes: 0, cooldownUntil: 0, lastError: "" });
+    runtime.providers.set(provider, {
+      failures: 0,
+      successes: 0,
+      cooldownUntil: 0,
+      lastError: "",
+      remainingRatio: null,
+      quotaGuardUntil: 0,
+      quotaObservedAt: 0,
+    });
   }
   return runtime.providers.get(provider);
 }
@@ -40,11 +59,27 @@ function cooldownFor(error) {
   return 15 * 1000;
 }
 
+function classifyProviderError(error) {
+  const status = Number(error?.status || 0);
+  if (status === 401 || status === 403) return "authentication";
+  if (status === 402) return "billing";
+  if (status === 408) return "timeout";
+  if (status === 429) return "quota";
+  if (status >= 500) return "upstream";
+  if (status >= 400) return "request";
+  return "transport";
+}
+
 function markFailure(provider, error) {
   const current = state(provider);
   current.failures += 1;
   current.lastError = String(error?.message || error || "Provider failed").slice(0, 300);
   current.cooldownUntil = Date.now() + cooldownFor(error);
+  if (Number(error?.status || 0) === 429) {
+    current.quotaGuardUntil = Math.max(current.quotaGuardUntil, current.cooldownUntil);
+    current.remainingRatio = 0;
+    current.quotaObservedAt = Date.now();
+  }
 }
 
 function markSuccess(provider) {
@@ -64,11 +99,49 @@ function parseRetryAfter(response) {
   return Number.isFinite(date) ? Math.max(0, date - Date.now()) : 0;
 }
 
+function numericHeader(headers, names) {
+  for (const name of names) {
+    const raw = headers.get(name);
+    if (raw == null || raw === "") continue;
+    const value = Number(raw);
+    if (Number.isFinite(value) && value >= 0) return value;
+  }
+  return null;
+}
+
+function observeProviderQuota(provider, response) {
+  const current = state(provider);
+  const remaining = numericHeader(response.headers, [
+    "x-ratelimit-remaining-requests",
+    "x-ratelimit-remaining",
+    "ratelimit-remaining",
+  ]);
+  const limit = numericHeader(response.headers, [
+    "x-ratelimit-limit-requests",
+    "x-ratelimit-limit",
+    "ratelimit-limit",
+  ]);
+  if (remaining == null || limit == null || limit <= 0) return;
+  const ratio = Math.min(1, Math.max(0, remaining / limit));
+  current.remainingRatio = ratio;
+  current.quotaObservedAt = Date.now();
+  if (ratio <= PROACTIVE_QUOTA_SWITCH_REMAINING_RATIO) {
+    const retryAfterMs = parseRetryAfter(response);
+    current.quotaGuardUntil = Math.max(
+      current.quotaGuardUntil,
+      Date.now() + (retryAfterMs > 0 ? retryAfterMs : 60 * 1000),
+    );
+  } else {
+    current.quotaGuardUntil = 0;
+  }
+}
+
 async function fetchJson(provider, url, options) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
+    observeProviderQuota(provider, response);
     const text = await response.text();
     let data = {};
     try { data = text ? JSON.parse(text) : {}; }
@@ -212,15 +285,29 @@ export async function generateWithFallback(prompt, options = {}) {
     ? new Set(options.providers.map((provider) => String(provider).toLowerCase()))
     : null;
   const requested = allowed ? ORDER.filter((provider) => allowed.has(provider)) : ORDER;
-  const order = orderedProviders(filterProvidersByCost(requested));
+  const costFiltered = filterProvidersByCost(requested);
+  const blockedByCostCount = Math.max(0, requested.length - costFiltered.length);
+  const order = orderedProviders(costFiltered);
   const errors = [];
   let attempts = 0;
+  runtime.summary.requests += 1;
+  runtime.summary.blockedByCost += blockedByCostCount;
 
   for (const provider of order) {
     if (!configured(provider)) continue;
     const current = state(provider);
-    if (current.cooldownUntil > Date.now() && provider !== "soolen-local") {
-      errors.push({ provider, error:"cooling_down", retryAt:current.cooldownUntil });
+    const now = Date.now();
+    if (current.quotaGuardUntil > 0 && current.quotaGuardUntil <= now) {
+      current.quotaGuardUntil = 0;
+      current.remainingRatio = null;
+    }
+    if (current.quotaGuardUntil > now && provider !== "soolen-local") {
+      runtime.summary.proactiveQuotaSwitches += 1;
+      errors.push({ provider, error:"quota_guard", kind:"quota", retryAt:current.quotaGuardUntil });
+      continue;
+    }
+    if (current.cooldownUntil > now && provider !== "soolen-local") {
+      errors.push({ provider, error:"cooling_down", kind:"cooldown", retryAt:current.cooldownUntil });
       continue;
     }
     attempts += 1;
@@ -232,12 +319,34 @@ export async function generateWithFallback(prompt, options = {}) {
           : await calls[provider](value);
       if (result) {
         markSuccess(provider);
-        return { provider, result, attempts, errors };
+        runtime.summary.successes += 1;
+        if (LOCAL_PROVIDERS.has(provider)) runtime.summary.localSuccesses += 1;
+        else runtime.summary.remoteSuccesses += 1;
+        if (attempts > 1 || errors.length > 0) runtime.summary.failovers += 1;
+        return {
+          provider,
+          result,
+          attempts,
+          errors,
+          routingEvidence: {
+            costMode: getSoolenCostMode(),
+            blockedByCostCount,
+            failoverOccurred: attempts > 1 || errors.length > 0,
+            quotaGuardSkips: errors.filter((item) => item.error === "quota_guard").length,
+            externalProviderLiveVerified: false,
+          },
+        };
       }
       throw providerError(provider, `${provider} returned an empty response.`, 502);
     } catch (error) {
       markFailure(provider, error);
-      errors.push({ provider, error:String(error?.message || "Unknown error"), status:Number(error?.status || 0) });
+      errors.push({
+        provider,
+        error:String(error?.message || "Unknown error"),
+        kind:classifyProviderError(error),
+        status:Number(error?.status || 0),
+        retryAt: state(provider).cooldownUntil || 0,
+      });
     }
   }
 
@@ -246,4 +355,45 @@ export async function generateWithFallback(prompt, options = {}) {
 
 export function getProviderRuntimeHealth() {
   return ORDER.map((provider) => ({ provider, configured:configured(provider), ...state(provider) }));
+}
+
+export function getProviderRuntimeTruth() {
+  const health = getProviderRuntimeHealth();
+  const configuredProviders = health.filter((item) => item.configured);
+  const configuredLocalProviderCount = configuredProviders.filter((item) => LOCAL_PROVIDERS.has(item.provider)).length;
+  const configuredRemoteProviderCount = configuredProviders.length - configuredLocalProviderCount;
+  const now = Date.now();
+  const remoteSuccessesObservedInInstance = health
+    .filter((item) => !LOCAL_PROVIDERS.has(item.provider))
+    .reduce((sum, item) => sum + Number(item.successes || 0), 0);
+  return Object.freeze({
+    contract: "prtr1",
+    routerVersion: "provider-router-v2",
+    costMode: getSoolenCostMode(),
+    proactiveQuotaSwitchRemainingRatio: PROACTIVE_QUOTA_SWITCH_REMAINING_RATIO,
+    configuredProviderCount: configuredProviders.length,
+    configuredLocalProviderCount,
+    configuredRemoteProviderCount,
+    coolingDownProviderCount: health.filter((item) => item.cooldownUntil > now).length,
+    quotaGuardedProviderCount: health.filter((item) => item.quotaGuardUntil > now).length,
+    runtimeRequests: Number(runtime.summary.requests || 0),
+    runtimeSuccesses: Number(runtime.summary.successes || 0),
+    runtimeFailovers: Number(runtime.summary.failovers || 0),
+    proactiveQuotaSwitches: Number(runtime.summary.proactiveQuotaSwitches || 0),
+    blockedByCost: Number(runtime.summary.blockedByCost || 0),
+    localSuccessesObservedInInstance: Number(runtime.summary.localSuccesses || 0),
+    remoteSuccessesObservedInInstance,
+    codeCapabilities: Object.freeze({
+      automaticFailover: true,
+      retryAfterCooldown: true,
+      quotaExhaustionFailover: true,
+      proactiveQuotaSwitch: true,
+      costModeFailClosed: true,
+      zeroCostMeteredProviderBlock: true,
+      providerIdentityInternalOnly: true,
+    }),
+    externalProviderRuntimeObservedInInstance: remoteSuccessesObservedInInstance > 0,
+    externalProviderLiveVerified: false,
+    externalProviderEvidenceLevel: "EVIDENCE_REQUIRED",
+  });
 }
