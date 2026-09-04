@@ -12,6 +12,7 @@ assert.equal(intent.goal,'conversion');
 assert.equal(intent.platform,'social-vertical');
 assert.equal(intent.costMode,'zero');
 assert.equal(intent.privateChainOfThoughtStored,false);
+assert.equal(intent.overlappingTermsDeduplicated,true);
 
 const brief=buildCreativePromptBrief({prompt:intent.prompt,brandKitId:'brand:laneriq',audience:'premium property buyers',referenceAssetIds:['asset:villa-front'],costMode:'zero'});
 assert.equal(brief.ok,true);
@@ -28,7 +29,7 @@ const repair=repairCreativePromptBrief(brief);
 assert.equal(repair.ok,true);
 assert.equal(repair.readyForProviderPlanning,true);
 assert.equal(repair.semanticFactsInvented,false);
-assert.match(repair.expandedPrompt,/Do not invent brand claims/);
+assert.match(repair.expandedPrompt,/do not invent brand claims/i);
 const plan=buildCreativePromptTaskPlan(repair);
 assert.equal(plan.ok,true);
 assert.ok(plan.tasks.some(row=>row.taskId==='video.storyboard'));
