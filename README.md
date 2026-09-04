@@ -38,11 +38,21 @@ Build App Web & Game
 Apps • Games • Web  
 Create Anything. From One Idea.
 
-## License model — no Buyout License
+## Buyout License model
 
-LANERIQ AI does **not** offer a Buyout License option for App, Website, Game or Enterprise projects. There is no personal, business, enterprise or custom-quote one-time buyout that removes an otherwise applicable continuing revenue-share obligation. Customer project ownership and portability are handled separately from any buyout concept.
+Eligible non-Game projects keep the existing project-specific Buyout License pricing:
 
-Historical database migrations may retain earlier internal `buyout` naming for migration integrity and legacy compatibility. Those historical names are not a current customer-facing product or purchasable license option.
+- **Personal — US$49**
+- **Business — US$199**
+- **Enterprise — US$499**
+
+The Buyout License is one project / one license, must be selected before publish, includes the source-code access defined by the Buyout policy, and records **0% future LANERIQ AI revenue share after Buyout** for that licensed project, subject to the applicable license terms.
+
+Game projects do not offer Buyout. The **specific project that actually redeemed Encourage Creator support** also does not offer Buyout; unrelated projects owned by the same creator continue to follow the normal Buyout policy.
+
+After payment/receipt confirmation, LANERIQ AI creates an electronic Buyout License record with a unique License ID. The customer can view the permanent copy in the project Dashboard and LANERIQ AI also attempts to send a transactional email copy. Email delivery failure does not invalidate an already-issued active License; the Dashboard record remains the source of truth.
+
+For external migration, an already-active eligible Buyout License satisfies the commercial migration path for that licensed project. A project without an active Buyout follows the applicable Project Portability / Revenue Share Agreement path. The portability agreement remains under legal review until formally approved.
 
 ## Creator-first Game policy
 
