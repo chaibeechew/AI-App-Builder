@@ -87,10 +87,12 @@ Key persisted domains include:
 - project_memory
 - app_workflows
 - workflow_runs
-- analytics_events
+- analytics_daily_aggregates
 - app_backend_models
 - publish_requests
 - store_listings
+
+Analytics is governed by **Anonymous Aggregate Analytics Only**. Product analytics may persist only project ID, UTC calendar day, bounded event category, channel and aggregate count. It must not persist session IDs, visitor/user IDs for behavioral analytics, IP addresses, device/advertising identifiers, referrers, page paths, arbitrary metadata or raw customer content, and it must not reconstruct individual journeys or cross-session profiles.
 
 All project-changing operations preserve ownership and RLS. Secrets remain server-side.
 
@@ -108,6 +110,7 @@ LANERIQ AI must:
 - never lower a quality/security gate merely to produce a passing result
 - never claim provider LIVE, store approval, physical-device verification or Production success without independent evidence
 - never invent analytics, revenue or user counts
+- keep product analytics anonymous and aggregate-only; never build visitor behavior profiles
 - keep raw prompts/specifications/user identifiers out of privacy-safe outcome-learning aggregates
 
 ## Release risk contract
