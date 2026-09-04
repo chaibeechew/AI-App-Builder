@@ -36,6 +36,7 @@ import "./mobile-feature-hardening.css";
 import "./local-first-cost-control.css";
 import "./liui-real-product-surface.css";
 import "./liui-complete-18-page-surface.css";
+import "./home-liui-v5.css";
 import AccountNav from "./components/AccountNav";
 import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
 import ProductCopyFix from "./components/ProductCopyFix";
