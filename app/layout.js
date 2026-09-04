@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import "./globals.css";
 import "./landscape-theme.css";
 import "./modern-product-theme.css";
@@ -14,6 +15,7 @@ import "./home-mobile-input-safety.css";
 import "./mobile-feature-hardening.css";
 import "./liui-real-product-surface.css";
 import "./liui-complete-18-page-surface.css";
+import "./liui-context-intelligence.css";
 import "./home-liui-v5.css";
 import AccountNav from "./components/AccountNav";
 import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
@@ -32,6 +34,7 @@ import LanguageRuntime from "./components/LanguageRuntime";
 import AuthFlowGuard from "./components/AuthFlowGuard";
 import DeviceComputeManager from "./components/DeviceComputeManager";
 import LIUIRealProductSurface from "./components/LIUIRealProductSurface";
+import LIUIContextIntelligence from "./components/LIUIContextIntelligence";
 import CreatorEncouragement from "./components/CreatorEncouragement";
 import ProjectPortabilityMount from "./components/ProjectPortabilityMount";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
@@ -93,6 +96,7 @@ export default function RootLayout({ children }) {
         <GameProGate />
         <GameCommercialTermsNotice />
         {children}
+        <Suspense fallback={null}><LIUIContextIntelligence /></Suspense>
         <ProjectPortabilityMount />
         <CreatorEncouragement />
         <LIUIRealProductSurface />
