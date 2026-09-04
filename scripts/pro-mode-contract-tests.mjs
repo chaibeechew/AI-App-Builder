@@ -13,6 +13,8 @@ const serverEntitlement=read('supabase/migrations/20260831170000_server_only_ent
 const creatorPlanMigration=read('supabase/migrations/20260901141106_add_game_fair_use_cooldown_and_full_access.sql');
 const creatorOpportunityMigration=read('supabase/migrations/20260903082500_creator_opportunity_access.sql');
 const creatorOpportunityPolicy=read('lib/creator-opportunity-policy.js');
+const creatorSupportMigration=read('supabase/migrations/20260904003000_creator_support_and_portability.sql');
+const creatorSupportPolicy=read('config/creator-encouragement-policy.js');
 const adminCreatorOpportunity=read('app/api/admin/creator-opportunities/route.js');
 const proPage=read('app/pro/[id]/page.js');
 const gameRoute=read('app/api/game/generate/route.js');
@@ -38,16 +40,33 @@ assert.match(policy,/professionalModeDoesNotUnlockBasicQuality:\s*true/);
 assert.match(policy,/professionalModeUnlocksDeeperControl:\s*true/);
 
 assert.match(access,/pro_valid_from,pro_valid_until,game_access_plan,game_cooldown_level,game_cooldown_until/);
+assert.match(access,/creator_support_valid_from,creator_support_valid_until,creator_support_extension_count/);
 assert.match(access,/creator_opportunity_active,creator_opportunity_bonus_share_percent,creator_opportunity_approved_at,creator_opportunity_approved_by/);
 assert.match(access,/const active = Number\.isFinite\(untilMs\) && untilMs > now/);
+assert.match(access,/const creatorSupportActive = Number\.isFinite\(supportUntilMs\) && supportUntilMs > now/);
 assert.match(access,/const creatorOpportunityActive = data\.creator_opportunity_active === true/);
-assert.match(access,/gameAccessPlan = creatorOpportunityActive \|\| data\.game_access_plan === "full" \? "full" : "professional"/);
-assert.match(access,/gameCooldownActive: !creatorOpportunityActive && gameAccessPlan === "professional"/);
+assert.match(access,/gameAccessPlan = creatorSupportActive \|\| creatorOpportunityActive \|\| data\.game_access_plan === "full" \? "full" : "professional"/);
+assert.match(access,/gameCooldownActive: !creatorSupportActive && !creatorOpportunityActive && gameAccessPlan === "professional"/);
 assert.match(access,/daysRemaining: active \? Math\.max\(1, Math\.ceil\(\(untilMs - now\) \/ 86400000\)\) : 0/);
+assert.match(tier,/if\(access\.creatorSupport\?\.active\)/);
+assert.match(tier,/planCode:"creator_support_3m_all_features"/);
+assert.match(tier,/tier:"business"/);
+assert.match(tier,/creatorSupportActive:true/);
 assert.match(tier,/if\(access\.professional\.active\)/);
 assert.match(tier,/planCode:"professional_365"/);
 assert.match(tier,/professionalActive:true/);
 assert.match(tier,/professionalActive:false/);
+
+assert.match(creatorSupportPolicy,/individualOnly:\s*true/);
+assert.match(creatorSupportPolicy,/extensionMonths:\s*3/);
+assert.match(creatorSupportPolicy,/allAvailableLaneriqFeatures:\s*true/);
+assert.match(creatorSupportPolicy,/modes:\s*\["auto", "manual"\]/);
+assert.match(creatorSupportPolicy,/oneTime:\s*true/);
+assert.match(creatorSupportPolicy,/accountBound:\s*true/);
+assert.match(creatorSupportMigration,/creator_support_valid_until/);
+assert.match(creatorSupportMigration,/approval_mode text not null default 'manual'/);
+assert.match(creatorSupportMigration,/game_access_plan='full'/);
+assert.match(creatorSupportMigration,/support_until:=support_from\+make_interval\(months=>settings_row\.extension_months\)/);
 
 assert.match(runtime,/function public\.grant_pro_access\(p_user_id uuid, p_days integer default 365\)/);
 assert.match(runtime,/p_days < 1 or p_days > 730/);
@@ -117,8 +136,8 @@ assert.match(gameGate,/Continue with App \/ Website/);
 assert.match(gameGate,/href="\/pricing"/);
 
 console.log('✓ Professional and Full Access prices/durations/no-auto-renew policy are explicit');
-console.log('✓ Creator access is server-derived; approved individual Creator Opportunity access maps to Full Game access while normal Pro expiry remains authoritative');
-console.log('✓ Professional grants, Full Access plan changes and Creator Opportunity approval are privileged');
+console.log('✓ Creator access is server-derived; Creator Support grants temporary individual all-feature access and Full Game access while normal Pro expiry remains authoritative');
+console.log('✓ Professional grants, Full Access plan changes, Creator Opportunity approval and Creator Support codes are privileged');
 console.log('✓ Professional project access is exact-expiry bound and refuses expired binding');
 console.log('✓ Pro workspace authenticates, owner-scopes and locks advanced access when inactive');
 console.log('✓ Main Generate receives server-derived creator access through LANERIQ Cloud and gates Game creation before any entitlement/credit consumption');
