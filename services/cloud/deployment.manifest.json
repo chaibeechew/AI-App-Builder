@@ -3,7 +3,9 @@
   "contract":"csvc1",
   "root":"services/cloud",
   "deploymentModes":["embedded","remote","device"],
-  "requiredEnvironment":["LANERIQ_CLOUD_SERVICE_SECRET","LANERIQ_CLOUD_STORAGE_ADAPTER_URL","LANERIQ_CLOUD_STORAGE_ADAPTER_SECRET"],
+  "requiredEnvironment":["LANERIQ_CLOUD_SERVICE_SECRET","LANERIQ_CLOUD_STORAGE_ADAPTER_URL"],
+  "optionalEnvironment":["LANERIQ_CLOUD_STORAGE_ADAPTER_SECRET"],
+  "adapterAuthentication":"dedicated adapter secret when supplied, otherwise LANERIQ Cloud service secret",
   "security":{"httpsOnly":true,"signedInbound":true,"tripleScopeRequired":true,"arbitraryQueryAllowed":false,"rawProviderCredentialsForbidden":true,"silentEmbeddedFallback":false},
   "cost":{"fixedInfrastructureRequired":false,"automaticPaidEscalation":false},
   "evidence":{"codeReady":true,"standaloneLive":false,"signedCanaryRequired":true}
