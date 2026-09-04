@@ -43,9 +43,20 @@ function state(provider) {
       remainingRatio: null,
       quotaGuardUntil: 0,
       quotaObservedAt: 0,
+      lastSuccessAt: 0,
+      lastFailureAt: 0,
+      lastFailureKind: null,
+      lastFailureStatus: 0,
+      lastFailoverSuccessAt: 0,
     });
   }
-  return runtime.providers.get(provider);
+  const current = runtime.providers.get(provider);
+  current.lastSuccessAt ||= 0;
+  current.lastFailureAt ||= 0;
+  current.lastFailureKind ||= null;
+  current.lastFailureStatus ||= 0;
+  current.lastFailoverSuccessAt ||= 0;
+  return current;
 }
 
 function cooldownFor(error) {
@@ -72,22 +83,29 @@ function classifyProviderError(error) {
 
 function markFailure(provider, error) {
   const current = state(provider);
+  const now = Date.now();
   current.failures += 1;
   current.lastError = String(error?.message || error || "Provider failed").slice(0, 300);
-  current.cooldownUntil = Date.now() + cooldownFor(error);
+  current.lastFailureAt = now;
+  current.lastFailureKind = classifyProviderError(error);
+  current.lastFailureStatus = Number(error?.status || 0);
+  current.cooldownUntil = now + cooldownFor(error);
   if (Number(error?.status || 0) === 429) {
     current.quotaGuardUntil = Math.max(current.quotaGuardUntil, current.cooldownUntil);
     current.remainingRatio = 0;
-    current.quotaObservedAt = Date.now();
+    current.quotaObservedAt = now;
   }
 }
 
-function markSuccess(provider) {
+function markSuccess(provider, { failover = false } = {}) {
   const current = state(provider);
+  const now = Date.now();
   current.successes += 1;
   current.failures = 0;
   current.lastError = "";
   current.cooldownUntil = 0;
+  current.lastSuccessAt = now;
+  if (failover) current.lastFailoverSuccessAt = now;
 }
 
 function parseRetryAfter(response) {
@@ -318,11 +336,12 @@ export async function generateWithFallback(prompt, options = {}) {
           ? await callGemini(value)
           : await calls[provider](value);
       if (result) {
-        markSuccess(provider);
+        const failoverOccurred = attempts > 1 || errors.length > 0;
+        markSuccess(provider, { failover: failoverOccurred });
         runtime.summary.successes += 1;
         if (LOCAL_PROVIDERS.has(provider)) runtime.summary.localSuccesses += 1;
         else runtime.summary.remoteSuccesses += 1;
-        if (attempts > 1 || errors.length > 0) runtime.summary.failovers += 1;
+        if (failoverOccurred) runtime.summary.failovers += 1;
         return {
           provider,
           result,
@@ -331,7 +350,7 @@ export async function generateWithFallback(prompt, options = {}) {
           routingEvidence: {
             costMode: getSoolenCostMode(),
             blockedByCostCount,
-            failoverOccurred: attempts > 1 || errors.length > 0,
+            failoverOccurred,
             quotaGuardSkips: errors.filter((item) => item.error === "quota_guard").length,
             externalProviderLiveVerified: false,
           },
@@ -368,7 +387,7 @@ export function getProviderRuntimeTruth() {
     .reduce((sum, item) => sum + Number(item.successes || 0), 0);
   return Object.freeze({
     contract: "prtr1",
-    routerVersion: "provider-router-v2",
+    routerVersion: "provider-router-v3",
     costMode: getSoolenCostMode(),
     proactiveQuotaSwitchRemainingRatio: PROACTIVE_QUOTA_SWITCH_REMAINING_RATIO,
     configuredProviderCount: configuredProviders.length,
@@ -391,6 +410,10 @@ export function getProviderRuntimeTruth() {
       costModeFailClosed: true,
       zeroCostMeteredProviderBlock: true,
       providerIdentityInternalOnly: true,
+      providerEvidenceStateMachine: true,
+      signedProviderEvidenceReceipts: true,
+      boundedExternalCanaryPolicy: true,
+      exactReleaseEvidenceBinding: true,
     }),
     externalProviderRuntimeObservedInInstance: remoteSuccessesObservedInInstance > 0,
     externalProviderLiveVerified: false,
