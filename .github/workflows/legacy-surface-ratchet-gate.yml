@@ -1,0 +1,34 @@
+name: LANERIQ Legacy Surface Ratchet Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/soolenai/**'
+      - 'lib/platform/legacy-surface-manifest.js'
+      - 'scripts/legacy-surface-ratchet-contract-tests.mjs'
+      - '.github/workflows/legacy-surface-ratchet-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legacy-surface-ratchet-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  legacy-surface-ratchet:
+    name: Legacy surface ratchet
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Verify legacy compatibility budget
+        run: node scripts/legacy-surface-ratchet-contract-tests.mjs
+      - name: Verify existing compatibility behavior
+        run: node scripts/soolen-platform-operator-contract-tests.mjs
