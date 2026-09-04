@@ -53,6 +53,7 @@ import LanguageRuntime from "./components/LanguageRuntime";
 import AuthFlowGuard from "./components/AuthFlowGuard";
 import DeviceComputeManager from "./components/DeviceComputeManager";
 import LIUIRealProductSurface from "./components/LIUIRealProductSurface";
+import CreatorEncouragement from "./components/CreatorEncouragement";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
 import { SEO_CORE_KEYWORDS, SEO_INDEXING_ENABLED, SEO_SITE_URL, absoluteSeoUrl, buildOrganizationJsonLd, buildSoftwareJsonLd } from "../lib/seo-foundation.js";
 
@@ -112,6 +113,7 @@ export default function RootLayout({ children }) {
         <GameProGate />
         <GameCommercialTermsNotice />
         {children}
+        <CreatorEncouragement />
         <LIUIRealProductSurface />
         <CreationCapabilityBanner />
         <PreciseEditAssistant />
