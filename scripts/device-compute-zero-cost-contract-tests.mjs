@@ -201,7 +201,7 @@ assert.doesNotMatch(manager, /Gaming Mode/);
 assert.doesNotMatch(manager, /temperature\s*=\s*Math\.random|thermalState\s*=\s*["']nominal["']/i, "Browser runtime must not fabricate a healthy thermal reading.");
 
 for (const pattern of [
-  /Prevent Overheating/,
+  /ThermalProtectionControl/,
   /Image \+ Video only/,
   /NPU → GPU → CPU/,
   /Provider names, performance modes and Local\/Cloud target choices are intentionally hidden/,
