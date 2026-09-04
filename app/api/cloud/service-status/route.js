@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 const CONTRACT = "csvc1";
 const OPERATE_PATH = "/api/cloud/v1/operate";
+const VERCEL_REQUEST_CONTEXT = Symbol.for("@vercel/request-context");
 
 function remoteBaseUrl() {
   try {
@@ -22,6 +23,19 @@ function remoteBaseUrl() {
 function serviceSecret() {
   const value = String(process.env.LANERIQ_CLOUD_SERVICE_SECRET || "");
   return value.length >= 32 ? value : "";
+}
+
+function runtimeOidcIdentity() {
+  const context = globalThis[VERCEL_REQUEST_CONTEXT]?.get?.() || {};
+  const requestToken = String(context?.headers?.["x-vercel-oidc-token"] || "").trim();
+  if (requestToken.length >= 100 && requestToken.length <= 16_384) {
+    return Object.freeze({ token: requestToken, source: "REQUEST_CONTEXT" });
+  }
+  const environmentToken = String(process.env.VERCEL_OIDC_TOKEN || "").trim();
+  if (environmentToken.length >= 100 && environmentToken.length <= 16_384) {
+    return Object.freeze({ token: environmentToken, source: "ENVIRONMENT_FALLBACK" });
+  }
+  return Object.freeze({ token: "", source: "NOT_AVAILABLE" });
 }
 
 function sha256Hex(value) {
@@ -46,13 +60,15 @@ function response(body, status = 200) {
 export async function GET(request) {
   const baseUrl = remoteBaseUrl();
   const secret = serviceSecret();
-  if (!baseUrl || !secret) {
+  const oidc = runtimeOidcIdentity();
+  if (!baseUrl || (!oidc.token && !secret)) {
     return response({
       success: false,
       live: false,
       service: "laneriq-cloud-data",
       evidenceLevel: "NOT_CONFIGURED",
       error: "REMOTE_CLOUD_NOT_CONFIGURED",
+      oidcTokenSource: oidc.source,
     }, 503);
   }
 
@@ -77,20 +93,26 @@ export async function GET(request) {
   });
   const timestamp = String(Date.now());
   const nonce = crypto.randomBytes(24).toString("base64url");
-  const signed = signature({ body, timestamp, nonce, secret });
   const target = new URL(OPERATE_PATH, baseUrl);
+  const expectedAuthenticationMode = oidc.token ? "VERCEL_OIDC" : "HMAC_SHA256";
+  const headers = {
+    "content-type": "application/json",
+    "x-laneriq-cloud-contract": CONTRACT,
+  };
+
+  if (oidc.token) {
+    headers.authorization = `Bearer ${oidc.token}`;
+  } else {
+    headers["x-laneriq-cloud-ts"] = timestamp;
+    headers["x-laneriq-cloud-nonce"] = nonce;
+    headers["x-laneriq-cloud-signature"] = signature({ body, timestamp, nonce, secret });
+  }
 
   let upstream;
   try {
     upstream = await fetch(target, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-laneriq-cloud-contract": CONTRACT,
-        "x-laneriq-cloud-ts": timestamp,
-        "x-laneriq-cloud-nonce": nonce,
-        "x-laneriq-cloud-signature": signed,
-      },
+      headers,
       body,
       cache: "no-store",
       redirect: "error",
@@ -103,11 +125,14 @@ export async function GET(request) {
       service: "laneriq-cloud-data",
       evidenceLevel: "UNREACHABLE",
       error: "REMOTE_CLOUD_UNREACHABLE",
+      expectedAuthenticationMode,
+      oidcTokenSource: oidc.source,
     }, 503);
   }
 
   const data = await upstream.json().catch(() => ({}));
-  const live = upstream.ok && data?.ok === true && data?.service === "laneriq-cloud-data" && data?.contract === CONTRACT && data?.requestId === requestId;
+  const authenticationVerified = data?.requestAuthenticationMode === expectedAuthenticationMode;
+  const live = upstream.ok && data?.ok === true && data?.service === "laneriq-cloud-data" && data?.contract === CONTRACT && data?.requestId === requestId && authenticationVerified;
 
   return response({
     success: live,
@@ -117,6 +142,12 @@ export async function GET(request) {
     remoteHost: baseUrl.host,
     signedRequestVerified: live,
     storageAdapterRoundTrip: live,
+    requestAuthenticationMode: data?.requestAuthenticationMode || null,
+    oidcIdentityVerified: data?.oidcIdentityVerified === true,
+    peerProject: data?.peerProject || null,
+    peerEnvironment: data?.peerEnvironment || null,
+    oidcTokenSource: oidc.source,
+    secretlessPeerAuthentication: live && expectedAuthenticationMode === "VERCEL_OIDC",
     evidenceLevel: live ? "LIVE_CANARY" : "UPSTREAM_FAILED",
     upstreamStatus: upstream.status,
     error: live ? null : String(data?.error || "REMOTE_CLOUD_CANARY_FAILED"),
