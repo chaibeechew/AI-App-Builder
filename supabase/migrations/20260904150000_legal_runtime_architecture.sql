@@ -180,9 +180,9 @@ begin
     raise exception 'Bilateral acceptance requires a material transaction actor role';
   end if;
 
-  select key into unsafe_key
-  from jsonb_object_keys(new.evidence) as key
-  where key not in (
+  select k.key into unsafe_key
+  from jsonb_object_keys(new.evidence) as k(key)
+  where k.key not in (
     'request_id',
     'ui_surface',
     'locale',
@@ -510,11 +510,11 @@ begin
   else
     select * into seller_event from public.legal_acceptance_events where id = p_tx.seller_acceptance_event_id;
     if not found
-      or seller_event.user_id <> p_tx.seller_user_id
-      or seller_event.actor_role <> 'seller'
-      or seller_event.transaction_id <> p_tx.id
-      or seller_event.document_key_snapshot <> p_tx.sale_document_key
-      or seller_event.acceptance_level <> 'bilateral' then
+      or seller_event.user_id is distinct from p_tx.seller_user_id
+      or seller_event.actor_role is distinct from 'seller'
+      or seller_event.transaction_id is distinct from p_tx.id
+      or seller_event.document_key_snapshot is distinct from p_tx.sale_document_key
+      or seller_event.acceptance_level is distinct from 'bilateral' then
       missing := array_append(missing,'seller_bilateral_acceptance');
     end if;
   end if;
@@ -524,11 +524,11 @@ begin
   else
     select * into buyer_event from public.legal_acceptance_events where id = p_tx.buyer_acceptance_event_id;
     if not found
-      or buyer_event.user_id <> p_tx.buyer_user_id
-      or buyer_event.actor_role <> 'buyer'
-      or buyer_event.transaction_id <> p_tx.id
-      or buyer_event.document_key_snapshot <> p_tx.sale_document_key
-      or buyer_event.acceptance_level <> 'bilateral' then
+      or buyer_event.user_id is distinct from p_tx.buyer_user_id
+      or buyer_event.actor_role is distinct from 'buyer'
+      or buyer_event.transaction_id is distinct from p_tx.id
+      or buyer_event.document_key_snapshot is distinct from p_tx.sale_document_key
+      or buyer_event.acceptance_level is distinct from 'bilateral' then
       missing := array_append(missing,'buyer_bilateral_acceptance');
     end if;
   end if;
@@ -543,11 +543,11 @@ begin
     else
       select * into seller_data_event from public.legal_acceptance_events where id = p_tx.seller_data_acceptance_event_id;
       if not found
-        or seller_data_event.user_id <> p_tx.seller_user_id
-        or seller_data_event.actor_role <> 'seller'
-        or seller_data_event.transaction_id <> p_tx.id
-        or seller_data_event.document_key_snapshot <> p_tx.data_addendum_document_key
-        or seller_data_event.acceptance_level <> 'bilateral' then
+        or seller_data_event.user_id is distinct from p_tx.seller_user_id
+        or seller_data_event.actor_role is distinct from 'seller'
+        or seller_data_event.transaction_id is distinct from p_tx.id
+        or seller_data_event.document_key_snapshot is distinct from p_tx.data_addendum_document_key
+        or seller_data_event.acceptance_level is distinct from 'bilateral' then
         missing := array_append(missing,'seller_data_addendum_acceptance');
       end if;
     end if;
@@ -557,11 +557,11 @@ begin
     else
       select * into buyer_data_event from public.legal_acceptance_events where id = p_tx.buyer_data_acceptance_event_id;
       if not found
-        or buyer_data_event.user_id <> p_tx.buyer_user_id
-        or buyer_data_event.actor_role <> 'buyer'
-        or buyer_data_event.transaction_id <> p_tx.id
-        or buyer_data_event.document_key_snapshot <> p_tx.data_addendum_document_key
-        or buyer_data_event.acceptance_level <> 'bilateral' then
+        or buyer_data_event.user_id is distinct from p_tx.buyer_user_id
+        or buyer_data_event.actor_role is distinct from 'buyer'
+        or buyer_data_event.transaction_id is distinct from p_tx.id
+        or buyer_data_event.document_key_snapshot is distinct from p_tx.data_addendum_document_key
+        or buyer_data_event.acceptance_level is distinct from 'bilateral' then
         missing := array_append(missing,'buyer_data_addendum_acceptance');
       end if;
     end if;
@@ -588,18 +588,22 @@ begin
     raise exception 'App does not exist';
   end if;
 
-  if tg_op = 'INSERT' and current_owner <> new.seller_user_id then
-    raise exception 'Seller must be the current app owner when a sale transaction is created';
+  if tg_op = 'INSERT' then
+    if current_owner <> new.seller_user_id then
+      raise exception 'Seller must be the current app owner when a sale transaction is created';
+    end if;
   end if;
 
-  if tg_op = 'UPDATE' and old.status <> 'draft' and (
-    new.app_id is distinct from old.app_id
-    or new.seller_user_id is distinct from old.seller_user_id
-    or new.buyer_user_id is distinct from old.buyer_user_id
-    or new.sale_document_key is distinct from old.sale_document_key
-    or new.data_addendum_document_key is distinct from old.data_addendum_document_key
-  ) then
-    raise exception 'Material transaction identity is immutable after draft';
+  if tg_op = 'UPDATE' then
+    if old.status <> 'draft' and (
+      new.app_id is distinct from old.app_id
+      or new.seller_user_id is distinct from old.seller_user_id
+      or new.buyer_user_id is distinct from old.buyer_user_id
+      or new.sale_document_key is distinct from old.sale_document_key
+      or new.data_addendum_document_key is distinct from old.data_addendum_document_key
+    ) then
+      raise exception 'Material transaction identity is immutable after draft';
+    end if;
   end if;
 
   missing := private.app_sale_missing_requirements(new);
@@ -630,13 +634,15 @@ begin
     if new.completed_at is null then new.completed_at := now(); end if;
   end if;
 
-  if old.status = 'completed' and tg_op = 'UPDATE' then
-    if new.status <> 'completed'
-      or new.ownership_transfer_status <> old.ownership_transfer_status
-      or new.ownership_transfer_reference is distinct from old.ownership_transfer_reference
-      or new.effective_transfer_at is distinct from old.effective_transfer_at
-      or new.completed_at is distinct from old.completed_at then
-      raise exception 'Completed transaction ownership evidence is immutable; disputes and chargebacks must be recorded separately';
+  if tg_op = 'UPDATE' then
+    if old.status = 'completed' then
+      if new.status <> 'completed'
+        or new.ownership_transfer_status <> old.ownership_transfer_status
+        or new.ownership_transfer_reference is distinct from old.ownership_transfer_reference
+        or new.effective_transfer_at is distinct from old.effective_transfer_at
+        or new.completed_at is distinct from old.completed_at then
+        raise exception 'Completed transaction ownership evidence is immutable; disputes and chargebacks must be recorded separately';
+      end if;
     end if;
   end if;
 
