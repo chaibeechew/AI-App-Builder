@@ -11,6 +11,10 @@ import {
   selectComputeRoute,
   summarizeComputeTelemetry,
 } from "../lib/ai/zero-cost-compute-fabric.js";
+import {
+  GENERATION_CANDIDATE_ORCHESTRATOR_POLICY,
+  buildGenerationCandidateBudget,
+} from "../lib/ai/generation-candidate-orchestrator.js";
 
 assert.equal(LOGICAL_WORKER_CAPACITY, 100);
 assert.equal(MAX_ACTIVE_AGENT_FANOUT, 10);
@@ -29,6 +33,15 @@ assert.equal(critical.maxActiveAgents, 10);
 assert.equal(critical.maxMeteredAgentCalls, 3);
 assert.ok(critical.maxTreeDepth <= 3);
 assert.ok(critical.maxChildrenPerAgent <= 3);
+
+const candidateBudget = buildGenerationCandidateBudget({ costMode: "free", requestedCandidates: 3 });
+assert.equal(candidateBudget.computeFabricV2, true);
+assert.equal(candidateBudget.logicalWorkerCapacity, 100);
+assert.equal(candidateBudget.maxActiveAgents, 3);
+assert.equal(candidateBudget.recursiveFanoutUnlimited, false);
+assert.equal(candidateBudget.maxMeteredRemoteCalls, 1, "Existing free-tier candidate path remains bounded to one remote success path.");
+assert.equal(GENERATION_CANDIDATE_ORCHESTRATOR_POLICY.computeFabricV2Required, true);
+assert.equal(GENERATION_CANDIDATE_ORCHESTRATOR_POLICY.recursiveFanoutUnlimited, false);
 
 assert.deepEqual(selectComputeRoute({ deterministicHit: true, costMode: "zero" }), {
   route: "deterministic",
@@ -65,6 +78,7 @@ assert.match(summary.evidenceBoundary, /does not prove third-party billing/i);
 
 console.log("✓ LANERIQ Compute Fabric exposes 100 logical workers without allowing unbounded active fan-out");
 console.log("✓ Agent budgets cap active workers at 1/3/5/10-class envelopes and block metered agent calls in zero/free modes");
+console.log("✓ Generation candidate orchestration is now bound to the shared Compute Fabric fan-out envelope");
 console.log("✓ Compute routing prefers deterministic/cache/local/own-Desktop/free-hard-stop capacity before paid providers");
 console.log("✓ Free-tier cloud requires explicit account hard-stop verification before being counted as zero-cost capacity");
 console.log("✓ Paid Compute Firewall fails closed in zero/free modes and requires explicit paid policy in balanced/paid operation");
