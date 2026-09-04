@@ -128,11 +128,16 @@ try {
   assert.match(route, /runtimeCanary:\s*null/);
   assert.match(route, /canaryExecutionMethod:\s*"ADMIN_POST_ONLY"/);
   assert.match(route, /canaryRequiresAdmin:\s*true/);
-  assert.match(postSource, /createServerClient\(\)/, "Canary POST must authenticate through the server session client");
-  assert.match(postSource, /supabase\.auth\.getUser\(\)/);
-  assert.match(postSource, /user\.app_metadata\?\.role/);
-  assert.match(postSource, /role !== "admin"/);
-  assert.match(postSource, /ADMIN_PERMISSION_REQUIRED/);
+  assert.match(route, /validateLaneriqSessionToken\(token\)/, "Canary admin auth must use LANERIQ Session Authority first");
+  assert.match(route, /createAdminClient\(\)/);
+  assert.match(route, /admin\.auth\.admin\.getUserById\(laneriqSession\.userId\)/);
+  assert.match(route, /isLaneriqPrimarySessionMode\(sessionMode\)/);
+  assert.match(route, /createServerClient\(\)/, "Legacy session compatibility must stay bounded inside the admin resolver");
+  assert.match(route, /supabase\.auth\.getUser\(\)/);
+  assert.match(route, /user\.app_metadata\?\.role/);
+  assert.match(route, /role !== "admin"/);
+  assert.match(route, /ADMIN_PERMISSION_REQUIRED/);
+  assert.match(postSource, /resolveAdminRequest\(request\)/, "Protected POST must resolve admin authorization before canary execution");
   assert.match(postSource, /ZERO_COST_CANARY_REQUIRES_ZERO_MODE/);
   assert.match(postSource, /runZeroCostProviderRouterCanary\(\)/, "Only protected POST may execute the bounded local canary");
   assert.match(postSource, /PRODUCTION_ZERO_COST_ROUTER_CANARY/);
@@ -155,7 +160,7 @@ try {
   console.log("✓ Zero mode blocks metered providers before execution and fails over from a real 429 simulation to local zero-cost execution");
   console.log("✓ Successful near-quota response headers arm a proactive guard; the next request skips the provider without a network attempt");
   console.log("✓ Public Provider Router GET/HEAD status is read-only and cannot execute compute through ?canary=1");
-  console.log("✓ Executable local zero-cost canary is session-protected, admin-only POST and still pins execution to soolen-local");
+  console.log("✓ Executable local zero-cost canary is LANERIQ-primary, session-protected, admin-only POST and still pins execution to soolen-local");
   console.log("✓ External provider LIVE remains EVIDENCE_REQUIRED even when runtime observations exist; provider identities stay internal");
 } finally {
   globalThis.fetch = originalFetch;
