@@ -10,9 +10,10 @@ assert.equal(validateCloudServiceRequest({operation:'project.read',requestId:'re
 assert.equal(validateCloudServiceRequest({operation:'project.write',requestId:'req-1',tenantId:'tenant-1',userId:'user-1',projectId:'project-1',payload:{service_role:'x'}}).code,'RAW_SECRET_FORBIDDEN');
 assert.equal(validateCloudServiceRequest({operation:'project.write',requestId:'req-1',tenantId:'tenant-1',userId:'user-1',projectId:'project-1',payload:{query:'delete from users'}}).code,'ARBITRARY_QUERY_FORBIDDEN');
 assert.match(gateway,/createHmac\("sha256"/);assert.match(gateway,/CLOUD_SERVICE_UNREACHABLE/);const ci=gateway.indexOf('catch(error)');assert.ok(ci>=0);assert.doesNotMatch(gateway.slice(ci),/return embedded\(/);
-assert.match(security,/timingSafeEqual/);assert.match(operate,/CLOUD_STORAGE_ADAPTER_NOT_READY/);assert.match(operate,/"authorization":`Bearer \$\{adapterSecret\}`/);assert.match(status,/live:false/);
+assert.match(security,/timingSafeEqual/);assert.match(operate,/CLOUD_STORAGE_ADAPTER_NOT_READY/);assert.match(operate,/LANERIQ_CLOUD_STORAGE_ADAPTER_SECRET\|\|process\.env\.LANERIQ_CLOUD_SERVICE_SECRET/);assert.match(operate,/"authorization":`Bearer \$\{adapterSecret\}`/);assert.match(status,/live:false/);
+assert.deepEqual(manifest.requiredEnvironment,["LANERIQ_CLOUD_SERVICE_SECRET","LANERIQ_CLOUD_STORAGE_ADAPTER_URL"]);assert.ok(manifest.optionalEnvironment.includes('LANERIQ_CLOUD_STORAGE_ADAPTER_SECRET'));
 assert.equal(manifest.security.tripleScopeRequired,true);assert.equal(manifest.security.arbitraryQueryAllowed,false);assert.equal(manifest.security.rawProviderCredentialsForbidden,true);assert.equal(manifest.evidence.standaloneLive,false);
 for(const source of [gateway,operate,security])assert.doesNotMatch(source,/@supabase|SUPABASE_SERVICE|VERCEL_TOKEN|AWS_|cloudflare/i,'Cloud service boundary must remain provider-opaque.');
 console.log('✓ Cloud Data contract requires tenant + user + project scope and forbids arbitrary queries');
 console.log('✓ Remote Cloud mode is HTTPS + HMAC and never silently falls back after uncertainty');
-console.log('✓ Storage provider credentials remain adapter-owned and standalone LIVE evidence remains separate');
+console.log('✓ Storage adapter can reuse the Cloud service secret without exposing provider credentials');
