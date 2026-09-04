@@ -29,7 +29,7 @@ for(const language of LANGUAGE_DEFINITIONS){
 }
 
 // Every declared core UI key is 100% populated across every supported locale.
-assert.ok(CRITICAL_UI_PHRASES.length>=45,'Core UI catalog must cover the primary Builder/Auth/Templates chrome.');
+assert.ok(CRITICAL_UI_PHRASES.length>=60,'Core UI catalog must cover the LIUI Builder/Auth/Templates chrome.');
 for(const phrase of CRITICAL_UI_PHRASES){
   const translations=UI_TRANSLATIONS[phrase];
   assert.ok(translations,`Missing UI phrase: ${phrase}`);
@@ -60,6 +60,9 @@ assert.equal(normalizeLanguage(''),'en');
 assert.equal(translateUiText('Dashboard','zh-CN'),'控制台');
 assert.equal(translateUiText('Build','ms'),'Bina');
 assert.equal(translateUiText('Templates','es'),'Plantillas');
+assert.equal(translateUiText('Home','zh-CN'),'首页');
+assert.equal(translateUiText('BUILD APP • GAME • WEB','ms'),'BINA APP • GAME • WEB');
+assert.equal(translateUiText('Create Image','ja'),'画像を生成');
 assert.equal(translateUiText('Unknown customer text','zh-CN'),'Unknown customer text');
 assert.notEqual(translateUiText('Resend in 37s','zh-CN'),'Resend in 37s');
 assert.notEqual(translateUiText('Resend in 37s','ms'),'Resend in 37s');
@@ -86,9 +89,16 @@ assert.match(layout,/<LanguageRuntime \/>/);
 assert.match(layout,/<html lang="en">/);
 
 // Critical source surfaces must map stable visible English chrome into the complete catalog.
+// Page 1 follows LIUI-2026.2 only; retired homepage copy must not be required by i18n.
 // WhatsApp-specific phone auth labels are separately locked below so the retired SMS label cannot return.
 const requiredSurfacePhrases=[
-  [home,['Describe the App & Website you want to build','✦ Improve Prompt','Choose a Style','Or Choose a Template','BUILD APP + WEBSITE','Dashboard','My Creations','Templates','More']],
+  [home,[
+    'Build App • Game • Web','Tell LANERIQ AI what you want to create.','Powered by',
+    'Tell LANERIQ AI what you want to build','✦ Improve Prompt','Ṫ Text Idea','▧ Upload Ref','◉ Voice Idea','↗ Photo / Video',
+    'Create Image','Turn ideas into visuals with AI','Design UI','Craft layouts and visuals with AI',
+    'Choose a Style','Customer colors can change later','Choose a Template','View All ›','BUILD APP • GAME • WEB',
+    '✦ Credits','My projects','Home','Projects','Create','Templates','More'
+  ]],
   [auth,['Checking your session…','Secure sign in','CREATE WITHOUT LIMITS','One code.','Your whole studio.','SECURE VERIFICATION','Enter your code','Welcome back','Email Code','Email address','Verify & Continue','Resend Code','Encrypted session','One-time code','Rate-limit aware']],
   [templates,['Reference. Reimagine. Build something original.','Create from scratch →','🔥 Trending 100','All Inspirations','All industries','All styles','AI Reimagine →','Reference only · AI will reimagine the structure, visuals and copy.','No inspiration matched these filters. Try a broader search.']],
 ];
@@ -98,6 +108,7 @@ for(const [source,phrases] of requiredSurfacePhrases){
     assert.ok(UI_TRANSLATIONS[phrase],`Critical surface phrase is not in canonical i18n catalog: ${phrase}`);
   }
 }
+assert.doesNotMatch(home,/Describe the App & Website you want to build|BUILD APP \+ WEBSITE|My Creations/,'Retired Page 1 copy must not return just to satisfy multilingual tests');
 
 assert.match(auth,/WhatsApp Code/,'WhatsApp Code must remain the only phone verification label');
 assert.match(auth,/WhatsApp number/,'WhatsApp phone input must remain explicit');
@@ -110,8 +121,9 @@ for(const phrase of CRITICAL_ATTRIBUTE_PHRASES){
 }
 
 console.log('✓ Multilingual catalog has complete 10/10 locale coverage for every declared core UI key');
+console.log('✓ LIUI-2026.2 Page 1 critical chrome is translated through the canonical catalog in all 10 locales');
 console.log('✓ Hero and critical placeholder catalogs have complete 10/10 coverage with deterministic English fallback');
 console.log('✓ Runtime persists language, sets html lang/dir, translates dynamic React text and key accessibility attributes');
-console.log('✓ Builder, stable Auth chrome and Templates critical chrome remain locked to the canonical translation catalog');
+console.log('✓ LIUI Builder, stable Auth chrome and Templates critical chrome remain locked to the canonical translation catalog');
 console.log('✓ Auth phone verification is explicitly WhatsApp-only; retired SMS labels and methods are blocked');
 console.log('✓ Unsupported locales fail safely and no legacy duplicate PHRASES/HERO dictionary remains in the runtime');
