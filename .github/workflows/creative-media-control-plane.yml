@@ -17,7 +17,11 @@ on:
       - 'scripts/creative-media-quality-runtime-contract-tests.mjs'
       - '.github/workflows/creative-media-control-plane.yml'
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'batch*-ai-image-video-*'
+      - 'batch*-image-*'
+      - 'batch*-video-*'
     paths:
       - 'lib/ai/creative-media-control-plane.js'
       - 'lib/ai/creative-media-quality-judge.js'
@@ -30,6 +34,7 @@ on:
       - 'app/api/video/**'
       - 'scripts/creative-media-control-plane-contract-tests.mjs'
       - 'scripts/creative-media-quality-runtime-contract-tests.mjs'
+      - '.github/workflows/creative-media-control-plane.yml'
 
 jobs:
   creative-media-contract:
