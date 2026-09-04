@@ -1,0 +1,85 @@
+/* LANERIQ AI Living Intelligence homepage template v5.
+   This is the final visual authority for Page 1 and corrects the remaining
+   legacy dark-input/template overrides without changing generation behavior. */
+
+.premiumHome{
+  --liui-v5-gold:#f2c862;
+  --liui-v5-text:#f7fbff;
+  --liui-v5-muted:#a9bac8;
+  --liui-v5-glass:rgba(4,20,38,.68);
+  --liui-v5-line:rgba(120,185,232,.26);
+}
+
+/* Brand hierarchy from the approved 18-page Master Product Specification. */
+.premiumHome .heroCopy h1 span::after{content:'LANERIQ AI'!important}
+.premiumHome .heroCopy h1 strong::after{content:'LIVING INTELLIGENCE'!important;color:#f4d57c!important;letter-spacing:.20em!important}
+.premiumHome .heroCopy p::before{content:'Build App • Game • Web'!important;font-style:normal!important;font-family:Inter,system-ui,-apple-system,sans-serif!important;font-size:clamp(15px,3vw,22px)!important;font-weight:760!important;letter-spacing:.035em!important;color:#fff!important}
+.premiumHome .powered::after{content:'Tell LANERIQ AI what you want to create.'!important;color:#dbe8f2!important}
+
+/* LIUI rule: glass surrounds the intent surface, but the typing surface itself is light/warm for legibility. */
+.premiumHome .promptCard{
+  background:linear-gradient(145deg,rgba(6,24,44,.72),rgba(9,15,37,.66))!important;
+  border:1px solid rgba(126,190,236,.30)!important;
+  box-shadow:0 24px 65px rgba(0,0,0,.34)!important;
+  backdrop-filter:blur(24px) saturate(140%)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(140%)!important;
+}
+.premiumHome .promptHead label::after{content:'Tell LANERIQ AI what you want to build'!important;color:#f7fbff!important}
+.premiumHome .promptCard textarea{
+  min-height:118px!important;
+  max-height:260px!important;
+  background:linear-gradient(180deg,#fffdf7 0%,#f2ecdf 100%)!important;
+  color:#15202b!important;
+  border:1px solid rgba(255,255,255,.72)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 24px rgba(0,0,0,.14)!important;
+  font-size:max(16px,1em)!important;
+  line-height:1.55!important;
+  caret-color:#1b62c4!important;
+}
+.premiumHome .promptCard textarea::placeholder{color:#66727c!important;opacity:1!important}
+.premiumHome .promptCard textarea:focus{outline:2px solid rgba(94,165,231,.58)!important;outline-offset:2px!important}
+
+/* Creator tools sit below the prompt, matching Page 1. */
+.premiumHome .featureCards{margin-top:10px!important}
+.premiumHome .feature{
+  background:linear-gradient(155deg,rgba(8,29,52,.70),rgba(7,16,34,.64))!important;
+  border-color:rgba(125,183,229,.25)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+.premiumHome .feature.primary b::after{content:'Create Image'!important}
+.premiumHome .feature:not(.primary) b::after{content:'Design UI'!important}
+
+/* Style + templates are Living Cards, not opaque tool panels. */
+.premiumHome .choiceCard{
+  background:linear-gradient(145deg,rgba(5,23,43,.68),rgba(10,16,38,.64))!important;
+  border-color:rgba(125,183,229,.25)!important;
+  backdrop-filter:blur(22px)!important;
+  -webkit-backdrop-filter:blur(22px)!important;
+}
+.premiumHome .choiceCard :where(button,a){min-height:44px!important}
+
+/* Golden primary action remains visually dominant. */
+.premiumHome .buildCta{
+  min-height:60px!important;
+  background:linear-gradient(180deg,#ffe58b 0%,#f0c14e 48%,#c98b1f 100%)!important;
+  border-color:#ffe89a!important;
+  box-shadow:0 0 34px rgba(240,193,78,.28),0 18px 46px rgba(0,0,0,.38)!important;
+}
+.premiumHome .buildCta span::after{content:'BUILD APP • GAME • WEB'!important}
+
+/* Canonical LIUI bottom nav is 5 items. Any retired homepage nav remains hidden by LIUIRealProductSurface. */
+body[data-liui-surface="creation"] .bottomNav{display:none!important}
+
+/* Creator Encouragement uses the same living-glass family as the main template. */
+.creatorEncourage .creatorSpark{border-color:rgba(242,200,98,.42)!important;background:linear-gradient(145deg,rgba(12,20,45,.90),rgba(6,31,37,.88))!important}
+
+@media(max-width:520px){
+  .premiumHome .heroCopy{min-height:470px!important}
+  .premiumHome .promptCard textarea{min-height:126px!important;max-height:320px!important}
+  .premiumHome .heroCopy h1 strong::after{font-size:9px!important;letter-spacing:.17em!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .premiumHome *,.premiumHome *::before,.premiumHome *::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
