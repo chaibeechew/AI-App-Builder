@@ -1,27 +1,31 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../../../lib/supabase/server.js";
+import { loadProjectMigrationAgreement, signProjectMigrationAgreement } from "../../../../../lib/cloud/creator-support.js";
 
 function json(payload,status=200){return NextResponse.json(payload,{status,headers:{"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});}
+function failure(result){
+  if(result?.code==="AUTHENTICATION_REQUIRED")return json({error:"Authentication required."},401);
+  if(result?.code==="MIGRATION_ACKNOWLEDGEMENTS_REQUIRED")return json({error:"All migration agreement acknowledgements are required."},400);
+  if(["MIGRATION_AGREEMENT_READ_FAILED","MIGRATION_AGREEMENT_SIGN_FAILED"].includes(result?.code)){
+    const message=result?.error||"Migration agreement request was not accepted.";
+    const lower=String(message).toLowerCase();
+    if(lower.includes("not found"))return json({error:"Project not found."},404);
+    if(lower.includes("after publish"))return json({error:message},409);
+  }
+  return json({error:"Unable to complete migration agreement request."},500);
+}
 
 export async function GET(_request,{params}){
   try{
-    const {id}=await params;const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();
-    if(!user)return json({error:"Authentication required."},401);
-    const {data,error}=await supabase.rpc("get_project_migration_agreement",{p_app_id:id});
-    if(error){if(String(error.message||"").toLowerCase().includes("not found"))return json({error:"Project not found."},404);throw error;}
-    return json(data);
+    const {id}=await params;
+    const result=await loadProjectMigrationAgreement({appId:id});
+    return result?.ok?json(result.data):failure(result);
   }catch(error){console.error("MIGRATION_AGREEMENT_GET_ERROR",error?.code||error?.message||"unknown");return json({error:"Unable to load migration agreement."},500);}
 }
 
 export async function POST(request,{params}){
   try{
-    const {id}=await params;const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();
-    if(!user)return json({error:"Authentication required."},401);
-    const body=await request.json().catch(()=>({}));
-    if(body?.acknowledge10Percent!==true||body?.acknowledgeContinuingShare!==true||body?.acknowledgeCustomerOwnership!==true)return json({error:"All migration agreement acknowledgements are required."},400);
-    const termsVersion=String(body?.termsVersion||"LANERIQ-PORTABILITY-10PCT-v1").trim();
-    const {data,error}=await supabase.rpc("sign_project_migration_agreement",{p_app_id:id,p_terms_version:termsVersion,p_acknowledge_10_percent:true});
-    if(error){const m=String(error.message||"").toLowerCase();if(m.includes("after publish")||m.includes("not found"))return json({error:error.message},409);throw error;}
-    return json({...data,notice:"You keep ownership and may migrate the project externally. The signed 10% project software revenue-share obligation continues after migration."});
+    const {id}=await params;const body=await request.json().catch(()=>({}));
+    const result=await signProjectMigrationAgreement({appId:id,termsVersion:body?.termsVersion,acknowledge10Percent:body?.acknowledge10Percent===true,acknowledgeContinuingShare:body?.acknowledgeContinuingShare===true,acknowledgeCustomerOwnership:body?.acknowledgeCustomerOwnership===true});
+    return result?.ok?json(result.data):failure(result);
   }catch(error){console.error("MIGRATION_AGREEMENT_POST_ERROR",error?.code||error?.message||"unknown");return json({error:"Unable to sign migration agreement."},500);}
 }
