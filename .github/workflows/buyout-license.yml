@@ -1,0 +1,51 @@
+name: LANERIQ Buyout License Gate
+
+on:
+  pull_request:
+    paths:
+      - "config/product-policy.js"
+      - "config/buyout-license-policy.js"
+      - "config/enterprise-pricing.js"
+      - "config/project-portability-policy.js"
+      - "lib/buyout-license/**"
+      - "app/api/admin/buyout-license/**"
+      - "app/app-dashboard/**"
+      - "supabase/migrations/*buyout_license*"
+      - "scripts/buyout-license-contract-tests.mjs"
+      - "scripts/release-policy-tests.mjs"
+      - "scripts/project-portability-agreement-contract-tests.mjs"
+      - "scripts/game-commercial-contract-tests.mjs"
+      - "tests/security/production-readiness-100.mjs"
+      - "README.md"
+  push:
+    branches: [main]
+    paths:
+      - "config/product-policy.js"
+      - "config/buyout-license-policy.js"
+      - "config/enterprise-pricing.js"
+      - "config/project-portability-policy.js"
+      - "lib/buyout-license/**"
+      - "app/api/admin/buyout-license/**"
+      - "app/app-dashboard/**"
+      - "supabase/migrations/*buyout_license*"
+      - "scripts/buyout-license-contract-tests.mjs"
+      - "scripts/release-policy-tests.mjs"
+      - "scripts/project-portability-agreement-contract-tests.mjs"
+      - "scripts/game-commercial-contract-tests.mjs"
+      - "tests/security/production-readiness-100.mjs"
+      - "README.md"
+
+jobs:
+  buyout-license:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/buyout-license-contract-tests.mjs
+      - run: node scripts/release-policy-tests.mjs
+      - run: node scripts/project-portability-agreement-contract-tests.mjs
+      - run: node scripts/game-commercial-contract-tests.mjs
+      - run: node tests/security/production-readiness-100.mjs
