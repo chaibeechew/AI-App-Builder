@@ -1,0 +1,47 @@
+name: Game World Generator Gate
+
+on:
+  push:
+    branches:
+      - batch127-game-world-tech-transfer
+  pull_request:
+    paths:
+      - "app/game-world/**"
+      - "app/game-builder/layout.js"
+      - "lib/game/game-world-generator-v1.js"
+      - "scripts/game-world-generator-tests.mjs"
+      - ".github/workflows/game-world-generator.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-world-generator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  world-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      GEMINI_API_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Existing Game Runtime regression
+        run: node scripts/game-runtime-v1-tests.mjs
+      - name: Advanced 3D regression
+        run: node scripts/advanced-3d-gameplay-tests.mjs
+      - name: Content Pipeline regression
+        run: node scripts/content-production-pipeline-tests.mjs
+      - name: Game World Generator contract
+        run: node scripts/game-world-generator-tests.mjs
+      - name: Next.js production build
+        run: npm run build
