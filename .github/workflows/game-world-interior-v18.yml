@@ -1,0 +1,18 @@
+name: Game World Interior V18 Gate
+on:
+  push:
+    branches: [batch178-game-world-interior-v18]
+  pull_request:
+    paths:
+      - 'lib/game/game-world-interior-v18.js'
+      - 'scripts/game-world-interior-v18-tests.mjs'
+      - '.github/workflows/game-world-interior-v18.yml'
+jobs:
+  interior-v18:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: node scripts/game-world-architecture-v17-tests.mjs
+      - run: node scripts/game-world-interior-v18-tests.mjs
