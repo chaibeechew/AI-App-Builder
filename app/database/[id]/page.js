@@ -1,88 +1,74 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 function words(value){return String(value||"").replace(/_id$/i,"").replaceAll("_"," ").replace(/\b\w/g,(m)=>m.toUpperCase());}
-function customerFields(fields=[]){
-  const hidden=new Set(["id","owner_id","created_by","created_at","updated_at"]);
-  return fields.map((field)=>String(field||"").split(":")[0].trim()).filter((name)=>name&&!hidden.has(name)).map(words);
-}
-function friendlyRelationship(value){
-  const match=String(value||"").match(/^([a-z0-9_]+)\.[^→]+→\s*([a-z0-9_]+)\./i);
-  return match?`${words(match[1])} connects to ${words(match[2])}`:String(value||"").replaceAll("_"," ");
-}
+function rawFields(fields=[]){return fields.map((field)=>String(field||"").split(":")[0].trim()).filter(Boolean);}
+function customerFields(fields=[]){const hidden=new Set(["id","owner_id","created_by","created_at","updated_at"]);return rawFields(fields).filter((name)=>!hidden.has(name)).map(words);}
+function friendlyRelationship(value){const match=String(value||"").match(/^([a-z0-9_]+)\.[^→]+→\s*([a-z0-9_]+)\./i);return match?`${words(match[1])} connects to ${words(match[2])}`:String(value||"").replaceAll("_"," ");}
 
 export default function DatabaseBuilder({ params }) {
-  const [appId, setAppId] = useState(null);
-  const [app, setApp] = useState(null);
-  const [model, setModel] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [building, setBuilding] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [appId,setAppId]=useState(null);
+  const [app,setApp]=useState(null);
+  const [model,setModel]=useState(null);
+  const [history,setHistory]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [building,setBuilding]=useState(false);
+  const [message,setMessage]=useState("");
+  const [error,setError]=useState("");
+  const [selectedEntity,setSelectedEntity]=useState(0);
 
-  useEffect(() => { Promise.resolve(params).then(v => setAppId(v.id)); }, [params]);
-  useEffect(() => { if (appId) load(); }, [appId]);
+  useEffect(()=>{Promise.resolve(params).then(v=>setAppId(v.id));},[params]);
+  useEffect(()=>{if(appId)load();},[appId]);
 
-  async function load() {
-    setLoading(true); setError("");
-    try {
-      const response = await fetch(`/api/apps/${appId}/database`, { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "Unable to load Customer Data.");
-      setApp(data.app); setModel(data.model); setHistory(data.history || []);
-    } catch (err) { setError(err.message); }
-    finally { setLoading(false); }
-  }
+  async function load(){setLoading(true);setError("");try{const response=await fetch(`/api/apps/${appId}/database`,{cache:"no-store"});const data=await response.json();if(!response.ok)throw new Error(data?.error||"Unable to load Customer Data.");setApp(data.app);setModel(data.model);setHistory(data.history||[]);}catch(err){setError(err.message);}finally{setLoading(false);}}
+  async function generate(){setBuilding(true);setError("");setMessage("");try{const response=await fetch(`/api/apps/${appId}/database`,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});const data=await response.json();if(!response.ok)throw new Error(data?.error||"Unable to organize project data.");setMessage(`Customer Data v${data.version||"new"} is ready. Your previous version is kept so you can undo safely.`);await load();}catch(err){setError(err.message);}finally{setBuilding(false);}}
+  async function rollback(version){if(building)return;setBuilding(true);setError("");setMessage("");try{const response=await fetch(`/api/apps/${appId}/database/rollback`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({version})});const data=await response.json();if(!response.ok)throw new Error(data?.error||"Unable to restore that data version.");setMessage(`Restored Customer Data v${data.restoredFrom} safely as new version v${data.newVersion}.`);await load();}catch(err){setError(err.message);}finally{setBuilding(false);}}
 
-  async function generate() {
-    setBuilding(true); setError(""); setMessage("");
-    try {
-      const response = await fetch(`/api/apps/${appId}/database`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "Unable to organize project data.");
-      setMessage(`Customer Data v${data.version || "new"} is ready. Your previous version is kept so you can undo safely.`); await load();
-    } catch (err) { setError(err.message); }
-    finally { setBuilding(false); }
-  }
+  if(loading)return <main className="page databaseReference"><div className="loading">Organizing your Customer Data…</div></main>;
+  const schema=model?.schema_json||{};
+  const entities=Array.isArray(schema.entities)?schema.entities:[];
+  const relationships=Array.isArray(schema.relationships)?schema.relationships:[];
+  const policies=Array.isArray(schema.policies)?schema.policies:[];
+  const selected=entities[selectedEntity]||entities[0]||null;
+  const selectedFields=selected?rawFields(selected.fields||[]):[];
+  const fieldCount=entities.reduce((sum,entity)=>sum+rawFields(entity.fields||[]).length,0);
+  const health=model?.status==="ready"?Math.min(100,88+Math.min(12,policies.length+relationships.length)):70;
+  const suggestions=useMemo(()=>{
+    const items=[];
+    if(!relationships.length&&entities.length>1)items.push("Review whether project information groups need explicit relationships.");
+    if(!policies.length)items.push("Review privacy and row-level access rules before storing customer data.");
+    if(entities.some(entity=>customerFields(entity.fields||[]).length<2))items.push("Some information groups have very few customer-facing fields; review the schema before launch.");
+    if(!items.length)items.push("Current model has relationship and privacy metadata. Review changes before applying destructive operations.");
+    return items.slice(0,3);
+  },[relationships.length,policies.length,entities]);
 
-  async function rollback(version) {
-    if(building)return;setBuilding(true);setError("");setMessage("");
-    try{
-      const response=await fetch(`/api/apps/${appId}/database/rollback`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({version})});
-      const data=await response.json();if(!response.ok)throw new Error(data?.error||"Unable to restore that data version.");
-      setMessage(`Restored Customer Data v${data.restoredFrom} safely as new version v${data.newVersion}.`);await load();
-    }catch(err){setError(err.message);}finally{setBuilding(false);}
-  }
+  return <main className="page databaseReference"><div className="dbWrap">
+    <section className="dbHero"><div><Link href={appId?`/app-dashboard/${appId}`:"/my-apps"} className="back">← Project</Link><div className="eyebrow">LANERIQ AI · AI APP &amp; WEB CREATOR</div><h1>Database Builder</h1><p>Design, manage and connect your project data without exposing infrastructure secrets.</p></div><div className="dbHealth"><span>Database Health</span><div className="ring" style={{"--score":`${health*3.6}deg`}}><b>{health}</b><small>/100</small></div><ul><li>Owner-scoped project data</li><li>{policies.length?`${policies.length} privacy rule(s) modeled`:"Privacy rules need review"}</li><li>{history.length?`${history.length} recoverable version(s)`:"No prior versions yet"}</li></ul></div></section>
 
-  if (loading) return <main className="page"><div className="loading">Organizing your Customer Data…</div></main>;
-  const schema = model?.schema_json || {};
-  const entities = Array.isArray(schema.entities) ? schema.entities : [];
-  const relationships = Array.isArray(schema.relationships) ? schema.relationships : [];
-  const policies = Array.isArray(schema.policies) ? schema.policies : [];
+    <nav className="dbTabs" aria-label="Database sections"><button className="active">Tables</button><button>Relations</button><button>Views</button><button>Schema</button><button>API</button></nav>
 
-  return <main className="page"><div className="wrap">
-    <Link href={appId ? `/app-dashboard/${appId}` : "/my-apps"} className="back">← Project</Link>
-    <header><div><div className="eyebrow">SOOLENAI · CUSTOMER DATA</div><h1>Customer Data</h1><p>{app?.name || "Project"} · AI organizes the information your App + Website needs. You never need to see SQL, database keys or infrastructure.</p></div><span className="badge">PRIVATE BY DEFAULT</span></header>
+    {message&&<div className="success">{message}</div>}{error&&<div className="error">{error}</div>}
 
-    <section className="heroCard"><div><small>NO CODE NEEDED</small><h2>Tell AI what your business does.<br/>We organize the information behind it.</h2><p>You work with familiar concepts such as Customers, Properties, Orders and Appointments. Technical storage details stay in the background.</p></div><button onClick={generate} disabled={building}>{building ? "Working safely…" : model ? "✨ Refresh from Current Project" : "✨ Organize My Data"}</button></section>
+    <section className="metricRow"><article><span>▱</span><small>Total Groups</small><b>{entities.length}</b></article><article><span>◉</span><small>Total Fields</small><b>{fieldCount}</b></article><article><span>⌁</span><small>Relationships</small><b>{relationships.length}</b></article><article><span>↺</span><small>Undo Points</small><b>{history.length}</b></article><article><span>✓</span><small>Data Version</small><b>v{schema.version||1}</b></article></section>
 
-    {message && <div className="success">{message}</div>}{error && <div className="error">{error}</div>}
+    {!model?<section className="empty"><h2>No Customer Data setup yet</h2><p>Generate the first safe data model from the current App + Website. The project engine keeps ownership, privacy and rollback rules in the background.</p><button onClick={generate} disabled={building}>{building?"Working safely…":"✨ Organize My Data"}</button></section>:<>
+      <div className="dbGrid">
+        <section className="tableList"><div className="sectionHead"><div><h2>Tables</h2><p>Project information groups</p></div><button onClick={generate} disabled={building}>+ Refresh Model</button></div><div className="searchFake">⌕ Search tables…</div><div className="entityList">{entities.map((entity,index)=>{const fields=customerFields(entity.fields||[]);return <button key={`${entity.name}-${index}`} onClick={()=>setSelectedEntity(index)} className={selectedEntity===index?"selected":""}><span>▱</span><div><b>{words(entity.name)}</b><small>{fields.length} customer fields</small></div><em>Active</em><i>⋮</i></button>})}</div></section>
+        <section className="tablePreview"><div className="sectionHead"><div><h2>Table Preview: {selected?words(selected.name):"—"}</h2><p>Schema preview only — live customer records are not fabricated here.</p></div><span className="secureBadge">PRIVATE</span></div><div className="fieldTable"><div className="fieldHead"><span>Field</span><span>Display Name</span><span>Purpose</span><span>Status</span></div>{selectedFields.length?selectedFields.map((field,index)=><div key={`${field}-${index}`}><code>{field}</code><span>{words(field)}</span><span>{selected?.note||"Project data field"}</span><em>Ready</em></div>):<div className="noFields">No fields available in the current model.</div>}</div></section>
+      </div>
 
-    {model ? <>
-      <section className="summary"><article><small>Status</small><strong>{model.status === "ready" ? "Ready" : model.status}</strong></article><article><small>Data Version</small><strong>v{schema.version || 1}</strong></article><article><small>Information Groups</small><strong>{entities.length}</strong></article><article><small>Undo Points</small><strong>{history.length}</strong></article></section>
+      <div className="dbGrid lower">
+        <section className="schemaCard"><div className="sectionHead"><div><h2>Relationships &amp; Schema</h2><p>How project information connects.</p></div><span>{relationships.length} connection(s)</span></div><div className="schemaCanvas">{entities.slice(0,6).map((entity,index)=><button key={`${entity.name}-schema`} className={selectedEntity===index?"node active":"node"} onClick={()=>setSelectedEntity(index)}><b>{words(entity.name)}</b>{customerFields(entity.fields||[]).slice(0,4).map(field=><small key={field}>{field}</small>)}</button>)}</div><div className="relationshipList">{relationships.length?relationships.map(item=><div key={item}>⌁ {friendlyRelationship(item)}</div>):<div>No explicit relationships are modeled yet.</div>}</div></section>
+        <div className="sideStack"><section className="assistantCard"><div className="assistantBot">✺</div><div><h2>AI Assistant (Database)</h2>{suggestions.map(item=><p key={item}>✓ {item}</p>)}<Link href={`/editor/${appId}`}>Ask AI to optimize →</Link></div></section><section className="quickCard"><h2>Quick Actions</h2><div><button onClick={generate} disabled={building}>▱ Refresh Schema<small>Rebuild from current project</small></button><Link href={`/editor/${appId}`}>✦ Generate Schema<small>Use AI project editor</small></Link><Link href={`/operations/${appId}`}>◉ Test Data Model<small>Run quality checks</small></Link><Link href={`/publish/${appId}`}>↗ Publish Readiness<small>Review release evidence</small></Link></div></section></div>
+      </div>
 
-      <section className="panel"><div className="sectionHead"><div><div className="eyebrow">INFORMATION GROUPS</div><h2>What your project keeps track of</h2></div><span>Technical details hidden</span></div><div className="grid">{entities.map((entity, index) => {const fields=customerFields(entity.fields||[]);return <article className="entity" key={`${entity.name}-${index}`}><div className="number">{String(index + 1).padStart(2,"0")}</div><h3>{words(entity.name)}</h3><p>{entity.note}</p><div className="fields">{(fields.length?fields:["Core Information"]).map(field => <span key={field}>{field}</span>)}</div><small>🔐 Protected by project privacy rules</small></article>})}</div></section>
-
-      <section className="twoCol"><article className="panel"><div className="eyebrow">CONNECTIONS</div><h2>How your information works together</h2>{relationships.length ? relationships.map(r => <div className="rule" key={r}>{friendlyRelationship(r)}</div>) : <p>No special connections are needed yet.</p>}</article><article className="panel"><div className="eyebrow">PRIVACY & SECURITY</div><h2>Protection by default</h2>{policies.map(p => <div className="rule" key={p}>✓ {p}</div>)}</article></section>
-
-      {history.length>0&&<section className="panel"><div className="eyebrow">UNDO DATA CHANGES</div><h2>Previous Customer Data versions</h2><p>Restoring never deletes the current version. SoolenAI creates a new version from the one you choose.</p><div className="history">{[...history].reverse().map(item=><div key={`${item.version}-${item.savedAt}`}><span><b>Version {item.version}</b><small>{item.savedAt?new Date(item.savedAt).toLocaleString():"Saved version"}</small></span><button disabled={building} onClick={()=>rollback(item.version)}>Restore this version</button></div>)}</div></section>}
-
-      <div className="next"><b>Next:</b> Automations can use these information groups for flows such as enquiry → customer record → notification → follow-up. You still do not need code.</div>
-    </> : <section className="empty"><h2>No Customer Data setup yet</h2><p>Tap “Organize My Data” and SoolenAI will create a safe first version from your current App + Website.</p></section>}
+      <div className="dbGrid lower"><section className="activityCard"><div className="sectionHead"><h2>Recent Activity</h2><span>{history.length} saved versions</span></div><div className="historyList">{history.length?[...history].reverse().slice(0,6).map(item=><div key={`${item.version}-${item.savedAt}`}><span>↺</span><div><b>Customer Data version {item.version}</b><small>{item.savedAt?new Date(item.savedAt).toLocaleString():"Saved version"}</small></div><button disabled={building} onClick={()=>rollback(item.version)}>Restore</button></div>):<div className="quiet">No previous database versions yet.</div>}</div></section><section className="securityCard"><div className="sectionHead"><h2>Data Safety Snapshot</h2><Link href={`/operations/${appId}`}>View quality →</Link></div><div className="safetyStats"><article><small>Privacy Rules</small><b>{policies.length}</b></article><article><small>Relationships</small><b>{relationships.length}</b></article><article><small>Recoverable Versions</small><b>{history.length}</b></article></div><div className="policyList">{policies.length?policies.slice(0,5).map(policy=><p key={policy}>✓ {policy}</p>):<p>! Review project privacy rules before production data is introduced.</p>}</div></section></div>
+    </>}
   </div><style jsx>{`
-    .page{min-height:100vh;padding:36px 18px 80px;background:linear-gradient(145deg,#03100d,#0a2119 58%,#06140f);color:#f5fff9}.wrap{max-width:1120px;margin:auto}.back{color:#d8bf62;text-decoration:none}.eyebrow,.heroCard small{color:#d8bf62;letter-spacing:.18em;font-size:11px;font-weight:900}header{display:flex;justify-content:space-between;gap:20px;margin:26px 0}h1{font-size:50px;margin:8px 0}.page p{color:#93aaa0;line-height:1.6}.badge{height:max-content;padding:9px 12px;border-radius:999px;border:1px solid rgba(121,215,172,.25);color:#79d7ac;font-size:11px;font-weight:900}.heroCard,.panel,.empty{border:1px solid rgba(216,191,98,.18);border-radius:24px;background:rgba(3,16,13,.8);padding:24px}.heroCard{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}.heroCard h2,.panel h2{font-size:30px;margin:7px 0 10px}.heroCard button,.history button{border:0;border-radius:14px;padding:14px 18px;background:#d8bf62;color:#07130e;font-weight:900}.heroCard button{white-space:nowrap}.heroCard button:disabled,.history button:disabled{opacity:.55}.success,.error,.next{margin-top:16px;padding:14px;border-radius:14px}.success{background:rgba(70,190,140,.11);color:#8de0bb}.error{background:rgba(220,70,70,.11);color:#ff9b9b}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.summary article{padding:17px;border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(3,16,13,.65)}.summary small,.summary strong{display:block}.summary small{color:#80988f}.summary strong{font-size:24px;margin-top:5px}.panel{margin-top:16px}.sectionHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-end}.sectionHead>span{color:#79d7ac;font-size:11px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.entity{padding:18px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07)}.number{color:#d8bf62;font-size:11px;font-weight:900}.entity h3{font-size:22px;margin:8px 0}.entity p{font-size:13px;min-height:42px}.fields{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.fields span{font-size:11px;color:#cbd7d2;background:#0d3025;border-radius:8px;padding:6px 8px}.entity small{color:#79d7ac}.twoCol{display:grid;grid-template-columns:1fr 1fr;gap:14px}.rule{padding:10px 0;border-top:1px solid rgba(255,255,255,.06);color:#b9c9c2;font-size:13px}.history{display:grid;gap:8px;margin-top:14px}.history>div{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:12px;border-radius:14px;background:#0b261c}.history span,.history small{display:block}.history small{color:#82988f;margin-top:3px}.history button{padding:9px 12px;font-size:11px}.next{border:1px solid rgba(216,191,98,.16);color:#aebfb8}.empty{margin-top:16px;text-align:center;padding:60px 20px}.loading{min-height:80vh;display:grid;place-items:center;color:#d8bf62}@media(max-width:780px){header,.heroCard{flex-direction:column;align-items:flex-start}.summary{grid-template-columns:1fr 1fr}.grid,.twoCol{grid-template-columns:1fr}.heroCard button{width:100%}h1{font-size:40px}.history>div{align-items:flex-start;flex-direction:column}.history button{width:100%}}
+    .databaseReference{min-height:100vh;padding:24px 18px 185px;background:transparent;color:#f8fbff}.dbWrap{max-width:1180px;margin:auto}.dbHero{display:grid;grid-template-columns:1fr 310px;gap:18px;align-items:end}.back{color:#f2bd52;text-decoration:none}.eyebrow{margin-top:14px;color:#f2bd52;letter-spacing:.15em;font-size:10px;font-weight:900}.dbHero h1{font-size:clamp(38px,5vw,56px);margin:12px 0 6px;letter-spacing:-.035em}.dbHero p{color:#a9bac9;max-width:650px;line-height:1.55}.dbHealth,.metricRow article,.tableList,.tablePreview,.schemaCard,.assistantCard,.quickCard,.activityCard,.securityCard,.empty{border:1px solid rgba(190,216,244,.18);background:linear-gradient(145deg,rgba(7,27,48,.86),rgba(8,18,39,.78));border-radius:21px;box-shadow:0 22px 60px rgba(0,0,0,.28);backdrop-filter:blur(22px) saturate(140%)}.dbHealth{padding:17px;display:grid;grid-template-columns:98px 1fr;gap:8px 14px;align-items:center}.dbHealth>span{grid-column:1/-1;color:#c8d5e0}.ring{--score:0deg;width:94px;height:94px;border-radius:50%;display:grid;place-items:center;align-content:center;background:radial-gradient(circle,#071627 0 55%,transparent 56%),conic-gradient(#68e597 var(--score),#1a3147 0);box-shadow:0 0 30px #68e59730}.ring b{font-size:28px}.ring small{font-size:9px;color:#8fa4b5}.dbHealth ul{margin:0;padding:0;list-style:none;display:grid;gap:7px;color:#aabcc9;font-size:11px}.dbHealth li:before{content:'●';color:#68e597;margin-right:7px}.dbTabs{display:flex;gap:8px;margin:18px 0 10px;padding:6px;border-radius:15px;background:rgba(4,16,31,.72);border:1px solid #ffffff12;width:max-content}.dbTabs button{min-height:36px;border:0;border-radius:10px;padding:0 18px;background:transparent;color:#9cb0c2;font-weight:800}.dbTabs .active{background:linear-gradient(90deg,#6f3fdf,#9255ff);color:#fff}.success,.error{padding:12px 14px;border-radius:12px;margin:12px 0}.success{background:#46be8c1a;color:#8de0bb}.error{background:#dc46461a;color:#ff9b9b}.metricRow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:12px 0 14px}.metricRow article{padding:13px;display:grid;grid-template-columns:34px 1fr;column-gap:8px;align-items:center}.metricRow article>span{grid-row:1/3;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#6b4cff2b;color:#aa8cff}.metricRow small{color:#8fa4b6}.metricRow b{font-size:22px}.dbGrid{display:grid;grid-template-columns:.95fr 1.55fr;gap:14px;margin-top:14px}.dbGrid.lower{grid-template-columns:1.1fr .9fr}.tableList,.tablePreview,.schemaCard,.assistantCard,.quickCard,.activityCard,.securityCard{padding:16px}.sectionHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.sectionHead h2{margin:0;font-size:19px}.sectionHead p{margin:4px 0 0;color:#8fa3b4;font-size:11px}.sectionHead>button{min-height:36px;border:0;border-radius:10px;padding:0 12px;background:linear-gradient(90deg,#6e3fdf,#9151fa);color:#fff;font-weight:800}.sectionHead>span,.sectionHead>a{font-size:11px;color:#9db7ff;text-decoration:none}.searchFake{margin:12px 0;padding:10px 12px;border-radius:10px;background:#071827;color:#70879a}.entityList{display:grid;gap:7px}.entityList>button{width:100%;display:grid;grid-template-columns:30px 1fr auto 20px;align-items:center;gap:8px;text-align:left;padding:9px;border:1px solid transparent;border-radius:11px;background:#071827;color:#eaf2f8}.entityList>button.selected{border-color:#8b58ff;background:#171f43;box-shadow:0 0 24px #7f4dff25}.entityList>button>span{color:#a77dff}.entityList b,.entityList small{display:block}.entityList small{color:#8298aa;margin-top:2px}.entityList em{font-style:normal;padding:4px 7px;border-radius:7px;background:#173e2b;color:#67dc93;font-size:9px}.entityList i{font-style:normal;color:#6c8194}.secureBadge{padding:5px 8px;border-radius:8px;background:#173e2b;color:#67df94;font-size:9px}.fieldTable{margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid #ffffff10}.fieldHead,.fieldTable>div:not(.fieldHead):not(.noFields){display:grid;grid-template-columns:1fr 1fr 1.4fr 70px;gap:9px;align-items:center;padding:9px 10px}.fieldHead{background:#061321;color:#8299ac;font-size:10px}.fieldTable>div:not(.fieldHead):not(.noFields){border-top:1px solid #ffffff0d;font-size:11px}.fieldTable code{color:#d7e5ef}.fieldTable span{color:#91a5b6}.fieldTable em{font-style:normal;color:#67df94}.noFields{padding:30px;color:#8195a7;text-align:center}.schemaCanvas{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.node{padding:12px;border-radius:13px;border:1px solid #ffffff16;background:#071827;color:#fff;text-align:left}.node.active{border-color:#8b58ff;box-shadow:0 0 24px #7e4dff35}.node b,.node small{display:block}.node small{color:#8297a9;margin-top:4px}.relationshipList{display:grid;gap:6px;margin-top:12px;color:#93a7b8;font-size:11px}.sideStack{display:grid;gap:14px}.assistantCard{display:grid;grid-template-columns:82px 1fr;gap:12px}.assistantBot{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#a35dff,#361278 70%);font-size:34px;box-shadow:0 0 30px #8b50ff55}.assistantCard h2{margin:0 0 8px}.assistantCard p{margin:5px 0;color:#9bb0c0;font-size:11px}.assistantCard a{display:inline-flex;margin-top:8px;padding:9px 11px;border-radius:9px;background:#6f3fdf;color:#fff;text-decoration:none;font-size:11px}.quickCard h2{margin:0 0 12px}.quickCard>div{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quickCard button,.quickCard a{min-height:68px;border:0;border-radius:11px;background:#071827;color:#fff;text-decoration:none;text-align:left;padding:10px;font-weight:800}.quickCard small{display:block;color:#8398aa;margin-top:3px;font-weight:400}.historyList{display:grid;gap:7px;margin-top:12px}.historyList>div{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:9px;border-radius:10px;background:#071827}.historyList>div>span{color:#8c61ff}.historyList b,.historyList small{display:block}.historyList small{color:#8298aa;margin-top:2px}.historyList button{min-height:34px;border:1px solid #8e5cff55;border-radius:9px;background:#31185f;color:#d8c5ff}.quiet{color:#8195a7!important;display:block!important}.safetyStats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.safetyStats article{padding:12px;border-radius:11px;background:#071827}.safetyStats small,.safetyStats b{display:block}.safetyStats small{color:#8095a6}.safetyStats b{font-size:24px;margin-top:3px}.policyList{margin-top:10px}.policyList p{margin:6px 0;color:#8fa4b6;font-size:11px}.empty{padding:60px 20px;text-align:center}.empty p{color:#90a5b7}.empty button{min-height:46px;border:0;border-radius:12px;background:linear-gradient(90deg,#6f3fdf,#9151fa);color:#fff;padding:0 18px;font-weight:900}.loading{min-height:75vh;display:grid;place-items:center;color:#f2bd52}
+    @media(max-width:900px){.dbHero,.dbGrid,.dbGrid.lower{grid-template-columns:1fr}.metricRow{grid-template-columns:repeat(2,1fr)}.metricRow article:last-child{grid-column:1/-1}.dbTabs{max-width:100%;overflow-x:auto}.schemaCanvas{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:560px){.databaseReference{padding-left:10px;padding-right:10px}.dbHealth{grid-template-columns:82px 1fr}.ring{width:78px;height:78px}.fieldHead,.fieldTable>div:not(.fieldHead):not(.noFields){grid-template-columns:1fr 1fr}.fieldHead span:nth-child(3),.fieldHead span:nth-child(4),.fieldTable>div span:nth-child(3),.fieldTable>div em{display:none}.quickCard>div,.safetyStats{grid-template-columns:1fr 1fr}.assistantCard{grid-template-columns:60px 1fr}.assistantBot{width:54px;height:54px;font-size:26px}}
   `}</style></main>;
 }
