@@ -1,5 +1,5 @@
 export default {
-  testDir:"./scripts",
+  testDir:".",
   testMatch:"game-world-v6-browser-runtime.spec.mjs",
   timeout:60000,
   fullyParallel:false,
