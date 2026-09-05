@@ -1,0 +1,18 @@
+name: Game World Terrain V14 Gate
+on:
+  push:
+    branches: [batch174-game-world-terrain-v14]
+  pull_request:
+    paths:
+      - 'lib/game/game-world-terrain-v14.js'
+      - 'scripts/game-world-terrain-v14-tests.mjs'
+      - '.github/workflows/game-world-terrain-v14.yml'
+jobs:
+  terrain-v14:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: node scripts/game-world-production-export-v13-tests.mjs
+      - run: node scripts/game-world-terrain-v14-tests.mjs
