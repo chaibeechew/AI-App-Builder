@@ -1,4 +1,4 @@
-# trigger: 2026-09-05-comprehensive-ui-heal-v5
+# trigger: 2026-09-05-comprehensive-ui-heal-v6
 name: UI reference CI heal one-shot
 
 on:
