@@ -96,6 +96,7 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
             providerLiveVerified: false,
             physicalDeviceVerified: false,
             independentThirdPartyAuditVerified: false,
+            permanentImmutableAuditStorageClaimed: false,
             officialStoreSubmissionVerified: false,
             emailDeliveryVerified: false,
             whatsappDeliveryVerified: false,
@@ -103,8 +104,14 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
           },
         };
         const json = JSON.stringify(manifest, null, 2);
-        const digest = crypto.createHash("sha256").update(json).digest("hex");
-        fs.writeFileSync("production-runtime-convergence-manifest.json", `${json}\n`, "utf8");
+        const fileContents = `${json}\n`;
+        const digest = crypto.createHash("sha256").update(fileContents).digest("hex");
+        fs.writeFileSync("production-runtime-convergence-manifest.json", fileContents, "utf8");
+        fs.writeFileSync(
+          "production-runtime-convergence-manifest.sha256",
+          `${digest}  production-runtime-convergence-manifest.json\n`,
+          "utf8",
+        );
         console.log(json);
         console.log(`PRODUCTION_RUNTIME_MANIFEST_SHA256=${digest}`);
         if (process.env.GITHUB_STEP_SUMMARY) {
@@ -114,7 +121,7 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
             `- Runtime deployment: \`${root.deploymentId}\`\n` +
             `- Runtime ref/environment: \`main / production\`\n` +
             `- Double-read stability: **verified**\n` +
-            `- Manifest SHA-256: \`${digest}\`\n` +
+            `- Manifest file SHA-256: \`${digest}\`\n` +
             `- Evidence: **observed public Production runtime**\n`,
             "utf8",
           );
