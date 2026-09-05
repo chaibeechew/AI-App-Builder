@@ -20,13 +20,13 @@ function groupForPage(pageId) {
 
 function resolvePage(pathname, searchParams) {
   const path = String(pathname || "/");
+  const flow = searchParams?.get("flow") || "";
   if (path === "/") {
-    const flow = searchParams?.get("flow") || "";
     if (flow === "create-project") return pageById(2);
     if (flow === "build-progress") return pageById(3);
     return pageById(1);
   }
-  if (path === "/create") return pageById(2);
+  if (path === "/create") return flow === "build-progress" ? pageById(3) : pageById(2);
   if (path.startsWith("/preview/")) return pageById(4);
   if (path.startsWith("/release/")) return pageById(5);
   if (path.startsWith("/app-dashboard/")) return pageById(6);
