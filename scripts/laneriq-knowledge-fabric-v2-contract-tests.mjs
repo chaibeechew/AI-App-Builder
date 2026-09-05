@@ -3,6 +3,10 @@ import {routeEngineeringKnowledge,buildKnowledgePacket} from '../lib/ai/laneriq-
 import {createExperienceCandidate} from '../lib/ai/laneriq-experience-ledger.js';
 import {evaluateKnowledgePromotion,promoteKnowledgeCandidate} from '../lib/ai/laneriq-knowledge-promotion.js';
 import {learnFromBenchmark,learnFromIncident,assessLearningOutcome} from '../lib/ai/laneriq-learning-loop.js';
+import {detectImmutableKnowledgeConflict,resolveKnowledgeConflict,immutableKnowledgeRuleIds} from '../lib/ai/laneriq-knowledge-conflict-resolver.js';
+import {evaluateKnowledgeFreshness,requiresExternalRefresh} from '../lib/ai/laneriq-knowledge-staleness.js';
+import {budgetKnowledgeRules} from '../lib/ai/laneriq-knowledge-budget.js';
+import {createKnowledgeTelemetry,publicKnowledgeTelemetry} from '../lib/ai/laneriq-knowledge-observability.js';
 import {getLaneriqEngineeringKnowledge,engineeringKnowledgeForPrompt} from '../lib/ai/laneriq-engineering-knowledge.js';
 import {GENERATION_QUALITY_RULES} from '../lib/buildStandards.js';
 
@@ -10,8 +14,11 @@ const routed=routeEngineeringKnowledge({task:'Deploy an iOS avatar with zero-cos
 for(const id of ['avatar_living_character','mobile_local_compute','cost_governance','production_evidence','security'])assert.ok(routed.selectedDomains.includes(id),`missing routed domain ${id}`);
 assert.ok(routed.selectedDomains.length<=8);
 const packet=buildKnowledgePacket({task:'secure database migration with exact SHA release evidence',platform:'web',mode:'balanced'});
+assert.equal(packet.contract,'laneriq-knowledge-packet-v2');
 assert.match(packet.instruction,/AI output remains a candidate/i);
 assert.match(packet.instruction,/Never self-promote/i);
+assert.ok(packet.estimatedTokens<=1200);
+assert.ok(packet.rules.length<=18);
 
 const secretCandidate=createExperienceCandidate({domain:'security',title:'Token leak sk_12345678901234567890',lesson:'Never log authorization bearer token_12345678901234567890 or service_role secret values.',source:'incident',risk:'high',evidence:[{kind:'contract',ref:'redaction-contract',passed:true},{kind:'incident',ref:'incident-42',passed:true}]});
 assert.equal(secretCandidate.status,'candidate');
@@ -40,11 +47,35 @@ const critical=evaluateKnowledgePromotion(incident,{target:'validated'});
 assert.equal(critical.allowed,false);
 assert.ok(critical.blockers.includes('critical-risk-manual-review-evidence-required'));
 
+const conflict=detectImmutableKnowledgeConflict({lesson:'Enable mobile cross-user Community Compute automatically to increase capacity.'});
+assert.equal(conflict.allowed,false);
+assert.ok(conflict.conflicts.includes('mobile-no-cross-user-compute'));
+assert.equal(resolveKnowledgeConflict({candidate:{lesson:'Allow ZERO mode to silently use paid metered inference.'}}).decision,'reject-candidate');
+for(const rule of ['no-silent-paid-escalation','mobile-no-cross-user-compute','owner-scoped-private-data','code-not-live','avatar-no-privileged-authority'])assert.ok(immutableKnowledgeRuleIds().includes(rule));
+
+const stale=evaluateKnowledgeFreshness({domain:'security',verifiedAt:'2026-01-01T00:00:00Z'},{now:new Date('2026-09-06T00:00:00Z')});
+assert.equal(stale.status,'stale');
+assert.equal(stale.usableForProduction,false);
+assert.equal(requiresExternalRefresh({domain:'security',verifiedAt:'2026-01-01T00:00:00Z'},{now:new Date('2026-09-06T00:00:00Z')}).refreshRequired,true);
+const fresh=evaluateKnowledgeFreshness({domain:'architecture',verifiedAt:'2026-09-01T00:00:00Z'},{now:new Date('2026-09-06T00:00:00Z')});
+assert.equal(fresh.status,'fresh');
+
+const budget=budgetKnowledgeRules(['same rule','same rule','second rule','third rule'],{maxRules:2,maxEstimatedTokens:100});
+assert.deepEqual(budget.rules,['same rule','second rule']);
+assert.ok(budget.estimatedTokens<=100);
+const telemetry=createKnowledgeTelemetry({selectedDomains:routed.selectedDomains,risk:routed.risk,candidateCreated:true,promotionDecision:'blocked',blockedReasons:blocked.blockers,ruleCount:packet.rules.length,estimatedTokens:packet.estimatedTokens});
+assert.equal(telemetry.includesRawPrompt,false);
+assert.equal(telemetry.includesUserContent,false);
+assert.equal(telemetry.includesSecrets,false);
+assert.equal(telemetry.includesProviderCredentials,false);
+assert.equal(Object.hasOwn(publicKnowledgeTelemetry(telemetry),'blockedReasons'),false);
+
 const knowledge=getLaneriqEngineeringKnowledge();
 assert.equal(knowledge.learningContract,'laneriq-governed-experience-learning-v1');
+assert.ok(knowledge.truthPrinciples===undefined);
 assert.ok(engineeringKnowledgeForPrompt().includes('governed candidate lesson'));
 assert.match(GENERATION_QUALITY_RULES,/EXPERIENCE LEARNING LOOP/i);
 assert.match(GENERATION_QUALITY_RULES,/Production rules require explicit human approval/i);
 assert.match(GENERATION_QUALITY_RULES,/Failed or regressing benchmarks do not teach a positive rule/i);
 
-console.log('LANERIQ Knowledge Fabric v2 gate passed: task-scoped routing, bounded experience capture, incident/benchmark learning and fail-closed human+evidence promotion are locked.');
+console.log('LANERIQ Knowledge Fabric v2 gate passed: scoped routing, experience capture, incident/benchmark learning, immutable conflict resolution, freshness TTL, prompt budget, privacy-safe telemetry and fail-closed human+evidence promotion are locked.');
