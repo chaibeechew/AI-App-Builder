@@ -1,4 +1,4 @@
-# trigger: 2026-09-05-final-ui-heal
+# trigger: 2026-09-05-comprehensive-ui-heal-v2
 name: UI reference CI heal one-shot
 
 on:
@@ -34,11 +34,14 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Apply source-level reference UI fixes
         run: python scripts/ui-reference-ci-heal-once.py
-      - name: Verify previously failing reference contracts
+      - name: Verify all known failing UI contracts
         run: |
           node scripts/batch39-18-page-product-surface-tests.mjs
           node scripts/18-page-interaction-integrity-tests.mjs
           npm run test:mobile-ui
+          node scripts/template-contract-tests.mjs
+          node scripts/batch40-liui-real-product-surface-tests.mjs
+          node scripts/soolen-platform-operator-contract-tests.mjs
       - name: Production build
         run: npm run build
       - name: Commit only verified source fixes and remove temporary healer
@@ -46,6 +49,6 @@ jobs:
           git rm .github/workflows/ui-reference-ci-heal-one-shot.yml scripts/ui-reference-ci-heal-once.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app/database/'[id]'/page.js app/templates/page.js app/home-liui-v5.css
-          git commit -m 'UI: heal reference layout contracts without weakening gates'
+          git add app/database/'[id]'/page.js app/templates/page.js app/home-liui-v5.css app/liui-real-product-surface.css app/soolen-ai/page.js
+          git commit -m 'UI: heal all reference layout contracts without weakening gates'
           git push origin HEAD:ui/18-page-reference-layout-v1
