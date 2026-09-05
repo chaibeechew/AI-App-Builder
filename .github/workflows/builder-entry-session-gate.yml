@@ -1,0 +1,45 @@
+name: LANERIQ Builder Entry Session Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/page.js'
+      - 'app/create/page.js'
+      - 'app/api/generate/route.js'
+      - 'lib/auth/session-safety.js'
+      - 'lib/auth/laneriq-session.js'
+      - 'lib/cloud-adapters/builder-project-data.js'
+      - 'scripts/builder-entry-session-contract-tests.mjs'
+      - '.github/workflows/builder-entry-session-gate.yml'
+  push:
+    branches:
+      - main
+      - 'fix/18-page-*'
+    paths:
+      - 'app/page.js'
+      - 'app/create/page.js'
+      - 'app/api/generate/route.js'
+      - 'lib/auth/session-safety.js'
+      - 'lib/auth/laneriq-session.js'
+      - 'lib/cloud-adapters/builder-project-data.js'
+      - 'scripts/builder-entry-session-contract-tests.mjs'
+      - '.github/workflows/builder-entry-session-gate.yml'
+
+jobs:
+  builder-entry-session-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Builder entry session contract
+        run: node scripts/builder-entry-session-contract-tests.mjs
+      - name: Truth boundary
+        run: echo 'This gate verifies code/session contracts only. Production auth, provider, browser and device behavior still require runtime evidence.'
