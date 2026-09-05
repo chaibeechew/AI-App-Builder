@@ -10,8 +10,6 @@ on:
       - "scripts/provider-evidence-control-plane-tests.mjs"
       - ".github/workflows/provider-evidence-control-plane-gate.yml"
   push:
-    branches:
-      - main
     paths:
       - "engine/ai-provider.js"
       - "lib/ai/provider-evidence-control-plane.js"
