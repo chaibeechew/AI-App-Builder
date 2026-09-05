@@ -50,9 +50,12 @@ export async function GET(_request,{params}){
     const {id}=await params;const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();
     if(!user)return json({error:"Authentication required."},401);
     const app=await ownedApp(supabase,id,user.id);if(!app)return json({error:"Project not found."},404);
-    const {data,error}=await supabase.from("app_workflows").select("id,name,trigger_type,trigger_config,actions,enabled,created_at,updated_at").eq("app_id",id).eq("owner_id",user.id).order("created_at",{ascending:true});
-    if(error)throw error;
-    return json({success:true,app:{id:app.id,name:app.name},workflows:data||[]});
+    const [{data,error},{data:runs, error:runsError}]=await Promise.all([
+      supabase.from("app_workflows").select("id,name,trigger_type,trigger_config,actions,enabled,created_at,updated_at").eq("app_id",id).eq("owner_id",user.id).order("created_at",{ascending:true}),
+      supabase.from("workflow_runs").select("id,workflow_id,status,action_results,created_at,completed_at").eq("app_id",id).eq("owner_id",user.id).order("created_at",{ascending:false}).limit(50),
+    ]);
+    if(error)throw error;if(runsError)throw runsError;
+    return json({success:true,app:{id:app.id,name:app.name},workflows:data||[],runs:runs||[]});
   }catch(error){console.error("WORKFLOWS_GET_ERROR",error);return json({error:"Unable to load workflows."},500);}
 }
 
