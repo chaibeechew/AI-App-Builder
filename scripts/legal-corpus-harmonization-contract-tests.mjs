@@ -125,8 +125,8 @@ contains(takedown, 'A hold preserves evidence/risk controls and is not a final a
 // Operator transition and private contracting identity stay historically truthful.
 contains(operatorTransition, '1,000-user threshold is an internal operational trigger only');
 contains(operatorTransition, 'does not automatically create, substitute or novate a legal contracting party');
-contains(operatorTransition, 'does not increase, duplicate or restart an existing project Revenue Share');
-contains(operatorTransition, 'does not invalidate an existing valid Buyout');
+contains(operatorTransition, 'duplicate or restart an existing revenue-share obligation');
+contains(operatorTransition, 'invalidate an existing valid Buyout');
 contains(operatorTransition, 'preserve historical agreements exactly as originally executed');
 contains(contractingIntake, 'DO NOT COMMIT COMPLETED PERSONAL DATA TO THE PUBLIC REPOSITORY');
 contains(contractingIntake, 'does not require a Creator to pay the same Revenue Share twice');
