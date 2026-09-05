@@ -43,11 +43,14 @@ public class MainActivity extends Activity {
         scroll.addView(root);
 
         root.addView(text("LANERIQ Anti Scam", 30, true));
-        TextView subtitle = text("P0 Guardian Reliability Test • 0.2.0-p0.1", 15, false);
+        TextView subtitle = text("P0 Guardian Reliability Test • 0.2.0-p0.2", 15, false);
         subtitle.setTextColor(Color.DKGRAY);
         root.addView(subtitle);
 
-        TextView truth = text("Truth Gate: Guardian status is shown only from a fresh local Protection Lease.", 13, true);
+        TextView truth = text(
+                "Truth Gate: Active requires a fresh local lease, a live service session and heartbeat evidence.",
+                13,
+                true);
         truth.setTextColor(Color.rgb(150, 85, 0));
         truth.setPadding(0, dp(12), 0, dp(18));
         root.addView(truth);
@@ -65,17 +68,18 @@ public class MainActivity extends Activity {
         stop.setOnClickListener(v -> stopGuardian());
         root.addView(stop, matchWrap(dp(12)));
 
-        Button refresh = button("Refresh Protection Lease");
+        Button refresh = button("Refresh Protection Evidence");
         refresh.setOnClickListener(v -> refreshStatus());
         root.addView(refresh, matchWrap(dp(18)));
 
         TextView note = card(
                 "P0 scope\n" +
-                "• Guardian lifecycle + user opt-in\n" +
-                "• Fresh/stale Protection Lease truth state\n" +
-                "• Developer Options / ADB / Accessibility risk signals\n" +
+                "• Guardian lifecycle + explicit user opt-in\n" +
+                "• Lease epoch/session/heartbeat truth evidence\n" +
+                "• Restart circuit breaker + boot/package restore\n" +
+                "• Developer Options / ADB / Accessibility risk snapshots\n" +
                 "• App install/update awareness\n" +
-                "• Local event deduplication\n" +
+                "• Bounded structured local event evidence\n" +
                 "• Power-save / thermal-aware cadence\n\n" +
                 "This test build does not claim CLEAN, BANKING_SAFE, guaranteed theft prevention, or unrestricted system-wide malware scanning.");
         note.setTextSize(13);
@@ -91,13 +95,15 @@ public class MainActivity extends Activity {
     private void startGuardian() {
         ProtectionLeaseStore store = new ProtectionLeaseStore(this);
         store.setUserOptedIn(true);
-        Intent i = new Intent(this, GuardianService.class).setAction(GuardianService.ACTION_START);
+        Intent i = new Intent(this, GuardianService.class)
+                .setAction(GuardianService.ACTION_START)
+                .putExtra(GuardianService.EXTRA_START_REASON, "user-start");
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(i);
             else startService(i);
             toast("Guardian start requested");
         } catch (Exception e) {
-            store.serviceStopped();
+            store.serviceStopped("start-failed");
             toast("Guardian could not start on this device state");
         }
         status.postDelayed(this::refreshStatus, 750L);
@@ -110,7 +116,7 @@ public class MainActivity extends Activity {
         try {
             startService(i);
         } catch (Exception ignored) {
-            store.serviceStopped();
+            store.serviceStopped("pause-fallback");
         }
         toast("Guardian paused");
         status.postDelayed(this::refreshStatus, 300L);
@@ -118,22 +124,35 @@ public class MainActivity extends Activity {
 
     private void refreshStatus() {
         ProtectionLeaseStore.Lease lease = new ProtectionLeaseStore(this).read();
+        ResourceGovernor governor = new ResourceGovernor(this);
+        GuardianHealth.State health = GuardianHealth.evaluate(
+                lease.state,
+                lease.localRiskLevel,
+                governor.shouldReduceBackgroundWork(),
+                lease.recentRestartAttempts);
+
         String headline;
-        switch (lease.state) {
-            case ACTIVE:
-                headline = "GUARDIAN ACTIVE";
-                break;
-            case DEGRADED_OFFLINE:
-                headline = "PROTECTION DEGRADED — GUARDIAN OFFLINE";
-                break;
-            case DEGRADED_STALE:
-                headline = "PROTECTION DEGRADED — LEASE STALE";
-                break;
-            case PAUSED:
-                headline = "GUARDIAN PAUSED";
-                break;
-            default:
-                headline = "PROTECTION STATE UNKNOWN";
+        if (lease.mayClaimGuardianActive() && GuardianHealth.mayClaimGuardianActive(health)) {
+            headline = health == GuardianHealth.State.REVIEW_REQUIRED
+                    ? "GUARDIAN ACTIVE — REVIEW REQUIRED"
+                    : "GUARDIAN ACTIVE";
+        } else {
+            switch (lease.state) {
+                case DEGRADED_OFFLINE:
+                    headline = "PROTECTION DEGRADED — GUARDIAN OFFLINE";
+                    break;
+                case DEGRADED_STALE:
+                    headline = "PROTECTION DEGRADED — LEASE STALE";
+                    break;
+                case PAUSED:
+                    headline = "GUARDIAN PAUSED";
+                    break;
+                case ACTIVE:
+                    headline = "PROTECTION DEGRADED — HEALTH GATE BLOCKED ACTIVE CLAIM";
+                    break;
+                default:
+                    headline = "PROTECTION STATE UNKNOWN";
+            }
         }
 
         String heartbeat = lease.lastHeartbeatMs > 0
@@ -143,17 +162,25 @@ public class MainActivity extends Activity {
                 ? DateFormat.getDateTimeInstance().format(new Date(lease.expiresAtMs))
                 : "none";
 
+        LocalEventStore events = new LocalEventStore(this);
         status.setText(
                 "Protection state\n" + headline +
-                "\n\nLocal risk: " + lease.localRiskLevel +
+                "\n\nHealth gate: " + health.name() +
+                "\nLocal risk: " + lease.localRiskLevel +
                 "\nActive engines: " + lease.activeEngineSet +
+                "\nLease epoch: " + lease.epoch +
+                "\nHeartbeat sequence: " + lease.heartbeatSequence +
+                "\nLease remaining: " + (lease.remainingMs / 1000L) + "s" +
                 "\nLast heartbeat: " + heartbeat +
                 "\nLease expires: " + expiry +
+                "\nLast stop reason: " + (lease.lastStopReason.isEmpty() ? "none" : lease.lastStopReason) +
+                "\nAutomatic restore attempts: " + lease.recentRestartAttempts +
+                "\nLocal evidence events: " + events.count() +
                 "\nPolicy: " + lease.policyVersion +
                 "\nReputation snapshot: " + lease.reputationSnapshotVersion +
-                "\n\nA stale or missing lease never displays Guardian Active.");
+                "\n\nA stale, missing, sessionless or health-gated lease never displays Guardian Active.");
 
-        eventLog.setText("Local bounded event log\n" + new LocalEventStore(this).readLog());
+        eventLog.setText("Local bounded event log\n" + events.readLog());
     }
 
     private void requestNotificationPermissionIfNeeded() {
