@@ -42,9 +42,9 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(Color.rgb(247,249,252));
         scroll.addView(root);
 
-        TextView title = text("LANERIQ Security", 30, true);
+        TextView title = text("LANERIQ Anti Scam", 30, true);
         root.addView(title);
-        TextView subtitle = text("Mobile Financial Scam & Malware Defense v0.1", 15, false);
+        TextView subtitle = text("Mobile Anti-Scam & Malware Defense v0.1", 15, false);
         subtitle.setTextColor(Color.DKGRAY);
         root.addView(subtitle);
 
@@ -78,7 +78,7 @@ public class MainActivity extends Activity {
         refresh.setOnClickListener(v -> refreshTruth());
         root.addView(refresh, matchWrap(dp(10)));
 
-        TextView note = card("15-layer scope\nSafeLink • Phishing/QR • APK Pre-Install • Sideload • Permissions • Runtime Behavior • Screen/Remote Control • Banking Session • Transaction Risk • Emergency Response • Device Integrity • SIM Takeover • OTP/Notification • Network/DNS/Wi-Fi • Trusted Banking Identity\n\nThis first APK is a security client connected to LANERIQ Production Truth. It does not claim guaranteed theft prevention or full antivirus CLEAN verification while external scanner providers are not configured.");
+        TextView note = card("15-layer scope\nSafeLink • Phishing/QR • APK Pre-Install • Sideload • Permissions • Runtime Behavior • Screen/Remote Control • Banking Session • Transaction Risk • Emergency Response • Device Integrity • SIM Takeover • OTP/Notification • Network/DNS/Wi-Fi • Trusted Banking Identity\n\nThis first APK is the LANERIQ Anti Scam security client connected to LANERIQ Production Truth. It does not claim guaranteed theft prevention or full malware CLEAN verification while external scanner providers are not configured.");
         note.setTextSize(13);
         root.addView(note);
         return scroll;
