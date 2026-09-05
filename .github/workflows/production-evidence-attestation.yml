@@ -5,9 +5,10 @@ on:
     paths:
       - "app/api/production-e2e/attest/route.js"
       - "app/production-evidence-attestation/route.js"
+      - "lib/auth/laneriq-session.js"
       - "lib/auth/session-safety.js"
-      - "lib/cloud/projects.js"
-      - "lib/supabase/server.js"
+      - "lib/cloud/production-evidence.js"
+      - "lib/cloud-adapters/production-evidence-data.js"
       - "scripts/production-evidence-attestation-contract-tests.mjs"
       - ".github/workflows/production-evidence-attestation.yml"
   push:
@@ -15,9 +16,10 @@ on:
     paths:
       - "app/api/production-e2e/attest/route.js"
       - "app/production-evidence-attestation/route.js"
+      - "lib/auth/laneriq-session.js"
       - "lib/auth/session-safety.js"
-      - "lib/cloud/projects.js"
-      - "lib/supabase/server.js"
+      - "lib/cloud/production-evidence.js"
+      - "lib/cloud-adapters/production-evidence-data.js"
       - "scripts/production-evidence-attestation-contract-tests.mjs"
       - ".github/workflows/production-evidence-attestation.yml"
 
@@ -55,6 +57,8 @@ jobs:
       - name: Evidence boundary
         run: |
           echo "✓ This gate proves CODE + CI + build integration for authenticated Production evidence attestation."
-          echo "✓ The runtime API rebinds a successful 18-stage closure report to exact Production main, the signed-in user, owned project, exact current version and current private state."
+          echo "✓ Customer-facing attestation API uses LANERIQ-primary Session Authority and a provider-opaque LANERIQ Cloud evidence domain."
+          echo "✓ Provider-specific project verification is isolated behind an adapter and explicitly constrained by authenticated owner + project ID."
+          echo "✓ The runtime API rebinds a successful 18-stage closure report to exact Production main, the signed-in LANERIQ user, owned project, exact current version and current private state."
           echo "✓ SHA-256 is used for tamper-evident report hashing; no persistent external audit record or cryptographic signature is claimed."
           echo "✓ A real authenticated Production closure report is still required before a runtime attestation can be issued."
