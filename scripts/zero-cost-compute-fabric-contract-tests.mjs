@@ -94,7 +94,7 @@ assert.equal(summary.resolvedZeroCost, 2);
 assert.equal(summary.resolvedPaid, 1);
 assert.equal(summary.zeroCostResolutionRate, 0.6667);
 assert.equal(summary.paidResolutionRate, 0.3333);
-assert.match(summary.evidenceBoundary, /does not prove third-party billing/i);
+assert.match(summary.evidenceBoundary, /do not prove third-party billing/i);
 
 console.log("✓ LANERIQ Compute Fabric exposes 100 logical workers without allowing unbounded active fan-out");
 console.log("✓ Agent budgets cap active workers at 1/3/5/10-class envelopes and block metered agent calls in zero/free modes");
