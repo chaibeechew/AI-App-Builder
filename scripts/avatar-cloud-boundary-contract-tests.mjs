@@ -30,3 +30,5 @@ assert.match(migration,/force row level security/i);
 assert.match(migration,/revoke all on table public\.living_characters from public, anon, authenticated/i);
 assert.match(migration,/revoke all on table public\.living_character_devices from public, anon, authenticated/i);
 console.log('Avatar Cloud boundary passed: provider-opaque App routes accept Living Character v4 while authenticated owner-scoped persistence remains isolated behind the compatibility adapter.');
+
+await import('./laneriq-knowledge-fabric-v2-contract-tests.mjs');
