@@ -46,7 +46,7 @@ assert.match(connected.fixInstruction,/make only evidence-based improvements/i,"
 assert.doesNotMatch(connected.fixInstruction,/prepare the project for its owner-scoped backend/i,"Connected data must not be reported missing");
 
 const simple=buildProjectReadiness({
-  specification:{pages:[{name:"Portfolio",purpose:"Show projects and contact information"}]},
+  specification:{pages:[{name:"Portfolio",purpose:"Show visual projects and studio story"}]},
   qualityReport:{overall:100,dimensions:[
     {id:"stability",score:100},{id:"security",score:100},{id:"privacy",score:100},
     {id:"comfort",score:100},{id:"beauty",score:100},{id:"naturalness",score:100}
