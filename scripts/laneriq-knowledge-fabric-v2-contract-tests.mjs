@@ -34,6 +34,19 @@ assert.doesNotMatch(`${piiCandidate.title} ${piiCandidate.lesson}`,/alice@exampl
 assert.match(`${piiCandidate.title} ${piiCandidate.lesson}`,/REDACTED_EMAIL|REDACTED_PHONE/);
 assert.throws(()=>createExperienceCandidate({lesson:'raw private prompt',containsPrivateUserContent:true}),/PRIVATE_USER_CONTENT_NOT_ALLOWED_IN_EXPERIENCE/);
 
+const unknownCandidate=createExperienceCandidate({domain:'architecture',title:'Unknown source',lesson:'Unknown evidence must never be upgraded into deterministic truth.',evidence:[{kind:'mystery-feed',ref:'mystery',passed:true,independent:true},{kind:'model_suggestion',ref:'model',passed:true,independent:true}]});
+assert.equal(unknownCandidate.evidence[0].kind,'untrusted');
+assert.equal(unknownCandidate.evidence[1].kind,'model_suggestion');
+const unknownPromotion=evaluateKnowledgePromotion(unknownCandidate,{target:'validated'});
+assert.equal(unknownPromotion.allowed,false);
+assert.ok(unknownPromotion.blockers.includes('deterministic-contract-evidence-required'));
+assert.ok(unknownPromotion.blockers.includes('high-trust-source-required'));
+
+const docsCandidate=createExperienceCandidate({domain:'security',title:'Official docs validation',lesson:'Verified official guidance plus deterministic contract may support validated engineering knowledge.',evidence:[{kind:'contract',ref:'security-contract',passed:true,independent:true},{kind:'official_docs',ref:'official-doc-revision',passed:true,independent:true}]});
+const docsValidated=evaluateKnowledgePromotion(docsCandidate,{target:'validated'});
+assert.equal(docsValidated.allowed,true);
+assert.equal(evaluateKnowledgePromotion(docsCandidate,{target:'production_rule',reviewerApproved:true}).allowed,false);
+
 const blocked=evaluateKnowledgePromotion(secretCandidate,{target:'production_rule',reviewerApproved:false});
 assert.equal(blocked.allowed,false);
 assert.ok(blocked.blockers.includes('human-review-approval-required'));
@@ -104,9 +117,11 @@ assert.equal(knowledge.learningContract,'laneriq-governed-experience-learning-v1
 assert.ok(engineeringKnowledgeForPrompt().includes('governed candidate lesson'));
 assert.match(GENERATION_QUALITY_RULES,/EXPERIENCE LEARNING LOOP/i);
 assert.match(GENERATION_QUALITY_RULES,/Production rules require explicit human approval/i);
+assert.match(GENERATION_QUALITY_RULES,/model-only evidence can never support Production promotion/i);
 assert.match(GENERATION_QUALITY_RULES,/Failed or regressing benchmarks do not teach a positive rule/i);
 assert.match(GENERATION_QUALITY_RULES,/direct PII/i);
 assert.match(GENERATION_QUALITY_RULES,/Time-sensitive knowledge must carry freshness evidence/i);
+assert.match(GENERATION_QUALITY_RULES,/revoked or quarantined with history preserved/i);
 assert.match(GENERATION_QUALITY_RULES,/Knowledge telemetry is aggregate and privacy-safe/i);
 
-console.log('LANERIQ Knowledge Fabric v2 gate passed: scoped routing, privacy-safe experience capture, source trust, incident/benchmark learning, immutable conflict resolution, freshness TTL, prompt budget, aggregate telemetry, revocation/quarantine and fail-closed human+evidence promotion are locked.');
+console.log('LANERIQ Knowledge Fabric v2 gate passed: scoped routing, privacy-safe experience capture, fail-closed evidence classification, source trust, incident/benchmark learning, immutable conflict resolution, freshness TTL, prompt budget, aggregate telemetry, revocation/quarantine and human+evidence Production promotion are locked.');
