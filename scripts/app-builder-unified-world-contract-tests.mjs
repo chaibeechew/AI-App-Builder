@@ -114,13 +114,17 @@ assert.match(adapter,/worldMemoryAtomic:true/);
 
 assert.match(migration,/server_persist_generated_project_world\([\s\S]*p_memory_json jsonb/);
 assert.match(migration,/server_save_app_modification_world\([\s\S]*p_memory_json jsonb/);
+assert.match(migration,/security definer/i);
+assert.match(migration,/set search_path=''/i);
 assert.match(migration,/insert into public\.project_memory/);
 assert.match(migration,/on conflict\(app_id\) do update/);
 assert.match(migration,/current_version is not distinct from existing_version\.id/);
 assert.match(migration,/select v\.version_no\+1 into next_version/);
-assert.match(migration,/service_role required/);
-assert.match(migration,/revoke all on function public\.server_persist_generated_project_world/);
-assert.match(migration,/revoke all on function public\.server_save_app_modification_world/);
+assert.doesNotMatch(migration,/auth\.role\(\)/);
+assert.match(migration,/revoke all on function public\.server_persist_generated_project_world[\s\S]*from public, anon, authenticated/);
+assert.match(migration,/grant execute on function public\.server_persist_generated_project_world[\s\S]*to service_role/);
+assert.match(migration,/revoke all on function public\.server_save_app_modification_world[\s\S]*from public, anon, authenticated/);
+assert.match(migration,/grant execute on function public\.server_save_app_modification_world[\s\S]*to service_role/);
 assert.doesNotMatch(migration,/create or replace function public\.server_persist_generated_project\(/);
 assert.doesNotMatch(migration,/create or replace function public\.server_save_app_modification\(/);
 assert.match(projectMemory,/PRIVATE_REALITY_KEY/);
@@ -131,4 +135,4 @@ console.log('✓ Verified modifications advance the same World/Event/Evidence ch
 console.log('✓ Tampered chains, stale specification hashes, skipped version numbers and failed quality evidence are fail-closed');
 console.log('✓ Legacy projects receive a one-time baseline import without pretending their earlier history was observed by the new ledger');
 console.log('✓ Reality Envelope stays project-scoped, bounded and excluded from prompt-facing Project Memory briefs');
-console.log('✓ App version and Unified World memory persist in isolated service-role database transactions without legacy RPC overload ambiguity');
+console.log('✓ App version and Unified World memory persist in isolated service-role database transactions with explicit EXECUTE grants and no auth.role runtime dependency');
