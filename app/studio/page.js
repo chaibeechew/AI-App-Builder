@@ -35,7 +35,7 @@ const sections=[
 export default function StudioPage(){
   return <main className="settingsReference"><div className="settingsBg"/><div className="settingsWrap">
     <section className="hero"><small>PAGE 12 · MORE &amp; SETTINGS</small><h1>More &amp; Settings</h1><p>Manage your workspace, AI tools, data, quality controls and product resources in LANERIQ AI.</p></section>
-    <section className="workspaceBanner"><div><span>✦</span><div><b>LANERIQ Workspace</b><small>One product surface for building, operating and improving your projects.</small></div></div><Link href="/my-apps">Open Project Center ›</Link><div className="workspacePills"><span>∞ Projects workspace</span><span>✧ AI tools</span><span>◈ Quality gates</span><span>⌁ Managed services</span></div></section>
+    <section className="workspaceBanner"><div><span>✦</span><div><b>LANERIQ Workspace</b><small>LANERIQ AI is organized as one continuous service for building, operating and improving your projects.</small></div></div><Link href="/my-apps">Open Project Center ›</Link><div className="workspacePills"><span>∞ Projects workspace</span><span>✧ AI tools</span><span>◈ Quality gates</span><span>⌁ Managed services</span></div></section>
 
     {sections.map(section=><section className="settingsSection" key={section.title}><h2>{section.title}</h2><div className="settingsGrid">{section.items.map(([icon,name,description,href,tone])=><Link href={href} key={name} className={`settingCard ${tone}`}><i>{icon}</i><span><b>{name}</b><small>{description}</small></span><em>›</em></Link>)}</div></section>)}
 
