@@ -11,13 +11,14 @@ import android.graphics.Color;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.provider.Settings;
 
 public class GuardianService extends Service {
     public static final String ACTION_START = "ai.laneriq.antiscam.guardian.START";
+    public static final String ACTION_RESTORE = "ai.laneriq.antiscam.guardian.RESTORE";
     public static final String ACTION_STOP = "ai.laneriq.antiscam.guardian.STOP";
     public static final String ACTION_PACKAGE_CHANGED = "ai.laneriq.antiscam.guardian.PACKAGE_CHANGED";
     public static final String EXTRA_PACKAGE = "package";
+    public static final String EXTRA_START_REASON = "start_reason";
 
     private static final String CHANNEL_PROTECTION = "laneriq_guardian_protection";
     private static final String CHANNEL_ALERTS = "laneriq_guardian_alerts";
@@ -29,6 +30,7 @@ public class GuardianService extends Service {
     private LocalEventStore eventStore;
     private ResourceGovernor governor;
     private String lastAlertFingerprint = "";
+    private int consecutiveHealthyTicks = 0;
 
     private final Runnable monitor = new Runnable() {
         @Override public void run() {
@@ -50,7 +52,7 @@ public class GuardianService extends Service {
 
         if (ACTION_STOP.equals(action)) {
             leaseStore.setUserOptedIn(false);
-            leaseStore.serviceStopped();
+            leaseStore.serviceStopped("user-stop");
             eventStore.recordOnce("guardian_stop", "user", 1_000L);
             handler.removeCallbacks(monitor);
             stopForeground(STOP_FOREGROUND_REMOVE);
@@ -58,10 +60,18 @@ public class GuardianService extends Service {
             return START_NOT_STICKY;
         }
 
-        leaseStore.serviceStarted();
-        eventStore.recordOnce("guardian_start", "local", 5_000L);
         startForeground(NOTIFICATION_ID,
                 buildProtectionNotification("Guardian starting • verifying local protection state"));
+
+        ProtectionLeaseStore.Lease before = leaseStore.read();
+        if (!before.serviceEnabled || !before.mayClaimGuardianActive()) {
+            String reason = intent == null ? null : intent.getStringExtra(EXTRA_START_REASON);
+            if (reason == null || reason.trim().isEmpty()) {
+                reason = ACTION_RESTORE.equals(action) ? "automatic-restore" : "direct-start";
+            }
+            leaseStore.serviceStarted(reason);
+            eventStore.recordOnce("guardian_start", reason, 5_000L);
+        }
 
         handler.removeCallbacks(monitor);
         handler.post(monitor);
@@ -83,54 +93,63 @@ public class GuardianService extends Service {
     }
 
     private void runRiskCheck() {
-        boolean developer = Settings.Global.getInt(
-                getContentResolver(), Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1;
-        boolean adb = Settings.Global.getInt(
-                getContentResolver(), Settings.Global.ADB_ENABLED, 0) == 1;
-        boolean accessibility = Settings.Secure.getInt(
-                getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1;
+        DeviceRiskSnapshot snapshot = DeviceRiskSnapshot.capture(getContentResolver());
+        boolean constrained = governor.shouldReduceBackgroundWork();
 
-        int riskCount = 0;
-        StringBuilder signals = new StringBuilder();
-        if (developer) {
-            riskCount++;
-            signals.append("Developer options enabled");
-        }
-        if (adb) {
-            if (signals.length() > 0) signals.append(" • ");
-            riskCount++;
-            signals.append("ADB enabled");
-        }
-        if (accessibility) {
-            if (signals.length() > 0) signals.append(" • ");
-            riskCount++;
-            signals.append("Accessibility enabled — review active services");
-        }
-
-        String riskLevel = riskCount >= 2 ? "elevated" : riskCount == 1 ? "review" : "low-local-signal";
-        leaseStore.heartbeat(riskLevel, "guardian,device-signals,event-dedup,resource-governor");
+        leaseStore.heartbeat(
+                snapshot.riskLevel,
+                "guardian,device-signals,event-dedup,resource-governor,lease-v2");
 
         ProtectionLeaseStore.Lease lease = leaseStore.read();
-        String summary = riskCount == 0
-                ? "Guardian active • no elevated local signals"
-                : "Guardian review needed • " + signals;
-        if (governor.shouldReduceBackgroundWork()) {
-            summary += " • reduced background cadence";
+        GuardianHealth.State health = GuardianHealth.evaluate(
+                lease.state,
+                snapshot.riskLevel,
+                constrained,
+                lease.recentRestartAttempts);
+
+        if (lease.mayClaimGuardianActive()) {
+            consecutiveHealthyTicks++;
+            if (consecutiveHealthyTicks >= 3) {
+                leaseStore.resetAutomaticRestartCircuit();
+            }
+        } else {
+            consecutiveHealthyTicks = 0;
         }
+
+        String summary;
+        switch (health) {
+            case HEALTHY:
+                summary = "Guardian active • no elevated local signals";
+                break;
+            case REVIEW_REQUIRED:
+                summary = "Guardian active • review needed • " + snapshot.summary;
+                break;
+            case DEGRADED:
+                summary = "Guardian degraded • protection state needs attention";
+                break;
+            case PAUSED:
+                summary = "Guardian paused";
+                break;
+            default:
+                summary = "Guardian status unknown • verification required";
+                break;
+        }
+        if (constrained) summary += " • reduced background cadence";
 
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         nm.notify(NOTIFICATION_ID, buildProtectionNotification(summary));
 
-        if (riskCount > 0) {
-            String fingerprint = developer + ":" + adb + ":" + accessibility;
-            if (!fingerprint.equals(lastAlertFingerprint)) {
-                String eventId = eventStore.recordOnce("risk_signal_set", fingerprint, 120_000L);
+        if (snapshot.signalCount > 0) {
+            if (!snapshot.fingerprint.equals(lastAlertFingerprint)) {
+                String eventId = eventStore.recordOnce(
+                        "risk_signal_set", snapshot.fingerprint, 120_000L);
                 if (eventId != null) {
                     showAlert(
                             "LANERIQ Guardian review needed",
-                            signals + ". These signals are not proof of malware. Review them before banking or payments.");
+                            snapshot.summary +
+                                    ". These signals are not proof of malware. Review them before banking or payments.");
                 }
-                lastAlertFingerprint = fingerprint;
+                lastAlertFingerprint = snapshot.fingerprint;
             }
         } else {
             lastAlertFingerprint = "";
@@ -138,6 +157,9 @@ public class GuardianService extends Service {
 
         if (lease.state != ProtectionTruth.State.ACTIVE) {
             eventStore.recordOnce("lease_not_active", lease.state.name(), 60_000L);
+        }
+        if (!GuardianHealth.mayClaimGuardianActive(health)) {
+            eventStore.recordOnce("guardian_health_not_active", health.name(), 60_000L);
         }
     }
 
@@ -206,9 +228,19 @@ public class GuardianService extends Service {
         nm.createNotificationChannel(alerts);
     }
 
+    @Override public void onTaskRemoved(Intent rootIntent) {
+        if (eventStore != null) {
+            eventStore.recordOnce("ui_task_removed", "guardian-remains-running", 30_000L);
+        }
+        super.onTaskRemoved(rootIntent);
+    }
+
     @Override public void onDestroy() {
         handler.removeCallbacks(monitor);
-        if (leaseStore != null) leaseStore.serviceStopped();
+        if (eventStore != null) {
+            eventStore.recordOnce("guardian_destroyed", "service-lifecycle", 10_000L);
+        }
+        if (leaseStore != null) leaseStore.serviceStopped("service-destroyed");
         super.onDestroy();
     }
 
