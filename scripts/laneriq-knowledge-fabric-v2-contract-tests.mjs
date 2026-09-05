@@ -7,6 +7,8 @@ import {detectImmutableKnowledgeConflict,resolveKnowledgeConflict,immutableKnowl
 import {evaluateKnowledgeFreshness,requiresExternalRefresh} from '../lib/ai/laneriq-knowledge-staleness.js';
 import {budgetKnowledgeRules} from '../lib/ai/laneriq-knowledge-budget.js';
 import {createKnowledgeTelemetry,publicKnowledgeTelemetry} from '../lib/ai/laneriq-knowledge-observability.js';
+import {evaluateKnowledgeSources,getKnowledgeSourcePolicy} from '../lib/ai/laneriq-knowledge-source-trust.js';
+import {evaluateKnowledgeRevocation,revokeKnowledgeItem,quarantineKnowledgeItem} from '../lib/ai/laneriq-knowledge-revocation.js';
 import {getLaneriqEngineeringKnowledge,engineeringKnowledgeForPrompt} from '../lib/ai/laneriq-engineering-knowledge.js';
 import {GENERATION_QUALITY_RULES} from '../lib/buildStandards.js';
 
@@ -39,11 +41,19 @@ assert.ok(blocked.blockers.includes('independent-exact-sha-production-evidence-r
 
 const eligible=createExperienceCandidate({domain:'production_evidence',title:'Exact SHA promotion lesson',lesson:'Promote only when deterministic, runtime and exact-SHA Production evidence agree.',source:'runtime',risk:'normal',evidence:[{kind:'contract',ref:'contract-gate',passed:true,independent:true},{kind:'runtime',ref:'runtime-probe',passed:true,independent:true},{kind:'production_exact_sha',ref:'sha:abc123',passed:true,exactSha:true,independent:true},{kind:'manual_review',ref:'review-1',passed:true,independent:true}]});
 const allowed=evaluateKnowledgePromotion(eligible,{target:'production_rule',reviewerApproved:true});
+assert.equal(allowed.contract,'laneriq-knowledge-promotion-decision-v2');
 assert.equal(allowed.allowed,true);
+assert.ok(allowed.sourceTrust.productionSupportCount>=2);
 assert.equal(promoteKnowledgeCandidate(eligible,{target:'production_rule',reviewerApproved:true}).status,'production_rule');
 const privacyBlocked=evaluateKnowledgePromotion({...eligible,containsPrivateUserContent:true},{target:'production_rule',reviewerApproved:true});
 assert.equal(privacyBlocked.allowed,false);
 assert.ok(privacyBlocked.blockers.includes('private-user-content-safety-unverified'));
+
+const modelOnly=evaluateKnowledgeSources([{type:'model_suggestion',ref:'model-opinion',passed:true,independent:true}]);
+assert.equal(modelOnly.modelOnly,true);
+assert.equal(modelOnly.productionSupport,false);
+assert.equal(getKnowledgeSourcePolicy('production_exact_sha').trust,1);
+assert.equal(getKnowledgeSourcePolicy('model_suggestion').canSupportProduction,false);
 
 const regression=learnFromBenchmark({domain:'frontend_liui',hypothesis:'Reduce motion complexity',baselineScore:96,candidateScore:97,regressionCount:1,evidence:[{kind:'contract',ref:'liui-contract',passed:true,independent:true}]});
 assert.equal(regression.materiallyBetter,false);
@@ -81,6 +91,14 @@ assert.equal(telemetry.includesProviderCredentials,false);
 assert.equal(Object.hasOwn(publicKnowledgeTelemetry(telemetry),'blockedReasons'),false);
 assert.equal(createKnowledgeTelemetry({risk:'critical'}).risk,'critical');
 
+const productionRule={...eligible,status:'production_rule'};
+const revocation=evaluateKnowledgeRevocation(productionRule,{reason:'wrong-exact-sha',exactShaMismatch:true});
+assert.equal(revocation.allowed,true);
+assert.equal(revocation.historyPreserved,true);
+assert.equal(revokeKnowledgeItem(productionRule,{reason:'wrong-exact-sha',exactShaMismatch:true}).status,'revoked');
+assert.equal(quarantineKnowledgeItem(productionRule,'conflicting-runtime-evidence').status,'quarantined');
+assert.equal(evaluateKnowledgeRevocation({status:'candidate'},{reason:'manual-revocation',evidencePassed:true}).allowed,false);
+
 const knowledge=getLaneriqEngineeringKnowledge();
 assert.equal(knowledge.learningContract,'laneriq-governed-experience-learning-v1');
 assert.ok(engineeringKnowledgeForPrompt().includes('governed candidate lesson'));
@@ -91,4 +109,4 @@ assert.match(GENERATION_QUALITY_RULES,/direct PII/i);
 assert.match(GENERATION_QUALITY_RULES,/Time-sensitive knowledge must carry freshness evidence/i);
 assert.match(GENERATION_QUALITY_RULES,/Knowledge telemetry is aggregate and privacy-safe/i);
 
-console.log('LANERIQ Knowledge Fabric v2 gate passed: scoped routing, privacy-safe experience capture, incident/benchmark learning, immutable conflict resolution, freshness TTL, prompt budget, aggregate telemetry and fail-closed human+evidence promotion are locked.');
+console.log('LANERIQ Knowledge Fabric v2 gate passed: scoped routing, privacy-safe experience capture, source trust, incident/benchmark learning, immutable conflict resolution, freshness TTL, prompt budget, aggregate telemetry, revocation/quarantine and fail-closed human+evidence promotion are locked.');
