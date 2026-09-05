@@ -44,11 +44,18 @@ Free-tier cloud is not treated as zero-cost merely because a model/provider adve
 
 ## Zero-Cost Resolution telemetry
 
-Compute Fabric v2 introduces a routing metric:
+Compute Fabric v2 uses a confirmed routing metric:
 
-`Zero-Cost Resolution Rate = zero-cost resolved requests / total routed requests`
+`Confirmed Zero-Cost Resolution Rate = confirmed zero-cost resolved requests / total routed requests`
 
-The telemetry distinguishes deterministic, cache, local-device, own-Desktop, free-provider, queued, paid and blocked/degraded outcomes. This is routing evidence only. It does not prove provider billing, permanent quota, native device inference, Production deployment, or unlimited capacity.
+The metric is deliberately conservative:
+
+- local zero-cost provider success is confirmed zero-cost;
+- remote success in `free` mode can be counted only because free-mode routing already requires an account hard-stop allowlist;
+- remote success in `balanced` or `paid` mode remains unclassified unless provider-level cost evidence exists;
+- any observed remote success while the current runtime is in `zero` mode is treated as a policy-violation signal and invalidates an exact-rate claim.
+
+Provider runtime counters are per-instance and ephemeral. Vercel runtime cost mode is expected to remain immutable for the lifetime of an instance. Telemetry is routing evidence only; it does not prove provider invoices, permanent quota, native-device inference, Production deployment, or unlimited capacity.
 
 ## Runtime integration in Batch 124
 
@@ -65,7 +72,26 @@ Implemented in code:
 - generation candidate orchestration bound to the shared fan-out envelope
 - zero-cost CI contract gate includes Compute Fabric tests
 
-Not yet allowed to be called LIVE because Batch 124 does not create the underlying native capability:
+## Runtime telemetry integration in Batch 125
+
+Batch 125 connects existing Provider Router runtime counters to Compute Fabric truth without exposing provider identities or secrets.
+
+The sanitized Provider Router status may expose:
+
+- runtime request/success counts
+- local and remote success counts
+- confirmed zero-cost resolutions and confirmed resolution rate
+- whether the rate is exact for the observed instance
+- unclassified remote resolutions in balanced/paid operation
+- cost-policy blocks, failovers and proactive quota switches
+- logical worker capacity and active fan-out ceiling
+- a zero-mode remote-observation violation flag
+
+The public status remains read-only. It does not execute a Provider Router canary, inspect provider credentials, reveal provider names, or promote external-provider availability to LIVE evidence.
+
+## Evidence boundary
+
+Not yet allowed to be called LIVE merely because Compute Fabric code exists:
 
 - physical iPhone/Android NPU/GPU inference
 - native Desktop heavy-model execution
@@ -74,6 +100,8 @@ Not yet allowed to be called LIVE because Batch 124 does not create the underlyi
 - proof that any third-party free tier remains free indefinitely
 - unlimited AI capacity
 
+Provider Router telemetry also remains instance-local evidence. Production LIVE claims continue to require the separate release/canary evidence defined by Production Release Control.
+
 ## Production integration rule
 
-Batch 124 must remain an independent PR until the Production Release Control window rebases/re-aligns it onto the latest `main`, reruns CI, and then performs the normal exact-SHA Production verification. A successful code merge alone is not Production LIVE evidence.
+Each Compute Fabric batch must start from the latest `main`, pass its PR CI, merge only against the expected head SHA, then rerun post-merge checks. Production completion still requires GitHub `main`, Vercel Production and runtime release identity to agree on the exact SHA, plus all required service/browser/security evidence. A successful code merge alone is not Production LIVE evidence.
