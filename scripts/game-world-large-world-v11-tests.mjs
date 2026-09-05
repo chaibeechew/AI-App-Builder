@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import {createWorldPartitionV11,createLargeWorldBudgetsV11,planLargeWorldResidencyV11,virtualizeWorldActorsV11,createDynamicNavTilePlanV11,compileLargeWorldV11} from "../lib/game/game-world-large-world-v11.js";
+const p=createWorldPartitionV11({worldSizeKm:10,cellMeters:256});
+assert.ok(p.totalCells>1000);
+const b=createLargeWorldBudgetsV11({deviceClass:"mobile"});
+assert.equal(b.maxResidentCells,16);
+const r=planLargeWorldResidencyV11(p,{x:500,z:500},b);
+assert.equal(r.resident.length,16);
+const a=virtualizeWorldActorsV11(Array.from({length:100},(_,i)=>({id:i,x:i*10,z:i*4})),{x:0,z:0},b);
+assert.equal(a.active.length,48);
+assert.equal(a.virtual.length,52);
+const n=createDynamicNavTilePlanV11(p,r,b);
+assert.equal(n.incrementalRebuild,true);
+const c=compileLargeWorldV11({partition:{worldSizeKm:20},runtime:{deviceClass:"balanced"},actors:Array.from({length:300},(_,i)=>({id:i,x:i,z:i}))});
+assert.equal(c.readiness.internal100,true);
+assert.equal(c.truth.realLongDurationHardwareSoakVerified,false);
+console.log("Game World V11 Large World Runtime: 100 INTERNAL CODE; hardware soak remains LIVE-gated");

@@ -1,0 +1,19 @@
+name: Game World Large World V11 Gate
+on:
+  push:
+    branches: [batch149-game-world-large-world-v11]
+  pull_request:
+    paths:
+      - 'lib/game/game-world-large-world-v11.js'
+      - 'scripts/game-world-large-world-v11-tests.mjs'
+      - '.github/workflows/game-world-large-world-v11.yml'
+jobs:
+  large-world-v11:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/game-world-native-runtime-v10-tests.mjs
+      - run: node scripts/game-world-large-world-v11-tests.mjs
