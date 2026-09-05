@@ -45,7 +45,12 @@ assert.doesNotMatch(builderDomain,/lib\/supabase\/|@supabase\/|createAdminClient
 assert.match(builderAdapter,/\.\.\/supabase\/server\.js/);
 assert.match(builderAdapter,/\.\.\/supabase\/admin\.js/);
 assert.match(builderAdapter,/auth\.getUser\(\)/,'Builder compatibility adapter must validate server identity.');
-assert.match(builderAdapter,/verified:\s*Boolean\(user\.confirmed_at \|\| user\.email_confirmed_at \|\| user\.phone_confirmed_at\)/,'Builder principal must preserve account verification state.');
+assert.match(builderAdapter,/compatibilityVerified\(user\)/,'Builder principal must preserve compatibility verification as a bounded migration signal.');
+assert.match(builderAdapter,/verified:\s*Boolean\(authoritativeVerified \|\| compatibilityVerified\(user\)\)/,'Builder principal must combine authoritative LANERIQ verification with compatibility verification without weakening the gate.');
+assert.match(builderAdapter,/validateLaneriqSessionToken\(token\)/,'Builder must validate the LANERIQ primary session before accepting authoritative verification.');
+assert.match(builderAdapter,/authority\?\.userId && authority\.userId !== data\.user\.id/,'LANERIQ and compatibility identities must never cross.');
+assert.match(builderAdapter,/SESSION_IDENTITY_MISMATCH/,'Identity mismatch must fail closed.');
+assert.match(builderAdapter,/if \(requireVerified && !principal\.verified\) return fail\("ACCOUNT_VERIFICATION_REQUIRED"\)/,'Genuinely unverified Builder principals must remain blocked.');
 
 // Cloud adapter now owns the migrated route ownership/version/provider checks.
 assert.match(builderAdapter,/\.eq\("owner_id", userId\)/,'Builder adapter must retain explicit owner isolation.');
@@ -173,7 +178,7 @@ const clientFiles=filesUnder('app').filter(p=>/^\s*["']use client["'];/m.test(re
 for(const file of clientFiles){const source=read(file);for(const name of forbidden)if(source.includes(name))leaked.push(`${file}: ${name}`);for(const m of source.matchAll(/process\.env\.([A-Z0-9_]+)/g))if(!m[1].startsWith('NEXT_PUBLIC_'))leaked.push(`${file}: non-public env ${m[1]}`)}
 assert.deepEqual(leaked,[]);
 
-console.log('✓ Migrated Builder routes are provider-opaque while Cloud adapter independently validates identity, ownership and exact versions');
+console.log('✓ Migrated Builder routes are provider-opaque while Cloud adapter independently validates LANERIQ/compatibility identity, ownership and exact versions');
 console.log('✓ Records, database and bootstrap are owner-scoped, bounded and conflict-safe');
 console.log('✓ Workflow execution binds app/workflow/run ownership and is replay-safe');
 console.log('✓ Checkout uses owner-scoped authoritative offers, HTTPS redirects and owner-scoped tracking');
