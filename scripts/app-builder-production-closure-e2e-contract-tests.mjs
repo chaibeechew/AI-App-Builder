@@ -7,6 +7,7 @@ const route=fs.readFileSync("app/production-closure-e2e/route.js","utf8");
 const client=fs.readFileSync("public/production-closure-e2e-v3.js","utf8");
 const buildIdentity=fs.readFileSync("lib/production-e2e/build-identity.js","utf8");
 const ledger=fs.readFileSync("lib/production-e2e/evidence-ledger.js","utf8");
+const principal=fs.readFileSync("lib/production-e2e/principal.js","utf8");
 const adapter=fs.readFileSync("lib/cloud-adapters/production-e2e-evidence-data.js","utf8");
 const ledgerApi=fs.readFileSync("app/api/production-e2e/evidence-ledger/route.js","utf8");
 const statusApi=fs.readFileSync("app/api/production-e2e/evidence-status/route.js","utf8");
@@ -164,8 +165,13 @@ for(const pattern of [
   /status:"passed"/,
 ])assert.match(ledger,pattern);
 assert.doesNotMatch(ledger,/supabase\/admin|@supabase|createAdminClient/,"Provider-opaque evidence domain must not import Supabase directly.");
+assert.match(principal,/cloud-adapters\/production-e2e-evidence-data\.js/);
+assert.doesNotMatch(principal,/lib\/supabase\/|@supabase\/|createAdminClient/,"Evidence principal domain must stay provider opaque.");
 
 for(const pattern of [
+  /createClient/,
+  /\.\.\/supabase\/server\.js/,
+  /auth\.getUser\(\)/,
   /createAdminClient/,
   /production_e2e_evidence_runs/,
   /\.eq\("user_id",userId\)/,
@@ -180,13 +186,15 @@ for(const pattern of [
 for(const pattern of [
   /sameOrigin\(request\)/,
   /readBoundedJson\(request,MAX_BYTES\)/,
-  /supabase\.auth\.getUser\(\)/,
+  /getProductionEvidencePrincipal/,
+  /principal\?\.userId/,
   /action==="start"/,
   /action==="checkpoint"/,
   /action==="fail"/,
   /action==="complete"/,
 ])assert.match(ledgerApi,pattern);
-assert.doesNotMatch(ledgerApi,/userId\s*:\s*body|body\?\.userId/,"Authenticated evidence API must derive user identity only from the signed-in session.");
+assert.doesNotMatch(ledgerApi,/lib\/supabase\/|@supabase\/|createClient\s*\(|SERVICE_ROLE|SECRET_KEY/,"Evidence API route must stay outside direct provider coupling.");
+assert.doesNotMatch(ledgerApi,/userId\s*:\s*body|body\?\.userId/,"Authenticated evidence API must derive user identity only from the signed-in server principal.");
 
 for(const pattern of [
   /currentProductionEvidenceStatus/,
@@ -214,6 +222,7 @@ for(const pattern of [/safe-area-inset-top/,/safe-area-inset-bottom/,/min-height
 
 console.log("✓ Full App Builder Production closure stays authenticated and exact-main Production only");
 console.log("✓ 18 ordered stages now write a durable server evidence ledger without exposing service-role credentials to the browser");
+console.log("✓ Evidence auth and privileged persistence stay behind provider-opaque LANERIQ Cloud adapter boundaries");
 console.log("✓ Critical Generate/Version/Database/Workflow/Publish/Private stages are independently rechecked from persisted server data");
 console.log("✓ Browser-only 18-page and anonymous HTTP health evidence stays explicitly separated from server DB facts");
 console.log("✓ Final PASS requires stage 18, a private test project, truth-boundary flags and a SHA-256 report digest");
