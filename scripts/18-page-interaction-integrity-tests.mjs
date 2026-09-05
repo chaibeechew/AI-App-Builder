@@ -48,7 +48,7 @@ assert.match(workflowApi, /eq\("owner_id",user\.id\)/, "Workflow edit/history da
 assert.match(operationsPage, /<OperationsActions appId=\{id\}/, "Operations must mount the interactive test/repair surface");
 assert.match(operationsActions, /\/api\/apps\/\$\{appId\}\/quality/, "Operations Run Tests control must invoke the real quality API");
 assert.match(operationsActions, /Fix Safe Issues with AI/, "Operations must expose bounded AI repair instead of a dead recommendation");
-assert.match(operationsActions, /physical-device, provider or store evidence/, "Operations must preserve the runtime evidence boundary");
+assert.match(operationsActions, /physical-device behavior and official store status remain separate evidence/, "Operations must preserve the runtime evidence boundary");
 
 console.log("✓ 18-page interaction integrity contract passed");
 console.log("✓ All 18 master route files exist and expose real action/navigation primitives");
