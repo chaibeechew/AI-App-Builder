@@ -10,11 +10,6 @@ on:
       - ".github/workflows/production-runtime-convergence.yml"
   push:
     branches: [main]
-    paths:
-      - "app/api/build-info/route.js"
-      - "scripts/production-runtime-convergence.mjs"
-      - "scripts/production-runtime-convergence-contract-tests.mjs"
-      - ".github/workflows/production-runtime-convergence.yml"
 
 concurrency:
   group: laneriq-production-runtime-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
