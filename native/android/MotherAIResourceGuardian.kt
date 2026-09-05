@@ -1,6 +1,8 @@
 package ai.laneriq.runtime
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.os.BatteryManager
 import android.os.Build
@@ -15,7 +17,7 @@ import android.os.PowerManager
  */
 class MotherAIResourceGuardian(private val context: Context) {
     companion object {
-        const val BRIDGE_VERSION = "2026-09-05.1"
+        const val BRIDGE_VERSION = "2026-09-05.2"
     }
 
     fun snapshot(
@@ -31,7 +33,8 @@ class MotherAIResourceGuardian(private val context: Context) {
         val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         val batteryPercent = battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        val chargingStatus = battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_STATUS)
+        val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val chargingStatus = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         val charging = chargingStatus == BatteryManager.BATTERY_STATUS_CHARGING || chargingStatus == BatteryManager.BATTERY_STATUS_FULL
 
         return mapOf(
