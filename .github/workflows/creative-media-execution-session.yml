@@ -1,0 +1,50 @@
+name: Creative Media Execution Session Core
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/ai/creative-media-execution-*.js'
+      - 'scripts/creative-media-execution-session-contract-tests.mjs'
+      - '.github/workflows/creative-media-execution-session.yml'
+  push:
+    branches:
+      - 'batch142-creative-media-execution-session-*'
+    paths:
+      - 'lib/ai/creative-media-execution-*.js'
+      - 'scripts/creative-media-execution-session-contract-tests.mjs'
+      - '.github/workflows/creative-media-execution-session.yml'
+
+jobs:
+  execution-session-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Execution Session contract
+        run: node scripts/creative-media-execution-session-contract-tests.mjs
+      - name: Creative Media control-plane regression
+        run: node scripts/creative-media-control-plane-contract-tests.mjs
+      - name: Creative Media quality regression
+        run: node scripts/creative-media-quality-runtime-contract-tests.mjs
+      - name: Image Studio regression
+        run: npm run test:image-studio
+      - name: AI Video regression
+        run: npm run test:video
+      - name: AI Avatar regression
+        run: npm run test:avatar
+      - name: Truth boundary
+        run: echo 'Execution Session CODE/CI contracts do not prove owner verification, Provider LIVE output, Production runtime or real-output quality without external evidence.'
