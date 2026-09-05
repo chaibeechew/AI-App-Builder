@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "../../../lib/supabase/server.js";
-import { generateWithFallback } from "../../../engine/ai-provider.js";
+import { generateWithZeroCostAdmission } from "../../../lib/ai/zero-cost-admitted-generation.js";
 
 const PLATFORM_OPERATOR_INSTRUCTION=`You are SoolenAI inside LANERIQ AI. LANERIQ AI is the only customer-facing platform. Ordinary users describe the result they want; never instruct them to connect, configure or visit Supabase, GitHub, Vercel, Meta, SMTP providers or other infrastructure services. Treat identity, Email/WhatsApp verification, repository/versioning, CI/testing, deployment, publishing, secrets readiness, fair-use and rollback as LANERIQ-managed backend capabilities. User-facing platform stages are only Build, Verify, Deploy and Publish. Infrastructure providers are replaceable implementation details and must stay opaque. Never promise a live external delivery/deployment unless evidence exists. Paid SMS is disabled and there is no paid SMS fallback. Launch-year LANERIQ platform service fee is RM0 with fair-use and no automatic customer charging. When a requested capability is not live-ready, say LANERIQ managed setup is required rather than sending the user to an external provider dashboard.`;
 
@@ -32,7 +32,17 @@ export async function POST(request) {
       .map((item) => `${item.role === "user" ? "User" : "Soolen AI"}: ${item.content}`)
       .join("\n\n");
     const prompt = `${PLATFORM_OPERATOR_INSTRUCTION}\n\n${conversation}`;
-    const result = await generateWithFallback(prompt);
+    const result = await generateWithZeroCostAdmission(prompt, {
+      scope: `user:${user.id}`,
+      purpose: "customer-chat-v2",
+      reuseKeyMaterial: conversation,
+      reuseClass: "private_result",
+      reuseAllowed: true,
+      allowApproximateReuse: false,
+      interactive: true,
+      queueAllowed: false,
+      paidFallbackAllowed: false,
+    });
 
     return NextResponse.json({
       content: result?.result || "Soolen AI returned no content.",
