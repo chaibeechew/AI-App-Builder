@@ -1,3 +1,4 @@
+# P3 rebuilt on Batch 173 Production main; exact-head CI is required before merge.
 name: LANERIQ App Builder Unified World Gate
 
 on:
