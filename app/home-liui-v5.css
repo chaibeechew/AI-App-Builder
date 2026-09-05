@@ -1,6 +1,4 @@
-/* LANERIQ AI Living Intelligence homepage template v7.
-   Page 1 is intent-first. This file is the final visual authority for the
-   customer-facing homepage under LIUI-2026.2. */
+/* LANERIQ AI Living Intelligence homepage template v8 — user-approved reference layout. */
 
 .premiumHome{
   --liui-v5-gold:#f2c862;
@@ -12,18 +10,17 @@
   scroll-padding-bottom:180px;
 }
 
-/* Launch-year cost policy stays internal: Credits are not a primary customer journey. */
+/* No-credits launch policy: visual reference shows credits, production does not. */
 .premiumHome .topActions > a.credits,
 .premiumHome .topActions > a[href="/credits"].credits{display:none!important}
 .premiumHome .topActions{justify-content:flex-end!important}
 .premiumHome .promiseRow{display:none!important}
 
-/* Page 1 visual authority: Future City + People. Wallpaper runtime must not
-   replace this first-paint artwork on the homepage. */
+/* Exact visual atmosphere from the approved Page 1 reference. */
 .premiumHome .bg{
   background-color:#03101f!important;
   background-image:
-    linear-gradient(180deg,rgba(0,7,18,.04) 0%,rgba(0,8,18,.02) 30%,rgba(0,8,20,.18) 58%,rgba(0,7,18,.70) 82%,rgba(0,6,15,.98) 100%),
+    linear-gradient(180deg,rgba(0,7,18,.02) 0%,rgba(0,8,18,.03) 25%,rgba(0,8,20,.15) 50%,rgba(0,7,18,.63) 76%,rgba(0,6,15,.97) 100%),
     url('/laneriq-future-city-people.webp')!important;
   background-position:center top!important;
   background-size:cover!important;
@@ -31,50 +28,32 @@
 }
 .premiumHome .veil{
   background:
-    radial-gradient(circle at 78% 18%,rgba(92,136,255,.16),transparent 34%),
-    linear-gradient(180deg,rgba(1,8,19,.08),rgba(1,8,19,.28) 48%,rgba(1,8,19,.78))!important;
+    radial-gradient(circle at 73% 18%,rgba(92,160,255,.12),transparent 33%),
+    radial-gradient(circle at 44% 49%,rgba(34,176,244,.12),transparent 31%),
+    linear-gradient(180deg,rgba(1,8,19,.03),rgba(1,8,19,.18) 48%,rgba(1,8,19,.79))!important;
 }
+.premiumHome .frame{max-width:900px!important;margin:0 auto!important;padding-inline:18px!important}
+.premiumHome .topbar{min-height:82px!important;padding:17px 3px 8px!important}
 
-/* Brand hierarchy is rendered directly in the DOM — no legacy text hidden behind pseudo-elements. */
-.premiumHome .heroCopy h1{letter-spacing:0!important;line-height:1!important}
+/* Brand block is part of the hero like the reference image. */
+.premiumHome .heroCopy{min-height:280px!important;padding:12px 4px 22px!important;display:flex!important;flex-direction:column!important;justify-content:flex-start!important}
+.premiumHome .heroCopy h1{letter-spacing:0!important;line-height:1!important;margin-top:0!important}
 .premiumHome .heroCopy h1 span{
   display:block!important;
   font-size:clamp(42px,8vw,68px)!important;
   line-height:.98!important;
   letter-spacing:.025em!important;
-  background:linear-gradient(180deg,#fff3b7,#e0a936)!important;
-  -webkit-background-clip:text!important;
-  background-clip:text!important;
-  color:transparent!important;
+  background:linear-gradient(180deg,#fff9df,#f1d77d 42%,#d89d32)!important;
+  -webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;
   white-space:nowrap!important;
+  text-shadow:0 0 30px rgba(248,211,112,.10)!important;
 }
-.premiumHome .heroCopy h1 strong{
-  display:block!important;
-  margin-top:10px!important;
-  font-size:clamp(10px,2vw,14px)!important;
-  line-height:1.2!important;
-  letter-spacing:.20em!important;
-  color:#f4d57c!important;
-  white-space:nowrap!important;
-}
-.premiumHome .heroCopy p{
-  margin:18px 0 12px!important;
-  font-size:clamp(13px,2.4vw,18px)!important;
-  line-height:1.55!important;
-  color:#dbe8f2!important;
-}
-.premiumHome .heroCopy p b{
-  display:inline-block!important;
-  margin-bottom:3px!important;
-  font-size:clamp(15px,3vw,22px)!important;
-  font-weight:780!important;
-  letter-spacing:.035em!important;
-  color:#fff!important;
-}
-.premiumHome .powered{color:#dbe8f2!important}
-.premiumHome .powered b{color:#f4d57c!important}
+.premiumHome .heroCopy h1 strong{display:block!important;margin-top:10px!important;font-size:clamp(10px,2vw,14px)!important;line-height:1.2!important;letter-spacing:.20em!important;color:#f4d57c!important;white-space:nowrap!important}
+.premiumHome .heroCopy p{margin:18px 0 12px!important;font-size:clamp(13px,2.4vw,18px)!important;line-height:1.55!important;color:#dbe8f2!important}
+.premiumHome .heroCopy p b{display:inline-block!important;margin-bottom:3px!important;font-size:clamp(15px,3vw,22px)!important;font-weight:780!important;letter-spacing:.035em!important;color:#fff!important}
+.premiumHome .powered{color:#dbe8f2!important}.premiumHome .powered b{color:#f4d57c!important}
 
-/* Intent-first order is locked in CSS as a regression guard even though the DOM now follows it natively. */
+/* Locked Page 1 order from approved reference. */
 body[data-liui-surface="creation"] .premiumHome .frame{display:flex!important;flex-direction:column!important}
 body[data-liui-surface="creation"] .premiumHome .topbar{order:0}
 body[data-liui-surface="creation"] .premiumHome .heroCopy{order:1}
@@ -86,83 +65,53 @@ body[data-liui-surface="creation"] .premiumHome :where(.buildCta,.buildProgress)
 body[data-liui-surface="creation"] .premiumHome .errorBox{order:7}
 body[data-liui-surface="creation"] .premiumHome .promiseRow{order:8;margin-bottom:18px!important}
 
-/* LIUI rule: glass surrounds the intent surface, but the typing surface itself is light/warm for legibility. */
+/* Hero intent composer — wide glass shell and warm cream input, exactly like reference geometry. */
 .premiumHome .promptCard{
-  background:linear-gradient(145deg,rgba(6,24,44,.72),rgba(9,15,37,.66))!important;
-  border:1px solid rgba(126,190,236,.30)!important;
-  box-shadow:0 24px 65px rgba(0,0,0,.34)!important;
-  backdrop-filter:blur(24px) saturate(140%)!important;
-  -webkit-backdrop-filter:blur(24px) saturate(140%)!important;
+  padding:18px!important;margin:0 0 12px!important;border-radius:30px!important;
+  background:linear-gradient(145deg,rgba(15,49,76,.66),rgba(7,25,47,.76))!important;
+  border:1px solid rgba(197,225,245,.34)!important;
+  box-shadow:0 28px 70px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.08)!important;
+  backdrop-filter:blur(26px) saturate(145%)!important;-webkit-backdrop-filter:blur(26px) saturate(145%)!important;
 }
-.premiumHome .promptHead label{color:#f7fbff!important}
+.premiumHome .promptHead{margin-bottom:10px!important}.premiumHome .promptHead label{color:#f7fbff!important;font-size:clamp(15px,2.5vw,21px)!important}
 .premiumHome .promptCard textarea{
-  min-height:118px!important;
-  max-height:260px!important;
-  background:linear-gradient(180deg,#fffdf7 0%,#f2ecdf 100%)!important;
-  color:#15202b!important;
-  border:1px solid rgba(255,255,255,.72)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 24px rgba(0,0,0,.14)!important;
-  font-size:max(16px,1em)!important;
-  line-height:1.55!important;
-  caret-color:#1b62c4!important;
+  min-height:112px!important;max-height:270px!important;border-radius:17px!important;padding:18px 20px!important;
+  background:linear-gradient(180deg,#fff9e8 0%,#e9dfc2 100%)!important;color:#29313a!important;
+  border:1px solid rgba(255,255,255,.78)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 10px 28px rgba(0,0,0,.15)!important;
+  font-size:max(16px,1em)!important;line-height:1.55!important;caret-color:#1b62c4!important;
 }
-.premiumHome .promptCard textarea::placeholder{color:#66727c!important;opacity:1!important}
-.premiumHome .promptCard textarea:focus{outline:2px solid rgba(94,165,231,.58)!important;outline-offset:2px!important}
+.premiumHome .promptCard textarea::placeholder{color:#646b72!important;opacity:1!important}.premiumHome .promptCard textarea:focus{outline:2px solid rgba(94,165,231,.58)!important;outline-offset:2px!important}
+.premiumHome .promptTools{gap:8px!important;margin-top:11px!important}.premiumHome .promptTools :where(button,a){min-height:38px!important;border-radius:999px!important;background:rgba(13,48,75,.56)!important;border-color:rgba(175,212,238,.22)!important}
 
-/* Creator tools sit below the prompt, matching the approved Page 1 stack. */
-.premiumHome .featureCards{margin:10px 0 14px!important}
-.premiumHome .feature{
-  background:linear-gradient(155deg,rgba(8,29,52,.70),rgba(7,16,34,.64))!important;
-  border-color:rgba(125,183,229,.25)!important;
-  backdrop-filter:blur(18px)!important;
-  -webkit-backdrop-filter:blur(18px)!important;
-}
-.premiumHome .feature b{letter-spacing:.01em!important}
+/* Create Image / Design Image are two equal large actions. */
+.premiumHome .featureCards{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;margin:10px 0 12px!important}
+.premiumHome .feature{min-height:100px!important;border-radius:22px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:12px!important;background:linear-gradient(155deg,rgba(10,41,67,.72),rgba(7,18,38,.72))!important;border:1px solid rgba(164,211,243,.28)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important}
+.premiumHome .feature b{font-size:clamp(15px,2.6vw,20px)!important;letter-spacing:.01em!important}.premiumHome .feature i{font-size:27px!important}
 
-/* Style + templates are Living Cards, not opaque tool panels. */
-.premiumHome .choiceCard{
-  background:linear-gradient(145deg,rgba(5,23,43,.68),rgba(10,16,38,.64))!important;
-  border-color:rgba(125,183,229,.25)!important;
-  backdrop-filter:blur(22px)!important;
-  -webkit-backdrop-filter:blur(22px)!important;
-}
-.premiumHome .choiceCard :where(button,a){min-height:44px!important}
+/* Style and Templates: same horizontal living-card geometry as reference. */
+.premiumHome .choiceCard{padding:15px!important;margin-top:0!important;border-radius:22px!important;background:linear-gradient(145deg,rgba(5,26,47,.70),rgba(10,17,39,.70))!important;border:1px solid rgba(158,205,238,.26)!important;backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important;box-shadow:0 20px 55px rgba(0,0,0,.25)!important}
+.premiumHome .choiceHead{margin-bottom:10px!important}.premiumHome .choiceHead b{font-size:17px!important}.premiumHome .styleRail,.premiumHome .templateRail{gap:8px!important;overflow-x:auto!important;scroll-snap-type:x proximity!important;scrollbar-width:none!important}.premiumHome .styleRail::-webkit-scrollbar,.premiumHome .templateRail::-webkit-scrollbar{display:none}.premiumHome .styleRail>*{min-width:112px!important;border-radius:15px!important;scroll-snap-align:start!important}.premiumHome .templateRail>*{min-width:170px!important;border-radius:15px!important;scroll-snap-align:start!important}.premiumHome .choiceCard :where(button,a){min-height:44px!important}
 
-/* Golden primary action remains visually dominant and can always scroll above the fixed nav. */
+/* Golden BUILD APP • GAME • WEB CTA. */
 .premiumHome .buildCta{
-  min-height:60px!important;
-  margin-bottom:10px!important;
-  background:linear-gradient(180deg,#ffe58b 0%,#f0c14e 48%,#c98b1f 100%)!important;
-  border-color:#ffe89a!important;
-  box-shadow:0 0 34px rgba(240,193,78,.28),0 18px 46px rgba(0,0,0,.38)!important;
+  min-height:82px!important;margin:16px 0 10px!important;border-radius:22px!important;
+  background:linear-gradient(180deg,#ffe99f 0%,#f0c14e 45%,#c7891c 100%)!important;color:#111925!important;
+  border:1px solid #ffeba5!important;box-shadow:0 0 36px rgba(240,193,78,.38),0 20px 50px rgba(0,0,0,.38),inset 0 1px 0 #fff4c4!important;
 }
-.premiumHome .buildCta span{letter-spacing:.025em!important}
+.premiumHome .buildCta span{letter-spacing:.12em!important;font-size:clamp(16px,3.3vw,27px)!important;font-weight:900!important}
 
-/* Canonical LIUI bottom nav supplied by the coordinator is the primary homepage nav. */
 body[data-liui-surface="creation"] .bottomNav{display:none!important}
-
-/* Creator Encouragement uses the same living-glass family as the main template. */
 .creatorEncourage .creatorSpark{border-color:rgba(242,200,98,.42)!important;background:linear-gradient(145deg,rgba(12,20,45,.90),rgba(6,31,37,.88))!important}
 
 @media(max-width:520px){
-  /* Do not consume most of the first viewport with branding. The intent composer
-     must be reachable in the first screen / first natural thumb scroll. */
-  .premiumHome .heroCopy{
-    min-height:clamp(250px,34svh,330px)!important;
-    padding-top:4px!important;
-    padding-bottom:12px!important;
-    display:flex!important;
-    flex-direction:column!important;
-    justify-content:center!important;
-  }
-  .premiumHome .heroCopy h1 span{font-size:clamp(34px,10.3vw,42px)!important}
-  .premiumHome .heroCopy h1 strong{font-size:9px!important;letter-spacing:.17em!important}
-  .premiumHome .heroCopy p{margin-top:12px!important}
-  .premiumHome .promptCard textarea{min-height:126px!important;max-height:320px!important}
-  .premiumHome .featureCards{margin-top:8px!important}
-  .premiumHome{padding-bottom:max(184px,calc(154px + env(safe-area-inset-bottom)))!important}
+  .premiumHome{padding-bottom:max(174px,calc(148px + env(safe-area-inset-bottom)))!important}
+  .premiumHome .frame{padding-inline:12px!important}
+  .premiumHome .topbar{min-height:68px!important;padding-top:11px!important}
+  .premiumHome .heroCopy{min-height:305px!important;padding:2px 4px 10px!important;justify-content:flex-start!important}
+  .premiumHome .heroCopy h1 span{font-size:clamp(34px,10.3vw,42px)!important}.premiumHome .heroCopy h1 strong{font-size:9px!important;letter-spacing:.17em!important}
+  .premiumHome .heroCopy p{margin-top:12px!important}.premiumHome .promptCard{border-radius:25px!important;padding:14px!important}.premiumHome .promptCard textarea{min-height:104px!important;max-height:320px!important;padding:15px!important}
+  .premiumHome .featureCards{grid-template-columns:1fr 1fr!important}.premiumHome .feature{min-height:82px!important}.premiumHome .styleRail>*{min-width:92px!important}.premiumHome .templateRail>*{min-width:148px!important}.premiumHome .buildCta{min-height:70px!important;margin-top:13px!important}.premiumHome .buildCta span{font-size:18px!important;letter-spacing:.09em!important}
 }
 
-@media(prefers-reduced-motion:reduce){
-  .premiumHome *,.premiumHome *::before,.premiumHome *::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
-}
+@media(max-width:360px){.premiumHome .featureCards{grid-template-columns:1fr!important}.premiumHome .heroCopy{min-height:285px!important}}
+@media(prefers-reduced-motion:reduce){.premiumHome *,.premiumHome *::before,.premiumHome *::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
