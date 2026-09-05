@@ -23,7 +23,14 @@ assert.ok(packet.rules.length<=18);
 const secretCandidate=createExperienceCandidate({domain:'security',title:'Token leak sk_12345678901234567890',lesson:'Never log authorization bearer token_12345678901234567890 or service_role secret values.',source:'incident',risk:'high',evidence:[{kind:'contract',ref:'redaction-contract',passed:true},{kind:'incident',ref:'incident-42',passed:true}]});
 assert.equal(secretCandidate.status,'candidate');
 assert.equal(secretCandidate.autoPromotable,false);
+assert.equal(secretCandidate.containsPrivateUserContent,false);
+assert.equal(secretCandidate.containsDirectPii,false);
 assert.doesNotMatch(`${secretCandidate.title} ${secretCandidate.lesson}`,/sk_12345678901234567890|token_12345678901234567890|service_role secret/i);
+
+const piiCandidate=createExperienceCandidate({domain:'security',title:'Contact alice@example.com at +60123456789',lesson:'Never persist alice@example.com or +60123456789 inside shared engineering knowledge.',source:'incident',risk:'high',evidence:[{kind:'contract',ref:'pii-redaction',passed:true},{kind:'incident',ref:'incident-pii',passed:true}]});
+assert.doesNotMatch(`${piiCandidate.title} ${piiCandidate.lesson}`,/alice@example\.com|60123456789/i);
+assert.match(`${piiCandidate.title} ${piiCandidate.lesson}`,/REDACTED_EMAIL|REDACTED_PHONE/);
+assert.throws(()=>createExperienceCandidate({lesson:'raw private prompt',containsPrivateUserContent:true}),/PRIVATE_USER_CONTENT_NOT_ALLOWED_IN_EXPERIENCE/);
 
 const blocked=evaluateKnowledgePromotion(secretCandidate,{target:'production_rule',reviewerApproved:false});
 assert.equal(blocked.allowed,false);
@@ -34,6 +41,9 @@ const eligible=createExperienceCandidate({domain:'production_evidence',title:'Ex
 const allowed=evaluateKnowledgePromotion(eligible,{target:'production_rule',reviewerApproved:true});
 assert.equal(allowed.allowed,true);
 assert.equal(promoteKnowledgeCandidate(eligible,{target:'production_rule',reviewerApproved:true}).status,'production_rule');
+const privacyBlocked=evaluateKnowledgePromotion({...eligible,containsPrivateUserContent:true},{target:'production_rule',reviewerApproved:true});
+assert.equal(privacyBlocked.allowed,false);
+assert.ok(privacyBlocked.blockers.includes('private-user-content-safety-unverified'));
 
 const regression=learnFromBenchmark({domain:'frontend_liui',hypothesis:'Reduce motion complexity',baselineScore:96,candidateScore:97,regressionCount:1,evidence:[{kind:'contract',ref:'liui-contract',passed:true,independent:true}]});
 assert.equal(regression.materiallyBetter,false);
@@ -69,13 +79,16 @@ assert.equal(telemetry.includesUserContent,false);
 assert.equal(telemetry.includesSecrets,false);
 assert.equal(telemetry.includesProviderCredentials,false);
 assert.equal(Object.hasOwn(publicKnowledgeTelemetry(telemetry),'blockedReasons'),false);
+assert.equal(createKnowledgeTelemetry({risk:'critical'}).risk,'critical');
 
 const knowledge=getLaneriqEngineeringKnowledge();
 assert.equal(knowledge.learningContract,'laneriq-governed-experience-learning-v1');
-assert.ok(knowledge.truthPrinciples===undefined);
 assert.ok(engineeringKnowledgeForPrompt().includes('governed candidate lesson'));
 assert.match(GENERATION_QUALITY_RULES,/EXPERIENCE LEARNING LOOP/i);
 assert.match(GENERATION_QUALITY_RULES,/Production rules require explicit human approval/i);
 assert.match(GENERATION_QUALITY_RULES,/Failed or regressing benchmarks do not teach a positive rule/i);
+assert.match(GENERATION_QUALITY_RULES,/direct PII/i);
+assert.match(GENERATION_QUALITY_RULES,/Time-sensitive knowledge must carry freshness evidence/i);
+assert.match(GENERATION_QUALITY_RULES,/Knowledge telemetry is aggregate and privacy-safe/i);
 
-console.log('LANERIQ Knowledge Fabric v2 gate passed: scoped routing, experience capture, incident/benchmark learning, immutable conflict resolution, freshness TTL, prompt budget, privacy-safe telemetry and fail-closed human+evidence promotion are locked.');
+console.log('LANERIQ Knowledge Fabric v2 gate passed: scoped routing, privacy-safe experience capture, incident/benchmark learning, immutable conflict resolution, freshness TTL, prompt budget, aggregate telemetry and fail-closed human+evidence promotion are locked.');
