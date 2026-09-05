@@ -9,8 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -63,7 +61,7 @@ public class GuardianService extends Service {
 
         if (ACTION_PACKAGE_CHANGED.equals(action)) {
             String packageName = intent == null ? null : intent.getStringExtra(EXTRA_PACKAGE);
-            if (packageName != null && !packageName.isBlank()) {
+            if (packageName != null && !packageName.trim().isEmpty()) {
                 showAlert("New app activity detected", "Installed or updated: " + packageName + ". Review it before sensitive banking or payment activity.");
             }
         }
@@ -103,7 +101,7 @@ public class GuardianService extends Service {
         PendingIntent stopPi = PendingIntent.getService(this, 2, stop,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        Notification.Builder b = new Notification.Builder(this, CHANNEL_PROTECTION)
+        return new Notification.Builder(this, CHANNEL_PROTECTION)
                 .setSmallIcon(android.R.drawable.ic_lock_lock)
                 .setContentTitle("LANERIQ Anti Scam • Always-On Guardian")
                 .setContentText(text)
@@ -112,9 +110,9 @@ public class GuardianService extends Service {
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .setCategory(Notification.CATEGORY_SERVICE)
-                .addAction(new Notification.Action.Builder(null, "Open", openPi).build())
-                .addAction(new Notification.Action.Builder(null, "Stop Guardian", stopPi).build());
-        return b.build();
+                .addAction(android.R.drawable.ic_menu_view, "Open", openPi)
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Guardian", stopPi)
+                .build();
     }
 
     private void showAlert(String title, String message) {
