@@ -326,6 +326,7 @@ function AuthForm() {
           <p>Sign in once, then continue creating apps, websites and mobile games in the same premium workspace.</p>
           <div className="capabilityRow"><span>APPS</span><span>WEB</span><span>GAMES</span><span>iOS + Android</span></div>
           <div className="trustLine"><i /> Private project access · passwordless verification</div>
+          <small className="trustPolicy">No paid SMS fallback is used.</small>
         </section>
 
         <section className="authCard" aria-live="polite">

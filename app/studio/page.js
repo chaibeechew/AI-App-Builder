@@ -12,8 +12,10 @@ const sections=[
   ]},
   {title:"AI & App Engine",items:[
     ["✦","AI Build","Generate App + Website from your idea.","/create","purple"],
+    ["🎮","Pro Game Creator","Professional Fair Price · Fair Use mobile-game creation with playable runtime and iOS + Android targets.","/game-builder","gold"],
     ["◎","AI Art Generator","Create original visual assets.","/image-studio?mode=create","violet"],
     ["▶","AI Video Generator","Create video projects with truthful render status.","/video-studio","blue"],
+    ["◫","AI Photo & Video Generator","Create mixed photo/video concepts, campaign media, game presentation and store media.","/image-studio?mode=create","violet"],
     ["♙","AI Avatar Creator","Create avatars, NPCs and presenters.","/avatar-studio","cyan"],
     ["⌘","Automations","Open a project to create safe workflows.","/my-apps","green"],
     ["▤","Database & Storage","Open a project to manage data and schema.","/my-apps","blue"],
