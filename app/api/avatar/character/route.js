@@ -1,7 +1,6 @@
 import {NextResponse} from "next/server";
 import {loadAvatarCharacter,saveAvatarCharacter} from "../../../../lib/cloud/avatar-characters.js";
 
-// Compatibility contract note: auth.getUser(), living_characters access, and Buffer.byteLength(JSON.stringify(manifest), "utf8") validation now live behind lib/cloud/avatar-characters.js -> lib/cloud-adapters/avatar-character-data.js. CHARACTER_REVISION_CONFLICT remains the public optimistic-concurrency code; this route must never import the provider directly.
 const MAX_BYTES=48*1024;
 function noStore(payload,status=200){return NextResponse.json(payload,{status,headers:{"Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","X-Content-Type-Options":"nosniff"}});}
 function statusFor(code){if(code==="AUTHENTICATION_REQUIRED")return 401;if(code==="ACCOUNT_VERIFICATION_REQUIRED")return 403;if(code==="CHARACTER_ID_INVALID"||code==="CHARACTER_MANIFEST_INVALID")return 400;if(code==="CHARACTER_NOT_FOUND")return 404;if(code==="CHARACTER_REVISION_CONFLICT")return 409;return 500;}
