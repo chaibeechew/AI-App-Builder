@@ -21,6 +21,12 @@ for (const pattern of [
   /does not deploy, roll back, mutate Vercel\/Supabase\/DNS/,
 ]) assert.match(workflow, pattern);
 
+assert.doesNotMatch(
+  workflow,
+  /push:\n\s+branches: \[main\]\n\s+paths:/,
+  "Production Runtime Convergence must run after every main push, not only when selected paths change.",
+);
+
 for (const pattern of [
   /PRODUCTION_RUNTIME_EXPECTED_SHA_INVALID/,
   /baseUrl !== "https:\/\/laneriq-ai\.vercel\.app"/,
@@ -61,6 +67,6 @@ for (const forbidden of [
 ]) assert.doesNotMatch(runtime, forbidden);
 
 console.log("✓ PR verifies the Runtime Convergence Gate contract without touching Production");
-console.log("✓ main push alone performs bounded public Production convergence observation");
+console.log("✓ Every main push performs bounded public Production convergence observation; path filtering is forbidden");
 console.log("✓ Runtime evidence binds exact main SHA + main ref + production environment + observed Vercel deployment ID with a double-read stability check");
 console.log("✓ Gate is credential-free, fail-closed and does not deploy, roll back or mutate Production infrastructure");
