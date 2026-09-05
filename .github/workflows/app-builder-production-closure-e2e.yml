@@ -6,10 +6,34 @@ on:
       - "app/production-closure-e2e/route.js"
       - "app/api/orchestrate/route.js"
       - "app/api/generate/route.js"
+      - "app/api/modify/route.js"
       - "app/api/production-e2e/zero-spend/route.js"
+      - "app/api/templates/route.js"
       - "app/api/apps/[id]/route.js"
       - "app/api/apps/[id]/quality/route.js"
+      - "app/api/apps/[id]/rollback/route.js"
+      - "app/api/apps/[id]/database/route.js"
+      - "app/api/apps/[id]/database/rollback/route.js"
+      - "app/api/apps/[id]/workflows/route.js"
+      - "app/api/apps/[id]/workflows/[workflowId]/run/route.js"
       - "app/api/apps/[id]/publish/route.js"
+      - "app/page.js"
+      - "app/create/page.js"
+      - "app/preview/[id]/page.js"
+      - "app/release/[id]/page.js"
+      - "app/app-dashboard/[id]/page.js"
+      - "app/my-apps/page.js"
+      - "app/templates/page.js"
+      - "app/templates/[id]/page.js"
+      - "app/soolen-ai/page.js"
+      - "app/workflows/[id]/page.js"
+      - "app/analytics/[id]/page.js"
+      - "app/studio/page.js"
+      - "app/editor/[id]/page.js"
+      - "app/database/[id]/page.js"
+      - "app/operations/[id]/page.js"
+      - "app/publish/[id]/page.js"
+      - "lib/product/laneriq-18-page-master.js"
       - "scripts/app-builder-production-closure-e2e-contract-tests.mjs"
       - ".github/workflows/app-builder-production-closure-e2e.yml"
   push:
@@ -18,10 +42,34 @@ on:
       - "app/production-closure-e2e/route.js"
       - "app/api/orchestrate/route.js"
       - "app/api/generate/route.js"
+      - "app/api/modify/route.js"
       - "app/api/production-e2e/zero-spend/route.js"
+      - "app/api/templates/route.js"
       - "app/api/apps/[id]/route.js"
       - "app/api/apps/[id]/quality/route.js"
+      - "app/api/apps/[id]/rollback/route.js"
+      - "app/api/apps/[id]/database/route.js"
+      - "app/api/apps/[id]/database/rollback/route.js"
+      - "app/api/apps/[id]/workflows/route.js"
+      - "app/api/apps/[id]/workflows/[workflowId]/run/route.js"
       - "app/api/apps/[id]/publish/route.js"
+      - "app/page.js"
+      - "app/create/page.js"
+      - "app/preview/[id]/page.js"
+      - "app/release/[id]/page.js"
+      - "app/app-dashboard/[id]/page.js"
+      - "app/my-apps/page.js"
+      - "app/templates/page.js"
+      - "app/templates/[id]/page.js"
+      - "app/soolen-ai/page.js"
+      - "app/workflows/[id]/page.js"
+      - "app/analytics/[id]/page.js"
+      - "app/studio/page.js"
+      - "app/editor/[id]/page.js"
+      - "app/database/[id]/page.js"
+      - "app/operations/[id]/page.js"
+      - "app/publish/[id]/page.js"
+      - "lib/product/laneriq-18-page-master.js"
       - "scripts/app-builder-production-closure-e2e-contract-tests.mjs"
       - ".github/workflows/app-builder-production-closure-e2e.yml"
 
@@ -31,7 +79,7 @@ permissions:
 jobs:
   app-builder-production-closure:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
@@ -50,7 +98,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate App Builder closure contract
+      - name: Validate authenticated full closure contract
         run: node scripts/app-builder-production-closure-e2e-contract-tests.mjs
 
       - name: Build runtime integration
@@ -58,6 +106,7 @@ jobs:
 
       - name: Evidence boundary
         run: |
-          echo "✓ This gate proves CODE + CI + build integration only."
+          echo "✓ This gate proves CODE + CI + build integration for the 18-stage authenticated closure."
+          echo "✓ The Production route can verify Modify, Version/Undo, Database version/rollback, Workflow Safe Test/idempotency/pause, canonical 18-page route health, release readiness and brief Publish/Unpublish."
           echo "✓ Authenticated Production execution still requires a real signed-in user session on exact main."
-          echo "✓ Physical-device, provider-LIVE, Email/SMS and official-store evidence remain independent."
+          echo "✓ Physical-device, provider-LIVE, physical DB migration, Email/WhatsApp/SMS and official-store evidence remain independent."
