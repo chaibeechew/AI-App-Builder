@@ -99,8 +99,8 @@ const requiredSurfacePhrases=[
     'Choose a Style','Customer colors can change later','Choose a Template','View All ›','BUILD APP • GAME • WEB',
     '✦ Credits','My projects','Home','Projects','Create','Templates','More'
   ]],
-  [auth,['Checking your session…','Secure sign in','CREATE WITHOUT LIMITS','One code.','Your whole studio.','SECURE VERIFICATION','Enter your code','Welcome back','Email Code','Email address','Verify & Continue','Resend Code','Encrypted session','One-time code','Rate-limit aware']],
-  [templates,['Reference. Reimagine. Build something original.','Create from scratch →','🔥 Trending 100','All Inspirations','All industries','All styles','AI Reimagine →','Reference only · AI will reimagine the structure, visuals and copy.','No inspiration matched these filters. Try a broader search.']],
+  [auth,['Checking your session…','Secure sign in','CREATE WITHOUT LIMITS','One code.','Your whole studio.','SECURE VERIFICATION','Enter Your Email','Check Your Email','A BRIGHTER TOMORROW TOGETHER','Email Code','Email address','Verify','Resend Code','Encrypted session','One-time code','Rate-limit aware','Private project access · passwordless verification','No paid SMS fallback is used.']],
+  [templates,['Templates','✦ Build From Scratch','Trending','All Templates','All industries','All styles','Choose a Style','View details →','Use Template →','AI Reimagine','No template matched these filters. Try a broader search.']],
 ];
 for(const [source,phrases] of requiredSurfacePhrases){
   for(const phrase of phrases){
