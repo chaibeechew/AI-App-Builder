@@ -10,6 +10,12 @@ import {
   createDefaultDeviceComputeSettings,
   sanitizeDeviceComputeSettings,
 } from "../../lib/device-compute/policy.js";
+import {
+  NATIVE_RESOURCE_GUARDIAN_VERSION,
+  applyNativeAdmissionToBudget,
+  evaluateNativeResourceAdmission,
+  normalizeNativeTelemetry,
+} from "../../lib/device-compute/native-resource-guardian.js";
 
 function installationId() {
   try {
@@ -35,11 +41,12 @@ function writeSettings(settings) {
   return safe;
 }
 
-function nativeThermalState() {
+function readNativeTelemetry() {
   try {
-    return String(window.__LANERIQ_NATIVE_TELEMETRY__?.thermalState || "unknown");
+    const value = window.__LANERIQ_NATIVE_TELEMETRY__;
+    return value && typeof value === "object" ? { ...value } : {};
   } catch {
-    return "unknown";
+    return {};
   }
 }
 
@@ -58,7 +65,8 @@ export default function DeviceComputeManager() {
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [battery, setBattery] = useState({ level: null, charging: false });
-  const [thermalState, setThermalState] = useState("unknown");
+  const [nativeTelemetry, setNativeTelemetry] = useState({});
+  const [visibility, setVisibility] = useState("visible");
   const [storagePersistent, setStoragePersistent] = useState(null);
 
   useEffect(() => {
@@ -77,9 +85,26 @@ export default function DeviceComputeManager() {
       }
     })();
 
-    const updateThermal = () => { if (mounted) setThermalState(nativeThermalState()); };
-    updateThermal();
-    window.addEventListener("laneriq:native-telemetry", updateThermal);
+    const updateNativeTelemetry = () => { if (mounted) setNativeTelemetry(readNativeTelemetry()); };
+    const updateVisibility = () => {
+      if (!mounted) return;
+      setVisibility(document.visibilityState === "hidden" ? "hidden" : "visible");
+    };
+    const updateSettingsFromComputeEvent = (event) => {
+      if (!mounted || event?.detail?.budget || !event?.detail?.settings) return;
+      setSettings(sanitizeDeviceComputeSettings(event.detail.settings));
+    };
+    const updateSettingsFromStorage = (event) => {
+      if (!mounted || (event?.key && event.key !== DEVICE_COMPUTE_STORAGE_KEY)) return;
+      setSettings(readSettings());
+    };
+
+    updateNativeTelemetry();
+    updateVisibility();
+    window.addEventListener("laneriq:native-telemetry", updateNativeTelemetry);
+    window.addEventListener(DEVICE_COMPUTE_EVENT, updateSettingsFromComputeEvent);
+    window.addEventListener("storage", updateSettingsFromStorage);
+    document.addEventListener("visibilitychange", updateVisibility);
 
     let batteryManager = null;
     const updateBattery = () => {
@@ -105,7 +130,10 @@ export default function DeviceComputeManager() {
 
     return () => {
       mounted = false;
-      window.removeEventListener("laneriq:native-telemetry", updateThermal);
+      window.removeEventListener("laneriq:native-telemetry", updateNativeTelemetry);
+      window.removeEventListener(DEVICE_COMPUTE_EVENT, updateSettingsFromComputeEvent);
+      window.removeEventListener("storage", updateSettingsFromStorage);
+      document.removeEventListener("visibilitychange", updateVisibility);
       batteryManager?.removeEventListener?.("levelchange", updateBattery);
       batteryManager?.removeEventListener?.("chargingchange", updateBattery);
     };
@@ -115,35 +143,62 @@ export default function DeviceComputeManager() {
     if (!ready) return null;
     const input = deviceInputs();
     const deviceClass = classifyDevice(input);
-    const budget = computeDeviceBudget({
+    const normalizedNative = normalizeNativeTelemetry({
+      ...nativeTelemetry,
+      visibility,
+    });
+    const batteryLevel = normalizedNative.batteryLevel ?? battery.level;
+    const charging = Object.prototype.hasOwnProperty.call(nativeTelemetry, "charging") ? normalizedNative.charging : battery.charging;
+    const rawBudget = computeDeviceBudget({
       settings,
       deviceClass,
-      thermalState,
-      batteryLevel: battery.level,
-      charging: battery.charging,
-      visibility: typeof document !== "undefined" ? document.visibilityState : "visible",
+      thermalState: normalizedNative.thermalState,
+      batteryLevel,
+      charging,
+      visibility,
       hardwareConcurrency: input.hardwareConcurrency,
     });
+    const nativeAdmission = evaluateNativeResourceAdmission({
+      telemetry: normalizedNative,
+      purpose: "personal_compute",
+      explicitConsent: settings.localComputeEnabled === true,
+      consentWithdrawn: settings.decision === "cloud_only",
+      userInitiatedTask: true,
+      requestedShare: Math.max(rawBudget.burstCpuShare, rawBudget.burstGpuShare, rawBudget.sustainedCpuShare, rawBudget.sustainedGpuShare),
+      estimatedNetworkBytes: 0,
+    });
+    const budget = settings.localComputeEnabled ? applyNativeAdmissionToBudget(rawBudget, nativeAdmission) : rawBudget;
+
     return {
       policyVersion: DEVICE_COMPUTE_POLICY_VERSION,
+      nativeResourceGuardianVersion: NATIVE_RESOURCE_GUARDIAN_VERSION,
       settings,
       deviceClass,
       budget,
+      nativeAdmission,
+      nativeTelemetry: normalizedNative,
+      visibility,
       storagePersistent,
-      nativeThermalTelemetry: thermalState !== "unknown",
+      nativeThermalTelemetry: normalizedNative.thermalTelemetryAvailable,
     };
-  }, [battery.charging, battery.level, ready, settings, storagePersistent, thermalState]);
+  }, [battery.charging, battery.level, nativeTelemetry, ready, settings, storagePersistent, visibility]);
 
   useEffect(() => {
     if (!snapshot) return;
     const api = Object.freeze({
       getSnapshot: () => snapshot,
+      canExecutePersonalCompute: () => snapshot.settings.localComputeEnabled === true && snapshot.nativeAdmission.allowed === true && snapshot.budget.nativeGuardianBlocked !== true,
+      canExecuteCommunityCompute: () => false,
       policyVersion: DEVICE_COMPUTE_POLICY_VERSION,
+      nativeResourceGuardianVersion: NATIVE_RESOURCE_GUARDIAN_VERSION,
       motherAiIdentity: "LANERIQ AI",
       adaptiveComputeMaxShare: 0.05,
       communityComputePreferenceEnabled: snapshot.settings.communityComputeEnabled === true,
       communityComputeExecutionLive: false,
+      mobileCommunityComputeAllowed: false,
       crossUserComputeExecutionAllowed: false,
+      downloadableExecutableWorkloadsAllowed: false,
+      bypassSystemPowerManagementAllowed: false,
     });
     window.__LANERIQ_DEVICE_COMPUTE__ = api;
     window.dispatchEvent(new CustomEvent(DEVICE_COMPUTE_EVENT, { detail: snapshot }));
@@ -184,21 +239,21 @@ export default function DeviceComputeManager() {
     <section className="dcCard" role="dialog" aria-modal="true" aria-labelledby="laneriq-local-compute-title">
       <div className="dcEyebrow">LANERIQ AI · MOTHER AI DEVICE INTELLIGENCE</div>
       <h2 id="laneriq-local-compute-title">Let Mother AI use a small amount of unused device compute?</h2>
-      <p className="dcLead"><b>Mother AI is LANERIQ AI&apos;s core intelligence.</b> With your permission, it can use a small adaptive share of this device&apos;s CPU, GPU or NPU for your own AI work, normally around 0–3% and never above the 5% scheduler ceiling.</p>
+      <p className="dcLead"><b>Mother AI is LANERIQ AI&apos;s core intelligence.</b> With your permission, it can use a small adaptive share of this device&apos;s CPU, GPU or NPU for your own AI work, normally around 0–3% on mobile and never above the 5% global scheduler ceiling.</p>
       <div className="dcGrid">
         <div><b>🧠 Intelligence before compute</b><span>Mother AI only uses extra local compute when it helps your experience. 0% is always a valid state.</span></div>
-        <div><b>🌡 Thermal Guardian</b><span>Always on. Heat pressure, low battery or foreground demand can reduce the budget to 0% immediately.</span></div>
-        <div><b>🔒 Personal Compute first</b><span>Your device first helps your own LANERIQ tasks. Community Compute remains OFF unless you enable it separately.</span></div>
+        <div><b>🌡 Native Resource Guardian</b><span>Low Power Mode, heat, lifecycle state and system background rules can reduce the budget to 0% immediately.</span></div>
+        <div><b>🔒 Personal Compute only on mobile</b><span>This permission is for your own LANERIQ work. Mobile clients never execute Community Compute workloads.</span></div>
         <div><b>🛡 Privacy by design</b><span>Compute permission is not permission to read unrelated files, messages, passwords, contacts or browsing history.</span></div>
       </div>
-      <p className="dcFine">Background Compute, linked-Desktop compute and Community Compute all stay OFF until you enable them separately. LANERIQ does not invent browser temperature readings; richer thermal feedback is used only when an installed native runtime provides it. You can change this anytime in Device &amp; Compute settings.</p>
+      <p className="dcFine">Mobile background work is system-managed rather than forced by LANERIQ. Community Compute is a separate future Desktop-only capability and remains globally gated. LANERIQ does not invent browser temperature readings; native thermal feedback is used only when an installed runtime supplies it.</p>
       <div className="dcActions">
         <button className="dcPrimary" type="button" onClick={() => void saveDecision("local")}>Allow Mother AI Device Intelligence — Recommended</button>
         <button className="dcSecondary" type="button" onClick={() => void saveDecision("cloud_only")}>Use Cloud Only</button>
       </div>
     </section>
     <style jsx>{`
-      .dcBackdrop{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:max(18px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom));background:rgba(0,7,5,.72);backdrop-filter:blur(16px);font-family:Inter,system-ui,-apple-system,sans-serif;color:#edf7f2}.dcCard{width:min(720px,100%);max-height:calc(100svh - 36px);overflow:auto;padding:26px;border:1px solid rgba(230,202,104,.3);border-radius:26px;background:linear-gradient(180deg,rgba(5,28,21,.98),rgba(2,15,12,.98));box-shadow:0 32px 110px rgba(0,0,0,.62)}.dcEyebrow{font-size:10px;font-weight:1000;letter-spacing:.16em;color:#e5cb70}.dcCard h2{margin:9px 0 12px;font-size:clamp(28px,6vw,46px);line-height:1.04}.dcLead{margin:0;color:#bccdc5;line-height:1.65;font-size:14px}.dcLead b{color:#f3da82}.dcGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:20px 0 14px}.dcGrid div{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(255,255,255,.035)}.dcGrid b{display:block;font-size:12px;color:#f1d879}.dcGrid span{display:block;margin-top:5px;color:#9fb2a9;font-size:11px;line-height:1.5}.dcFine{font-size:10px;line-height:1.6;color:#82988e}.dcActions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}.dcActions button{min-height:52px;border-radius:15px;font-weight:1000;cursor:pointer;touch-action:manipulation}.dcPrimary{border:1px solid #efd66f;background:linear-gradient(135deg,#f2db7d,#b9872d);color:#06110d}.dcSecondary{border:1px solid rgba(255,255,255,.13);background:transparent;color:#d8e3de}@media(max-width:620px){.dcCard{padding:20px;border-radius:22px}.dcGrid,.dcActions{grid-template-columns:1fr}.dcActions button{min-height:54px}.dcLead{font-size:13px}}
+      .dcBackdrop{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:max(18px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom));background:rgba(0,7,5,.72);backdrop-filter:blur(16px);font-family:Inter,system-ui,-apple-system,sans-serif;color:#edf7f2}.dcCard{width:min(720px,100%);max-height:calc(100svh - 36px);overflow:auto;padding:26px;border:1px solid rgba(230,202,104,.3);border-radius:26px;background:linear-gradient(180deg,rgba(5,28,21,.98),rgba(2,15,12,.98));box-shadow:0 32px 110px rgba(0,0,0,.62)}.dcEyebrow{font-size:10px;font-weight:1000;letter-spacing:.16em;color:#e5cb70}.dcCard h2{margin:9px 0 12px;font-size:clamp(28px,6vw,46px);line-height:1.04}.dcLead{margin:0;color:#bccdc5;line-height:1.65;font-size:14px}.dcLead b{color:#f3da82}.dcGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:20px 0 14px}.dcGrid div{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(255,255,255,.035)}.dcGrid b{display:block;font-size:12px;color:#f1d879}.dcGrid span{display:block;margin-top:5px;color:#9fb2a9;font-size:11px;line-height:1.5}.dcFine{font-size:10px;line-height:1.6;color:#82988e}.dcActions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}.dcActions button{min-height:52px;border-radius:15px;font-weight:1000;cursor:pointer;touch-action:manipulation}.dcPrimary{border:1px solid #efd66f;background:linear-gradient(135deg,#f2db7d,#b9872d);color:#06110d}.dcSecondary{border:1px solid rgba(255,255,255,.13);background:transparent;color:#d8e3de}@media(max-width:620px){.dcCard{padding:20px;border-radius:22px}.dcGrid,.dcActions{grid-template-columns:1fr}.dcActions button{min-height:54px}}
     `}</style>
   </div>;
 }

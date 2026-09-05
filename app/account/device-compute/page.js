@@ -49,6 +49,7 @@ export default function DeviceComputePage() {
   const [thermalState, setThermalState] = useState("unknown");
   const [battery, setBattery] = useState({ level: null, charging: false });
   const [storage, setStorage] = useState({ usage: null, quota: null, persistent: null });
+  const [runtimeSnapshot, setRuntimeSnapshot] = useState(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -76,8 +77,22 @@ export default function DeviceComputePage() {
       try { setThermalState(String(window.__LANERIQ_NATIVE_TELEMETRY__?.thermalState || "unknown")); }
       catch { setThermalState("unknown"); }
     };
+    const updateRuntimeSnapshot = (event) => {
+      if (!mounted) return;
+      try {
+        const detail = event?.detail;
+        if (detail?.budget && detail?.nativeAdmission) {
+          setRuntimeSnapshot(detail);
+          return;
+        }
+        const snapshot = window.__LANERIQ_DEVICE_COMPUTE__?.getSnapshot?.();
+        if (snapshot?.budget && snapshot?.nativeAdmission) setRuntimeSnapshot(snapshot);
+      } catch {}
+    };
     updateThermal();
+    updateRuntimeSnapshot();
     window.addEventListener("laneriq:native-telemetry", updateThermal);
+    window.addEventListener(DEVICE_COMPUTE_EVENT, updateRuntimeSnapshot);
 
     let manager = null;
     const updateBattery = () => {
@@ -106,6 +121,7 @@ export default function DeviceComputePage() {
     return () => {
       mounted = false;
       window.removeEventListener("laneriq:native-telemetry", updateThermal);
+      window.removeEventListener(DEVICE_COMPUTE_EVENT, updateRuntimeSnapshot);
       manager?.removeEventListener?.("levelchange", updateBattery);
       manager?.removeEventListener?.("chargingchange", updateBattery);
     };
@@ -125,7 +141,7 @@ export default function DeviceComputePage() {
   const mobileLike = device.deviceClass === "mobile" || device.deviceClass === "tablet";
   const communityPreferenceOffered = !mobileLike;
 
-  const budget = useMemo(() => computeDeviceBudget({
+  const computedBudget = useMemo(() => computeDeviceBudget({
     settings,
     deviceClass: device.deviceClass,
     thermalState,
@@ -134,6 +150,9 @@ export default function DeviceComputePage() {
     visibility: "visible",
     hardwareConcurrency: device.cores,
   }), [battery.charging, battery.level, device.cores, device.deviceClass, settings, thermalState]);
+  const budget = runtimeSnapshot?.budget || computedBudget;
+  const nativeAdmission = runtimeSnapshot?.nativeAdmission || null;
+  const nativeTelemetry = runtimeSnapshot?.nativeTelemetry || null;
 
   function save(patch, success = "Saved on this device.") {
     const now = new Date().toISOString();
@@ -152,6 +171,7 @@ export default function DeviceComputePage() {
     });
     try { localStorage.setItem(DEVICE_COMPUTE_STORAGE_KEY, JSON.stringify(next)); } catch {}
     setSettings(next);
+    setRuntimeSnapshot(null);
     setMessage(success);
     window.dispatchEvent(new CustomEvent(DEVICE_COMPUTE_EVENT, { detail: { settings: next } }));
   }
@@ -174,6 +194,7 @@ export default function DeviceComputePage() {
   function resetDevice() {
     try { localStorage.removeItem(DEVICE_COMPUTE_STORAGE_KEY); } catch {}
     setSettings(createDefaultDeviceComputeSettings());
+    setRuntimeSnapshot(null);
     setMessage("This device's Mother AI compute choice was reset. You will be asked again on next authenticated use.");
   }
 
@@ -184,13 +205,13 @@ export default function DeviceComputePage() {
       <button className="back" type="button" onClick={() => router.push("/my-apps")}>← My Projects</button>
       <div className="eyebrow">LANERIQ AI · MOTHER AI DEVICE INTELLIGENCE</div>
       <h1>Device &amp; Compute</h1>
-      <p className="lead"><b>Mother AI is LANERIQ AI.</b> With your permission, Mother AI can use a small adaptive share of unused CPU, GPU or NPU capacity to improve your experience. The scheduler can fall to 0% whenever your device needs the resources and never exceeds the 5% ceiling.</p>
+      <p className="lead"><b>Mother AI is LANERIQ AI.</b> With your permission, Mother AI can use a small adaptive share of unused CPU, GPU or NPU capacity to improve your experience. Mobile native clients are capped more conservatively, and the Resource Guardian can reduce the active budget to 0% whenever device conditions require it.</p>
 
       <div className="statusGrid">
         <div><span>Detected device</span><strong>{device.deviceClass}</strong><small>{device.cores} logical CPU threads{device.memory ? ` · ~${device.memory} GB browser memory signal` : ""}</small></div>
         <div><span>Thermal telemetry</span><strong>{budget.thermalTelemetryAvailable ? budget.thermalState : "Unavailable in web"}</strong><small>{budget.thermalTelemetryAvailable ? "Provided by installed LANERIQ native wrapper" : "LANERIQ does not invent browser temperature readings"}</small></div>
         <div><span>Mother AI route</span><strong>{budget.route.replaceAll("_", " ")}</strong><small>{budget.reason.replaceAll("_", " ")}</small></div>
-        <div><span>Adaptive ceiling</span><strong>{percent(budget.maxAdaptiveComputeShare)}</strong><small>Maximum scheduler ceiling · actual use can be lower or 0%</small></div>
+        <div><span>Active compute ceiling</span><strong>{percent(budget.nativeGuardianMaxAllowedShare ?? budget.maxAdaptiveComputeShare)}</strong><small>After Resource Guardian · actual use can be lower or 0%</small></div>
       </div>
 
       <section className="panel">
@@ -208,7 +229,7 @@ export default function DeviceComputePage() {
           <div><span>Worker limit now</span><b>{budget.effectiveWorkerLimit}</b></div>
           <div><span>NPU preference</span><b>First</b></div>
         </div>
-        <p className="note">These are adaptive scheduler ceilings, not a promise that an operating system will expose or hold an exact utilization percentage. Mother AI uses intelligence before compute and yields to the user first.</p>
+        <p className="note">These are adaptive scheduler ceilings, not a promise that an operating system will expose or hold an exact utilization percentage. Mother AI yields to the user first; Low Power Mode, thermal pressure and missing system background authority can reduce eligible native execution to 0%.</p>
       </section>
 
       {communityPreferenceOffered ? <section className="panel">
@@ -240,13 +261,13 @@ export default function DeviceComputePage() {
       </section>
 
       <section className="panel compact">
+        <div><b>Native Resource Guardian</b><span>{nativeAdmission ? `${nativeAdmission.allowed ? "Allowed" : "Paused"} · ${nativeAdmission.reason.replaceAll("_", " ")}` : "Web fallback · native evidence unavailable"}</span></div>
+        <div><b>Native platform</b><span>{nativeTelemetry?.platform || "web / unknown"}</span></div>
+        <div><b>Low Power Mode</b><span>{nativeTelemetry ? (nativeTelemetry.lowPowerMode ? "ON · optional compute blocked" : "OFF") : "Native signal unavailable"}</span></div>
         <div><b>Thermal Guardian</b><span>Always ON</span></div>
         <div><b>Privacy model</b><span>No tracking-based business model</span></div>
         <div><b>Mobile Community Compute</b><span>Unavailable · Personal Compute only</span></div>
         <div><b>Community execution</b><span>Gated · not live in current runtime</span></div>
-        <div><b>Cloud fallback</b><span>Available when local or same-user device execution cannot safely finish</span></div>
-        <div><b>User-facing Credits required</b><span>No — cost control stays internal at this stage</span></div>
-        <div><b>Policy version</b><span>{DEVICE_COMPUTE_POLICY_VERSION}</span></div>
         <div><b>Mother AI identity</b><span>LANERIQ AI</span></div>
       </section>
 

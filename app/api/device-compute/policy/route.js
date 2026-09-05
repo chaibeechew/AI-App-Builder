@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { publicDeviceComputePolicy } from "../../../../lib/device-compute/policy.js";
 import { computeStoreCompliance, publicMotherAiComputeCompliancePolicy } from "../../../../lib/device-compute/store-compliance.js";
+import { publicNativeResourceGuardianPolicy } from "../../../../lib/device-compute/native-resource-guardian.js";
 import { publicBillionScaleFreeAiPolicy } from "../../../../lib/offline/billion-scale-free-ai.js";
 import { zeroCostPolicy } from "../../../../lib/soolen/cost-policy.js";
 
@@ -9,6 +10,7 @@ export async function GET() {
   const freeAi = publicBillionScaleFreeAiPolicy();
   const cost = zeroCostPolicy();
   const compliancePolicy = publicMotherAiComputeCompliancePolicy();
+  const nativeResourceGuardian = publicNativeResourceGuardianPolicy();
   const storeCompliance = {
     appleAppStore: computeStoreCompliance({ nativePlatform: "ios", distributionChannel: "app_store", userInitiatedTask: true, visibility: "visible", thermalState: "nominal" }),
     googlePlay: computeStoreCompliance({ nativePlatform: "android", distributionChannel: "google_play", userInitiatedTask: true, visibility: "visible", thermalState: "nominal" }),
@@ -18,6 +20,7 @@ export async function GET() {
     success: true,
     device,
     compliancePolicy,
+    nativeResourceGuardian,
     storeCompliance,
     freeAi,
     cost: {

@@ -1,0 +1,69 @@
+name: LANERIQ Native Resource Guardian Gate
+
+on:
+  pull_request:
+    paths:
+      - "lib/device-compute/**"
+      - "app/components/DeviceComputeManager.js"
+      - "app/account/device-compute/page.js"
+      - "app/api/device-compute/policy/route.js"
+      - "native/**"
+      - "scripts/native-resource-guardian-contract-tests.mjs"
+      - "scripts/apple-store-contract-tests.mjs"
+      - "scripts/google-play-contract-tests.mjs"
+      - "scripts/device-compute-zero-cost-contract-tests.mjs"
+      - ".github/workflows/batch141-native-resource-guardian.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-resource-guardian-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Native Resource Guardian contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Build-only public placeholders. No production Supabase secret/service-role key is used.
+      # These mirror existing LANERIQ CI gates and only allow @supabase/ssr client construction
+      # during Next.js prerender; contract tests do not depend on a live database connection.
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify Native Resource Guardian
+        run: node scripts/native-resource-guardian-contract-tests.mjs
+
+      - name: Regress Apple store contract
+        run: npm run test:apple-store
+
+      - name: Regress Google Play contract
+        run: npm run test:google-play
+
+      - name: Regress zero-cost device compute
+        run: node scripts/device-compute-zero-cost-contract-tests.mjs
+
+      - name: Build Next.js host
+        run: npm run build
+
+      - name: Evidence boundary
+        run: |
+          echo "Batch 141 verifies source contracts and the web host only."
+          echo "CI uses non-secret Supabase public placeholders for client construction; it does not verify a live database path."
+          echo "It does not claim signed iOS/Android builds, physical-device verification, store acceptance, or live Community Compute."
