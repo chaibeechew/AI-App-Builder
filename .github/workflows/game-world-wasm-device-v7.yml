@@ -1,0 +1,102 @@
+name: Game World WASM Device Evidence V7 Gate
+
+on:
+  push:
+    branches:
+      - batch145-game-world-wasm-device-evidence-v7
+  pull_request:
+    paths:
+      - "app/game-world-v7/**"
+      - "app/landing/game-world-v7-device-evidence/**"
+      - "app/game-builder/layout.js"
+      - "lib/game/game-world-wasm-runtime-v7.js"
+      - "lib/game/game-world-device-evidence-v7.js"
+      - "lib/game/game-world-real-runtime-v7.js"
+      - "scripts/game-world-real-runtime-v7-tests.mjs"
+      - "scripts/game-world-v7-external-wasm-tests.mjs"
+      - "scripts/game-world-v7-browser-device.spec.mjs"
+      - "scripts/game-world-v7-playwright.config.mjs"
+      - ".github/workflows/game-world-wasm-device-v7.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-world-v7-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wasm-device-v7:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      GEMINI_API_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Game World Generator regression
+        run: node scripts/game-world-generator-tests.mjs
+      - name: Simulation Intelligence regression
+        run: node scripts/game-world-simulation-intelligence-tests.mjs
+      - name: Reasoning Orchestrator regression
+        run: node scripts/game-world-reasoning-orchestrator-tests.mjs
+      - name: Unified readiness regression
+        run: node scripts/game-world-readiness-tests.mjs
+      - name: World Model V2 regression
+        run: node scripts/game-world-latest-tech-v2-tests.mjs
+      - name: Spatial Hybrid V3 regression
+        run: node scripts/game-world-spatial-hybrid-v3-tests.mjs
+      - name: Neural Reconstruction V4 regression
+        run: node scripts/game-world-neural-reconstruction-embodied-v4-tests.mjs
+      - name: Playable Runtime V5 regression
+        run: node scripts/game-world-playable-runtime-v5-tests.mjs
+      - name: Real Runtime Mobile V6 regression
+        run: node scripts/game-world-real-runtime-v6-tests.mjs
+      - name: WASM Device V7 contracts
+        run: node scripts/game-world-real-runtime-v7-tests.mjs
+      - name: Install pinned external WASM engines and browser runner
+        run: |
+          npm install --no-save --package-lock=false @dimforge/rapier3d-deterministic-compat@0.20.0 recast-navigation@0.43.1 @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Execute Rapier + Recast WASM
+        run: node scripts/game-world-v7-external-wasm-tests.mjs | tee /tmp/game-world-v7-wasm-evidence.log
+      - name: Existing Game Runtime regression
+        run: node scripts/game-runtime-v1-tests.mjs
+      - name: Advanced 3D regression
+        run: node scripts/advanced-3d-gameplay-tests.mjs
+      - name: Content Pipeline regression
+        run: node scripts/content-production-pipeline-tests.mjs
+      - name: Next.js production build
+        run: npm run build
+      - name: Start built app
+        run: |
+          npm run start -- -p 3000 > /tmp/laneriq-v7.log 2>&1 &
+          echo $! > /tmp/laneriq-v7.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/landing/game-world-v7-device-evidence >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/laneriq-v7.log
+          exit 1
+      - name: Browser device truth gate
+        run: npx playwright test --config=scripts/game-world-v7-playwright.config.mjs
+      - name: Preserve V7 evidence
+        if: always()
+        run: |
+          mkdir -p test-results
+          cp /tmp/game-world-v7-wasm-evidence.log test-results/game-world-v7-wasm-evidence.log 2>/dev/null || true
+      - name: Upload V7 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-world-v7-evidence
+          path: test-results/game-world-v7-*
+          if-no-files-found: warn
+          retention-days: 14
