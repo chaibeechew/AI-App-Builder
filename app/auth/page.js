@@ -330,8 +330,10 @@ function AuthForm() {
 
         <section className="authCard" aria-live="polite">
           <div className="cardTop"><small>SECURE VERIFICATION</small><span>{sent ? "02" : "01"}</span></div>
-          <h2>{sent ? "Enter your code" : "Welcome back"}</h2>
-          <p>{sent ? `We sent a ${policy.codeLength}-digit ${methodLabel} verification code.` : "Choose Email Code or WhatsApp Code. No paid SMS fallback is used."}</p>
+          <div className="authEnvelope" aria-hidden="true">✉</div>
+          <div className="authWelcome">{sent ? null : <>Welcome to<br/><b>LANERIQ AI</b><small>A BRIGHTER TOMORROW TOGETHER</small></>}</div>
+          <h2>{sent ? "Check Your Email" : "Enter Your Email"}</h2>
+          <p>{sent ? <>We've sent an <b>{EMAIL_OTP_POLICY.codeLength}-digit verification code</b> to <strong>{identifier}</strong>.</> : <>We'll send an <b>{EMAIL_OTP_POLICY.codeLength}-digit verification code</b> to your email address.</>}</p>
 
           <div className="tabs" role="tablist" aria-label="Verification method">
             <button type="button" role="tab" aria-selected={method === "email"} className={method === "email" ? "active" : ""} onClick={() => switchMethod("email")}><span>✉</span><strong>Email Code</strong><b>{emailStatusLabel}</b></button>
@@ -352,12 +354,12 @@ function AuthForm() {
           ) : (
             <form onSubmit={verify}>
               <div className="sentTo">Code sent to <b>{identifier}</b></div>
-              <label htmlFor="auth-otp">{policy.codeLength}-digit verification code</label>
-              <div className="inputWrap otpWrap">
-                <span>#</span>
-                <input id="auth-otp" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, policy.codeLength))} placeholder={codePlaceholder} inputMode="numeric" autoComplete="one-time-code" aria-label={`${policy.codeLength}-digit verification code`} pattern="[0-9]*" required />
+              <label htmlFor="auth-otp" className="otpLabel">{EMAIL_OTP_POLICY.codeLength}-digit verification code</label>
+              <div className="otpCells" aria-label={`${EMAIL_OTP_POLICY.codeLength}-digit verification code`}>
+                {Array.from({ length: EMAIL_OTP_POLICY.codeLength }, (_, index) => <span key={index} className={otp[index] ? "filled" : ""} aria-hidden="true">{otp[index] || ""}</span>)}
+                <input id="auth-otp" className="otpCapture" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, EMAIL_OTP_POLICY.codeLength))} inputMode="numeric" autoComplete="one-time-code" aria-label={`${EMAIL_OTP_POLICY.codeLength}-digit verification code`} pattern="[0-9]*" maxLength={EMAIL_OTP_POLICY.codeLength} required />
               </div>
-              <button className="primary" disabled={loading || otp.length !== policy.codeLength || verifyAttempts >= policy.maxVerifyAttemptsPerCode}><span>{loading ? "Verifying…" : "Verify & Continue"}</span><i>→</i></button>
+              <button className="primary" disabled={loading || otp.length !== policy.codeLength || verifyAttempts >= policy.maxVerifyAttemptsPerCode}><span>{loading ? "Verifying…" : "Verify"}</span><i>→</i></button>
               <div className="secondaryRow">
                 <button type="button" className="secondary" disabled={loading || resendIn > 0 || emailSendUnavailable} onClick={sendCode}>{resendIn > 0 ? `Resend in ${resendIn}s` : "Resend Code"}</button>
                 <button type="button" className="secondary" disabled={loading} onClick={() => { setSent(false); setChallengeId(""); setOtp(""); setMessage(""); setError(""); setResendIn(0); setVerifyAttempts(0); }}>Change {isWhatsApp ? "number" : "email"}</button>
