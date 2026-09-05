@@ -28,9 +28,9 @@ export async function POST(request){
     // The client cannot promote a copied brand/layout or arbitrary template payload into trusted generation guidance.
     const templateGuidance=resolveTemplateGenerationGuidance(idea);
     const orchestrationIdea=[planning.normalizedIdea,templatePlanningBrief(templateGuidance)].filter(Boolean).join("\n\n");
-    const basePlan=buildAutonomousPlan({idea:orchestrationIdea,assetCount:Math.max(0,Math.min(20,Number(body?.assetCount||0)||0)),createVideo:Boolean(body?.createVideo)});
-    const plan=templateGuidance?{...basePlan,templateGuidance}:basePlan;
-    return NextResponse.json({success:true,planning,plan,templateGuidance:templateGuidance||null,gameAccess:{requiresProfessionalGate:Boolean(planning.gameIntent)}});
+    const plan=buildAutonomousPlan({idea:orchestrationIdea,assetCount:Math.max(0,Math.min(20,Number(body?.assetCount||0)||0)),createVideo:Boolean(body?.createVideo)});
+    const resolvedPlan=templateGuidance?{...plan,templateGuidance}:plan;
+    return NextResponse.json({success:true,planning,plan:resolvedPlan,templateGuidance:templateGuidance||null,gameAccess:{requiresProfessionalGate:Boolean(planning.gameIntent)}});
   }catch(error){
     console.error("AUTONOMOUS_ORCHESTRATOR_ERROR",error);
     return NextResponse.json({error:"Unable to prepare the autonomous build plan."},{status:500});
