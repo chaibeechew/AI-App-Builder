@@ -1,0 +1,59 @@
+name: LANERIQ Unified Intelligence Core v1 Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/intelligence/**'
+      - 'lib/reality/**'
+      - 'lib/ai/creative-media-intelligence-engine.js'
+      - 'lib/ai/creative-media-continuity.js'
+      - 'lib/ai/creative-media-observation-judge.js'
+      - 'lib/video/cinema-physics-engine.js'
+      - 'services/malware-defense/lib/security-intelligence-cloud.js'
+      - 'app/api/system/unified-intelligence/**'
+      - 'scripts/unified-intelligence-core-contract-tests.mjs'
+      - '.github/workflows/unified-intelligence-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unified-intelligence-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Unified Intelligence contract
+        run: node scripts/unified-intelligence-core-contract-tests.mjs
+      - name: Syntax-check Unified Intelligence modules
+        run: |
+          node --check lib/intelligence/unified-intelligence-contract.js
+          node --check lib/intelligence/reality-context.js
+          node --check lib/intelligence/world-event-log.js
+          node --check lib/intelligence/evidence-ledger.js
+          node --check lib/intelligence/capability-memory.js
+          node --check lib/intelligence/simulation-calibration.js
+          node --check lib/intelligence/action-authority.js
+          node --check lib/intelligence/creative-world-bridge.js
+          node --check lib/intelligence/executable-reality-compiler.js
+          node --check lib/intelligence/unified-intelligence-core.js
+      - name: Truth boundary
+        run: |
+          node --input-type=module - <<'NODE'
+          import { summarizeUnifiedIntelligenceCore } from './lib/intelligence/unified-intelligence-contract.js';
+          const status=summarizeUnifiedIntelligenceCore();
+          if(status.liveClaims.length!==0) throw new Error('Unified Intelligence must not claim unverified LIVE capability');
+          if(status.policy.simulationIsNotPrediction!==true) throw new Error('Simulation truth boundary missing');
+          if(status.policy.zeroFreeCannotEscalateToPremium!==true) throw new Error('Zero/free premium gate missing');
+          console.log('Unified Intelligence truth boundary: PASS');
+          NODE
