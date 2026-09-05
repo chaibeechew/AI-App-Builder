@@ -9,7 +9,7 @@ on:
   push:
     branches:
       - main
-      - 'batch158-legal-corpus-harmonization-2026-09-05'
+      - 'batch161-legal-corpus-harmonization-2026-09-05'
     paths:
       - 'docs/legal/**'
       - 'scripts/legal-corpus-harmonization-contract-tests.mjs'
