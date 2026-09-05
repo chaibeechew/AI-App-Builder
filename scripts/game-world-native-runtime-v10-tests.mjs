@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import {createNativeBridgeContractV10,validateNativeBridgeV10,planNativeLifecycleV10,compileNativeRuntimeV10} from "../lib/game/game-world-native-runtime-v10.js";
+const b=createNativeBridgeContractV10({platform:"ios",signedHandshake:true,encryptedAtRest:true,capabilities:["secure-storage","lifecycle","graphics-surface","native-attestation","haptics"],graphicsBackend:"metal-bridge",maxSharePercent:1});
+assert.equal(validateNativeBridgeV10(b).admitted,true);
+assert.equal(planNativeLifecycleV10(b,"thermal-serious").stopCommunityCompute,true);
+const c=compileNativeRuntimeV10({bridge:{platform:"android",signedHandshake:true,encryptedAtRest:true,capabilities:["secure-storage","lifecycle","graphics-surface","native-attestation"]}});
+assert.equal(c.readiness.internal100,true);
+assert.equal(c.truth.nativeAppExecuted,false);
+assert.equal(c.truth.storeBuildVerified,false);
+console.log("Game World V10 Native Runtime Bridge: 100 INTERNAL CODE; native execution/store evidence still gated");
