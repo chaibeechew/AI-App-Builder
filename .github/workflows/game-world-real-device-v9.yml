@@ -1,0 +1,19 @@
+name: Game World Real Device V9 Gate
+on:
+  push:
+    branches: [batch147-game-world-real-device-v9]
+  pull_request:
+    paths:
+      - 'lib/game/game-world-real-device-v9.js'
+      - 'scripts/game-world-real-device-v9-tests.mjs'
+      - '.github/workflows/game-world-real-device-v9.yml'
+jobs:
+  real-device-v9:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/game-world-supply-chain-v8-tests.mjs
+      - run: node scripts/game-world-real-device-v9-tests.mjs
