@@ -1,0 +1,47 @@
+name: Provider Evidence Control Plane Gate
+
+on:
+  pull_request:
+    paths:
+      - "engine/ai-provider.js"
+      - "lib/ai/provider-evidence-control-plane.js"
+      - "lib/ai/provider-router-truth.js"
+      - "app/api/ai/provider-router/status/route.js"
+      - "scripts/provider-evidence-control-plane-tests.mjs"
+      - ".github/workflows/provider-evidence-control-plane-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "engine/ai-provider.js"
+      - "lib/ai/provider-evidence-control-plane.js"
+      - "lib/ai/provider-router-truth.js"
+      - "app/api/ai/provider-router/status/route.js"
+      - "scripts/provider-evidence-control-plane-tests.mjs"
+      - ".github/workflows/provider-evidence-control-plane-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  provider-evidence-control-plane:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify Provider Evidence Control Plane
+        run: node scripts/provider-evidence-control-plane-tests.mjs
