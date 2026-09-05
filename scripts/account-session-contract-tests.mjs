@@ -13,6 +13,7 @@ const authGuard=read('app/components/AuthFlowGuard.js');
 const authPage=read('app/auth/page.js');
 const supabaseProxy=read('lib/supabase/proxy.js');
 const rootProxy=read('proxy.js');
+const builderAdapter=read('lib/cloud-adapters/builder-project-data.js');
 
 const {
   PRIVATE_SESSION_STORAGE_KEYS,
@@ -173,8 +174,24 @@ assert.match(account,/document\.addEventListener\("visibilitychange"/);
 assert.match(account,/redirectSignedOutProtectedPage/);
 assert.match(account,/isPublicAccountPath\(window\.location\.pathname\)/);
 
+// App Builder verification must follow the same LANERIQ authority instead of stale provider confirmed_* metadata.
+assert.match(builderAdapter,/LANERIQ_SESSION_COOKIE/);
+assert.match(builderAdapter,/LANERIQ_SESSION_MODE_COOKIE/);
+assert.match(builderAdapter,/validateLaneriqSessionToken\(token\)/);
+assert.match(builderAdapter,/isLaneriqPrimarySessionMode\(mode\)/);
+assert.match(builderAdapter,/authority\?\.userId && authority\.userId !== data\.user\.id/);
+assert.match(builderAdapter,/SESSION_IDENTITY_MISMATCH/);
+assert.match(builderAdapter,/authoritativeVerified = Boolean\(authority\?\.userId && authority\.userId === data\.user\.id\)/);
+assert.match(builderAdapter,/normalizePrincipal\(data\.user, authoritativeVerified\)/);
+assert.match(builderAdapter,/ACCOUNT_VERIFICATION_REQUIRED/);
+const builderAuthorityIndex=builderAdapter.indexOf('const authority = await readLaneriqAuthority()');
+const builderVerifiedIndex=builderAdapter.indexOf('const authoritativeVerified = Boolean');
+const builderGateIndex=builderAdapter.indexOf('if (requireVerified && !principal.verified)');
+assert.ok(builderAuthorityIndex>=0&&builderVerifiedIndex>builderAuthorityIndex&&builderGateIndex>builderVerifiedIndex,'Builder must reconcile authoritative LANERIQ session before applying the verification gate.');
+
 console.log('✓ Return-path sanitizer blocks external, protocol-relative, backslash, auth-loop, control-character and oversized redirects');
-console.log('✓ LANERIQ Session is primary in Proxy/Auth/Account flows; the old identity is a bounded transitional data-access bridge');
+console.log('✓ LANERIQ Session is primary in Proxy/Auth/Account/Builder flows; the old identity is a bounded transitional data-access bridge');
+console.log('✓ App Builder accepts a valid same-user LANERIQ verification even when compatibility confirmed_* metadata is stale, and rejects identity mismatch');
 console.log('✓ Protected API/session outages fail closed with no-store JSON semantics instead of being misreported as signed-out');
 console.log('✓ robots, sitemap, capability discovery and the eight canonical SEO landing pages remain explicit public routes');
 console.log('✓ Protected responses are no-store and signed-out BFCache/tab restores are revalidated client-side');
