@@ -1,0 +1,127 @@
+:root{
+  --liui-visual-viewport-height:100dvh;
+  --liui-visual-viewport-width:100vw;
+  --liui-keyboard-inset:0px;
+  --liui-adaptive-columns:1;
+  --liui-adaptive-gap:14px;
+}
+
+/* Layer 1 — Adaptive Interaction: the runtime writes only device/input geometry, never private content. */
+html[data-liui-five-layer]{
+  min-height:100%;
+  text-size-adjust:100%;
+  -webkit-text-size-adjust:100%;
+}
+body[data-liui-keyboard="open"]{
+  --liui-adaptive-gap:10px;
+}
+body[data-liui-keyboard="open"] .liuiRealBottomNav{
+  transform:translateY(calc(100% + 24px + env(safe-area-inset-bottom)))!important;
+  pointer-events:none!important;
+}
+body[data-liui-keyboard="open"] .liuiRuntimeState,
+body[data-liui-keyboard="open"] .liuiRuntimeResume{
+  bottom:calc(var(--liui-keyboard-inset) + 12px)!important;
+  max-height:min(42vh,260px);
+  overflow:auto;
+}
+body[data-liui-keyboard="open"] :where(input,textarea,select,[contenteditable="true"]):focus{
+  scroll-margin-block:18vh;
+}
+
+/* Layer 2 — Adaptive Layout: density and columns react to live viewport conditions. */
+body[data-liui-adaptive-layout="wide"] :where(.liuiContextBento,.featureCards,.creativeGrid){
+  --liui-grid-columns:3;
+}
+body[data-liui-adaptive-layout="medium"] :where(.liuiContextBento,.featureCards,.creativeGrid){
+  --liui-grid-columns:2;
+}
+body[data-liui-adaptive-layout="compact"] :where(.liuiContextBento,.featureCards,.creativeGrid){
+  --liui-grid-columns:1;
+}
+body[data-liui-adaptive-layout] .liuiContextBento{
+  grid-template-columns:repeat(var(--liui-grid-columns,var(--liui-adaptive-columns)),minmax(0,1fr))!important;
+  gap:var(--liui-adaptive-gap)!important;
+}
+body[data-liui-adaptive-density="compact"] :where(.liuiContextPanel,.studioShell,.builder,.page,.templatesPage){
+  --liui-section-gap:10px;
+}
+body[data-liui-short-viewport="true"] .liuiContextPanel{
+  max-height:min(58dvh,var(--liui-visual-viewport-height));
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+body[data-liui-orientation="landscape"][data-liui-adaptive-layout="compact"] .liuiContextPanel{
+  max-height:calc(var(--liui-visual-viewport-height) - 32px);
+}
+
+/* Layer 3 — Intent Continuity: semantic direction is available without storing route/project identifiers. */
+body[data-liui-continuity="forward"] :where(.liuiContextPanel,.liuiRuntimeResume){
+  transform-origin:center bottom;
+}
+body[data-liui-continuity="back"] :where(.liuiContextPanel,.liuiRuntimeResume){
+  transform-origin:center top;
+}
+body[data-liui-input-mode="keyboard"] :where(a,button,input,textarea,select,summary,[tabindex]):focus-visible{
+  outline-width:3px!important;
+  outline-offset:3px!important;
+}
+body[data-liui-input-mode="touch"] :where(.liuiContextPanel button,.liuiContextPanel a,.liuiRuntimeResume a,.liuiRealBottomNav a,.liuiRealBottomNav button){
+  min-height:48px;
+  min-width:44px;
+}
+
+/* Layer 4 — Self-Healing Living UX: recovery state changes presentation only; no automatic consequential action. */
+body[data-liui-recoverable="true"] .liuiRuntimeState{
+  isolation:isolate;
+}
+body[data-liui-recovery="wait-network"] .liuiRuntimeState,
+body[data-liui-recovery="reconnect"] .liuiRuntimeState{
+  border-style:dashed;
+}
+body[data-liui-recovery="review-required"] .liuiRuntimeState{
+  outline:2px solid color-mix(in srgb,currentColor 30%,transparent);
+  outline-offset:2px;
+}
+body[data-liui-recovery="retry-safe"] .liuiRuntimeState,
+body[data-liui-recovery="refresh-view"] .liuiRuntimeState{
+  box-shadow:0 18px 46px rgba(0,0,0,.26);
+}
+
+/* Layer 5 — Final quality guardrails. */
+:where(a,button,input,textarea,select,summary,[role="button"],[tabindex]):focus-visible{
+  outline:3px solid color-mix(in srgb,#8cc8ff 86%,white);
+  outline-offset:3px;
+}
+@media (pointer:coarse){
+  :where(button,a,[role="button"],summary){
+    touch-action:manipulation;
+  }
+}
+@media (max-width:430px){
+  body[data-liui-adaptive-density="compact"] .liuiRuntimeState{
+    left:11px;
+    right:11px;
+    width:auto;
+    max-width:none;
+    translate:0 0;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  body[data-liui-continuity] :where(.liuiContextPanel,.liuiRuntimeResume,.liuiRuntimeState){
+    animation:none!important;
+    transition:none!important;
+    transform:none!important;
+  }
+  body[data-liui-keyboard="open"] .liuiRealBottomNav{
+    transition:none!important;
+  }
+}
+@media (forced-colors:active){
+  body[data-liui-recoverable="true"] .liuiRuntimeState,
+  body[data-liui-adaptive-layout] .liuiContextPanel{
+    forced-color-adjust:auto;
+    border-color:CanvasText;
+    box-shadow:none;
+  }
+}
