@@ -1,6 +1,6 @@
-# LANERIQ Security iOS Beta
+# LANERIQ Anti Scam iOS Beta
 
-Standalone SwiftUI beta client for LANERIQ Security on iPhone/iPad.
+Standalone SwiftUI beta client for LANERIQ Anti Scam on iPhone/iPad.
 
 ## Current beta capabilities
 
@@ -14,7 +14,7 @@ Standalone SwiftUI beta client for LANERIQ Security on iPhone/iPad.
 
 - No sufficient scanner evidence => no CLEAN claim.
 - A normal App Store iOS app does not have unrestricted system-wide file/process scanning privileges.
-- This beta does not claim guaranteed theft prevention, unrestricted background antivirus scanning, or BANKING_SAFE without sufficient evidence.
+- This beta does not claim guaranteed theft prevention, unrestricted background malware scanning, or BANKING_SAFE without sufficient evidence.
 - Network Extension / DNS filtering / advanced device-management capabilities require separate Apple entitlements and are not silently assumed.
 
 ## Build
