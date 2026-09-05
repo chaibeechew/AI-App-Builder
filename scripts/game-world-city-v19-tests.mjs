@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';
+import {compileCityV19} from '../lib/game/game-world-city-v19.js';
+const a=compileCityV19({seed:'city-evidence',city:{sizeMeters:900,blockMeters:120,maxBuildings:80,style:'neo-urban'}});
+const b=compileCityV19({seed:'city-evidence',city:{sizeMeters:900,blockMeters:120,maxBuildings:80,style:'neo-urban'}});
+assert.equal(a.readiness.internal100,true);assert.equal(a.readiness.production100,false);assert.ok(a.network.roads.length>8);assert.ok(a.blockParcel.blocks.length>10);assert.ok(a.blockParcel.parcels.length>20);assert.ok(a.zoning.zones.length>=3);assert.ok(a.buildings.count>20);assert.ok(a.utilities.connections.length===a.buildings.count);assert.ok(a.traffic.edges.length===a.network.roads.length);assert.equal(a.prototype.readiness.internal100,true);assert.deepEqual(a.buildings.buildings.slice(0,30),b.buildings.buildings.slice(0,30),'city generation must replay deterministically');assert.equal(a.truth.realTrafficSimulationVerified,false);assert.equal(a.truth.realCityRendererVerified,false);
+console.log('Game World City V19: PASS',JSON.stringify({roads:a.network.roads.length,blocks:a.blockParcel.blocks.length,parcels:a.blockParcel.parcels.length,buildings:a.buildings.count,zones:a.zoning.zones.length}));
