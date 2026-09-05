@@ -17,16 +17,34 @@ public class PackageChangeReceiver extends BroadcastReceiver {
         if (packageName.equals(context.getPackageName())) return;
 
         LocalEventStore events = new LocalEventStore(context);
-        String eventId = events.recordOnce("package_broadcast", packageName, 30_000L);
+        String eventId = events.recordOnce(
+                "package_broadcast",
+                packageName,
+                "package-receiver",
+                "info",
+                30_000L);
         if (eventId == null) return;
 
         Intent service = new Intent(context, GuardianService.class)
                 .setAction(GuardianService.ACTION_PACKAGE_CHANGED)
-                .putExtra(GuardianService.EXTRA_PACKAGE, packageName);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(service);
-        } else {
-            context.startService(service);
+                .putExtra(GuardianService.EXTRA_PACKAGE, packageName)
+                .putExtra(GuardianService.EXTRA_START_REASON, "package-change");
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(service);
+            } else {
+                context.startService(service);
+            }
+        } catch (RuntimeException e) {
+            // The package event itself remains preserved locally. If Android blocks
+            // background FGS delivery, never pretend the Guardian handled it live.
+            leaseStore.serviceStopped("package-event-delivery-blocked");
+            events.recordOnce(
+                    "package_delivery_deferred",
+                    e.getClass().getSimpleName(),
+                    "package-receiver",
+                    "warning",
+                    60_000L);
         }
     }
 }
