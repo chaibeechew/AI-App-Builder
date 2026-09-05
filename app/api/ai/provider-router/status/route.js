@@ -41,6 +41,7 @@ function publicStatusPayload(truth) {
     localSuccessesObservedInInstance: truth.localSuccessesObservedInInstance,
     remoteSuccessesObservedInInstance: truth.remoteSuccessesObservedInInstance,
     computeFabricTelemetry: truth.computeFabricTelemetry,
+    zeroCostAdmission: truth.zeroCostAdmission,
     codeCapabilities: truth.codeCapabilities,
     providerIdentityInternalOnly: true,
     runtimeCanary: null,
