@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildAutonomousPlan } from "../../../lib/build/orchestrator.js";
 import { buildIdeaPlan,IDEA_PLANNING_LIMITS } from "../../../lib/ai/idea-planning-contract.js";
+import { resolveTemplateGenerationGuidance, templatePlanningBrief } from "../../../lib/build/template-generation-guidance.js";
 
 export async function POST(request){
   try{
@@ -23,8 +24,13 @@ export async function POST(request){
       },{status:422});
     }
 
-    const plan=buildAutonomousPlan({idea:planning.normalizedIdea,assetCount:Math.max(0,Math.min(20,Number(body?.assetCount||0)||0)),createVideo:Boolean(body?.createVideo)});
-    return NextResponse.json({success:true,planning,plan,gameAccess:{requiresProfessionalGate:Boolean(planning.gameIntent)}});
+    // Template context is re-resolved server-side against LANERIQ's canonical 3,000-template catalog.
+    // The client cannot promote a copied brand/layout or arbitrary template payload into trusted generation guidance.
+    const templateGuidance=resolveTemplateGenerationGuidance(idea);
+    const orchestrationIdea=[planning.normalizedIdea,templatePlanningBrief(templateGuidance)].filter(Boolean).join("\n\n");
+    const basePlan=buildAutonomousPlan({idea:orchestrationIdea,assetCount:Math.max(0,Math.min(20,Number(body?.assetCount||0)||0)),createVideo:Boolean(body?.createVideo)});
+    const plan=templateGuidance?{...basePlan,templateGuidance}:basePlan;
+    return NextResponse.json({success:true,planning,plan,templateGuidance:templateGuidance||null,gameAccess:{requiresProfessionalGate:Boolean(planning.gameIntent)}});
   }catch(error){
     console.error("AUTONOMOUS_ORCHESTRATOR_ERROR",error);
     return NextResponse.json({error:"Unable to prepare the autonomous build plan."},{status:500});
