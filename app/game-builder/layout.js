@@ -4,6 +4,7 @@ const base={textDecoration:"none",border:"1px solid #fff3",borderRadius:999,padd
 
 export default function GameBuilderLayout({children}){
   return <>{children}<div style={{position:"fixed",right:18,bottom:"calc(18px + env(safe-area-inset-bottom))",zIndex:80,display:"grid",gap:8,justifyItems:"end",maxHeight:"calc(100vh - 36px)",overflowY:"auto",paddingLeft:8}}>
+    <Link href="/game-world-v20" aria-label="Open LANERIQ AI Production World V20" style={{...base,background:"linear-gradient(90deg,#7fffd8,#8bc8ff,#d7a8ff)",color:"#03100c",fontSize:12}}>Production World V20 →</Link>
     <Link href="/game-world-v13" aria-label="Open LANERIQ AI World Engine V13 Production Closure" style={{...base,background:"linear-gradient(90deg,#ffe98a,#9ee6cd,#9bc7ff)",color:"#04110d",fontSize:12}}>World Engine V13 →</Link>
     <Link href="/game-world-v7" aria-label="Open LANERIQ AI WASM and Device Evidence V7" style={{...base,background:"linear-gradient(90deg,#d9f7a8,#8fd9ff)",color:"#04110d",fontSize:12}}>WASM + Device V7 →</Link>
     <Link href="/game-world-v6" aria-label="Open LANERIQ AI Real Runtime Mobile V6" style={{...base,background:"linear-gradient(90deg,#8ff0d2,#a9c4ff)",color:"#03100c",fontSize:12}}>Real Runtime V6 →</Link>
