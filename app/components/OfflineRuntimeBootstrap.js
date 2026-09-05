@@ -15,7 +15,7 @@ import {
 } from "../../lib/offline/browser-store.js";
 
 const APP_DETAIL = /^\/api\/apps\/([0-9a-f-]{36})\/?$/iu;
-const SAFE_ROUTE = /^\/(?:offline|editor\/[0-9a-f-]{36}|generated\/[0-9a-f-]{36})\/?$/iu;
+const PRIVATE_SAFE_ROUTE = /^\/(?:offline|editor\/[0-9a-f-]{36}|generated\/[0-9a-f-]{36})\/?$/iu;
 
 function currentConnectivity() {
   const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -38,23 +38,45 @@ function jsonResponse(body, status = 503) {
 async function installOfflineShell() {
   if (!("serviceWorker" in navigator) || !globalThis.isSecureContext) return null;
   try {
-    const registration = await navigator.serviceWorker.register("/laneriq-sw.js", { scope: "/" });
-    const ready = await navigator.serviceWorker.ready;
-    const path = window.location.pathname;
-    if (SAFE_ROUTE.test(path)) ready.active?.postMessage({ type: "CACHE_SAFE_ROUTE", path });
-    return registration;
+    await navigator.serviceWorker.register("/laneriq-sw.js", { scope: "/" });
+    return navigator.serviceWorker.ready;
   } catch {
     return null;
   }
 }
 
-async function establishOfflineScope(supabase) {
+async function cacheVerifiedPrivateShell(serviceWorkerReady, scopeKey) {
+  if (!scopeKey || !navigator.onLine) return false;
+  const path = window.location.pathname;
+  if (!PRIVATE_SAFE_ROUTE.test(path)) return false;
+  try {
+    const registration = await serviceWorkerReady;
+    registration?.active?.postMessage({ type: "CACHE_SAFE_ROUTE", path });
+    return Boolean(registration?.active);
+  } catch {
+    return false;
+  }
+}
+
+async function clearPrivateOfflineShell(serviceWorkerReady) {
+  try {
+    const registration = await serviceWorkerReady;
+    registration?.active?.postMessage({ type: "CLEAR_PRIVATE_SHELL" });
+  } catch {}
+}
+
+async function establishOfflineScope(supabase, serviceWorkerReady) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) return "";
-    return setActiveOfflineUser(user.id);
+    if (!user?.id) {
+      await clearActiveOfflineUser();
+      await clearPrivateOfflineShell(serviceWorkerReady);
+      return { scopeKey: "", verifiedOnline: true };
+    }
+    const scopeKey = await setActiveOfflineUser(user.id);
+    return { scopeKey, verifiedOnline: true };
   } catch {
-    return getActiveOfflineScope();
+    return { scopeKey: await getActiveOfflineScope(), verifiedOnline: false };
   }
 }
 
@@ -127,6 +149,7 @@ export default function OfflineRuntimeBootstrap() {
     let authSubscription = null;
     const nativeFetch = window.fetch.bind(window);
     let activeScope = "";
+    const serviceWorkerReady = installOfflineShell();
 
     const refreshStatus = async () => {
       const next = currentConnectivity();
@@ -137,6 +160,8 @@ export default function OfflineRuntimeBootstrap() {
       if (scopeKey) {
         const status = await offlineStoreStatus(scopeKey).catch(() => null);
         if (!disposed && status) setQueueCount((status.pendingCount || 0) + (status.readyCount || 0));
+      } else if (!disposed) {
+        setQueueCount(0);
       }
     };
 
@@ -173,24 +198,31 @@ export default function OfflineRuntimeBootstrap() {
     };
 
     window.fetch = wrappedFetch;
-    void installOfflineShell();
 
     let supabase;
     try { supabase = createClient(); } catch { supabase = null; }
     if (supabase) {
-      void establishOfflineScope(supabase).then(async (scopeKey) => {
+      void establishOfflineScope(supabase, serviceWorkerReady).then(async ({ scopeKey, verifiedOnline }) => {
         if (disposed) return;
         activeScope = scopeKey;
+        if (verifiedOnline && activeScope) await cacheVerifiedPrivateShell(serviceWorkerReady, activeScope);
         if (navigator.onLine) await promoteLocalQueueForReview(activeScope);
         await refreshStatus();
       });
-      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      const { data } = supabase.auth.onAuthStateChange((event) => {
         if (event === "SIGNED_OUT") {
           activeScope = "";
-          void clearActiveOfflineUser().then(refreshStatus);
+          void Promise.all([clearActiveOfflineUser(), clearPrivateOfflineShell(serviceWorkerReady)]).then(refreshStatus);
           return;
         }
-        if (session?.user?.id) void setActiveOfflineUser(session.user.id).then((scopeKey) => { activeScope = scopeKey; return refreshStatus(); });
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+          void establishOfflineScope(supabase, serviceWorkerReady).then(async ({ scopeKey, verifiedOnline }) => {
+            if (disposed) return;
+            activeScope = scopeKey;
+            if (verifiedOnline && activeScope) await cacheVerifiedPrivateShell(serviceWorkerReady, activeScope);
+            await refreshStatus();
+          });
+        }
       });
       authSubscription = data?.subscription || null;
     } else {

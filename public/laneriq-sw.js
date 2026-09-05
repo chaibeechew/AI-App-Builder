@@ -1,7 +1,8 @@
-const SHELL_CACHE = "laneriq-safe-shell-2026-09-05-v1";
-const STATIC_CACHE = "laneriq-static-2026-09-05-v1";
-const SAFE_SHELL_PATHS = new Set(["/", "/offline"]);
-const SAFE_DYNAMIC_SHELL = /^\/(?:editor|generated)\/[0-9a-f-]{36}\/?$/iu;
+const SHELL_CACHE = "laneriq-safe-shell-2026-09-05-v2";
+const STATIC_CACHE = "laneriq-static-2026-09-05-v2";
+const PUBLIC_PRECACHE_SHELL_PATHS = new Set(["/"]);
+const PRIVATE_SHELL_PATHS = new Set(["/offline"]);
+const PRIVATE_DYNAMIC_SHELL = /^\/(?:editor|generated)\/[0-9a-f-]{36}\/?$/iu;
 
 function sameOrigin(url) {
   try { return new URL(url, self.location.origin).origin === self.location.origin; } catch { return false; }
@@ -15,35 +16,68 @@ function cacheableStatic(url) {
   );
 }
 
-function safeShellPath(pathname) {
-  return SAFE_SHELL_PATHS.has(pathname) || SAFE_DYNAMIC_SHELL.test(pathname);
+function isPrivateShellPath(pathname) {
+  return PRIVATE_SHELL_PATHS.has(pathname) || PRIVATE_DYNAMIC_SHELL.test(pathname);
 }
 
-async function cacheShellDocument(path) {
-  if (!safeShellPath(path)) return;
-  const response = await fetch(path, { cache: "reload", credentials: "same-origin" });
-  if (!response.ok) return;
+function safeShellPath(pathname) {
+  return PUBLIC_PRECACHE_SHELL_PATHS.has(pathname) || isPrivateShellPath(pathname);
+}
+
+function exactSuccessfulShellResponse(response, requestedPath) {
+  if (!response?.ok || response.redirected || response.type === "opaqueredirect") return false;
   const contentType = response.headers.get("content-type") || "";
-  if (!contentType.includes("text/html")) return;
-  const html = await response.clone().text();
-  const shell = await caches.open(SHELL_CACHE);
-  await shell.put(path, response.clone());
+  if (!contentType.includes("text/html")) return false;
+  try {
+    const requested = new URL(requestedPath, self.location.origin);
+    const resolved = new URL(response.url);
+    return resolved.origin === self.location.origin && resolved.pathname === requested.pathname;
+  } catch {
+    return false;
+  }
+}
+
+async function cacheStaticReferences(html) {
   const staticUrls = new Set();
   for (const match of html.matchAll(/(?:src|href)=["']([^"']+)["']/giu)) {
     const raw = match[1];
-    if (sameOrigin(raw) && cacheableStatic(raw)) staticUrls.add(new URL(raw, self.location.origin).pathname + new URL(raw, self.location.origin).search);
+    if (sameOrigin(raw) && cacheableStatic(raw)) {
+      const parsed = new URL(raw, self.location.origin);
+      staticUrls.add(parsed.pathname + parsed.search);
+    }
   }
   const staticCache = await caches.open(STATIC_CACHE);
   await Promise.all([...staticUrls].map(async (url) => {
     try {
       const asset = await fetch(url, { cache: "reload", credentials: "same-origin" });
-      if (asset.ok) await staticCache.put(url, asset);
+      if (asset.ok && !asset.redirected) await staticCache.put(url, asset);
     } catch {}
   }));
 }
 
+async function cacheShellDocument(path, { allowPrivate = false } = {}) {
+  if (!safeShellPath(path)) return false;
+  if (isPrivateShellPath(path) && !allowPrivate) return false;
+  const response = await fetch(path, { cache: "reload", credentials: "same-origin", redirect: "follow" });
+  if (!exactSuccessfulShellResponse(response, path)) return false;
+  const html = await response.clone().text();
+  const shell = await caches.open(SHELL_CACHE);
+  await shell.put(path, response.clone());
+  await cacheStaticReferences(html);
+  return true;
+}
+
+async function clearPrivateShells() {
+  const shell = await caches.open(SHELL_CACHE);
+  const requests = await shell.keys();
+  await Promise.all(requests.map(async (request) => {
+    const pathname = new URL(request.url).pathname;
+    if (isPrivateShellPath(pathname)) await shell.delete(request);
+  }));
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(Promise.all([...SAFE_SHELL_PATHS].map((path) => cacheShellDocument(path))).then(() => self.skipWaiting()));
+  event.waitUntil(Promise.all([...PUBLIC_PRECACHE_SHELL_PATHS].map((path) => cacheShellDocument(path))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -55,10 +89,14 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event) => {
+  if (event.data?.type === "CLEAR_PRIVATE_SHELL") {
+    event.waitUntil(clearPrivateShells().catch(() => {}));
+    return;
+  }
   if (event.data?.type !== "CACHE_SAFE_ROUTE") return;
   const path = String(event.data?.path || "");
-  if (!safeShellPath(path)) return;
-  event.waitUntil(cacheShellDocument(path).catch(() => {}));
+  if (!isPrivateShellPath(path)) return;
+  event.waitUntil(cacheShellDocument(path, { allowPrivate: true }).catch(() => {}));
 });
 
 self.addEventListener("fetch", (event) => {
@@ -78,7 +116,7 @@ self.addEventListener("fetch", (event) => {
       const cached = await cache.match(request);
       if (cached) return cached;
       const response = await fetch(request);
-      if (response.ok) await cache.put(request, response.clone());
+      if (response.ok && !response.redirected) await cache.put(request, response.clone());
       return response;
     })());
     return;
@@ -88,7 +126,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith((async () => {
       try {
         const response = await fetch(request);
-        if (response.ok && safeShellPath(url.pathname)) {
+        if (safeShellPath(url.pathname) && exactSuccessfulShellResponse(response, url.pathname)) {
           const cache = await caches.open(SHELL_CACHE);
           await cache.put(url.pathname, response.clone());
         }
@@ -99,7 +137,7 @@ self.addEventListener("fetch", (event) => {
           const exact = await cache.match(url.pathname);
           if (exact) return exact;
         }
-        return (await cache.match("/offline")) || Response.error();
+        return (await cache.match("/")) || Response.error();
       }
     })());
   }
