@@ -1,0 +1,71 @@
+name: Auth login reference one-shot
+
+on:
+  push:
+    branches:
+      - ui/18-page-reference-layout-v1
+    paths:
+      - '.github/workflows/auth-login-reference-one-shot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/18-page-reference-layout-v1
+          persist-credentials: true
+      - name: Apply approved LANERIQ login reference UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('app/auth/page.js')
+          s=p.read_text()
+
+          old='''          <h2>{sent ? "Enter your code" : "Welcome back"}</h2>\n          <p>{sent ? `We sent a ${policy.codeLength}-digit ${methodLabel} verification code.` : "Choose Email Code or WhatsApp Code. No paid SMS fallback is used."}</p>'''
+          new='''          <div className="authEnvelope" aria-hidden="true">✉</div>\n          <div className="authWelcome">{sent ? null : <>Welcome to<br/><b>LANERIQ AI</b><small>A BRIGHTER TOMORROW TOGETHER</small></>}</div>\n          <h2>{sent ? "Check Your Email" : "Enter Your Email"}</h2>\n          <p>{sent ? <>We've sent an <b>{EMAIL_OTP_POLICY.codeLength}-digit verification code</b> to <strong>{identifier}</strong>.</> : <>We'll send an <b>{EMAIL_OTP_POLICY.codeLength}-digit verification code</b> to your email address.</>}</p>'''
+          if old not in s:
+              raise SystemExit('auth heading block not found')
+          s=s.replace(old,new,1)
+
+          old_otp='''              <label htmlFor="auth-otp">{policy.codeLength}-digit verification code</label>\n              <div className="inputWrap otpWrap">\n                <span>#</span>\n                <input id="auth-otp" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\\D/g, "").slice(0, policy.codeLength))} placeholder={codePlaceholder} inputMode="numeric" autoComplete="one-time-code" aria-label={`${policy.codeLength}-digit verification code`} pattern="[0-9]*" required />\n              </div>'''
+          new_otp='''              <label htmlFor="auth-otp" className="otpLabel">{EMAIL_OTP_POLICY.codeLength}-digit verification code</label>\n              <div className="otpCells" aria-label={`${EMAIL_OTP_POLICY.codeLength}-digit verification code`}>\n                {Array.from({ length: EMAIL_OTP_POLICY.codeLength }, (_, index) => <span key={index} className={otp[index] ? "filled" : ""} aria-hidden="true">{otp[index] || ""}</span>)}\n                <input id="auth-otp" className="otpCapture" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\\D/g, "").slice(0, EMAIL_OTP_POLICY.codeLength))} inputMode="numeric" autoComplete="one-time-code" aria-label={`${EMAIL_OTP_POLICY.codeLength}-digit verification code`} pattern="[0-9]*" maxLength={EMAIL_OTP_POLICY.codeLength} required />\n              </div>'''
+          if old_otp not in s:
+              raise SystemExit('otp input block not found')
+          s=s.replace(old_otp,new_otp,1)
+          s=s.replace('Verify & Continue','Verify')
+          p.write_text(s)
+
+          css=Path('app/auth/auth.css')
+          c=css.read_text()
+          marker='/* APPROVED EMAIL LOGIN REFERENCE 2026-09-05 */'
+          if marker not in c:
+              c += r'''
+
+/* APPROVED EMAIL LOGIN REFERENCE 2026-09-05 */
+.authPage{background:linear-gradient(90deg,rgba(219,240,255,.12),rgba(223,242,255,.18)),url('/soolen-ai-landscape.jpg') center/cover fixed!important;color:#082f68!important}
+.authPage::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(238,248,255,.04) 0 47%,rgba(226,243,255,.12) 47% 100%);pointer-events:none;z-index:1}
+.aurora{display:none!important}
+.brandBar{color:#fff;z-index:5}.brandMark{border:2px solid rgba(255,255,255,.85);background:rgba(255,255,255,.18);color:#fff;box-shadow:0 0 28px rgba(76,175,255,.45)}.brandWords b{font-size:clamp(18px,2vw,28px);letter-spacing:.05em}.brandWords span{color:#fff;font-size:10px}.securePill{display:none}
+.authShell{z-index:3;grid-template-columns:minmax(0,1fr) minmax(430px,.82fr);gap:5vw;padding-top:105px}.heroCopy{min-height:520px;display:flex;flex-direction:column;justify-content:flex-end;max-width:530px;color:#fff;text-shadow:0 2px 14px rgba(4,50,95,.25)}.heroCopy>small{color:#fff}.heroCopy h1{display:none}.heroCopy p{display:none}.capabilityRow{display:none}.trustLine{color:#fff;font-size:13px;max-width:250px;line-height:1.6}.trustLine::before{content:"HUMAN\A AI\A A BRIGHTER\A TOMORROW\A TOGETHER";white-space:pre;display:block;font-size:18px;line-height:1.45;letter-spacing:.02em}.trustLine i{display:none}
+.authCard{max-width:540px;justify-self:end;border:1px solid rgba(255,255,255,.8);border-radius:32px;padding:32px 38px;background:linear-gradient(160deg,rgba(250,253,255,.78),rgba(229,243,255,.68));box-shadow:0 30px 80px rgba(43,117,185,.2),inset 0 1px 0 #fff;backdrop-filter:blur(22px) saturate(135%);color:#07326e;text-align:center}
+.cardTop{display:none}.authEnvelope{width:104px;height:84px;margin:-72px auto 18px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.88);border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(130,205,255,.54));font-size:42px;color:#1288ef;box-shadow:0 0 36px rgba(30,159,255,.65)}
+.authWelcome{font-size:20px;line-height:1.15;margin-bottom:14px}.authWelcome b{display:block;font-size:31px;letter-spacing:.02em}.authWelcome small{display:block;margin-top:8px;font-size:10px;letter-spacing:.12em;font-weight:800}.authCard h2{font-size:32px;margin:12px 0 4px;color:#07326e}.authCard>p{font-size:15px;color:#164b83;margin:0 auto 18px;max-width:390px}.authCard>p b,.authCard>p strong{color:#07326e}.tabs{display:none!important}
+.authCard form{gap:13px}.authCard label{color:#174b82;text-align:left}.inputWrap{height:60px;border:1px solid rgba(86,166,230,.38);border-radius:16px;background:rgba(255,255,255,.78);grid-template-columns:48px 1fr;box-shadow:inset 0 1px 0 #fff}.inputWrap>span{color:#087fdf}.inputWrap input{color:#0a3c76}.inputWrap input::placeholder{color:#779bc1}.inputWrap:focus-within{border-color:#4cb9ff;box-shadow:0 0 0 3px rgba(50,170,255,.14)}
+.primary{height:62px;border-radius:31px;background:linear-gradient(135deg,#49c8ff,#1578f2);color:#fff;font-size:20px;font-weight:800;box-shadow:0 12px 30px rgba(25,128,240,.28)}.primary i{font-size:26px}.primary:disabled{background:linear-gradient(135deg,#a7d8f6,#73aee8);opacity:.68}
+.sentTo{display:none}.otpLabel{text-align:center!important;font-size:11px!important;letter-spacing:.08em!important}.otpCells{position:relative;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;margin:5px 0 10px}.otpCells>span{aspect-ratio:1/1.05;display:grid;place-items:center;border:1px solid rgba(92,171,229,.42);border-radius:11px;background:rgba(255,255,255,.82);box-shadow:inset 0 1px 0 #fff;color:#07326e;font-size:24px;font-weight:850}.otpCells>span.filled{border-color:#55bfff;box-shadow:0 0 0 2px rgba(62,180,255,.12),inset 0 1px 0 #fff}.otpCapture{position:absolute;inset:0;width:100%;height:100%;opacity:.01;border:0;background:transparent;color:transparent;caret-color:transparent;cursor:text}
+.secondaryRow{grid-template-columns:1fr 1fr}.secondary{border:0;background:transparent;color:#147bd1;text-decoration:underline}.message{background:rgba(255,255,255,.55);color:#14639f}.error{background:rgba(255,234,234,.78);color:#a33232}.authCard footer{border-top:1px solid rgba(31,107,177,.14);color:#46739c}.authCard footer a{color:#126fc5}.bottomBrand{color:#fff;text-shadow:0 1px 8px rgba(0,60,110,.3)}
+@media(max-width:860px){.authShell{grid-template-columns:1fr;padding-top:126px}.heroCopy{display:none}.authCard{justify-self:center;max-width:560px}.authPage{background-position:38% center!important}.brandBar{justify-content:center}.brandWords span{display:block}.otpCells{gap:6px}}
+@media(max-width:520px){.brandBar{justify-content:flex-start}.brandWords b{font-size:18px}.brandWords span{font-size:7px}.authShell{padding-top:120px}.authCard{padding:28px 18px;border-radius:26px}.authEnvelope{width:82px;height:68px;margin-top:-58px;font-size:34px}.authWelcome b{font-size:27px}.authCard h2{font-size:29px}.otpCells{gap:4px}.otpCells>span{font-size:20px;border-radius:9px}.primary{height:58px;font-size:18px}}
+'''
+          css.write_text(c)
+          PY
+          git rm .github/workflows/auth-login-reference-one-shot.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/auth/page.js app/auth/auth.css
+          git commit -m 'UI: align login and 8-digit email verification to approved reference'
+          git push origin HEAD:ui/18-page-reference-layout-v1
