@@ -1,5 +1,6 @@
 -- App Builder versions and their project-scoped Unified World / Evidence envelope must advance together.
 -- World-aware RPC names are intentionally separate from legacy RPCs to avoid PostgREST overload ambiguity.
+-- SECURITY DEFINER functions use an empty search_path, fully-qualified objects and explicit EXECUTE grants.
 
 create or replace function public.server_persist_generated_project_world(
   p_user_id uuid,
@@ -29,7 +30,6 @@ declare
   recovered_partial boolean:=false;
   memory_saved boolean:=false;
 begin
-  if coalesce(auth.role(),'') <> 'service_role' then raise exception 'service_role required'; end if;
   if uid is null then raise exception 'User id required'; end if;
   if request_key='' or char_length(request_key)>160 or request_key !~ '^[A-Za-z0-9._:-]+$' then raise exception 'Invalid generation request id'; end if;
   if clean_name='' then clean_name:='Untitled App'; end if;
@@ -137,7 +137,6 @@ declare
   new_version public.app_versions%rowtype;
   replay_memory_saved boolean:=false;
 begin
-  if coalesce(auth.role(),'') <> 'service_role' then raise exception 'service_role required'; end if;
   if p_user_id is null or p_app_id is null or p_expected_version_id is null then raise exception 'Modification identity is required'; end if;
   if request_key='' then raise exception 'Modification request id is required'; end if;
   if p_specification is null or jsonb_typeof(p_specification)<>'object' then raise exception 'Modification specification must be an object'; end if;
