@@ -93,10 +93,10 @@ assert.doesNotMatch(storeSource, /localStorage|sessionStorage/);
 const swSource = fs.readFileSync("public/laneriq-sw.js", "utf8");
 assert.match(swSource, /SAFE_SHELL_PATHS/);
 assert.match(swSource, /SAFE_DYNAMIC_SHELL/);
-assert.match(swSource, /url\.pathname\.startsWith\("\/api\/"\)/);
-assert.match(swSource, /event\.respondWith\(fetch\(request\)\)/);
+const apiBranch = swSource.match(/if \(url\.pathname\.startsWith\("\/api\/"\)[\s\S]*?return;\n  \}/)?.[0] || "";
+assert.match(apiBranch, /event\.respondWith\(fetch\(request\)\)/);
+assert.doesNotMatch(apiBranch, /caches\.|cache\.put|cache\.match/, "Private API branch must be network-only and must never touch Cache Storage.");
 assert.match(swSource, /cacheShellDocument/);
-assert.doesNotMatch(swSource, /\/api\/.*cache\.put/s, "Private API responses must never be cached by the service worker.");
 
 const bootstrapSource = fs.readFileSync("app/components/OfflineRuntimeBootstrap.js", "utf8");
 assert.match(bootstrapSource, /serviceWorker\.register\("\/laneriq-sw\.js"/);
