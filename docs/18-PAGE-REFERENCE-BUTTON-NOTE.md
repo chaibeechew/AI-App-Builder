@@ -1,0 +1,1 @@
+User requirement: layout and buttons must match the supplied references. Button sizing, radius, glow, icon placement, active/pressed/focus/disabled states and bottom-navigation geometry are part of the approval gate.
