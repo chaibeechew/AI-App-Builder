@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - test/laneriq-security-ios-beta-20260905
     paths:
       - 'apps/laneriq-security-ios/**'
       - '.github/workflows/laneriq-security-ios-beta.yml'
