@@ -12,8 +12,8 @@ export async function GET(){
   return NextResponse.json({
     ok:true,service:'LANERIQ Unified Intelligence Core',core,reality,
     security:{version:security.version,privacyPreserving:security.privacyPreserving,canAuthorizeClean:security.canAuthorizeClean},
-    integration:{creativeMediaRuntimeDependency:'STACKED_PR_312_RUNTIME',realityRuntimeDependency:'STACKED_PR_316_RUNTIME',productionMerged:false},
+    integration:{creativeMediaRuntimeDependency:'STACKED_PR_312_RUNTIME',realityRuntimeDependency:'MAIN_INTEGRATED_6df0f1d5',unifiedCoreProductionMerged:false},
     truth:'CODE_READY',
-    statement:'Status is read-only. CODE_READY does not imply external world models, future prediction, premium creative providers or physical actions are LIVE.',
+    statement:'Status is read-only. Reality Intelligence is now sourced from main. CODE_READY does not imply Creative Media #312, external world models, future prediction, premium providers or physical actions are LIVE.',
   });
 }
