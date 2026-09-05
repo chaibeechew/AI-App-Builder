@@ -1,0 +1,48 @@
+name: Final two gates heal once
+
+on:
+  push:
+    branches:
+      - ui/18-page-reference-layout-v1
+    paths:
+      - 'scripts/final-two-gates-heal-once.py'
+
+permissions:
+  contents: write
+
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ui/18-page-reference-layout-v1
+          persist-credentials: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - name: Apply final source fixes
+        run: python scripts/final-two-gates-heal-once.py
+      - name: Verify exact failing contracts
+        run: |
+          npm run test:game-runtime
+          npm run test:communications-100
+      - name: Production build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          SOOLEN_COST_MODE: zero
+          GEMINI_API_KEY: ci-placeholder
+        run: npm run build
+      - name: Commit verified source fixes and remove one-shot files
+        run: |
+          rm -f scripts/final-two-gates-heal-once.py .github/workflows/final-two-gates-heal-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/studio/page.js app/auth/page.js scripts/final-two-gates-heal-once.py .github/workflows/final-two-gates-heal-once.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "UI: restore cross-feature entries and login SMS truth boundary"
+          git push origin HEAD:ui/18-page-reference-layout-v1
