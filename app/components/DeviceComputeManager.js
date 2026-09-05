@@ -66,6 +66,7 @@ export default function DeviceComputeManager() {
   const [authenticated, setAuthenticated] = useState(false);
   const [battery, setBattery] = useState({ level: null, charging: false });
   const [nativeTelemetry, setNativeTelemetry] = useState({});
+  const [visibility, setVisibility] = useState("visible");
   const [storagePersistent, setStoragePersistent] = useState(null);
 
   useEffect(() => {
@@ -85,8 +86,25 @@ export default function DeviceComputeManager() {
     })();
 
     const updateNativeTelemetry = () => { if (mounted) setNativeTelemetry(readNativeTelemetry()); };
+    const updateVisibility = () => {
+      if (!mounted) return;
+      setVisibility(document.visibilityState === "hidden" ? "hidden" : "visible");
+    };
+    const updateSettingsFromComputeEvent = (event) => {
+      if (!mounted || event?.detail?.budget || !event?.detail?.settings) return;
+      setSettings(sanitizeDeviceComputeSettings(event.detail.settings));
+    };
+    const updateSettingsFromStorage = (event) => {
+      if (!mounted || (event?.key && event.key !== DEVICE_COMPUTE_STORAGE_KEY)) return;
+      setSettings(readSettings());
+    };
+
     updateNativeTelemetry();
+    updateVisibility();
     window.addEventListener("laneriq:native-telemetry", updateNativeTelemetry);
+    window.addEventListener(DEVICE_COMPUTE_EVENT, updateSettingsFromComputeEvent);
+    window.addEventListener("storage", updateSettingsFromStorage);
+    document.addEventListener("visibilitychange", updateVisibility);
 
     let batteryManager = null;
     const updateBattery = () => {
@@ -113,6 +131,9 @@ export default function DeviceComputeManager() {
     return () => {
       mounted = false;
       window.removeEventListener("laneriq:native-telemetry", updateNativeTelemetry);
+      window.removeEventListener(DEVICE_COMPUTE_EVENT, updateSettingsFromComputeEvent);
+      window.removeEventListener("storage", updateSettingsFromStorage);
+      document.removeEventListener("visibilitychange", updateVisibility);
       batteryManager?.removeEventListener?.("levelchange", updateBattery);
       batteryManager?.removeEventListener?.("chargingchange", updateBattery);
     };
@@ -124,7 +145,7 @@ export default function DeviceComputeManager() {
     const deviceClass = classifyDevice(input);
     const normalizedNative = normalizeNativeTelemetry({
       ...nativeTelemetry,
-      visibility: typeof document !== "undefined" ? document.visibilityState : "visible",
+      visibility,
     });
     const batteryLevel = normalizedNative.batteryLevel ?? battery.level;
     const charging = Object.prototype.hasOwnProperty.call(nativeTelemetry, "charging") ? normalizedNative.charging : battery.charging;
@@ -134,7 +155,7 @@ export default function DeviceComputeManager() {
       thermalState: normalizedNative.thermalState,
       batteryLevel,
       charging,
-      visibility: typeof document !== "undefined" ? document.visibilityState : "visible",
+      visibility,
       hardwareConcurrency: input.hardwareConcurrency,
     });
     const nativeAdmission = evaluateNativeResourceAdmission({
@@ -156,10 +177,11 @@ export default function DeviceComputeManager() {
       budget,
       nativeAdmission,
       nativeTelemetry: normalizedNative,
+      visibility,
       storagePersistent,
       nativeThermalTelemetry: normalizedNative.thermalTelemetryAvailable,
     };
-  }, [battery.charging, battery.level, nativeTelemetry, ready, settings, storagePersistent]);
+  }, [battery.charging, battery.level, nativeTelemetry, ready, settings, storagePersistent, visibility]);
 
   useEffect(() => {
     if (!snapshot) return;
