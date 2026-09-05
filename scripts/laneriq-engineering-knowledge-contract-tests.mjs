@@ -16,7 +16,8 @@ assert.ok(profile.truthPrinciples.includes('mobile-no-cross-user-community-compu
 
 const prompt=engineeringKnowledgeForPrompt({focus:['ai_orchestration','backend_data','production_evidence']});
 assert.match(prompt,/provider-neutral orchestration/i);
-assert.match(prompt,/authenticate and authorize exact owner project and version/i);
+assert.match(prompt,/authenticate before protected reads or writes/i);
+assert.match(prompt,/authorize exact owner project and version before privileged persistence/i);
 assert.match(prompt,/Exact-SHA|exact Git SHA|exact-version/i);
 assert.match(prompt,/Do not represent CODE/i);
 
