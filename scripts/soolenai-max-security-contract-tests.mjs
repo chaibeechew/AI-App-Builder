@@ -12,6 +12,7 @@ const modify=read("app/api/modify/route.js");
 const publish=read("app/api/apps/[id]/publish/route.js");
 const capabilities=read("app/api/soolenai/capabilities/route.js");
 const referencePolicy=read("lib/media/reference-policy.js");
+const referenceReuse=read("lib/media/reference-reuse.js");
 const uploader=read("app/components/ReferenceUploader.js");
 const pkg=JSON.parse(read("package.json"));
 
@@ -104,14 +105,26 @@ assert.match(proxy,/cross-site/);
 assert.match(proxy,/Cross-site mutation blocked/);
 assert.match(proxy,/LANERIQ_ALLOWED_MUTATION_ORIGINS/);
 
-// Current reference-upload path is type/size bounded, rejects active SVG/HTML types and decodes media before it is persisted.
+// Reference uploads stay type/size bounded. Same-user exact matches may reuse existing private intelligence,
+// while every reference that still needs persistence/analysis must decode/process before analysis and new storage.
 assert.doesNotMatch(referencePolicy,/image\/svg\+xml|text\/html|application\/javascript|application\/zip/);
 assert.match(referencePolicy,/REFERENCE_IMAGE_MIME_TYPES/);
 assert.match(referencePolicy,/REFERENCE_VIDEO_MIME_TYPES/);
+assert.match(referenceReuse,/same-user-exact-fingerprint/);
+assert.match(referenceReuse,/crossUserReuseAllowed:false/);
+assert.match(referenceReuse,/rawPrivateBytesShared:false/);
 assert.match(uploader,/validateReferenceFileMeta/);
-assert.match(uploader,/compressImage\(item\.file\)/);
-assert.match(uploader,/await frames\(item\.file\)/);
-assert.ok(uploader.indexOf("const prepared=item.kind")<uploader.indexOf("saveAssets(result.assets"),"References must successfully decode/process before private persistence.");
+assert.match(uploader,/\.eq\("user_id", userId\)[\s\S]*\.in\("content_fingerprint", fingerprints\)/);
+const analyzeBlock=uploader.slice(uploader.indexOf("async function analyze()"),uploader.indexOf("return <div"));
+const saveBlock=uploader.slice(uploader.indexOf("async function saveAnalyzedAssets"),uploader.indexOf("async function analyze()"));
+assert.match(analyzeBlock,/buildReferenceReusePlan\(fingerprinted, existingAssets\)/);
+assert.match(analyzeBlock,/for \(const item of reusePlan\.analysisItems\)/);
+assert.match(analyzeBlock,/compressImage\(item\.file\)/);
+assert.match(analyzeBlock,/await frames\(item\.file\)/);
+assert.ok(analyzeBlock.indexOf("const prepared = item.kind")<analyzeBlock.indexOf('fetch("/api/reference-analyze"'),"References that need analysis must decode/process before analysis.");
+assert.ok(analyzeBlock.indexOf('fetch("/api/reference-analyze"')<analyzeBlock.indexOf("saveAnalyzedAssets(reusePlan.analysisItems"),"Analyzed references must complete bounded analysis before new private persistence.");
+assert.match(saveBlock,/if \(item\.existingAsset\) \{[\s\S]*continue;/);
+assert.ok(saveBlock.indexOf("if (item.existingAsset)")<saveBlock.indexOf('storage.from("user-assets").upload'),"Existing exact-private assets must not be re-uploaded before reuse.");
 
 // SoolenAI public capability reports the security profile truthfully.
 assert.match(capabilities,/SOOLENAI_SECURITY_PROFILE/);
@@ -124,4 +137,4 @@ assert.ok(pkg.scripts?.["test:soolenai-security-max"]!==undefined,"package.json 
 console.log("✓ SoolenAI Secure-by-Default MAX cannot be downgraded by adversarial generated/modified JSON");
 console.log("✓ Security 100 requires the MAX manifest; Publish remains downstream of the MAX + LIUI-aware quality gate");
 console.log("✓ LANERIQ AI platform headers and cross-site mutation protection are locked by contract");
-console.log("✓ Upload malware defense remains defense-in-depth and never fabricates antivirus-clean evidence");
+console.log("✓ Upload malware defense remains defense-in-depth and exact-private media reuse cannot bypass owner scoping or bounded decode/analysis for new media");
