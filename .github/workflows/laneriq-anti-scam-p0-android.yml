@@ -29,14 +29,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Run Guardian truth-state unit tests
+      - name: Run Guardian unit tests
         run: gradle -p projects/laneriq-anti-scam/android testDebugUnitTest --stacktrace
+      - name: Run Android lint truth gate
+        run: gradle -p projects/laneriq-anti-scam/android lintDebug --stacktrace
       - name: Build P0 debug APK
         run: gradle -p projects/laneriq-anti-scam/android assembleDebug --stacktrace
       - name: Verify APK exists
         run: test -f projects/laneriq-anti-scam/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Record APK SHA-256
+        run: sha256sum projects/laneriq-anti-scam/android/app/build/outputs/apk/debug/app-debug.apk | tee projects/laneriq-anti-scam/android/app/build/outputs/apk/debug/app-debug.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: laneriq-anti-scam-p0-android-debug-apk
-          path: projects/laneriq-anti-scam/android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            projects/laneriq-anti-scam/android/app/build/outputs/apk/debug/app-debug.apk
+            projects/laneriq-anti-scam/android/app/build/outputs/apk/debug/app-debug.apk.sha256
           if-no-files-found: error
