@@ -1,77 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect,useMemo,useState } from "react";
+import { useParams,useRouter } from "next/navigation";
 
-export default function TemplateDetailPage() {
-  const { id } = useParams();
-  const router = useRouter();
-  const [template, setTemplate] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+function label(value){return String(value||"").replaceAll("_"," ").replace(/\b\w/g,char=>char.toUpperCase())}
+export default function TemplateDetailPage(){
+  const {id}=useParams();const router=useRouter();const[template,setTemplate]=useState(null);const[loading,setLoading]=useState(true);const[error,setError]=useState("");
+  const templateId=useMemo(()=>String(id||"").slice(0,140),[id]);
+  useEffect(()=>{let active=true;setLoading(true);setError("");fetch(`/api/templates?id=${encodeURIComponent(templateId)}`,{cache:"no-store"}).then(async response=>{const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data?.error||"Template not found.");if(active)setTemplate(data?.template||null)}).catch(cause=>active&&setError(cause?.message||"Template not found.")).finally(()=>active&&setLoading(false));return()=>{active=false}},[templateId]);
+  function useTemplate(){if(!template)return;const instruction=[`Create an original ${template.industry} ${template.archetype} App and customer Website.`,`Use this LANERIQ AI template only as inspiration: ${template.title}.`,`Visual direction: ${template.style}.`,`Useful page ideas: ${(template.pages||[]).join(", ")}.`,`Useful capabilities: ${(template.features||[]).join(", ")}.`,"Keep the result mobile-first and responsive across mobile, tablet and desktop.","Reimagine the information architecture, layout, components, copy, visuals and interactions for my own product.","Do not copy third-party brand identity, text, images, source code, proprietary layouts or distinctive trade dress.","Produce a fresh App + Website and let the normal AI Planning gate validate the requirements before generation."].join("\n");try{sessionStorage.setItem("soolenAppIdea",instruction);sessionStorage.setItem("soolenInspirationTemplate",JSON.stringify({id:template.id,schemaVersion:template.schemaVersion,industry:template.industry,archetype:template.archetype,style:template.style,application:"inspiration-only"}))}catch{}router.push("/")}
+  if(loading)return <main className="templateReference state"><div>Loading template intelligence…</div></main>;
+  if(!template)return <main className="templateReference state"><div><h1>Template not found</h1><p>{error||"This inspiration is unavailable."}</p><Link href="/templates">← Templates</Link></div></main>;
+  const pages=Array.isArray(template.pages)?template.pages:[];const features=Array.isArray(template.features)?template.features:[];
+  return <main className="templateReference"><div className="templateBg"/><div className="templateWrap">
+    <section className="hero"><div className="heroCopy"><small>PAGE 14 · TEMPLATE DETAIL</small><h1>Template Detail</h1><h2>{template.title}</h2><p>{template.description}</p><div className="tags"><span>▧ {label(template.industry)}</span><span>▣ {label(template.archetype)}</span><span>✦ {label(template.style)}</span></div></div><div className="heroActions"><button onClick={useTemplate}>🚀 Use Template</button><button className="secondary" onClick={()=>document.getElementById("preview")?.scrollIntoView({behavior:"smooth"})}>◉ Preview Structure</button></div></section>
+    <section className="metricGrid"><article><i>▦</i><div><b>{pages.length}</b><small>Suggested Pages</small><em>Replanned at build time</em></div></article><article><i>✦</i><div><b>{features.length}</b><small>Suggested Capabilities</small><em>Adaptable by AI</em></div></article><article><i>◇</i><div><b>{label(template.industry)}</b><small>Industry</small><em>Template intelligence</em></div></article><article><i>ϟ</i><div><b>{label(template.style)}</b><small>Visual Direction</small><em>Original result required</em></div></article></section>
 
-  const templateId = useMemo(() => String(id || "").slice(0, 140), [id]);
+    <section className="previewSection" id="preview"><div className="sectionHead"><h2>Preview Structure</h2><span>Generated from actual template page definitions</span></div><div className="phoneRail">{(pages.length?pages:["Home","Overview","Details","Customers","Settings"]).slice(0,5).map((page,index)=><article key={`${page}-${index}`}><div className={`phoneMock p${index}`}><div className="phoneStatus">9:41　●●●</div><b>{page}</b><i/><i/><div className="miniCards"><span/><span/><span/></div><footer>⌂　▦　＋　◎</footer></div><strong>{page}</strong></article>)}</div></section>
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError("");
-    fetch(`/api/templates?id=${encodeURIComponent(templateId)}`, { cache: "no-store" })
-      .then(async (response) => {
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data?.error || "Template not found.");
-        if (active) setTemplate(data?.template || null);
-      })
-      .catch((cause) => active && setError(cause?.message || "Template not found."))
-      .finally(() => active && setLoading(false));
-    return () => { active = false; };
-  }, [templateId]);
+    <section className="included"><div className="sectionHead"><h2>What’s Included</h2><span>{features.length} template capabilities</span></div><div className="featureGrid">{(features.length?features:["Responsive structure","Project data model","AI adaptation","Quality validation"]).map((feature,index)=><article key={`${feature}-${index}`}><i>{["▧","⌂","♙","⌁","▣","↗","▤","♛"][index%8]}</i><div><b>{typeof feature==="string"?feature:feature?.name||`Capability ${index+1}`}</b><small>Template intelligence · adapted during planning</small></div></article>)}</div></section>
 
-  function useTemplate() {
-    if (!template) return;
-    const instruction = [
-      `Create an original ${template.industry} ${template.archetype} App and customer Website.`,
-      `Use this LANERIQ AI template only as inspiration: ${template.title}.`,
-      `Visual direction: ${template.style}.`,
-      `Useful page ideas: ${(template.pages || []).join(", ")}.`,
-      `Useful capabilities: ${(template.features || []).join(", ")}.`,
-      "Keep the result mobile-first and responsive across mobile, tablet and desktop.",
-      "Reimagine the information architecture, layout, components, copy, visuals and interactions for my own product.",
-      "Do not copy third-party brand identity, text, images, source code, proprietary layouts or distinctive trade dress.",
-      "Produce a fresh App + Website and let the normal AI Planning gate validate the requirements before generation."
-    ].join("\n");
+    <section className="aiReady"><div className="aiOrb">AI</div><div><h2>AI Ready</h2><p>This template is used as generation intelligence, not as a clone. LANERIQ AI can adapt its pages and capabilities to your brand, business and requested product.</p></div><div className="aiActions"><button onClick={useTemplate}>✧ Ask AI to customize</button><button onClick={useTemplate}>＋ Add your requirements</button><Link href="/soolen-ai">◉ Open AI Assistant</Link></div></section>
 
-    try {
-      sessionStorage.setItem("soolenAppIdea", instruction);
-      sessionStorage.setItem("soolenInspirationTemplate", JSON.stringify({
-        id: template.id,
-        schemaVersion: template.schemaVersion,
-        industry: template.industry,
-        archetype: template.archetype,
-        style: template.style,
-        application: "inspiration-only",
-      }));
-    } catch {}
-    router.push("/");
-  }
+    <div className="infoGrid"><section><h3>Best For</h3><div>✓ {label(template.industry)} projects</div><div>✓ {label(template.archetype)} workflows</div><div>✓ Mobile-first App + Website builds</div><div>✓ Businesses that want AI adaptation</div></section><section><h3>Build Behavior</h3><div>● AI Planning re-validates requirements</div><div>● Layout and copy are reimagined</div><div>● Brand and references are merged safely</div><div>● Quality gates run before publish readiness</div></section><section><h3>Requirements</h3><div>✓ Your own project brief</div><div>✓ Optional brand / media references</div><div>✓ Approval before high-risk actions</div><div>✓ Store and provider status remain evidence-gated</div></section></div>
 
-  if (loading) return <main className="page"><div className="eyebrow">LANERIQ AI · TEMPLATE</div><h1>Loading inspiration…</h1><style>{styles}</style></main>;
-  if (!template) return <main className="page"><div className="eyebrow">LANERIQ AI · TEMPLATE</div><h1>Template not found</h1><p>{error || "This inspiration is unavailable."}</p><Link href="/templates">← Back to templates</Link><style>{styles}</style></main>;
-
-  return <main className="page">
-    <div className="eyebrow">LANERIQ AI · INSPIRATION TEMPLATE</div>
-    <h1>{template.title}</h1>
-    <p>{template.description}</p>
-    <div className="meta"><span>{template.industry}</span><span>{template.archetype}</span><span>{template.style}</span><span>Mobile-first</span></div>
-    <section><h2>Suggested pages</h2><div className="chips">{(template.pages || []).map((item) => <span key={item}>{item}</span>)}</div></section>
-    <section><h2>Suggested capabilities</h2><div className="chips">{(template.features || []).map((item) => <span key={item}>{item}</span>)}</div></section>
-    <div className="notice">Inspiration only. LANERIQ AI will re-plan and reimagine the structure, visuals and copy rather than clone a third-party product.</div>
-    <button onClick={useTemplate}>Use as inspiration →</button>
-    {error && <div className="error">{error}</div>}
-    <Link href="/templates">← All templates</Link>
-    <style>{styles}</style>
-  </main>;
+    <section className="truth"><b>Originality boundary</b><p>LANERIQ AI uses this template as inspiration-only structural intelligence. It does not copy third-party branding, source code, proprietary layouts, protected text or distinctive trade dress.</p><button onClick={useTemplate}>Use This Template →</button></section>
+    {error&&<div className="error">{error}</div>}
+  </div><style jsx>{`
+    .templateReference{min-height:100vh;position:relative;background:#03101e;color:#f8f9ff;padding:112px clamp(20px,5vw,70px) 175px;font-family:Inter,system-ui,sans-serif;overflow:hidden}.templateReference.state{display:grid;place-items:center}.templateReference.state a{color:#d6b05a}.templateBg{position:fixed;inset:0;background:linear-gradient(180deg,rgba(2,9,24,.12),rgba(2,9,24,.7) 36%,#020a17 88%),radial-gradient(circle at 72% 12%,rgba(107,71,255,.25),transparent 31%),url('/laneriq-future-city-people.webp') center top/cover no-repeat;z-index:0}.templateWrap{position:relative;z-index:1;max-width:1160px;margin:auto}.hero{min-height:265px;display:grid;grid-template-columns:1fr auto;gap:22px;align-items:end}.heroCopy small{color:#edb75d;letter-spacing:.14em;font-size:9px;font-weight:900}.heroCopy h1{font-size:clamp(42px,6vw,65px);margin:7px 0 0;line-height:1}.heroCopy h2{font-size:clamp(27px,4vw,42px);color:#f0b85e;margin:7px 0}.heroCopy p{max-width:700px;color:#d3daeb;line-height:1.55}.tags{display:flex;gap:7px;flex-wrap:wrap}.tags span{border:1px solid #ffffff1b;border-radius:999px;background:#11203dcf;padding:7px 11px;color:#c4cee2;font-size:10px}.heroActions{display:grid;gap:9px;min-width:235px}.heroActions button,.truth button{border:1px solid #9f77ff88;border-radius:14px;background:linear-gradient(135deg,#7145ef,#9d56fb);color:#fff;padding:14px 17px;font-weight:850}.heroActions .secondary{background:#101d38cc;border-color:#ffffff26}.metricGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:15px 0}.metricGrid article,.previewSection,.included,.aiReady,.infoGrid section,.truth{border:1px solid rgba(164,180,226,.23);background:linear-gradient(180deg,rgba(15,32,64,.9),rgba(6,17,38,.94));border-radius:18px;box-shadow:inset 0 1px #ffffff0e,0 15px 40px #0004;backdrop-filter:blur(20px)}.metricGrid article{display:grid;grid-template-columns:50px 1fr;gap:10px;padding:15px}.metricGrid i{grid-row:1/4;width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:#4c2b9c;color:#d0b8ff;font-style:normal;font-size:23px}.metricGrid b,.metricGrid small,.metricGrid em{display:block}.metricGrid b{font-size:20px;overflow:hidden;text-overflow:ellipsis}.metricGrid small{font-size:10px;color:#bec8dc}.metricGrid em{font-size:9px;color:#76d99c;font-style:normal;margin-top:3px}.previewSection,.included{padding:18px;margin-top:13px}.sectionHead{display:flex;justify-content:space-between;align-items:center;gap:12px}.sectionHead h2{margin:0}.sectionHead span{font-size:10px;color:#8fa3c7}.phoneRail{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.phoneRail article{text-align:center}.phoneMock{aspect-ratio:9/16;border:5px solid #121a2c;border-radius:22px;background:linear-gradient(160deg,#142547,#08152d);padding:10px;text-align:left;box-shadow:0 13px 30px #0006;overflow:hidden}.p1{background:linear-gradient(160deg,#142d4b,#0a1630)}.p2{background:linear-gradient(160deg,#26194c,#09152c)}.p3{background:linear-gradient(160deg,#18385a,#0a1831)}.p4{background:linear-gradient(160deg,#302052,#0a162c)}.phoneStatus{font-size:6px;color:#bdc7db;margin-bottom:15px}.phoneMock>b{font-size:11px}.phoneMock>i{display:block;height:7px;border-radius:999px;background:#293b60;margin:9px 0}.phoneMock>i:nth-of-type(2){width:65%}.miniCards{display:grid;gap:6px}.miniCards span{height:35px;border-radius:7px;background:linear-gradient(135deg,#2d3970,#17243e)}.phoneMock footer{margin-top:9px;font-size:7px;color:#8da5c7}.phoneRail strong{display:block;margin-top:6px;font-size:10px}.featureGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}.featureGrid article{display:grid;grid-template-columns:40px 1fr;gap:9px;align-items:center;border:1px solid #ffffff12;border-radius:13px;background:#09182f;padding:11px}.featureGrid i{width:35px;height:35px;border-radius:9px;display:grid;place-items:center;background:#47288f;color:#c7aeff;font-style:normal}.featureGrid b,.featureGrid small{display:block}.featureGrid b{font-size:11px}.featureGrid small{font-size:8px;color:#8e9fbe;margin-top:3px}.aiReady{display:grid;grid-template-columns:105px 1fr auto;gap:18px;align-items:center;padding:18px;margin-top:13px;border-color:#8059d966;background:linear-gradient(100deg,rgba(45,25,92,.9),rgba(9,25,53,.94))}.aiOrb{width:90px;height:90px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:900;background:radial-gradient(circle,#7b5dff,#241956 66%);border:2px solid #a386ff;box-shadow:0 0 30px #7654ff88}.aiReady h2{margin:0 0 5px}.aiReady p{color:#a8b5ce;line-height:1.5;font-size:12px}.aiActions{display:grid;gap:7px}.aiActions>*{border:1px solid #8f69e866;border-radius:10px;background:#172044;color:#e5ddff;padding:9px 12px;text-decoration:none;font-size:10px;text-align:left}.infoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:13px}.infoGrid section{padding:16px}.infoGrid h3{margin:0 0 10px}.infoGrid section div{padding:7px 0;border-bottom:1px solid #ffffff0c;color:#b7c2d7;font-size:10px}.truth{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:16px;margin-top:13px;border-color:#d0a75355}.truth>b{color:#f0be64}.truth p{color:#9eacc7;font-size:10px;line-height:1.5;margin:0}.truth button{padding:11px 14px;background:linear-gradient(135deg,#dca64f,#7c5119);border-color:#e8ba68}.error{position:relative;z-index:1;margin-top:10px;padding:12px;border-radius:11px;background:#4a202b;color:#ffc0c8}@media(max-width:900px){.templateReference{padding:100px 16px 155px}.hero{grid-template-columns:1fr}.heroActions{display:flex;min-width:0}.metricGrid{grid-template-columns:1fr 1fr}.phoneRail{grid-template-columns:repeat(3,1fr);overflow:auto}.featureGrid{grid-template-columns:1fr 1fr}.aiReady{grid-template-columns:80px 1fr}.aiActions{grid-column:1/-1;grid-template-columns:repeat(3,1fr)}.infoGrid{grid-template-columns:1fr}.truth{grid-template-columns:1fr}}@media(max-width:600px){.heroCopy h1{font-size:39px}.heroCopy h2{font-size:27px}.heroActions{flex-direction:column}.metricGrid{grid-template-columns:1fr 1fr}.metricGrid article{grid-template-columns:36px 1fr;padding:11px}.metricGrid i{width:32px;height:32px;font-size:17px}.phoneRail{display:flex}.phoneRail article{min-width:135px}.featureGrid{grid-template-columns:1fr}.aiReady{grid-template-columns:60px 1fr}.aiOrb{width:58px;height:58px;font-size:18px}.aiActions{grid-template-columns:1fr}}
+  `}</style></main>;
 }
-
-const styles = `body{margin:0;background:#03100d;color:#f5fff9;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.page{min-height:100vh;max-width:860px;margin:auto;padding:70px 20px;background:linear-gradient(145deg,#03100d,#0a2119 58%,#06140f)}.eyebrow{color:#d8bf62;font-size:12px;font-weight:900;letter-spacing:.2em}h1{font-size:clamp(42px,7vw,76px);margin:12px 0}p{color:#9eb5ab;font-size:20px;line-height:1.7}.meta,.chips{display:flex;flex-wrap:wrap;gap:8px}.meta span,.chips span{border:1px solid #ffffff18;border-radius:999px;padding:8px 11px;background:#ffffff08;color:#c6d7cf;font-size:12px}section{margin-top:28px;padding:18px;border:1px solid #ffffff12;border-radius:18px;background:#061813}section h2{font-size:15px;color:#efd171;margin:0 0 12px}.notice{margin-top:22px;padding:15px;border:1px solid #d8bf6242;border-radius:14px;background:#2f271050;color:#cfddcf;line-height:1.5;font-size:13px}button{border:0;border-radius:14px;padding:16px 24px;background:#d8bf62;color:#07130e;font-weight:900;font-size:17px;margin:20px 0;display:block;cursor:pointer}.error{color:#ff9a9a;margin:10px 0 25px}a{color:#d8bf62;text-decoration:none}@media(max-width:560px){.page{padding-top:42px}h1{font-size:44px}p{font-size:17px}button{width:100%}}`;
