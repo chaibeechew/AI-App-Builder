@@ -1,7 +1,6 @@
 import {NextResponse} from "next/server";
 import {loadAvatarContinuity,saveAvatarContinuity} from "../../../../lib/cloud/avatar-characters.js";
 
-// Compatibility contract note: living_character_devices, DEVICE_HASH=/^[a-f0-9]{64}$/, persistentMemoryIncluded===true, rawAssetIncluded===true and provider upsert enforcement now live behind lib/cloud/avatar-characters.js -> lib/cloud-adapters/avatar-character-data.js. The App route remains provider-opaque.
 const MAX_BYTES=24*1024;
 function noStore(payload,status=200){return NextResponse.json(payload,{status,headers:{"Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","X-Content-Type-Options":"nosniff"}});}
 function statusFor(code){if(code==="AUTHENTICATION_REQUIRED")return 401;if(code==="ACCOUNT_VERIFICATION_REQUIRED")return 403;if(code==="CHARACTER_CONTINUITY_ID_INVALID"||code==="CHARACTER_CONTINUITY_SNAPSHOT_INVALID")return 400;if(code==="CHARACTER_SAVE_REQUIRED")return 409;return 500;}
