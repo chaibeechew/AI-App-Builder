@@ -46,6 +46,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: "/soolen-ai-landscape.jpg",
+        destination: "/laneriq-future-city-people.webp",
+      },
+      {
         source: "/api/video/projects/:id/versions/:versionId",
         destination: "/api/video/projects/:id/compile?versionId=:versionId",
       },
