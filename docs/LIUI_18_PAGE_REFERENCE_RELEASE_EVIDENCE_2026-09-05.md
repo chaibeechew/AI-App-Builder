@@ -8,6 +8,7 @@ This document records the release-control boundary for the user-approved LANERIQ
 - Layout geometry, primary buttons, navigation, glass surfaces, state hierarchy and mobile treatment are treated as the active visual contract.
 - The `/auth` entry uses the approved Enter Your Email / Check Your Email flow.
 - LANERIQ-owned Email OTP remains eight digits and the verification screen exposes eight visual code cells while preserving one-time-code autofill.
+- The canonical 10-language catalog now locks the approved Login and Templates reference copy instead of requiring retired pre-redesign labels.
 
 ## Functionality and truth boundaries
 
@@ -17,9 +18,10 @@ This document records the release-control boundary for the user-approved LANERIQ
 - Store preparation must not be represented as official store submission, review or approval.
 - Physical-device, live-provider and store evidence remain separate from code/CI evidence.
 - Credits are not reintroduced.
-- SMS remains ON HOLD.
+- SMS remains ON HOLD and Login explicitly states that no paid SMS fallback is used.
 - Mobile Community Compute remains disabled.
-- Source repair at `614c7250b3effcfedb08cb5e58d1dc814a26f149` restored the Page 12 cross-feature runtime entries and the explicit no-paid-SMS login truth boundary; the targeted Game Runtime and Communications 100 contracts plus a Production build passed before this exact-head rerun.
+- Source repair at `614c7250b3effcfedb08cb5e58d1dc814a26f149` restored the Page 12 cross-feature runtime entries and the explicit no-paid-SMS Login truth boundary.
+- Clean source head `1ba66cfb42ebfae7011a6126914480a1257b4fae` additionally aligns Login and Templates multilingual contracts with the approved reference copy. Targeted multilingual, Game Runtime and Communications 100 contracts plus a Production build passed before this exact-head rerun.
 
 ## Release gate
 
@@ -27,7 +29,7 @@ Do not declare this redesign Production-complete until the final integration sat
 
 1. exact-head GitHub CI is green;
 2. exact-head Vercel Preview is READY;
-3. browser QA covers the approved Login flow and the 18-page route surface;
+3. browser/runtime QA covers the approved Login flow and the 18-page route surface without bypassing authentication truth boundaries;
 4. the PR is realigned to the latest `main` immediately before merge;
 5. post-merge GitHub `main` SHA equals the Vercel Production SHA;
 6. runtime verification confirms the deployed SHA and smoke checks show no unexpected 5xx/error regression.
