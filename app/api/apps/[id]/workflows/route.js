@@ -22,6 +22,28 @@ function sanitizeObject(value,depth=0){
 }
 function json(payload,status=200){return NextResponse.json(payload,{status,headers:{"Cache-Control":"no-store"}});}
 async function ownedApp(supabase,id,userId){const {data}=await supabase.from("apps").select("id,name,owner_id").eq("id",id).eq("owner_id",userId).single();return data;}
+function normalizedWorkflowBody(body,{partial=false}={}){
+  const out={};
+  if(!partial||body?.name!==undefined)out.name=String(body?.name||"").trim().slice(0,120);
+  if(!partial||body?.triggerType!==undefined)out.trigger_type=String(body?.triggerType||"").trim().slice(0,80);
+  if(!partial||body?.triggerConfig!==undefined)out.trigger_config=sanitizeObject(body?.triggerConfig&&typeof body.triggerConfig==="object"?body.triggerConfig:{})||{};
+  if(!partial||body?.actions!==undefined){
+    const actions=Array.isArray(body?.actions)?body.actions.slice(0,12):[];
+    out.actions=actions.map(a=>({type:String(a?.type||"").slice(0,80),label:String(a?.label||"").slice(0,180),config:sanitizeObject(a?.config&&typeof a.config==="object"?a.config:{})||{}}));
+  }
+  if(!partial||body?.enabled!==undefined)out.enabled=body?.enabled!==false;
+  return out;
+}
+function validateWorkflowFields(fields,{partial=false}={}){
+  if(!partial&&(!fields.name||!fields.trigger_type||!fields.actions?.length))return "Workflow name, trigger and at least one action are required.";
+  if(fields.name!==undefined&&!fields.name)return "Workflow name is required.";
+  if(fields.trigger_type!==undefined&&!SAFE_TRIGGERS.has(fields.trigger_type))return "Unsupported workflow trigger.";
+  if(fields.actions!==undefined){
+    if(!fields.actions.length)return "At least one workflow action is required.";
+    if(fields.actions.some(action=>!SAFE_ACTIONS.has(String(action?.type||""))))return "Unsupported workflow action.";
+  }
+  return "";
+}
 
 export async function GET(_request,{params}){
   try{
@@ -40,14 +62,28 @@ export async function POST(request,{params}){
     if(!user)return json({error:"Authentication required."},401);
     const app=await ownedApp(supabase,id,user.id);if(!app)return json({error:"Project not found."},404);
     const body=await request.json().catch(()=>({}));
-    const name=String(body?.name||"").trim().slice(0,120),triggerType=String(body?.triggerType||"").trim().slice(0,80),actions=Array.isArray(body?.actions)?body.actions.slice(0,12):[];
-    if(!name||!triggerType||!actions.length)return json({error:"Workflow name, trigger and at least one action are required."},400);
-    if(!SAFE_TRIGGERS.has(triggerType))return json({error:"Unsupported workflow trigger."},400);
-    if(actions.some(action=>!SAFE_ACTIONS.has(String(action?.type||""))))return json({error:"Unsupported workflow action."},400);
-    const safeActions=actions.map(a=>({type:String(a?.type||"").slice(0,80),label:String(a?.label||"").slice(0,180),config:sanitizeObject(a?.config&&typeof a.config==="object"?a.config:{})||{}}));
-    const triggerConfig=sanitizeObject(body?.triggerConfig&&typeof body.triggerConfig==="object"?body.triggerConfig:{})||{};
-    const {data,error}=await supabase.from("app_workflows").insert({app_id:id,owner_id:user.id,name,trigger_type:triggerType,trigger_config:triggerConfig,actions:safeActions,enabled:body?.enabled!==false}).select("id,name,trigger_type,trigger_config,actions,enabled,created_at,updated_at").single();
+    const fields=normalizedWorkflowBody(body);
+    const validation=validateWorkflowFields(fields);if(validation)return json({error:validation},400);
+    const {data,error}=await supabase.from("app_workflows").insert({app_id:id,owner_id:user.id,...fields}).select("id,name,trigger_type,trigger_config,actions,enabled,created_at,updated_at").single();
     if(error)throw error;
     return json({success:true,workflow:data,note:"Only LANERIQ-supported actions are saved. Credential-like fields are removed and paid SMS is not an available channel."});
   }catch(error){console.error("WORKFLOWS_POST_ERROR",error);return json({error:"Unable to save workflow."},500);}
+}
+
+export async function PATCH(request,{params}){
+  try{
+    const {id}=await params;const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();
+    if(!user)return json({error:"Authentication required."},401);
+    const app=await ownedApp(supabase,id,user.id);if(!app)return json({error:"Project not found."},404);
+    const body=await request.json().catch(()=>({}));
+    const workflowId=String(body?.workflowId||"").trim();
+    if(!workflowId)return json({error:"Workflow id is required."},400);
+    const fields=normalizedWorkflowBody(body,{partial:true});
+    const validation=validateWorkflowFields(fields,{partial:true});if(validation)return json({error:validation},400);
+    if(!Object.keys(fields).length)return json({error:"No workflow changes were provided."},400);
+    const {data,error}=await supabase.from("app_workflows").update(fields).eq("id",workflowId).eq("app_id",id).eq("owner_id",user.id).select("id,name,trigger_type,trigger_config,actions,enabled,created_at,updated_at").maybeSingle();
+    if(error)throw error;
+    if(!data)return json({error:"Workflow not found."},404);
+    return json({success:true,workflow:data,note:"Workflow updated inside the owned project boundary. External actions still remain subject to provider readiness and runtime safeguards."});
+  }catch(error){console.error("WORKFLOWS_PATCH_ERROR",error);return json({error:"Unable to update workflow."},500);}
 }
