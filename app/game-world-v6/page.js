@@ -1,0 +1,35 @@
+import Link from "next/link";
+import RuntimeV6Canvas from "./RuntimeV6Canvas.js";
+import styles from "./runtime-v6.module.css";
+import {compileRealRuntimeV6,summarizeRealRuntimeV6} from "../../lib/game/game-world-real-runtime-v6.js";
+
+export const dynamic="force-dynamic";
+
+export default async function GameWorldV6Page({searchParams}){
+  const params=await searchParams;
+  const prompt=String(params?.prompt||"Playable living river kingdom with a citadel, villages, bridges, dungeons, quests, bosses, companions and mobile-safe dynamic world simulation");
+  const profile=String(params?.profile||"mobile-balanced");
+  const seed=String(params?.seed||"laneriq-real-runtime-v6");
+  const result=compileRealRuntimeV6({prompt,seed,deviceClass:profile==="mobile-safe"?"low":profile==="mobile-performance"?"high":"balanced",runtimeProfile:profile,hypothesisCount:3,simulationBudget:24});
+  const summary=summarizeRealRuntimeV6(result);
+  const clientRuntime={worldId:result.worldId,terrain:result.terrain,spawn:result.spawn,adaptive:result.adaptive,requestedProfile:profile,navPathPoints:result.v5.path?.length||0,physicsBodies:result.physics.dynamic.length};
+  return <main className={styles.shell}>
+    <header className={styles.top}><Link href="/game-builder">← Game Builder</Link><div><Link href="/game-world-playable">V5 Playable</Link><span>LANERIQ AI · WORLD V6</span></div></header>
+    <section className={styles.hero}><div><small>REAL RUNTIME EVIDENCE + MOBILE ADAPTIVE WORLD</small><h1>AI MAP now measures, adapts and <em>keeps the world playable.</em></h1><p>Executable collision/constraint physics, dynamic navigation, crowd steering, privacy-minimized browser evidence and a mobile performance governor that reduces workload under sustained frame pressure.</p></div><aside><b>{summary.v6Internal100?"100/100":`${result.readiness.internalScore}/100`}</b><span>V6 INTERNAL CONTRACT</span><strong>Production 100: false</strong></aside></section>
+    <form method="get" className={styles.form}><label>World prompt<textarea name="prompt" defaultValue={prompt}/></label><div><label>Seed<input name="seed" defaultValue={seed}/></label><label>Runtime profile<select name="profile" defaultValue={profile}><option value="mobile-safe">Mobile Safe · 30fps</option><option value="mobile-balanced">Mobile Balanced · 45fps</option><option value="mobile-performance">Mobile Performance · 60fps</option><option value="desktop-balanced">Desktop Balanced · 60fps</option></select></label><button>Compile V6 & Run</button></div></form>
+    <section className={styles.stage}><RuntimeV6Canvas runtime={clientRuntime}/></section>
+    <section className={styles.metrics}><article><span>TARGET FPS</span><b>{summary.targetFps}</b></article><article><span>PHYSICS HZ</span><b>{summary.physicsHz}</b></article><article><span>NAV POLYGONS</span><b>{summary.navPolygons}</b></article><article><span>PHYSICS BODIES</span><b>{summary.physicsBodies}</b></article><article><span>STATIC COLLIDERS</span><b>{summary.staticColliders}</b></article><article><span>CROWD AGENTS</span><b>{summary.crowdAgents}</b></article></section>
+    <section className={styles.grid}>
+      <article className={styles.panel}><small>MOBILE ADAPTIVE GOVERNOR</small><h2>Frame pressure changes runtime cost instead of overheating by policy.</h2><div className={styles.list}><div><span>Profile</span><b>{result.adaptive.profile}</b></div><div><span>Render scale</span><b>{result.adaptive.renderScale}</b></div><div><span>Max chunks</span><b>{result.adaptive.maxResidentChunks}</b></div><div><span>NPC budget</span><b>{result.adaptive.maxNpcs}</b></div><div><span>Neural appearance</span><b>{String(result.adaptive.neuralAppearance)}</b></div></div><p>Thermal status is intentionally a performance-pressure proxy only. LANERIQ does not pretend browser FPS is a temperature sensor.</p></article>
+      <article className={styles.panel}><small>EXECUTABLE PHYSICS CORE</small><h2>Spatial hash broadphase + fixed-step contacts + impulse response.</h2><div className={styles.list}><div><span>Broadphase</span><b>{result.physics.broadphase.type}</b></div><div><span>Solver iterations</span><b>{result.physics.solver.iterations}</b></div><div><span>Preview contacts</span><b>{result.physicsPreview.lastStep?.contacts||0}</b></div><div><span>External Rapier LIVE</span><b>{String(result.truth.externalRapierVerified)}</b></div></div></article>
+    </section>
+    <section className={styles.grid}>
+      <article className={styles.panel}><small>DYNAMIC NAVIGATION + CROWD</small><h2>World changes can invalidate cells and trigger new routes.</h2><div className={styles.list}><div><span>Walkable polygons</span><b>{result.nav.polygons.length}</b></div><div><span>Blocked cells</span><b>{result.nav.blockedCells.length}</b></div><div><span>Dynamic obstacles</span><b>{String(result.nav.dynamicObstacleOverlay)}</b></div><div><span>Crowd agents</span><b>{result.crowd.agents.length}</b></div><div><span>External Recast LIVE</span><b>{String(result.truth.externalRecastVerified)}</b></div></div></article>
+      <article className={styles.panel}><small>BROWSER RUNTIME EVIDENCE</small><h2>The page itself upgrades CODE evidence to measured browser evidence.</h2><div className={styles.list}><div><span>Evidence recorder</span><b>{String(result.truth.browserEvidenceRecorderImplemented)}</b></div><div><span>Build-time headless browser</span><b>{String(result.truth.headlessBrowserRuntimeVerified)}</b></div><div><span>Hardware GPU</span><b>{String(result.truth.hardwareGpuVerified)}</b></div><div><span>iOS device</span><b>{String(result.truth.realIosDeviceVerified)}</b></div><div><span>Android device</span><b>{String(result.truth.realAndroidDeviceVerified)}</b></div></div><p>The HUD above exposes live API/FPS/chunk measurements. CI browser evidence may use software rendering; hardware GPU, phone thermal and Production remain separate gates.</p></article>
+    </section>
+    <section className={styles.grid}>
+      <article className={styles.panel}><small>OPTIONAL WASM ADAPTERS</small><h2>Independent core first; external engines can be swapped in later.</h2><div className={styles.pill}><span>Rapier 3D · optional WASM</span><span>Recast/Detour · optional WASM</span><span>LANERIQ Physics Core · executable</span><span>LANERIQ Dynamic Nav · executable</span></div><p>Public architecture compatibility is allowed; no proprietary code or hidden model state is copied.</p></article>
+      <article className={styles.panel}><small>TRUTH BOUNDARY</small><h2>V6 CODE can be 100 while LIVE hardware remains unverified.</h2><div className={styles.list}><div><span>Internal physics executable</span><b>{String(result.truth.internalPhysicsEngineExecutable)}</b></div><div><span>Internal nav executable</span><b>{String(result.truth.internalDynamicNavigationExecutable)}</b></div><div><span>Real mobile thermal</span><b>{String(result.truth.realMobileThermalVerified)}</b></div><div><span>Production deployment</span><b>{String(result.truth.productionDeploymentVerified)}</b></div></div></article>
+    </section>
+  </main>;
+}

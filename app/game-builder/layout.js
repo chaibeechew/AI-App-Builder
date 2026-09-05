@@ -4,6 +4,7 @@ const base={textDecoration:"none",border:"1px solid #fff3",borderRadius:999,padd
 
 export default function GameBuilderLayout({children}){
   return <>{children}<div style={{position:"fixed",right:18,bottom:"calc(18px + env(safe-area-inset-bottom))",zIndex:80,display:"grid",gap:8,justifyItems:"end",maxHeight:"calc(100vh - 36px)",overflowY:"auto",paddingLeft:8}}>
+    <Link href="/game-world-v6" aria-label="Open LANERIQ AI Real Runtime Mobile V6" style={{...base,background:"linear-gradient(90deg,#8ff0d2,#a9c4ff)",color:"#03100c",fontSize:12}}>Real Runtime V6 →</Link>
     <Link href="/game-world-playable" aria-label="Open LANERIQ AI Playable World Runtime V5" style={{...base,background:"linear-gradient(90deg,#96f0dc,#7cc8ff)",color:"#04110d",fontSize:12}}>Playable World V5 →</Link>
     <Link href="/game-world-v4" aria-label="Open LANERIQ AI Neural Reconstruction and Embodied Simulation V4" style={{...base,background:"linear-gradient(90deg,#77ead5,#ead36f)",color:"#04110d",fontSize:12}}>Neural World V4 →</Link>
     <Link href="/game-world-v3" aria-label="Open LANERIQ AI Spatial Intelligence Hybrid 3D V3" style={{...base,background:"linear-gradient(90deg,#91e8ff,#bea1ff)",color:"#06101b",fontSize:12}}>Spatial Intelligence V3 →</Link>

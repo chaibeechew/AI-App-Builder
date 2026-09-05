@@ -1,0 +1,93 @@
+name: Game World Real Runtime Mobile V6 Gate
+
+on:
+  push:
+    branches:
+      - batch143-game-world-real-runtime-mobile-v6
+  pull_request:
+    paths:
+      - "app/game-world-v6/**"
+      - "app/landing/game-world-v6-evidence/**"
+      - "app/game-builder/layout.js"
+      - "lib/game/game-world-mobile-adaptive-v6.js"
+      - "lib/game/game-world-physics-nav-v6.js"
+      - "lib/game/game-world-runtime-evidence-v6.js"
+      - "lib/game/game-world-real-runtime-v6.js"
+      - "scripts/game-world-real-runtime-v6-tests.mjs"
+      - "scripts/game-world-v6-browser-runtime.spec.mjs"
+      - "scripts/game-world-v6-playwright.config.mjs"
+      - ".github/workflows/game-world-real-runtime-v6.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-world-v6-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-runtime-v6:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      GEMINI_API_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Game World Generator regression
+        run: node scripts/game-world-generator-tests.mjs
+      - name: Simulation Intelligence regression
+        run: node scripts/game-world-simulation-intelligence-tests.mjs
+      - name: Reasoning Orchestrator regression
+        run: node scripts/game-world-reasoning-orchestrator-tests.mjs
+      - name: Unified Game World readiness regression
+        run: node scripts/game-world-readiness-tests.mjs
+      - name: World Model V2 regression
+        run: node scripts/game-world-latest-tech-v2-tests.mjs
+      - name: Spatial Hybrid V3 regression
+        run: node scripts/game-world-spatial-hybrid-v3-tests.mjs
+      - name: Neural Reconstruction V4 regression
+        run: node scripts/game-world-neural-reconstruction-embodied-v4-tests.mjs
+      - name: Playable Runtime V5 regression
+        run: node scripts/game-world-playable-runtime-v5-tests.mjs
+      - name: Real Runtime Mobile V6 contracts
+        run: node scripts/game-world-real-runtime-v6-tests.mjs
+      - name: Existing Game Runtime regression
+        run: node scripts/game-runtime-v1-tests.mjs
+      - name: Advanced 3D regression
+        run: node scripts/advanced-3d-gameplay-tests.mjs
+      - name: Content Pipeline regression
+        run: node scripts/content-production-pipeline-tests.mjs
+      - name: Next.js production build
+        run: npm run build
+      - name: Install browser evidence runner
+        run: |
+          npm install --no-save --package-lock=false @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start built app
+        run: |
+          npm run start -- -p 3000 > /tmp/laneriq-v6.log 2>&1 &
+          echo $! > /tmp/laneriq-v6.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/landing/game-world-v6-evidence >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/laneriq-v6.log
+          exit 1
+      - name: Measured Chromium WebGL runtime evidence
+        run: npx playwright test --config=scripts/game-world-v6-playwright.config.mjs
+      - name: Upload V6 runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-world-v6-runtime-evidence
+          path: test-results/game-world-v6-*
+          if-no-files-found: warn
+          retention-days: 14
