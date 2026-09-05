@@ -1,0 +1,55 @@
+name: Auth policy code length heal once
+
+on:
+  push:
+    branches:
+      - ui/18-page-reference-layout-v1
+    paths:
+      - 'scripts/auth-policy-code-length-heal-once.py'
+
+permissions:
+  contents: write
+
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ui/18-page-reference-layout-v1
+          persist-credentials: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - name: Apply policy-length source repair
+        run: python scripts/auth-policy-code-length-heal-once.py
+      - name: Verify auth and communications contracts
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          GEMINI_API_KEY: ci-placeholder
+        run: |
+          npm run test:whatsapp-auth
+          npm run test:email-otp
+          npm run test:i18n
+          npm run test:communications-100
+      - name: Production build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          SOOLEN_COST_MODE: zero
+          GEMINI_API_KEY: ci-placeholder
+        run: npm run build
+      - name: Commit verified source repair and remove one-shot files
+        run: |
+          rm -f scripts/auth-policy-code-length-heal-once.py .github/workflows/auth-policy-code-length-heal-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/auth/page.js scripts/auth-policy-code-length-heal-once.py .github/workflows/auth-policy-code-length-heal-once.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "Auth: bind verification UI length to active OTP policy"
+          git push origin HEAD:ui/18-page-reference-layout-v1
