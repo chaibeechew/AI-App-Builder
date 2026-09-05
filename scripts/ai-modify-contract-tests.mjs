@@ -30,7 +30,7 @@ assert.match(modify,/replayPayload/);
 assert.match(builderAdapter,/\.eq\("created_by", userId\)/);
 const replayCheck=modify.indexOf('const context=await loadBuilderModificationContext');
 const financeStart=modify.indexOf('const entitlement=await consumeAppBuilderEntitlement');
-const aiStart=modify.indexOf('const ai=await withTimeout(generateWithFallback(prompt)');
+const aiStart=modify.indexOf('const ai=await withTimeout(runBuilderAi(prompt');
 assert.ok(replayCheck>0&&financeStart>0&&aiStart>0&&replayCheck<financeStart&&replayCheck<aiStart,'Cloud replay/context lookup must happen before finance and AI execution.');
 assert.match(modify,/if\(replayVersion\?\.specification\)return NextResponse\.json\(replayPayload/);
 assert.match(modify,/if\(save\.replayed\)/);
@@ -48,12 +48,19 @@ const modifySaveBlock=builderAdapter.slice(builderAdapter.indexOf('async saveMod
 assert.match(modifySaveBlock,/project\.current_version_id !== expectedVersionId/);
 assert.match(modifySaveBlock,/\.eq\("id", version\.id\)\.eq\("app_id", appId\)/);
 
-// AI work is bounded and must not reduce deterministic project quality.
+// AI work is bounded, zero-cost-admitted and must not reduce deterministic project quality.
 assert.match(modify,/PRIMARY_AI_TIMEOUT_MS/);
 assert.match(modify,/REPAIR_AI_TIMEOUT_MS/);
 assert.match(modify,/Primary AI modification/);
 assert.match(modify,/AI quality repair/);
 assert.match(modify,/AI self-heal/);
+assert.match(modify,/generateAppBuilderWithAdmission/);
+assert.doesNotMatch(modify,/generateWithFallback/);
+assert.match(modify,/projectId:appId/);
+assert.match(modify,/stage:"modify"/);
+assert.match(modify,/stage:"quality-repair"/);
+assert.match(modify,/stage:"self-heal"/);
+assert.match(modify,/baseVersionId/);
 assert.match(modify,/function qualityRegressed/);
 assert.match(modify,/Number\(after\.overall\|\|0\)<Number\(before\.overall\|\|0\)/);
 assert.match(modify,/some\(x=>Number\(x\.score\|\|0\)<Number\(oldMap\[x\.id\]\|\|0\)\)/);
@@ -112,6 +119,7 @@ assert.match(proPage,/currentVersionId=\{current\.id\}/);
 console.log('✓ AI Modify requires a saved Cloud-owned project and a stable request identity');
 console.log('✓ Cloud replay returns the exact persisted specification before AI or charging');
 console.log('✓ Precise and Pro edits are expected-version bound and adapter re-checks version before privileged persistence');
+console.log('✓ Modify, quality repair and self-heal are bounded by user/project-scoped Zero-Cost Admission');
 console.log('✓ Quality regression and structural self-heal failures cannot be persisted');
 console.log('✓ Cloud-isolated service-only persistence appends one replay-safe version and protects concurrent edits');
 console.log('✓ Paid failures refund safely and customer retry surfaces reuse the same operation identity');
