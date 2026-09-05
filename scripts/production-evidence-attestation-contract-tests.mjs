@@ -4,15 +4,20 @@ import { isPublicAccountPath } from "../lib/auth/session-safety.js";
 
 const api = fs.readFileSync("app/api/production-e2e/attest/route.js", "utf8");
 const page = fs.readFileSync("app/production-evidence-attestation/route.js", "utf8");
+const domain = fs.readFileSync("lib/cloud/production-evidence.js", "utf8");
+const adapter = fs.readFileSync("lib/cloud-adapters/production-evidence-data.js", "utf8");
 
 assert.equal(isPublicAccountPath("/production-evidence-attestation"), false,
   "Production evidence attestation must remain behind the normal authenticated account boundary.");
 
 for (const pattern of [
   /createHash.*node:crypto/,
-  /createServerClient/,
-  /getCurrentUserProject/,
-  /supabase\.auth\.getUser\(\)/,
+  /LANERIQ_SESSION_COOKIE/,
+  /LANERIQ_SESSION_MODE_COOKIE/,
+  /isLaneriqPrimarySessionMode/,
+  /validateLaneriqSessionToken/,
+  /getOwnedProductionEvidenceProject/,
+  /sessionAuthority: "laneriq"/,
   /Authentication required/,
   /VERCEL_GIT_COMMIT_SHA/,
   /VERCEL_GIT_COMMIT_REF/,
@@ -26,6 +31,7 @@ for (const pattern of [
   /SHA-256/,
   /reportHash/,
   /userBindingHash/,
+  /sessionBindingHash/,
   /attestationId/,
   /AUTHENTICATED_PRODUCTION_APP_BUILDER_FULL_CLOSURE_V2/,
   /report\.success !== true/,
@@ -41,6 +47,7 @@ for (const pattern of [
   /remainsPrivateAfterTest === true/,
   /String\(project\?\.current_version_id \|\| ""\) !== currentVersionId/,
   /publicState\(project\)/,
+  /laneriqPrimarySessionVerified: true/,
   /currentPrivateStateVerifiedByServer: true/,
   /persistentAuditStorageClaimed: false/,
   /cryptographicSignatureClaimed: false/,
@@ -52,9 +59,12 @@ for (const pattern of [
 ]) assert.match(api, pattern);
 
 for (const forbidden of [
+  /lib\/supabase\//,
+  /@supabase\//,
+  /createServerClient/,
+  /createAdminClient/,
   /SUPABASE_SERVICE_ROLE/i,
   /service[_-]?role/i,
-  /createAdminClient/,
   /cryptographicSignatureClaimed: true/,
   /persistentAuditStorageClaimed: true/,
   /physicalDeviceVerified: true/,
@@ -63,6 +73,20 @@ for (const forbidden of [
   /officialStoreSubmissionVerified: true/,
   /smsDeliveryVerified: true/,
 ]) assert.doesNotMatch(api, forbidden);
+
+assert.match(domain, /cloud-adapters\/production-evidence-data\.js/);
+assert.doesNotMatch(domain, /lib\/supabase\/|@supabase\//,
+  "Production evidence domain must remain provider opaque.");
+assert.match(domain, /explicitOwnerIsolation: true/);
+assert.match(domain, /persistentAuditStorageLive: false/);
+
+assert.match(adapter, /\.\.\/supabase\/admin\.js/,
+  "Provider dependency belongs behind the Production evidence adapter boundary.");
+assert.match(adapter, /\.eq\("id", projectId\)/);
+assert.match(adapter, /\.eq\("owner_id", userId\)/,
+  "Privileged evidence read must remain explicitly constrained by authenticated LANERIQ owner identity.");
+assert.doesNotMatch(adapter, /select\("\*"\)/,
+  "Evidence adapter must use a bounded field projection rather than unrestricted project reads.");
 
 for (const pattern of [
   /export const dynamic = "force-dynamic"/,
@@ -91,7 +115,8 @@ for (const forbidden of [
   /persistent external audit record is verified/i,
 ]) assert.doesNotMatch(page, forbidden);
 
-console.log("✓ Production evidence attestation is authenticated and exact-main Production locked");
-console.log("✓ Server rebinds the closure report to the current user, owned project, current version and private-after-test state");
-console.log("✓ SHA-256 report hashing provides tamper-evident evidence without fabricating a cryptographic-signature or persistent-audit claim");
+console.log("✓ Production evidence attestation is exact-main Production locked and uses LANERIQ-primary Session Authority");
+console.log("✓ API route is provider opaque; provider-specific project access is isolated behind a LANERIQ Cloud evidence adapter");
+console.log("✓ Privileged project verification is explicitly scoped to authenticated LANERIQ user + project ID + bounded fields");
+console.log("✓ SHA-256 report/session binding is tamper-evident without fabricating a cryptographic-signature or persistent-audit claim");
 console.log("✓ Physical-device, provider-LIVE, physical DB migration, official-store, Email/WhatsApp/SMS truth boundaries remain independent");
