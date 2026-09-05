@@ -4,150 +4,33 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 export default function TemplatesPage() {
-  const [meta, setMeta] = useState(null);
-  const [templates, setTemplates] = useState([]);
-  const [mode, setMode] = useState("trending");
-  const [query, setQuery] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [style, setStyle] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [meta, setMeta] = useState(null);const [templates, setTemplates] = useState([]);const [mode, setMode] = useState("trending");const [query, setQuery] = useState("");const [industry, setIndustry] = useState("");const [style, setStyle] = useState("");const [loading, setLoading] = useState(true);const [error, setError] = useState("");
+  useEffect(() => {fetch("/api/templates?mode=meta", { cache: "no-store" }).then((r) => r.json()).then((d) => setMeta(d)).catch(() => setError("Unable to load template categories."));}, []);
+  useEffect(() => {let active = true;setLoading(true);setError("");const params = new URLSearchParams();if (mode === "trending" && !query && !industry && !style) {params.set("mode", "trending");params.set("limit", "100");} else {params.set("mode", "search");params.set("limit", "60");if (query) params.set("q", query);if (industry) params.set("industry", industry);if (style) params.set("style", style);}const timer = setTimeout(() => {fetch(`/api/templates?${params.toString()}`, { cache: "no-store" }).then(async (r) => {const d = await r.json();if (!r.ok) throw new Error(d?.error || "Unable to load templates.");if (active) setTemplates(Array.isArray(d.templates) ? d.templates : []);}).catch((e) => active && setError(e?.message || "Unable to load templates.")).finally(() => active && setLoading(false));}, query ? 250 : 0);return () => {active = false;clearTimeout(timer);};}, [mode, query, industry, style]);
+  const stats = meta?.stats || {};const styles = meta?.styles || [];const industries = meta?.industries || [];
+  const heading = useMemo(() => {if (query || industry || style) return "Matched inspiration directions";return mode === "trending" ? "Trending templates" : "Explore all templates";}, [mode, query, industry, style]);
+  function reimagine(template) {const instruction = [`Create an original ${template.industry} ${template.archetype} App and customer Website.`,`Use this reference only for inspiration, not for copying: ${template.title}.`,`Visual direction: ${template.style}.`,`Useful flow ideas to consider: ${(template.pages || []).join(", ")}.`,`Useful capability ideas to consider: ${(template.features || []).join(", ")}.`,`Reimagine the information architecture, layout, components, copy, visual hierarchy and interactions for my own product.`,`Do not copy third-party brand identity, text, images, source code, proprietary layouts or distinctive trade dress.`,`Produce a fresh, coherent and practical design rather than a clone.`].join("\n");try {sessionStorage.setItem("soolenAppIdea", instruction);sessionStorage.setItem("soolenInspirationTemplate", JSON.stringify({id: template.id,industry: template.industry,archetype: template.archetype,style: template.style,}));} catch {}window.location.assign("/");}
 
-  useEffect(() => {
-    fetch("/api/templates?mode=meta", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => setMeta(d))
-      .catch(() => setError("Unable to load template categories."));
-  }, []);
+  const featured=templates.slice(0,4);const rest=templates.slice(4);
+  return <main className="templatesPage referenceTemplates"><div className="templateWrap">
+    <section className="templateHero"><div><div className="eyebrow">LANERIQ AI · TEMPLATES</div><h1>Templates</h1><p>Start from thousands of industry structures and visual directions. LANERIQ AI reimagines them into an original App + Website for your project.</p></div><Link href="/create">✦ Build From Scratch</Link></section>
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError("");
-    const params = new URLSearchParams();
-    if (mode === "trending" && !query && !industry && !style) {
-      params.set("mode", "trending");
-      params.set("limit", "100");
-    } else {
-      params.set("mode", "search");
-      params.set("limit", "60");
-      if (query) params.set("q", query);
-      if (industry) params.set("industry", industry);
-      if (style) params.set("style", style);
-    }
+    <section className="templateStats"><article><b>{stats.templates || "3,000"}+</b><span>Industry Inspirations</span></article><article><b>{stats.industries || "50"}</b><span>Industries</span></article><article><b>{stats.archetypes || "12"}</b><span>App Structures</span></article><article><b>100</b><span>Trending Directions</span></article></section>
 
-    const timer = setTimeout(() => {
-      fetch(`/api/templates?${params.toString()}`, { cache: "no-store" })
-        .then(async (r) => {
-          const d = await r.json();
-          if (!r.ok) throw new Error(d?.error || "Unable to load templates.");
-          if (active) setTemplates(Array.isArray(d.templates) ? d.templates : []);
-        })
-        .catch((e) => active && setError(e?.message || "Unable to load templates."))
-        .finally(() => active && setLoading(false));
-    }, query ? 250 : 0);
+    <section className="templateControls"><div className="tabs"><button className={mode === "trending" ? "on" : ""} onClick={() => { setMode("trending"); setQuery(""); setIndustry(""); setStyle(""); }}>Trending</button><button className={mode === "all" ? "on" : ""} onClick={() => setMode("all")}>All Templates</button></div><div className="search">⌕<input value={query} onChange={(e) => { setQuery(e.target.value); setMode("all"); }} placeholder="Search template, industry or style…" /></div><select value={industry} onChange={(e) => { setIndustry(e.target.value); setMode("all"); }}><option value="">All industries</option>{industries.map((item) => <option key={item} value={item}>{item}</option>)}</select><select value={style} onChange={(e) => { setStyle(e.target.value); setMode("all"); }}><option value="">All styles</option>{styles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></section>
 
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [mode, query, industry, style]);
+    <section className="styleStrip"><div className="sectionHead"><div><h2>Choose a Style</h2><p>Visual directions adapt to your own brand and content.</p></div><span>Swipe / filter</span></div><div className="styleRail">{["Cinematic","Future","Fantasy","Minimal","Zen","Business","Lifestyle","Editorial"].map((item,index)=><button key={item} onClick={()=>{const match=styles.find(s=>String(s.name||"").toLowerCase().includes(item.toLowerCase()));if(match){setStyle(match.id);setMode("all");}}}><div style={{"--i":index}}/><b>{item}</b></button>)}</div></section>
 
-  const stats = meta?.stats || {};
-  const styles = meta?.styles || [];
-  const industries = meta?.industries || [];
-  const heading = useMemo(() => {
-    if (query || industry || style) return "Reference ideas matched to your direction";
-    return mode === "trending" ? "Trending 100 inspiration directions" : "Explore all industry inspirations";
-  }, [mode, query, industry, style]);
-
-  function reimagine(template) {
-    const instruction = [
-      `Create an original ${template.industry} ${template.archetype} App and customer Website.`,
-      `Use this reference only for inspiration, not for copying: ${template.title}.`,
-      `Visual direction: ${template.style}.`,
-      `Useful flow ideas to consider: ${(template.pages || []).join(", ")}.`,
-      `Useful capability ideas to consider: ${(template.features || []).join(", ")}.`,
-      "Reimagine the information architecture, layout, components, copy, visual hierarchy and interactions for my own product.",
-      "Do not copy third-party brand identity, text, images, source code, proprietary layouts or distinctive trade dress.",
-      "Produce a fresh, coherent and practical design rather than a clone."
-    ].join("\n");
-
-    try {
-      sessionStorage.setItem("soolenAppIdea", instruction);
-      sessionStorage.setItem("soolenInspirationTemplate", JSON.stringify({
-        id: template.id,
-        industry: template.industry,
-        archetype: template.archetype,
-        style: template.style,
-      }));
-    } catch {}
-    window.location.assign("/");
-  }
-
-  return (
-    <main className="templatesPage">
-      <div className="glow" />
-      <header>
-        <div>
-          <div className="eyebrow">SOOLENAI · INSPIRATION LIBRARY</div>
-          <h1>Reference. Reimagine. Build something original.</h1>
-          <p>Explore thousands of industry structures and current design directions. SoolenAI uses them as inspiration signals, then generates a fresh App + Website for your own business — never a direct copy.</p>
-        </div>
-        <Link href="/" className="button">Create from scratch →</Link>
-      </header>
-
-      <section className="stats">
-        <article><b>{stats.templates || "3,000"}+</b><span>industry inspirations</span></article>
-        <article><b>{stats.industries || "50"}</b><span>industries</span></article>
-        <article><b>{stats.archetypes || "12"}</b><span>app structures</span></article>
-        <article><b>100</b><span>trending directions</span></article>
-      </section>
-
-      <section className="controls">
-        <div className="tabs">
-          <button className={mode === "trending" ? "on" : ""} onClick={() => { setMode("trending"); setQuery(""); setIndustry(""); setStyle(""); }}>🔥 Trending 100</button>
-          <button className={mode === "all" ? "on" : ""} onClick={() => setMode("all")}>All Inspirations</button>
-        </div>
-        <input value={query} onChange={(e) => { setQuery(e.target.value); setMode("all"); }} placeholder="Search industry, app type or style…" />
-        <select value={industry} onChange={(e) => { setIndustry(e.target.value); setMode("all"); }}>
-          <option value="">All industries</option>
-          {industries.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
-        <select value={style} onChange={(e) => { setStyle(e.target.value); setMode("all"); }}>
-          <option value="">All styles</option>
-          {styles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-      </section>
-
-      <section className="titleRow"><div><small>{mode === "trending" ? "LIVE TREND BOARD" : "DISCOVER"}</small><h2>{heading}</h2></div><span>{templates.length} shown</span></section>
-
-      {error && <div className="error">{error}</div>}
-      {loading ? <div className="loading">Loading inspiration library…</div> : (
-        <section className="grid">
-          {templates.map((t, index) => (
-            <article className="card" key={t.id}>
-              <div className="cardTop"><span>{mode === "trending" ? `#${index + 1}` : t.industry}</span><b>{t.style}</b></div>
-              <div className="icon">✦</div>
-              <h3>{t.title}</h3>
-              <p>{t.description}</p>
-              <div className="chips">{(t.styleTags || []).slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div>
-              <div className="note">Reference only · AI will reimagine the structure, visuals and copy.</div>
-              <div className="cardActions">
-                <Link className="details" href={`/templates/${encodeURIComponent(t.id)}`}>View details →</Link>
-                <button className="use" onClick={() => reimagine(t)}>AI Reimagine →</button>
-              </div>
-            </article>
-          ))}
-          {!templates.length && <div className="empty">No inspiration matched these filters. Try a broader search.</div>}
-        </section>
-      )}
-
-      <footer><Link href="/soolen-ai">← Soolen AI</Link><span>Template references are inspiration inputs, not copy targets.</span></footer>
-
-      <style jsx>{`
-        .templatesPage{min-height:100vh;padding:46px clamp(16px,5vw,70px) 60px;background:#03100d;color:#f5fff9;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;position:relative;overflow:hidden}.glow{position:absolute;inset:0 0 auto;height:580px;background:radial-gradient(circle at 78% 8%,#b78a3238,transparent 36%),radial-gradient(circle at 20% 0,#0d78564a,transparent 34%);pointer-events:none}header,.stats,.controls,.titleRow,.grid,.loading,.error,footer{position:relative;max-width:1180px;margin-left:auto;margin-right:auto}header{display:flex;justify-content:space-between;align-items:end;gap:28px;margin-bottom:28px}header>div{max-width:850px}.eyebrow,.titleRow small{color:#d8bf62;font-size:11px;font-weight:950;letter-spacing:.18em}h1{font-family:Georgia,serif;font-size:clamp(43px,6vw,76px);line-height:1.02;margin:12px 0}header p{color:#a7bbb2;line-height:1.7;font-size:17px;max-width:800px}.button{display:inline-flex;white-space:nowrap;text-decoration:none;background:#d8bf62;color:#07130e;font-weight:950;border-radius:13px;padding:13px 17px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}.stats article{padding:17px;border:1px solid #ffffff12;border-radius:17px;background:#071b14cc}.stats b{display:block;color:#f0cf75;font-size:24px}.stats span{color:#829b90;font-size:12px}.controls{display:grid;grid-template-columns:auto minmax(220px,1fr) 200px 180px;gap:9px;padding:12px;border:1px solid #d8bf6229;border-radius:19px;background:#061813d9;backdrop-filter:blur(12px)}.tabs{display:flex;gap:5px}.controls button,.controls input,.controls select{border:1px solid #ffffff14;border-radius:11px;background:#03110d;color:#eaf5ef;padding:11px 12px;font:inherit}.controls button{font-weight:850;cursor:pointer}.controls button.on{background:#d8bf62;color:#08150f;border-color:#d8bf62}.controls input{min-width:0}.titleRow{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-top:36px;margin-bottom:14px}.titleRow h2{font-size:30px;margin:6px 0}.titleRow>span{color:#829b90;font-size:12px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:14px}.card{padding:20px;border:1px solid #ffffff12;border-radius:20px;background:#061813dc;display:flex;flex-direction:column;min-height:390px}.card:hover{border-color:#d8bf625b;transform:translateY(-1px)}.cardTop{display:flex;justify-content:space-between;gap:10px;color:#6fcaa0;font-size:10px;font-weight:900;letter-spacing:.08em}.cardTop b{color:#d7bd69;text-align:right}.icon{width:42px;height:42px;margin-top:16px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(145deg,#e3ca72,#8c7331);color:#07130e}.card h3{font-size:19px;margin:15px 0 7px}.card p{color:#91a99e;line-height:1.55;font-size:13px}.chips{display:flex;flex-wrap:wrap;gap:6px}.chips span{padding:5px 8px;border-radius:999px;background:#ffffff08;color:#9db3aa;font-size:10px}.note{margin-top:auto;padding:12px 0 10px;color:#738c82;font-size:10px;line-height:1.45}.cardActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.details,.use{min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;padding:11px 10px;font-weight:950;font-size:12px;text-align:center}.details{border:1px solid #d8bf6244;color:#e5c96d;text-decoration:none;background:#071b14}.use{width:100%;border:0;background:#0d3327;color:#e5c96d;cursor:pointer}.use:hover{background:#154937}.loading,.error,.empty{padding:22px;border-radius:14px;background:#ffffff08;color:#9eb5ab}.error{color:#ffafa7;background:#542c293f}footer{display:flex;justify-content:space-between;gap:16px;margin-top:44px;color:#71887e;font-size:12px}footer a{color:#d8bf62;text-decoration:none;font-weight:900}@media(max-width:850px){header{align-items:flex-start;flex-direction:column}.controls{grid-template-columns:1fr 1fr}.tabs{grid-column:1/-1}.stats{grid-template-columns:1fr 1fr}}@media(max-width:560px){.templatesPage{padding-top:30px}.controls{grid-template-columns:1fr}.tabs{grid-column:auto}.tabs button{flex:1}.stats{grid-template-columns:1fr 1fr}.titleRow,footer{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.cardActions{grid-template-columns:1fr}h1{font-size:44px}}
-      `}</style>
-    </main>
-  );
+    {error && <div className="error">{error}</div>}
+    {loading ? <div className="loading">Loading template intelligence…</div> : <>
+      <section className="sectionTitle"><div><div className="eyebrow">{mode === "trending" ? "TRENDING NOW" : "DISCOVER"}</div><h2>{heading}</h2></div><span>{templates.length} shown</span></section>
+      {featured.length>0&&<section className="featuredGrid">{featured.map((t,index)=><article key={t.id} className="featuredCard"><div className="templateVisual" style={{"--i":index}}><span>{t.industry}</span><em>{t.style}</em></div><div className="featuredBody"><h3>{t.title}</h3><p>{t.description}</p><div className="chips">{(t.styleTags || []).slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div><div className="cardActions"><Link href={`/templates/${encodeURIComponent(t.id)}`}>View Details</Link><button onClick={() => reimagine(t)}>Use Template →</button></div></div></article>)}</section>}
+      <section className="templateGrid">{rest.map((t,index)=><article className="templateCard" key={t.id}><div className="miniVisual" style={{"--i":index+4}}><span>{t.industry}</span><b>✦</b></div><div><small>{t.style}</small><h3>{t.title}</h3><p>{t.description}</p><div className="cardActions"><Link href={`/templates/${encodeURIComponent(t.id)}`}>Details</Link><button onClick={() => reimagine(t)}>AI Reimagine</button></div></div></article>)}{!templates.length && <div className="empty">No template matched these filters. Try a broader search.</div>}</section>
+    </>}
+    <div className="truthNote">Templates are structural inspiration and generation intelligence. LANERIQ AI must reimagine the result and may not clone third-party brands, text, images, source code or distinctive trade dress.</div>
+  </div><style jsx>{`
+    *{box-sizing:border-box}.referenceTemplates{min-height:100vh;padding:34px 18px 135px;background:transparent;color:#f8fbff}.templateWrap{max-width:1180px;margin:auto}.templateHero{display:flex;justify-content:space-between;align-items:end;gap:20px}.eyebrow{color:#f2bd52;letter-spacing:.15em;font-size:10px;font-weight:900}.templateHero h1{font-size:clamp(43px,6vw,62px);margin:8px 0}.templateHero p{max-width:720px;color:#a9bac8;line-height:1.55}.templateHero>a{min-height:44px;padding:0 14px;border-radius:11px;background:linear-gradient(90deg,#e3b43b,#f1ca5d);color:#13202a;text-decoration:none;display:flex;align-items:center;font-weight:900;white-space:nowrap}.templateStats,.templateControls,.styleStrip,.featuredCard,.templateCard,.truthNote{border:1px solid rgba(190,216,244,.18);background:linear-gradient(145deg,rgba(7,27,48,.86),rgba(8,18,39,.78));border-radius:21px;box-shadow:0 22px 60px rgba(0,0,0,.28);backdrop-filter:blur(22px) saturate(140%)}.templateStats{display:grid;grid-template-columns:repeat(4,1fr);margin:17px 0;overflow:hidden}.templateStats article{padding:14px;border-right:1px solid #ffffff0f}.templateStats article:last-child{border-right:0}.templateStats b,.templateStats span{display:block}.templateStats b{font-size:25px;color:#f1cb68}.templateStats span{color:#8499aa;font-size:10px}.templateControls{display:grid;grid-template-columns:auto minmax(220px,1fr) 190px 170px;gap:8px;padding:9px}.tabs{display:flex;gap:4px}.templateControls button,.templateControls input,.templateControls select{min-height:40px;border:1px solid #ffffff16;border-radius:10px;background:#071827;color:#dce6ed;padding:0 10px}.templateControls button{font-weight:800}.templateControls button.on{background:linear-gradient(90deg,#6d43df,#9150ff);border-color:transparent;color:#fff}.search{display:flex;align-items:center;gap:5px;border:1px solid #ffffff16;border-radius:10px;background:#071827;padding-left:10px;color:#74899b}.search input{width:100%;border:0!important;background:transparent!important}.styleStrip{margin-top:14px;padding:15px}.sectionHead{display:flex;justify-content:space-between;gap:10px}.sectionHead h2{margin:0}.sectionHead p{margin:4px 0 0;color:#8095a7}.sectionHead>span{color:#8095a7;font-size:10px}.styleRail{display:flex;gap:8px;overflow-x:auto;margin-top:12px;scrollbar-width:none}.styleRail::-webkit-scrollbar{display:none}.styleRail button{flex:0 0 115px;padding:0 0 9px;border:1px solid #ffffff18;border-radius:14px;overflow:hidden;background:#071827;color:#fff}.styleRail button>div{height:80px;background:linear-gradient(145deg,hsl(calc(210 + var(--i)*18) 74% 42%),hsl(calc(260 + var(--i)*13) 58% 20%)),url('/laneriq-future-city-people.webp') center/cover;mix-blend-mode:screen}.styleRail b{display:block;margin-top:7px;font-size:11px}.sectionTitle{display:flex;justify-content:space-between;align-items:end;margin:28px 0 12px}.sectionTitle h2{margin:5px 0 0;font-size:27px}.sectionTitle>span{color:#8095a7;font-size:10px}.featuredGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.featuredCard{overflow:hidden}.templateVisual{height:150px;padding:11px;display:flex;justify-content:space-between;align-items:flex-start;background:linear-gradient(180deg,#ffffff00,#06111fcc),radial-gradient(circle at 70% 20%,hsl(calc(200 + var(--i)*28) 70% 55% / .55),transparent 36%),url('/laneriq-future-city-people.webp') center/cover}.templateVisual span,.templateVisual em{padding:5px 7px;border-radius:8px;background:#061827cc;font-size:9px;font-style:normal}.featuredBody{padding:13px}.featuredBody h3,.templateCard h3{margin:0}.featuredBody p,.templateCard p{color:#8fa4b5;line-height:1.45;font-size:11px;min-height:47px}.chips{display:flex;gap:5px;flex-wrap:wrap}.chips span{padding:4px 6px;border-radius:99px;background:#ffffff0b;color:#92a8b8;font-size:8px}.cardActions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:11px}.cardActions a,.cardActions button{min-height:36px;border:1px solid #ffffff16;border-radius:8px;background:#0b2944;color:#dce6ed;text-decoration:none;display:flex;align-items:center;justify-content:center;font-size:9px}.cardActions button{background:linear-gradient(90deg,#6c42dd,#8e50f8);border:0;color:#fff}.templateGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}.templateCard{display:grid;grid-template-columns:120px 1fr;overflow:hidden}.miniVisual{min-height:150px;display:grid;place-items:center;align-content:center;gap:7px;background:linear-gradient(180deg,#ffffff00,#06111fdd),url('/laneriq-future-city-people.webp') center/cover}.miniVisual span{font-size:9px}.miniVisual b{font-size:27px;color:#f0c75d}.templateCard>div:last-child{padding:12px}.templateCard small{color:#f0c75d}.loading,.error,.empty{margin-top:14px;padding:20px;border-radius:14px;background:#071827;color:#9bb0c0}.error{color:#ffabab;background:#51262c}.empty{grid-column:1/-1}.truthNote{margin-top:16px;padding:12px;color:#8196a8;text-align:center;font-size:10px}
+    @media(max-width:980px){.featuredGrid{grid-template-columns:1fr 1fr}.templateGrid{grid-template-columns:1fr 1fr}.templateControls{grid-template-columns:1fr 1fr}.tabs{grid-column:1/-1}.templateStats{grid-template-columns:1fr 1fr}}
+    @media(max-width:560px){.referenceTemplates{padding-inline:10px}.templateHero{align-items:flex-start;flex-direction:column}.templateHero>a{width:100%;justify-content:center}.templateControls{grid-template-columns:1fr}.tabs{grid-column:auto}.tabs button{flex:1}.featuredGrid,.templateGrid{grid-template-columns:1fr}.templateCard{grid-template-columns:100px 1fr}.styleRail button{flex-basis:95px}}
+  `}</style></main>;
 }
