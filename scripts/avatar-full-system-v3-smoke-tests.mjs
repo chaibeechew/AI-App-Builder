@@ -2,3 +2,4 @@
 import './avatar-full-system-v4-smoke-tests.mjs';
 import './avatar-live-lab-contract-tests.mjs';
 import './avatar-live-preparation-v41-contract-tests.mjs';
+import './avatar-engineering-knowledge-contract-tests.mjs';
