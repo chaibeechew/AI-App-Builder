@@ -43,4 +43,28 @@ public class ProtectionTruthTest {
                 ProtectionTruth.State.UNKNOWN,
                 ProtectionTruth.evaluate(true, true, -1L, NOW, TTL));
     }
+
+    @Test public void futureHeartbeatCannotUpgradeProtection() {
+        assertEquals(
+                ProtectionTruth.State.DEGRADED_CLOCK,
+                ProtectionTruth.evaluate(true, true, NOW + 60_000L, NOW, TTL));
+    }
+
+    @Test public void monotonicAgeCanProveActive() {
+        assertEquals(
+                ProtectionTruth.State.ACTIVE,
+                ProtectionTruth.evaluateAge(true, true, true, 5_000L, TTL, true));
+    }
+
+    @Test public void bootSessionMismatchBehavesAsMissingHeartbeat() {
+        assertEquals(
+                ProtectionTruth.State.DEGRADED_STALE,
+                ProtectionTruth.evaluateAge(true, true, false, Long.MAX_VALUE, TTL, true));
+    }
+
+    @Test public void brokenMonotonicEvidenceIsClockDegraded() {
+        assertEquals(
+                ProtectionTruth.State.DEGRADED_CLOCK,
+                ProtectionTruth.evaluateAge(true, true, true, -1L, TTL, false));
+    }
 }
