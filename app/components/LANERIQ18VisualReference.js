@@ -94,7 +94,7 @@ function StepRail({page}){
 
 function BottomNav({page}){
   const late=typeof page === "number"&&page>=9;
-  const items=late?[["⌂","Home",1],["▱","Projects",7],["✦","",2],["🤖","Assistant",9],["☰","More",12]]:[["⌂","Home",1],["✦","Create",2],["▱","Creations",7],["▦","Templates",8],["•••","More",12]]];
+  const items=late?[["⌂","Home",1],["▱","Projects",7],["✦","",2],["🤖","Assistant",9],["☰","More",12]]:[["⌂","Home",1],["✦","Create",2],["▱","Creations",7],["▦","Templates",8],["•••","More",12]];
   return <nav className="l18-bottom">{items.map(([ic,label,id],i)=><Link key={`${label}-${i}`} href={routeFor(id)} className={(page===id||(!label&&page===2))?"active":""}><b>{ic}</b>{label?<span>{label}</span>:null}</Link>)}</nav>
 }
 
