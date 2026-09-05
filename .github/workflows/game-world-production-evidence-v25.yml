@@ -1,0 +1,47 @@
+name: Game World Production Evidence V25 Gate
+on:
+  push:
+    branches: [batch186-game-world-production-evidence-v25]
+  pull_request:
+    paths:
+      - 'lib/game/game-world-real-renderer-v21.js'
+      - 'lib/game/game-world-massive-runtime-v22.js'
+      - 'lib/game/game-world-playable-intelligence-v23.js'
+      - 'lib/game/game-world-engine-export-v24.js'
+      - 'lib/game/game-world-production-evidence-v25.js'
+      - 'scripts/game-world-*-v2[1-5]-tests.mjs'
+      - 'app/game-world-v25/**'
+      - 'app/game-builder/layout.js'
+      - '.github/workflows/game-world-production-evidence-v25.yml'
+jobs:
+  production-evidence-v25:
+    runs-on: ubuntu-24.04
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: npm ci --no-audit --no-fund
+      - name: V20 production world regression
+        run: node scripts/game-world-production-world-v20-tests.mjs
+      - name: V21 real renderer
+        run: node scripts/game-world-real-renderer-v21-tests.mjs
+      - name: V22 massive runtime
+        run: node scripts/game-world-massive-runtime-v22-tests.mjs
+      - name: V23 playable intelligence
+        run: node scripts/game-world-playable-intelligence-v23-tests.mjs
+      - name: V24 engine export
+        run: node scripts/game-world-engine-export-v24-tests.mjs
+      - name: V25 production evidence
+        run: node scripts/game-world-production-evidence-v25-tests.mjs
+      - name: Existing game runtime regression
+        run: npm run test:game-runtime
+      - name: Advanced 3D regression
+        run: npm run test:advanced-3d
+      - name: Content production regression
+        run: npm run test:content-pipeline
+      - name: Next production build
+        run: npm run build
