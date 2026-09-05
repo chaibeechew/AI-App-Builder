@@ -1,4 +1,4 @@
-# Batch 170 — LANERIQ Unified Intelligence Core v1
+# LANERIQ Unified Intelligence Core v1 — Stacked Integration
 
 ## Purpose
 
@@ -6,7 +6,7 @@ Turn LANERIQ's separate Creative Media, Reality Intelligence, Project Memory, Pr
 
 ## Stacked dependency state
 
-This branch starts from main `ee5399433801f60fd0abacb99f77ec8d5177e069` and temporarily stacks only the runtime modules required from open PR #312 (Creative Media Image 5-layer / Video 6-layer hardening) and PR #316 (Reality Intelligence Foundation).
+This branch is realigned to main `199be09deecc7238dbbd44e2133f40a5eecb861e` and temporarily stacks only the runtime modules required from open PR #312 (Creative Media Image 5-layer / Video 6-layer hardening) and PR #316 (Reality Intelligence Foundation).
 
 The stacked runtime dependency files are not a claim that #312 or #316 have already merged to Production. When Production Release Control merges those PRs, this branch must be realigned to the new main and duplicate dependency diffs should collapse.
 
@@ -39,7 +39,7 @@ The stacked runtime dependency files are not a claim that #312 or #316 have alre
 
 ## Not claimed LIVE
 
-This batch does **not** claim a frontier persistent world model, real-world causal prediction, autonomous physical-device control, million-agent civilization, premium creative provider connectivity, or externally benchmarked Reality Intelligence quality.
+This integration does **not** claim a frontier persistent world model, real-world causal prediction, autonomous physical-device control, million-agent civilization, premium creative provider connectivity, or externally benchmarked Reality Intelligence quality.
 
 ## Production integration rule
 
