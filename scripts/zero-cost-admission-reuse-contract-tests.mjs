@@ -21,11 +21,19 @@ const {
   generateWithZeroCostAdmission,
   getZeroCostAdmissionRuntimeTruth,
 } = await import("../lib/ai/zero-cost-admitted-generation.js");
+const { zeroCostPolicy } = await import("../lib/soolen/cost-policy.js");
 
 assert.equal(ZERO_COST_ADMISSION_POLICY.zeroModePaidRouteAllowed, false);
 assert.equal(ZERO_COST_ADMISSION_POLICY.freeModePaidRouteAllowed, false);
 assert.equal(ZERO_COST_ADMISSION_POLICY.localBeforeRemote, true);
 assert.equal(ZERO_COST_ADMISSION_POLICY.freeProviderRequiresVerifiedHardStop, true);
+
+const policy = zeroCostPolicy();
+assert.equal(policy.zeroCostAdmissionControllerRequired, true);
+assert.equal(policy.semanticReuseNetworkV2Required, true);
+assert.equal(policy.scopedPrivateReuseRequired, true);
+assert.equal(policy.crossUserPrivateReuseAllowed, false);
+assert.equal(policy.localBeforeRemoteForAdmittedPaths, true);
 
 const demand = estimateAdmissionDemand({ promptChars: 32_000, attachmentCount: 2, requestedAgents: 5 });
 assert.ok(demand.estimatedTokens >= 8_000);
@@ -73,10 +81,12 @@ const privateApprox = lookupSemanticReuse({ scope: scopeA, purpose: "test-privat
 assert.equal(privateApprox.hit, false, "Approximate reuse must remain disabled for private full outputs.");
 
 const blueprintScope = `blueprint:${suffix}`;
-assert.equal(storeSemanticReuse({ scope: blueprintScope, purpose: "blueprint", keyMaterial: "real estate crm lead pipeline dashboard mobile responsive", reuseClass: "blueprint", result: "blueprint-result" }).stored, true);
-const blueprintApprox = lookupSemanticReuse({ scope: blueprintScope, purpose: "blueprint", keyMaterial: "real estate crm lead pipeline dashboard mobile responsive app", reuseClass: "blueprint", allowApproximate: true, approximateThreshold: 0.95 });
+const blueprintBase = "real estate crm lead pipeline dashboard mobile responsive property listing client contact appointment followup analytics search filter navigation accessibility security privacy performance workflow";
+assert.equal(storeSemanticReuse({ scope: blueprintScope, purpose: "blueprint", keyMaterial: blueprintBase, reuseClass: "blueprint", result: "blueprint-result" }).stored, true);
+const blueprintApprox = lookupSemanticReuse({ scope: blueprintScope, purpose: "blueprint", keyMaterial: `${blueprintBase} app`, reuseClass: "blueprint", allowApproximate: true, approximateThreshold: 0.95 });
 assert.equal(blueprintApprox.hit, true);
 assert.equal(blueprintApprox.approximate, true);
+assert.ok(blueprintApprox.similarity >= 0.95);
 
 const originalFetch = globalThis.fetch;
 let externalCalls = 0;
@@ -128,9 +138,15 @@ assert.match(chatRoute, /allowApproximateReuse:\s*false/);
 assert.match(chatRoute, /paidFallbackAllowed:\s*false/);
 assert.doesNotMatch(chatRoute, /generateWithFallback/);
 
+const providerStatus = fs.readFileSync("app/api/ai/provider-router/status/route.js", "utf8");
+assert.match(providerStatus, /zeroCostAdmission:\s*truth\.zeroCostAdmission/);
+assert.doesNotMatch(providerStatus, /scopeId|reuseKeyMaterial|rawPrompt/);
+
 console.log("✓ Zero/Free admission can never escalate to paid compute and free remote capacity requires a verified hard stop");
+console.log("✓ LANERIQ cost policy now requires Admission Controller + Semantic Reuse v2 on admitted zero-cost paths");
 console.log("✓ Admission estimates workload before execution and prefers deterministic/reuse/local capacity before remote capacity");
 console.log("✓ Semantic Reuse Network v2 isolates full outputs by scope, stores no raw prompt, and blocks approximate private-result reuse");
 console.log("✓ Blueprint-only approximate reuse is permitted inside an explicit scope with a high similarity threshold");
 console.log("✓ Zero-mode runtime executes local-first, then reuses the scoped result without any remote network call");
 console.log("✓ Customer chat is wired through Zero-Cost Admission + user-scoped exact reuse with paid fallback disabled");
+console.log("✓ Public Provider Router status exposes only aggregate Admission/Reuse telemetry, never scope IDs or prompt material");
