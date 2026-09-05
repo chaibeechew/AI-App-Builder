@@ -19,6 +19,11 @@ on:
 jobs:
   production-world-v20:
     runs-on: ubuntu-24.04
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      GEMINI_API_KEY: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
