@@ -1,0 +1,37 @@
+name: LANERIQ 18-Page User Reference Layout Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/components/LANERIQ18VisualReference.js'
+      - 'app/laneriq-18-reference.css'
+      - 'app/layout.js'
+      - 'scripts/18-page-reference-layout-contract-tests.mjs'
+      - '.github/workflows/18-page-reference-layout-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/components/LANERIQ18VisualReference.js'
+      - 'app/laneriq-18-reference.css'
+      - 'app/layout.js'
+      - 'scripts/18-page-reference-layout-contract-tests.mjs'
+      - '.github/workflows/18-page-reference-layout-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference-layout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify 18-page layout and button contract
+        run: node scripts/18-page-reference-layout-contract-tests.mjs
+      - name: Build exact UI branch
+        run: npm run build
