@@ -40,6 +40,7 @@ export async function POST(request){
       analysis,
       assets,
       privacy:{ownerId:user.id,rawBytesRetained:false,reusableAcrossUsers:false,mode:"private-project-reference"},
+      compute:{tier:"Z0_DETERMINISTIC",externalProviderCalls:0,modelInferenceUsed:false,sourceFramesProcessed:references.length},
       engine:"LANERIQ Local Reference Intelligence",
     });
   }catch(error){
