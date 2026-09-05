@@ -1,0 +1,55 @@
+name: Provider Evidence Producer Gate
+
+on:
+  pull_request:
+    paths:
+      - "lib/ai/provider-evidence-producer.js"
+      - "app/api/ai/provider-router/evidence/canary/route.js"
+      - "scripts/provider-evidence-producer-tests.mjs"
+      - "lib/ai/provider-evidence-control-plane.js"
+      - "lib/ai/provider-router-truth.js"
+      - "scripts/provider-evidence-control-plane-tests.mjs"
+      - "scripts/provider-router-production-truth-tests.mjs"
+      - ".github/workflows/provider-evidence-producer-gate.yml"
+  push:
+    paths:
+      - "lib/ai/provider-evidence-producer.js"
+      - "app/api/ai/provider-router/evidence/canary/route.js"
+      - "scripts/provider-evidence-producer-tests.mjs"
+      - "lib/ai/provider-evidence-control-plane.js"
+      - "lib/ai/provider-router-truth.js"
+      - "scripts/provider-evidence-control-plane-tests.mjs"
+      - "scripts/provider-router-production-truth-tests.mjs"
+      - ".github/workflows/provider-evidence-producer-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-evidence-producer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  provider-evidence-producer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify existing Provider Router Production truth
+        run: node scripts/provider-router-production-truth-tests.mjs
+
+      - name: Verify Provider Evidence Control Plane v2
+        run: node scripts/provider-evidence-control-plane-tests.mjs
+
+      - name: Verify bounded external Provider Evidence producer
+        run: node scripts/provider-evidence-producer-tests.mjs
