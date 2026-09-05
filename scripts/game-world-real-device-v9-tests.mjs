@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+import {createRealDeviceSessionV9,recordRealDeviceSampleV9,attachNativeAttestationV9,summarizeRealDeviceV9,compileRealDeviceV9} from "../lib/game/game-world-real-device-v9.js";
+let s=createRealDeviceSessionV9({consent:true,platform:"ios",sessionNonce:"n1"});
+for(const fps of [58,60,57,55,59,56])s=recordRealDeviceSampleV9(s,{fps,frameMs:1000/fps,residentChunks:8,renderScale:.9,gpuClass:"mobile-high",memoryClass:"balanced",thermalState:"fair"});
+let e=summarizeRealDeviceV9(s);
+assert.equal(e.foregroundDeviceMeasured,true);
+assert.equal(e.realIosDeviceVerified,false);
+s=attachNativeAttestationV9(s,{platform:"ios",signed:true,signature:"sig",keyId:"k1",nonceMatch:true});
+e=summarizeRealDeviceV9(s);
+assert.equal(e.realIosDeviceVerified,true);
+assert.equal(e.measuredDeviceTemperature,false);
+const c=compileRealDeviceV9({session:s});
+assert.equal(c.readiness.internal100,true);
+assert.equal(c.truth.nativeAttestationRequired,true);
+console.log("Game World V9 Real Device Evidence: 100 INTERNAL CODE; signed native proof required for LIVE device truth");
