@@ -45,6 +45,8 @@ The world-aware persistence path uses dedicated service-role RPCs:
 
 The pre-existing App Builder RPC names and signatures are left unchanged. This avoids PostgREST overload ambiguity and keeps legacy callers isolated from the new World persistence contract.
 
+Both World RPCs are `SECURITY DEFINER` functions with an empty `search_path`, fully qualified `public.*` access and explicit EXECUTE revocation from `public`, `anon` and `authenticated`; EXECUTE is granted only to `service_role`. Authorization is enforced at the LANERIQ server boundary plus ownership/version checks inside the transaction rather than by an `auth.role()` body dependency.
+
 ## Legacy projects
 
 Projects created before this integration may have no Reality Envelope. The first accepted modification performs a one-time baseline import from the current saved specification.
@@ -81,9 +83,9 @@ This integration provides CODE/CI contracts for:
 It does **not** claim:
 
 - external signed evidence;
-- Production or runtime LIVE verification;
+- Production or runtime LIVE verification solely from code/CI;
 - real future prediction;
 - autonomous physical control;
 - a frontier persistent world model.
 
-Final Production integration must follow Production Release Control dependency order. This branch is stacked on Unified Intelligence Core v1 until that dependency is integrated into `main`; it must then be realigned to the latest `main` and exact-head CI rerun before final merge.
+This P3 branch is realigned directly on Production main `a3c25ef132f5aca1c8c8953f1ddcd963414ede01` (Batch 173: hardened Unified Intelligence Core). Final Production integration requires exact-head CI, target Supabase migration/advisor verification, merge to the then-latest main, and runtime/deployment evidence.
