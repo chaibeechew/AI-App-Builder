@@ -18,6 +18,7 @@ import "./liui-complete-18-page-surface.css";
 import "./liui-context-intelligence.css";
 import "./liui-runtime-capabilities.css";
 import "./liui-adaptive-experience.css";
+import "./liui-simplification-performance.css";
 import "./home-liui-v5.css";
 import AccountNav from "./components/AccountNav";
 import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
