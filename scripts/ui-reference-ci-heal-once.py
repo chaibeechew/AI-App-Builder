@@ -24,6 +24,16 @@ if 'View details →' not in s or 'Reference only' not in s:
     raise SystemExit('Template detail/reference truth markers missing after repair')
 p.write_text(s)
 
+# Page 14 — retain the approved hero CTA and an explicit truthful action back into creation.
+p = Path('app/templates/[id]/page.js')
+s = p.read_text()
+if 'Use as inspiration →' not in s:
+    if 'Use This Template →' in s:
+        s = s.replace('Use This Template →', 'Use as inspiration →', 1)
+    else:
+        raise SystemExit('Template Detail creation CTA marker not found')
+p.write_text(s)
+
 # Page 1 mobile — keep approved reference art/layout but restore bounded intent-first viewport and safe nav space.
 p = Path('app/home-liui-v5.css')
 s = p.read_text()
