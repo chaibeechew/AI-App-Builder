@@ -1,0 +1,50 @@
+name: UI reference CI heal one-shot
+
+on:
+  push:
+    branches:
+      - ui/18-page-reference-layout-v1
+    paths:
+      - '.github/workflows/ui-reference-ci-heal-one-shot.yml'
+
+permissions:
+  contents: write
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+  SOOLEN_COST_MODE: zero
+  GEMINI_API_KEY: ci-placeholder
+
+jobs:
+  heal-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/18-page-reference-layout-v1
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Apply source-level reference UI fixes
+        run: python scripts/ui-reference-ci-heal-once.py
+      - name: Verify previously failing reference contracts
+        run: |
+          node scripts/batch39-18-page-product-surface-tests.mjs
+          node scripts/18-page-interaction-integrity-tests.mjs
+          npm run test:mobile-ui
+      - name: Production build
+        run: npm run build
+      - name: Commit only verified source fixes and remove temporary healer
+        run: |
+          git rm .github/workflows/ui-reference-ci-heal-one-shot.yml scripts/ui-reference-ci-heal-once.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/database/'[id]'/page.js app/templates/page.js app/home-liui-v5.css
+          git commit -m 'UI: heal reference layout contracts without weakening gates'
+          git push origin HEAD:ui/18-page-reference-layout-v1
