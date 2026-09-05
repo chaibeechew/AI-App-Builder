@@ -1,10 +1,10 @@
-import { createClient } from "../../../../lib/supabase/server.js";
 import {
   RequestBoundaryError,
   boundaryResponse,
   privateJson,
   readBoundedJson,
 } from "../../../../lib/security/high-risk-api-boundary.js";
+import { getProductionEvidencePrincipal } from "../../../../lib/production-e2e/principal.js";
 import {
   startProductionEvidenceRun,
   checkpointProductionEvidenceRun,
@@ -24,20 +24,15 @@ function sameOrigin(request){
   }catch{return false;}
 }
 
-async function authenticatedUser(){
-  const supabase=await createClient();const {data:{user},error}=await supabase.auth.getUser();
-  if(error||!user?.id)return null;return user;
-}
-
 export async function POST(request){
   try{
     if(!sameOrigin(request))throw new RequestBoundaryError("Same-origin request required.",403,"ORIGIN_REQUIRED");
-    const user=await authenticatedUser();if(!user)return privateJson({success:false,authenticated:false,code:"AUTH_REQUIRED"},401);
-    const body=await readBoundedJson(request,MAX_BYTES);const action=String(body?.action||"").trim().toLowerCase();
-    if(action==="start")return privateJson(await startProductionEvidenceRun(user.id));
-    if(action==="checkpoint")return privateJson(await checkpointProductionEvidenceRun({runId:body?.runId,stage:body?.stage,input:body?.input||{},userId:user.id}));
-    if(action==="fail")return privateJson(await failProductionEvidenceRun({runId:body?.runId,userId:user.id,stage:body?.stage,code:body?.code,message:body?.message}));
-    if(action==="complete")return privateJson(await completeProductionEvidenceRun({runId:body?.runId,userId:user.id,report:body?.report||{}}));
+    const principal=await getProductionEvidencePrincipal();if(!principal?.userId)return privateJson({success:false,authenticated:false,code:"AUTH_REQUIRED"},401);
+    const userId=principal.userId,body=await readBoundedJson(request,MAX_BYTES),action=String(body?.action||"").trim().toLowerCase();
+    if(action==="start")return privateJson(await startProductionEvidenceRun(userId));
+    if(action==="checkpoint")return privateJson(await checkpointProductionEvidenceRun({runId:body?.runId,stage:body?.stage,input:body?.input||{},userId}));
+    if(action==="fail")return privateJson(await failProductionEvidenceRun({runId:body?.runId,userId,stage:body?.stage,code:body?.code,message:body?.message}));
+    if(action==="complete")return privateJson(await completeProductionEvidenceRun({runId:body?.runId,userId,report:body?.report||{}}));
     throw new RequestBoundaryError("Unsupported Production evidence action.",400,"INVALID_ACTION");
   }catch(error){return boundaryResponse(error,"Unable to record authenticated Production evidence safely.");}
 }
