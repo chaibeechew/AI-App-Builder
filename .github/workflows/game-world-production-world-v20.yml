@@ -41,7 +41,7 @@ jobs:
       - name: V20 production world
         run: node scripts/game-world-production-world-v20-tests.mjs
       - name: Advanced 3D regression
-        run: node scripts/advanced-3d-gameplay-systems-tests.mjs
+        run: node scripts/advanced-3d-gameplay-tests.mjs
       - name: Content production regression
         run: node scripts/content-production-pipeline-tests.mjs
       - name: Next production build
