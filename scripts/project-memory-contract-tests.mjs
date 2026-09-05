@@ -10,6 +10,7 @@ const route=read('app/api/apps/[id]/memory/route.js');
 const generate=read('app/api/generate/route.js');
 const modify=read('app/api/modify/route.js');
 const builderAdapter=read('lib/cloud-adapters/builder-project-data.js');
+const builderWorldAdapter=read('lib/cloud-adapters/builder-project-world-data.js');
 const bootstrap=read('app/api/apps/[id]/bootstrap/route.js');
 const migration=read('supabase/migrations/20260901105712_harden_project_memory_contract.sql');
 
@@ -53,7 +54,8 @@ assert.match(generate,/industryPlan:industryPlan\.matched/);
 assert.match(generate,/mediaPreferences:mediaAssignments\.map/);
 assert.match(generate,/saveBuilderGeneratedProjectContext/);
 assert.match(generate,/learningScope:memoryScope/);
-assert.match(generate,/projectLearning:\{scope:memoryScope,saved:Boolean\(contextSave\.ok&&contextSave\.memorySaved\)\}/);
+assert.match(generate,/persisted\.memory_saved/);
+assert.match(generate,/projectLearning:\{scope:memoryScope,saved:Boolean\(persisted\.memory_saved\|\|contextSave\.ok&&contextSave\.memorySaved\)\}/);
 assert.doesNotMatch(generate,/\.from\("project_memory"\)/,'Generate must keep Project Memory provider persistence behind LANERIQ Cloud.');
 
 assert.match(modify,/buildProjectMemoryBrief/);
@@ -65,10 +67,12 @@ assert.match(modify,/lastModificationInstruction:instruction/);
 assert.match(modify,/saveBuilderModification/);
 assert.doesNotMatch(modify,/\.from\("project_memory"\)/,'Modify must read/save Project Memory through LANERIQ Cloud.');
 const loadBlock=builderAdapter.slice(builderAdapter.indexOf('async loadModificationContext'),builderAdapter.indexOf('async saveModification'));
-const saveBlock=builderAdapter.slice(builderAdapter.indexOf('async saveModification'),builderAdapter.indexOf('async loadPublishPreparation'));
 assert.match(loadBlock,/\.from\("project_memory"\)\.select\("memory_json,learning_scope"\)\.eq\("app_id", appId\)\.eq\("owner_id", userId\)/);
-assert.match(saveBlock,/\.from\("project_memory"\)\.upsert/);
-assert.match(saveBlock,/owner_id: userId/);
+const worldSaveBlock=builderWorldAdapter.slice(builderWorldAdapter.indexOf('async saveModification'));
+assert.match(worldSaveBlock,/server_save_app_modification_world/);
+assert.match(worldSaveBlock,/p_memory_json:memoryJson\|\|\{\}/);
+assert.match(worldSaveBlock,/worldMemoryAtomic:true/);
+assert.doesNotMatch(worldSaveBlock,/\.from\(['"]project_memory['"]\)\.upsert/,'World-aware Modify must persist version + memory atomically inside one database RPC.');
 
 assert.match(migration,/project_memory_json_is_safe/);
 assert.match(migration,/octet_length\(p_memory::text\) > 131072/);
@@ -86,6 +90,6 @@ assert.match(bootstrap,/Deletion\/export paths should exist for personal data wh
 
 console.log('✓ Project Memory sanitizes and bounds brand, visual, user, workflow, industry and media/reference preferences');
 console.log('✓ Project Memory is owner-scoped, no-store, request-bounded and database-constrained');
-console.log('✓ Generate/Modify keep canonical Project Memory behavior while provider reads/writes are isolated behind LANERIQ Cloud');
+console.log('✓ Generate/Modify keep canonical Project Memory behavior while World-aware persistence atomically binds the accepted app version and memory envelope');
 console.log('✓ Private assets/secrets cannot become reusable cross-customer memory');
 console.log('✓ Bootstrap database policy remains aligned with the hardened Database/Supabase contract');
