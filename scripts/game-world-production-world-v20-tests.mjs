@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+import {compileProductionWorldV20} from '../lib/game/game-world-production-world-v20.js';
+const input={seed:'world-v20-evidence',worldId:'laneriq-evidence-world',city:{sizeMeters:840,blockMeters:120,maxBuildings:64,style:'future-natural'},art:{theme:'cyber'}};
+const a=compileProductionWorldV20(input),b=compileProductionWorldV20(input);
+assert.equal(a.readiness.internal100,true);assert.equal(a.readiness.production100,false);assert.deepEqual(a.layers,['v14-terrain','v15-hydrology-ecology','v16-vegetation','v17-architecture','v18-interior','v19-city','v20-production-world-art']);
+assert.ok(a.manifest.categories.terrain.triangles>0);assert.ok(a.manifest.categories.city.buildings>0);assert.ok(a.manifest.categories.interiors.prototypeRooms>0);assert.ok(a.manifest.categories.art.gpuBatches>0);assert.equal(a.manifest.gameplayTruthSeparatedFromVisualTruth,true);assert.equal(a.art.mobileSafe,true);assert.equal(a.batches.gpuInstancing,true);assert.equal(a.truth.gameplayVisualTruthSeparated,true);
+assert.deepEqual(a.manifest,b.manifest,'V20 production world manifest must replay deterministically');assert.equal(a.exportEvidence.allRequired,false);assert.equal(a.worldEvidence.allRequired,false);assert.equal(a.truth.productionDeploymentVerified,false);
+console.log('Game World Production World V20: PASS',JSON.stringify({buildings:a.manifest.categories.city.buildings,terrainTriangles:a.manifest.categories.terrain.triangles,vegetation:a.manifest.categories.vegetation.instances,gpuBatches:a.manifest.categories.art.gpuBatches,decals:a.manifest.categories.art.decals}));
