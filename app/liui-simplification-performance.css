@@ -1,0 +1,42 @@
+:root{--liui-chrome-gap:10px;--liui-glass-blur:18px}
+
+/* Batch 156 — subtraction layer: preserve intelligence, reduce competing chrome. */
+body[data-liui-surface] :where(.liuiContextDetails,.liuiRuntimeContext,.liuiRuntimeState,.liuiRuntimeResume,.liuiRealBottomNav){backdrop-filter:blur(var(--liui-glass-blur)) saturate(125%);-webkit-backdrop-filter:blur(var(--liui-glass-blur)) saturate(125%)}
+
+/* Context Intelligence is the single expandable page-intelligence surface. */
+body[data-liui-decision-layer="present"] .liuiRuntimeContext{display:none!important}
+body[data-liui-decision-layer="present"] .liuiRuntimeState:not(.liuiRuntimeState-critical){max-width:min(520px,calc(100vw - 24px))}
+
+/* Quiet surfaces that are decorative or secondary while the user is typing. */
+body[data-liui-keyboard="open"] :where(.liuiContextIntelligence,.referenceDock>.trigger,.studioLauncher,.sv-fab,.wallpaperControl){opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+body[data-liui-keyboard="open"] .liuiRuntimeResume{display:none!important}
+
+/* Avoid rendering expensive off-screen product sections until needed. */
+body[data-liui-surface] :where(.featureCards,.choiceCard,.workflow,.guide,.qualityGrid,.moduleGrid,.evidenceGrid,.readinessGrid,.mediaGallery){content-visibility:auto;contain-intrinsic-size:auto 420px}
+
+/* Keep motion semantic and bounded; no ambient UI animation budget on constrained states. */
+body[data-liui-adaptive-density="compact"]{--liui-runtime-motion-fast:.12s;--liui-runtime-motion-enter:.18s;--liui-glass-blur:14px}
+body[data-liui-short-viewport="true"]{--liui-glass-blur:12px}
+body[data-liui-keyboard="open"]{--liui-glass-blur:10px}
+
+@media (max-width:900px){
+  .liuiContextIntelligence{bottom:calc(92px + env(safe-area-inset-bottom))}
+  .liuiContextDetails:not([open])>summary{min-height:44px}
+  .liuiContextDetails:not([open]) .liuiContextRisk{display:none}
+  body[data-liui-runtime-state="idle"] .liuiContextIntelligence{opacity:.94}
+}
+
+@media (max-width:600px){
+  .liuiContextDetails>summary{grid-template-columns:auto auto minmax(0,1fr)!important}
+  .liuiContextRisk{display:none!important}
+  .liuiContextPanel{gap:10px!important}
+  .liuiContextBento{grid-template-columns:1fr!important}
+}
+
+@media (prefers-reduced-transparency:reduce){
+  body[data-liui-surface] :where(.liuiContextDetails,.liuiRuntimeContext,.liuiRuntimeState,.liuiRuntimeResume,.liuiRealBottomNav){backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:#071524f5!important}
+}
+
+@media (prefers-reduced-motion:reduce){
+  body[data-liui-surface] :where(.liuiContextIntelligence,.liuiRuntimeContext,.liuiRuntimeState,.liuiRuntimeResume,.liuiRealBottomNav){transition:none!important;animation:none!important}
+}
