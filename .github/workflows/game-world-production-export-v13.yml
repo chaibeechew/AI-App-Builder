@@ -1,0 +1,51 @@
+name: Game World Production Export V13 Gate
+on:
+  push:
+    branches: [batch151-game-world-production-export-v13]
+  pull_request:
+    paths:
+      - 'lib/game/game-world-supply-chain-v8.js'
+      - 'lib/game/game-world-real-device-v9.js'
+      - 'lib/game/game-world-native-runtime-v10.js'
+      - 'lib/game/game-world-large-world-v11.js'
+      - 'lib/game/game-world-multiplayer-v12.js'
+      - 'lib/game/game-world-production-export-v13.js'
+      - 'scripts/game-world-*-v8-tests.mjs'
+      - 'scripts/game-world-*-v9-tests.mjs'
+      - 'scripts/game-world-*-v10-tests.mjs'
+      - 'scripts/game-world-*-v11-tests.mjs'
+      - 'scripts/game-world-*-v12-tests.mjs'
+      - 'scripts/game-world-*-v13-tests.mjs'
+      - 'app/game-world-v13/**'
+      - '.github/workflows/game-world-production-export-v13.yml'
+env:
+  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+  GEMINI_API_KEY: ci-placeholder
+jobs:
+  production-export-v13:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: V7 regression
+        run: node scripts/game-world-real-runtime-v7-tests.mjs
+      - run: node scripts/game-world-supply-chain-v8-tests.mjs
+      - run: node scripts/game-world-real-device-v9-tests.mjs
+      - run: node scripts/game-world-native-runtime-v10-tests.mjs
+      - run: node scripts/game-world-large-world-v11-tests.mjs
+      - run: node scripts/game-world-multiplayer-v12-tests.mjs
+      - run: node scripts/game-world-production-export-v13-tests.mjs
+      - name: Existing game runtime regression
+        run: node scripts/game-runtime-v1-tests.mjs
+      - name: Advanced 3D regression
+        run: node scripts/advanced-3d-gameplay-tests.mjs
+      - name: Content pipeline regression
+        run: node scripts/content-production-pipeline-tests.mjs
+      - name: Next production build
+        run: npm run build
