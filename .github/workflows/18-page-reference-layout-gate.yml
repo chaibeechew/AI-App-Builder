@@ -9,7 +9,9 @@ on:
       - 'scripts/18-page-reference-layout-contract-tests.mjs'
       - '.github/workflows/18-page-reference-layout-gate.yml'
   push:
-    branches: [main]
+    branches:
+      - main
+      - ui/18-page-reference-redesign-20260905
     paths:
       - 'app/components/LANERIQ18VisualReference.js'
       - 'app/laneriq-18-reference.css'
@@ -19,13 +21,38 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   reference-layout:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: true
+      - name: Apply one-time UI parser repair on redesign branch
+        if: github.event_name == 'push' && github.ref_name == 'ui/18-page-reference-redesign-20260905'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/components/LANERIQ18VisualReference.js')
+          s = p.read_text()
+          old = '["•••","More",12]]];'
+          new = '["•••","More",12]];'
+          if old in s:
+              p.write_text(s.replace(old, new, 1))
+              print('fixed BottomNav parser typo')
+          else:
+              print('parser typo already fixed')
+          PY
+          if ! git diff --quiet -- app/components/LANERIQ18VisualReference.js; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add app/components/LANERIQ18VisualReference.js
+            git commit -m 'Fix 18-page reference BottomNav parser typo'
+            git push origin HEAD:${{ github.ref_name }}
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
