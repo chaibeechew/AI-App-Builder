@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {generateTerrainFieldV14,buildTerrainMeshV14,planTerrainFeaturesV14,conformCorridorToTerrainV14,compileTerrainV14} from '../lib/game/game-world-terrain-v14.js';
+const a=generateTerrainFieldV14({seed:'terrain-evidence',resolution:25,sizeMeters:1600,reliefMeters:240,erosionIterations:5});
+const b=generateTerrainFieldV14({seed:'terrain-evidence',resolution:25,sizeMeters:1600,reliefMeters:240,erosionIterations:5});
+assert.deepEqual(a.heights,b.heights,'terrain must replay deterministically');
+assert.equal(a.heights.length,625);assert.ok(a.maxHeight>a.minHeight);assert.ok(a.slopes.some(v=>v>1));
+const mesh=buildTerrainMeshV14(a);assert.equal(mesh.vertices.length,625);assert.ok(mesh.triangleCount>900);assert.equal(mesh.collisionSource,'same-terrain-mesh');
+const features=planTerrainFeaturesV14(a);assert.equal(features.carvedMeshContract,true);
+const road=conformCorridorToTerrainV14(a,[{x:-200,z:-200},{x:0,z:0},{x:300,z:220}],{kind:'road'});assert.equal(road.points.length,3);assert.ok(road.points.every(p=>Number.isFinite(p.y)));
+const compiled=compileTerrainV14({seed:'terrain-evidence',resolution:25});assert.equal(compiled.readiness.internal100,true);assert.equal(compiled.readiness.production100,false);assert.equal(compiled.truth.realDeviceTerrainPerformanceVerified,false);
+console.log('Game World Terrain V14 contracts: PASS',JSON.stringify({vertices:mesh.vertices.length,triangles:mesh.triangleCount,features:features.features.length,checksum:mesh.checksum}));
