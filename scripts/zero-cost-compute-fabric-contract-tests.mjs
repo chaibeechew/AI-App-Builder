@@ -15,6 +15,11 @@ import {
   GENERATION_CANDIDATE_ORCHESTRATOR_POLICY,
   buildGenerationCandidateBudget,
 } from "../lib/ai/generation-candidate-orchestrator.js";
+import {
+  filterProvidersByCost,
+  freeTierHardStopProviders,
+  isFreeTierProviderHardStopVerified,
+} from "../lib/soolen/cost-policy.js";
 
 assert.equal(LOGICAL_WORKER_CAPACITY, 100);
 assert.equal(MAX_ACTIVE_AGENT_FANOUT, 10);
@@ -42,6 +47,21 @@ assert.equal(candidateBudget.recursiveFanoutUnlimited, false);
 assert.equal(candidateBudget.maxMeteredRemoteCalls, 1, "Existing free-tier candidate path remains bounded to one remote success path.");
 assert.equal(GENERATION_CANDIDATE_ORCHESTRATOR_POLICY.computeFabricV2Required, true);
 assert.equal(GENERATION_CANDIDATE_ORCHESTRATOR_POLICY.recursiveFanoutUnlimited, false);
+
+const freeWithoutHardStop = {
+  SOOLEN_COST_MODE: "free",
+  SOOLEN_FREE_TIER_PROVIDERS: "groq,soolen-local",
+};
+assert.deepEqual(filterProvidersByCost(["groq", "soolen-local"], freeWithoutHardStop), ["soolen-local"]);
+assert.equal(isFreeTierProviderHardStopVerified("groq", freeWithoutHardStop), false);
+
+const freeWithHardStop = {
+  ...freeWithoutHardStop,
+  SOOLEN_FREE_TIER_HARD_STOP_PROVIDERS: "groq",
+};
+assert.deepEqual(freeTierHardStopProviders(freeWithHardStop), ["groq"]);
+assert.equal(isFreeTierProviderHardStopVerified("groq", freeWithHardStop), true);
+assert.deepEqual(filterProvidersByCost(["groq", "soolen-local"], freeWithHardStop), ["groq", "soolen-local"]);
 
 assert.deepEqual(selectComputeRoute({ deterministicHit: true, costMode: "zero" }), {
   route: "deterministic",
@@ -79,7 +99,7 @@ assert.match(summary.evidenceBoundary, /does not prove third-party billing/i);
 console.log("✓ LANERIQ Compute Fabric exposes 100 logical workers without allowing unbounded active fan-out");
 console.log("✓ Agent budgets cap active workers at 1/3/5/10-class envelopes and block metered agent calls in zero/free modes");
 console.log("✓ Generation candidate orchestration is now bound to the shared Compute Fabric fan-out envelope");
+console.log("✓ Free-tier remote providers fail closed unless their account hard stop is explicitly verified and allowlisted");
 console.log("✓ Compute routing prefers deterministic/cache/local/own-Desktop/free-hard-stop capacity before paid providers");
-console.log("✓ Free-tier cloud requires explicit account hard-stop verification before being counted as zero-cost capacity");
 console.log("✓ Paid Compute Firewall fails closed in zero/free modes and requires explicit paid policy in balanced/paid operation");
 console.log("✓ Zero-Cost Resolution Rate telemetry records routing outcomes without claiming unlimited or billing-verified capacity");
