@@ -6,6 +6,7 @@ import { assessBuildQuality,GENERATION_QUALITY_RULES } from "../../../lib/buildS
 import { evaluateReleaseReadiness } from "../../../lib/release-readiness.js";
 import { generateAppBuilderWithAdmission } from "../../../lib/ai/app-builder-admission.js";
 import { buildProjectMemoryBrief,mergeProjectMemory } from "../../../lib/project-memory.js";
+import { advanceAppBuilderRealityEnvelope,serializeAppBuilderRealityEnvelope,summarizeAppBuilderRealityEnvelope } from "../../../lib/intelligence/app-builder-world-bridge.js";
 import { PRODUCT_BRAND,PREMIUM_VISUAL_AI_INSTRUCTION } from "../../../lib/ai/premium-visual-policy.js";
 import { buildPreciseEditInstruction } from "../../../lib/editor/precise-edit-policy.js";
 import { inspectProjectSpecification,buildSelfHealInstruction } from "../../../lib/ai/project-self-heal-policy.js";
@@ -26,7 +27,7 @@ function visualMemory(spec){const d=spec?.designSystem||{};return{themeMode:d.th
 async function withTimeout(promise,ms,label){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out after ${ms}ms`)),ms)})])}finally{clearTimeout(timer)}}
 function runBuilderAi(prompt,{userId,appId,stage,baseVersionId}){return generateAppBuilderWithAdmission(prompt,{userId,projectId:appId,stage,baseVersionId,reuseAllowed:true,requestedAgents:1});}
 function preciseTargetFrom(body){const target=body?.preciseTarget;if(!target||typeof target!=="object"||Array.isArray(target))return null;return{pageName:String(target.pageName||"").trim().slice(0,160),pageIndex:Number.isInteger(target.pageIndex)?target.pageIndex:null,sectionName:String(target.sectionName||"").trim().slice(0,160),sectionIndex:Number.isInteger(target.sectionIndex)?target.sectionIndex:null,lineNumber:Number.isInteger(target.lineNumber)&&target.lineNumber>0?Math.min(target.lineNumber,100000):null,elementType:String(target.elementType||"").trim().slice(0,40),position:String(target.position||"").trim().slice(0,160)};}
-function replayPayload({appId,version,specification,requestId}){const normalized=normalizeAppSpec(specification),selfTest=selfTestGeneratedApp(normalized),finalSpec=selfTest.normalizedSpec,quality=assessBuildQuality(finalSpec),selfHeal=inspectProjectSpecification(finalSpec);return{success:true,replayed:true,provider:null,specification:finalSpec,appId,version:{id:version.id,version_no:version.version_no,created_at:version.created_at,replayed:true},preciseEdit:{applied:false,target:null},selfHeal:{applied:false,report:selfHeal},projectMemory:{applied:true,updated:false,visualPreferences:visualMemory(finalSpec)},explanation:buildAppExplanation(finalSpec),selfTest,quality:{before:quality,after:quality,repairApplied:false,releaseReadiness:evaluateReleaseReadiness(quality)},entitlement:{source:"replay",charged:false},credits:{charged:0,requestId,balance:null}};}
+function replayPayload({appId,version,specification,requestId,unifiedWorld}){const normalized=normalizeAppSpec(specification),selfTest=selfTestGeneratedApp(normalized),finalSpec=selfTest.normalizedSpec,quality=assessBuildQuality(finalSpec),selfHeal=inspectProjectSpecification(finalSpec);return{success:true,replayed:true,provider:null,specification:finalSpec,appId,version:{id:version.id,version_no:version.version_no,created_at:version.created_at,replayed:true},preciseEdit:{applied:false,target:null},selfHeal:{applied:false,report:selfHeal},projectMemory:{applied:true,updated:false,visualPreferences:visualMemory(finalSpec)},unifiedWorld:unifiedWorld||{available:false,valid:false,truth:"EVIDENCE_REQUIRED"},explanation:buildAppExplanation(finalSpec),selfTest,quality:{before:quality,after:quality,repairApplied:false,releaseReadiness:evaluateReleaseReadiness(quality)},entitlement:{source:"replay",charged:false},credits:{charged:0,requestId,balance:null}};}
 
 export async function POST(request){
  let userId=null,charged=false,chargeRequestId=null,charge=null;
@@ -57,7 +58,10 @@ export async function POST(request){
     throw new Error(`Modification context unavailable: ${context.code}`);
   }
   const replayVersion=context.replayVersion;
-  if(replayVersion?.specification)return NextResponse.json(replayPayload({appId,version:replayVersion,specification:replayVersion.specification,requestId:chargeRequestId}));
+  if(replayVersion?.specification){
+    const replayWorld=replayVersion.id===context.project?.current_version_id?summarizeAppBuilderRealityEnvelope(context.memory?.memory_json?.realityEnvelope):{available:false,valid:false,truth:"EVIDENCE_REQUIRED",reason:"replay-version-is-not-current-world-head"};
+    return NextResponse.json(replayPayload({appId,version:replayVersion,specification:replayVersion.specification,requestId:chargeRequestId,unifiedWorld:replayWorld}));
+  }
 
   const owned=context.project;
   if(!owned.current_version_id)return NextResponse.json({error:"This project has no current saved version yet."},{status:409});
@@ -65,6 +69,7 @@ export async function POST(request){
   const baseVersionId=owned.current_version_id;
   const currentVersion=context.currentVersion;
   if(!currentVersion?.specification)return NextResponse.json({error:"Current project version could not be loaded safely."},{status:409});
+  const baseVersionNo=Math.max(1,Number(currentVersion.version_no||1));
   const effectiveSpecification=currentVersion.specification;
   const memoryRow=context.memory||null;
 
@@ -92,7 +97,9 @@ export async function POST(request){
   }
 
   const finalSpec=candidate.specification,test=candidate.selfTest,finalQuality=candidate.quality,finalReadiness=evaluateReleaseReadiness(finalQuality);
-  const nextMemory=mergeProjectMemory(memoryRow?.memory_json,{requestedName:finalSpec.name,visualPreferences:visualMemory(finalSpec),lastModificationAt:new Date().toISOString(),lastModificationInstruction:instruction,lastPreciseTarget:preciseTarget||undefined,lastSelfHealApplied:selfHealApplied});
+  const nextVersionNo=baseVersionNo+1;
+  const nextRealityEnvelope=advanceAppBuilderRealityEnvelope({existingEnvelope:memoryRow?.memory_json?.realityEnvelope,legacyIdentitySeed:appId,baseSpecification:effectiveSpecification,nextSpecification:finalSpec,baseAppVersionNo:baseVersionNo,nextAppVersionNo:nextVersionNo,requestId:chargeRequestId,verification:{selfTestPassed:test.ok,selfHealPassed:candidate.selfHeal.passed,executionPassed:false,executionRequired:false,qualityAccepted:!qualityRegressed(currentQuality,finalQuality),qualityScore:finalQuality.overall,releaseReady:finalReadiness.releaseReady}});
+  const nextMemory=mergeProjectMemory(memoryRow?.memory_json,{requestedName:finalSpec.name,visualPreferences:visualMemory(finalSpec),lastModificationAt:new Date().toISOString(),lastModificationInstruction:instruction,lastPreciseTarget:preciseTarget||undefined,lastSelfHealApplied:selfHealApplied,realityEnvelope:serializeAppBuilderRealityEnvelope(nextRealityEnvelope)});
   const save=await saveBuilderModification({appId,expectedVersionId:baseVersionId,requestId:chargeRequestId,specification:finalSpec,changeSummary:instruction,memoryJson:nextMemory,learningScope:memoryRow?.learning_scope||"project_only"});
   if(!save.ok){
     if(save.code==="PROJECT_CHANGED_DURING_MODIFICATION")throw new Error("Project changed during modification");
@@ -103,15 +110,18 @@ export async function POST(request){
   if(save.replayed){
     const persisted=save.version;
     if(!persisted?.specification)throw new Error("Saved replay version could not be loaded safely.");
-    return NextResponse.json(replayPayload({appId,version:persisted,specification:persisted.specification,requestId:chargeRequestId}));
+    return NextResponse.json(replayPayload({appId,version:persisted,specification:persisted.specification,requestId:chargeRequestId,unifiedWorld:summarizeAppBuilderRealityEnvelope(nextMemory.realityEnvelope)}));
   }
 
   const savedVersion=save.version;
-  return NextResponse.json({success:true,replayed:false,provider:finalProvider,specification:finalSpec,appId,version:savedVersion,preciseEdit:{applied:Boolean(preciseTarget),target:preciseTarget},selfHeal:{applied:selfHealApplied,report:candidate.selfHeal},projectMemory:{applied:Boolean(memoryBrief),updated:Boolean(save.memorySaved),visualPreferences:visualMemory(finalSpec)},explanation:buildAppExplanation(finalSpec),selfTest:test,quality:{before:currentQuality,after:finalQuality,repairApplied:qualityRepairApplied,releaseReadiness:finalReadiness},entitlement:{source:entitlementSource,charged},credits:{charged:charged?MODIFY_CREDIT_COST:0,requestId:chargeRequestId,balance:charge?.balance??null}});
+  if(Number(savedVersion?.version_no)!==nextVersionNo)throw new Error("APP_BUILDER_WORLD_APP_VERSION_SEQUENCE_INVALID");
+  const unifiedWorld=summarizeAppBuilderRealityEnvelope(nextMemory.realityEnvelope);
+  return NextResponse.json({success:true,replayed:false,provider:finalProvider,specification:finalSpec,appId,version:savedVersion,preciseEdit:{applied:Boolean(preciseTarget),target:preciseTarget},selfHeal:{applied:selfHealApplied,report:candidate.selfHeal},projectMemory:{applied:Boolean(memoryBrief),updated:Boolean(save.memorySaved),worldMemoryAtomic:save.worldMemoryAtomic===true,visualPreferences:visualMemory(finalSpec)},unifiedWorld,explanation:buildAppExplanation(finalSpec),selfTest:test,quality:{before:currentQuality,after:finalQuality,repairApplied:qualityRepairApplied,releaseReadiness:finalReadiness},entitlement:{source:entitlementSource,charged},credits:{charged:charged?MODIFY_CREDIT_COST:0,requestId:chargeRequestId,balance:charge?.balance??null}});
  }catch(error){
   console.error("Modify API error:",error);
   if(charged&&chargeRequestId&&userId){try{await refundAiCredits(userId,{requestId:chargeRequestId,amount:MODIFY_CREDIT_COST,description:"AI modification failed - automatic refund",metadata:{operation:"modify"}})}catch{}}
   const message=String(error?.message||"");
+  if(message.includes("APP_BUILDER_WORLD_BASE_MISMATCH")||message.includes("APP_BUILDER_WORLD_EXISTING_ENVELOPE_INVALID")||message.includes("APP_BUILDER_WORLD_APP_VERSION_SEQUENCE_INVALID"))return NextResponse.json({error:"The saved project world state changed or could not be verified. Refresh the workspace before applying another AI edit."},{status:409});
   if(message.includes("would reduce the project's release quality")||message.includes("self-heal could not produce")||message.includes("self-heal reduced"))return NextResponse.json({error:message},{status:409});
   if(message.includes("Project changed during modification"))return NextResponse.json({error:"This project changed while AI was working. Refresh the workspace and try the change again."},{status:409});
   if(message.includes("Insufficient credits"))return NextResponse.json({error:"Insufficient credits.",requiredCredits:MODIFY_CREDIT_COST},{status:402});

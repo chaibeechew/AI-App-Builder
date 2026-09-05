@@ -10,6 +10,7 @@ import { inferIndustryCapabilities } from "../../../lib/ai/industry-capability-p
 import { isMobileGameIdea } from "../../../lib/ai/mobile-game-knowledge.js";
 import { resolveWallpaperId } from "../../../lib/design/wallpaper-presets.js";
 import { mergeProjectMemory } from "../../../lib/project-memory.js";
+import { bootstrapAppBuilderRealityEnvelope,serializeAppBuilderRealityEnvelope,summarizeAppBuilderRealityEnvelope,hashAppBuilderArtifact } from "../../../lib/intelligence/app-builder-world-bridge.js";
 import { consumeAppBuilderEntitlement,bindAppBuilderProjectAccess,restoreFailedAppBuilderCreate,consumeAiCredits,refundAiCredits } from "../../../lib/app-builder-finance.js";
 import { getBuilderPrincipal,loadBuilderGenerationReplay,loadBuilderGenerationInputs,persistBuilderGeneratedProject,saveBuilderGeneratedProjectContext } from "../../../lib/cloud/builder-projects.js";
 
@@ -46,6 +47,8 @@ async function loadGenerationReplay(requestId){
  const verified=verifyGeneration({specification:version.specification});
  if(!verified.passed)throw new Error("Persisted generation replay failed integrity verification.");
  const specification=verified.normalized;
+ const unifiedWorld=summarizeAppBuilderRealityEnvelope(state.memory?.memory_json?.realityEnvelope);
+ if(unifiedWorld.valid&&unifiedWorld.artifactHash!==hashAppBuilderArtifact(specification))throw new Error("Persisted App Builder world evidence does not match the saved specification.");
  return{
   success:true,
   replayed:true,
@@ -54,6 +57,7 @@ async function loadGenerationReplay(requestId){
   selfTest:verified.selfTest,
   executionVerification:verified.execution,
   selfHeal:verified.selfHeal,
+  unifiedWorld,
   idempotency:{requestId,replayed:true,persisted:true},
   credits:{charged:0,requestId},
   app:{id:app.id,name:app.name,versionId:version.id,versionNo:version.version_no,visibility:app.visibility,publishStatus:app.publish_status}
@@ -124,11 +128,17 @@ export async function POST(request){
   const specification={...verified.normalized,name:requestedName||verified.normalized.name};
   const engineeringEvidence=sourceEngineeringEvidence(adult);
   const changeSummary=brandBrief?"Initial verified + self-healed build with saved Brand Kit":"Initial Soolen Super Brain generated, repaired, self-healed and verified application";
+  const pages=Array.isArray(specification.pages)?specification.pages:[];
+  const mediaAssignments=ownedAssets.map(asset=>choosePlacement(asset,pages));
+  const finalDesign=specification?.designSystem||{},memoryScope=body?.innovationLearningConsent?"anonymized_patterns":"project_only";
+  const realityEnvelope=bootstrapAppBuilderRealityEnvelope({identitySeed:chargeRequestId,specification,appVersionNo:1,verification:{selfTestPassed:verified.selfTest.ok,selfHealPassed:verified.selfHeal.passed,executionPassed:verified.execution.ok,executionRequired:true,qualityAccepted:true,qualityScore:verified.selfHeal.score}});
+  const memoryPayload=mergeProjectMemory(null,{requestedName:requestedName||specification.name,brandPreferences:brandKit?{companyName:brandKit.company_name||"",logoReference:brandKit.logo_url||"",primaryColor:brandKit.primary_color||"",secondaryColor:brandKit.secondary_color||"",accentColor:brandKit.accent_color||"",fontStyle:brandKit.font_style||"",brandVoice:brandKit.brand_voice||""}:{},industryPlan:industryPlan.matched?{profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit}:{},visualPreferences:{themeMode:finalDesign.themeMode||themeMode,themePreset,primaryColor:finalDesign.primaryColor||primaryColor,accentColor:finalDesign.accentColor||accentColor,backgroundColor:finalDesign.backgroundColor||backgroundColor,styleRequest,wallpaperMode:finalDesign.wallpaperMode||wallpaperMode,wallpaperPreset:finalDesign.wallpaperPreset||wallpaperPreset},mediaPreferences:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role})),selfHeal:{score:verified.selfHeal.score,issues:verified.selfHeal.issues.length,passed:verified.selfHeal.passed},lastBuildAt:new Date().toISOString(),realityEnvelope:serializeAppBuilderRealityEnvelope(realityEnvelope)});
 
-  const persistence=await persistBuilderGeneratedProject({requestId:chargeRequestId,name:String(specification.name||"Untitled App").trim(),description:String(specification.description||"").trim(),sourcePrompt:combinedInput,specification,changeSummary});
+  const persistence=await persistBuilderGeneratedProject({requestId:chargeRequestId,name:String(specification.name||"Untitled App").trim(),description:String(specification.description||"").trim(),sourcePrompt:combinedInput,specification,changeSummary,memoryJson:memoryPayload,learningScope:memoryScope});
   if(!persistence.ok)throw new Error(`Atomic App + Website save failed: ${persistence.detail||persistence.code||"unknown persistence failure"}`);
   const persisted=persistence.persisted;
   createdAppId=persisted.app_id;
+  if(persisted.memory_saved!==true)throw new Error("Atomic App + Unified World persistence did not confirm project memory.");
   const app={id:persisted.app_id,name:persisted.app_name||String(specification.name||"Untitled App").trim(),visibility:persisted.visibility||"private",publish_status:persisted.publish_status||"draft"};
   const version={id:persisted.version_id,version_no:Number(persisted.version_no||1)};
 
@@ -146,13 +156,11 @@ export async function POST(request){
       accessBound=Boolean(binding?.bound||binding?.replayed);
     }catch(error){console.warn("PROJECT_ACCESS_BIND_ERROR:",error?.message||"unknown");}
   }
-  const pages=Array.isArray(specification.pages)?specification.pages:[];
-  const mediaAssignments=ownedAssets.map(asset=>choosePlacement(asset,pages));
-  const finalDesign=specification?.designSystem||{},memoryScope=body?.innovationLearningConsent?"anonymized_patterns":"project_only",memoryPayload=mergeProjectMemory(null,{requestedName:requestedName||specification.name,brandPreferences:brandKit?{companyName:brandKit.company_name||"",logoReference:brandKit.logo_url||"",primaryColor:brandKit.primary_color||"",secondaryColor:brandKit.secondary_color||"",accentColor:brandKit.accent_color||"",fontStyle:brandKit.font_style||"",brandVoice:brandKit.brand_voice||""}:{},industryPlan:industryPlan.matched?{profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit}:{},visualPreferences:{themeMode:finalDesign.themeMode||themeMode,themePreset,primaryColor:finalDesign.primaryColor||primaryColor,accentColor:finalDesign.accentColor||accentColor,backgroundColor:finalDesign.backgroundColor||backgroundColor,styleRequest,wallpaperMode:finalDesign.wallpaperMode||wallpaperMode,wallpaperPreset:finalDesign.wallpaperPreset||wallpaperPreset},mediaPreferences:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role})),selfHeal:{score:verified.selfHeal.score,issues:verified.selfHeal.issues.length,passed:verified.selfHeal.passed},lastBuildAt:new Date().toISOString()});
   const contextSave=await saveBuilderGeneratedProjectContext({projectId:app.id,assignments:mediaAssignments,memoryJson:memoryPayload,learningScope:memoryScope});
   if(!contextSave.ok)console.warn("PROJECT_CONTEXT_SAVE_ERROR:",contextSave.code);
+  const unifiedWorld=summarizeAppBuilderRealityEnvelope(memoryPayload.realityEnvelope);
 
-  const payload={success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,selfHeal:verified.selfHeal,industryPlan:{matched:industryPlan.matched,profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit},brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},theme:memoryPayload.visualPreferences,media:{attached:mediaAssignments.length,assignments:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryScope,saved:Boolean(contextSave.ok&&contextSave.memorySaved)},superBrain:{mode:adult.mode,status:adult.generationStatus,generationStatus:adult.generationStatus,overallStatus:adult.status,sourceEngineering:engineeringEvidence,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,selfHeal:verified.selfHeal.passed,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},idempotency:{requestId:chargeRequestId,replayed:Boolean(persisted.replayed),recoveredPartial:Boolean(persisted.recovered_partial),persisted:true,atomic:true},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:app.id,name:app.name,versionId:version.id,versionNo:version.version_no,visibility:app.visibility,publishStatus:app.publish_status}};
+  const payload={success:true,...adult.result,specification,explanation:buildAppExplanation(specification),selfTest:verified.selfTest,executionVerification:verified.execution,selfHeal:verified.selfHeal,industryPlan:{matched:industryPlan.matched,profileId:industryPlan.profileId,label:industryPlan.label,pages:industryPlan.pages,data:industryPlan.data,workflows:industryPlan.workflows,roles:industryPlan.roles,explicit:industryPlan.explicit},brandKit:{applied:Boolean(brandBrief),companyName:brandKit?.company_name||null},theme:memoryPayload.visualPreferences,media:{attached:mediaAssignments.length,assignments:mediaAssignments.map(item=>({assetId:item.asset_id,page:item.suggested_page,role:item.suggested_role,reason:item.placement_reason}))},projectLearning:{scope:memoryScope,saved:Boolean(persisted.memory_saved||contextSave.ok&&contextSave.memorySaved)},unifiedWorld,superBrain:{mode:adult.mode,status:adult.generationStatus,generationStatus:adult.generationStatus,overallStatus:adult.status,sourceEngineering:engineeringEvidence,specialists:adult.specialists,decision:adult.decision?.reason,repairs:Math.max(0,(adult.criticHistory?.length||1)-1),privacy:adult.privacy,checks:{selfTest:verified.selfTest.ok,selfHeal:verified.selfHeal.passed,buildableStructure:verified.execution.checks.buildableStructure,runtimeRoutesValid:verified.execution.checks.runtimeRoutesValid,securityPassed:verified.execution.checks.securityPassed,privacyPassed:verified.execution.checks.privacyPassed}},idempotency:{requestId:chargeRequestId,replayed:Boolean(persisted.replayed),recoveredPartial:Boolean(persisted.recovered_partial),persisted:true,atomic:true},entitlement:{source:entitlementSource,charged,projectAccessBound:accessBound},credits:{charged:charged?GENERATE_CREDIT_COST:0,requestId:chargeRequestId},app:{id:app.id,name:app.name,versionId:version.id,versionNo:version.version_no,visibility:app.visibility,publishStatus:app.publish_status}};
   return json(payload);
  }catch(error){
   if(createdAppId)return json({success:false,code:"GENERATION_REQUEST_IN_PROGRESS",error:"The core App + Website were saved, but the final response was interrupted. Retry the same request ID to recover the saved project without creating or charging again."},409);
