@@ -65,11 +65,26 @@ function annotateExistingStates() {
   annotate(".emptyState,[data-state='empty']", "status", "polite");
 }
 
+function publishContextState(present, open, pageId) {
+  const body = document.body;
+  if (present) {
+    body.dataset.liuiContextPresent = "true";
+    body.dataset.liuiDecisionOpen = open ? "true" : "false";
+  } else {
+    delete body.dataset.liuiContextPresent;
+    delete body.dataset.liuiDecisionOpen;
+  }
+  window.dispatchEvent(new CustomEvent("laneriq:context-intelligence-state", {
+    detail: { present: Boolean(present), open: Boolean(open), pageId: Number(pageId) || 0 },
+  }));
+}
+
 export default function LIUIContextIntelligence() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const page = useMemo(() => resolvePage(pathname, searchParams), [pathname, searchParams]);
   const [language, setLanguage] = useState("en");
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const currentLanguage = () => {
@@ -86,6 +101,13 @@ export default function LIUIContextIntelligence() {
   }, []);
 
   useEffect(() => {
+    const present = Boolean(page && page.id !== 1);
+    setOpen(false);
+    publishContextState(present, false, present ? page.id : 0);
+    return () => publishContextState(false, false, 0);
+  }, [page?.id]);
+
+  useEffect(() => {
     if (!page) return undefined;
     const body = document.body;
     body.dataset.liuiContextPage = String(page.id);
@@ -93,6 +115,7 @@ export default function LIUIContextIntelligence() {
     body.dataset.liuiContextApproval = page.humanApproval ? "required" : "bounded";
     body.dataset.liuiContextEvidence = String(page.evidence || "code-only");
 
+    const annotationRoot = document.querySelector("main") || body;
     let frame = 0;
     const scheduleAnnotation = () => {
       if (frame) cancelAnimationFrame(frame);
@@ -100,7 +123,7 @@ export default function LIUIContextIntelligence() {
     };
     scheduleAnnotation();
     const observer = new MutationObserver(scheduleAnnotation);
-    observer.observe(body, { subtree: true, childList: true });
+    observer.observe(annotationRoot, { subtree: true, childList: true });
     return () => {
       observer.disconnect();
       if (frame) cancelAnimationFrame(frame);
@@ -129,7 +152,15 @@ export default function LIUIContextIntelligence() {
       data-approval={page.humanApproval ? "required" : "bounded"}
       aria-label={t("Page intelligence")}
     >
-      <details className="liuiContextDetails">
+      <details
+        key={page.id}
+        className="liuiContextDetails"
+        onToggle={(event) => {
+          const nextOpen = event.currentTarget.open === true;
+          setOpen(nextOpen);
+          publishContextState(true, nextOpen, page.id);
+        }}
+      >
         <summary aria-label={t("Open page intelligence")}>
           <span className="liuiContextMark" aria-hidden="true">✦</span>
           <span className="liuiContextCounter">{t("Page")} {page.id}/18</span>
