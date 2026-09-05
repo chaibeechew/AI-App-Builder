@@ -1,4 +1,4 @@
-name: LANERIQ Security iOS Beta
+name: LANERIQ Anti Scam iOS Beta
 
 on:
   push:
@@ -38,9 +38,9 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
       - name: Verify app exists
-        run: test -d 'apps/laneriq-security-ios/DerivedData/Build/Products/Debug-iphonesimulator/LANERIQ Security Beta.app'
+        run: test -d 'apps/laneriq-security-ios/DerivedData/Build/Products/Debug-iphonesimulator/LANERIQ Anti Scam Beta.app'
       - uses: actions/upload-artifact@v4
         with:
-          name: laneriq-security-ios-beta-simulator-app
-          path: 'apps/laneriq-security-ios/DerivedData/Build/Products/Debug-iphonesimulator/LANERIQ Security Beta.app'
+          name: laneriq-anti-scam-ios-beta-simulator-app
+          path: 'apps/laneriq-security-ios/DerivedData/Build/Products/Debug-iphonesimulator/LANERIQ Anti Scam Beta.app'
           if-no-files-found: error
