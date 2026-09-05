@@ -53,11 +53,12 @@ assert.match(adminRoute,/ADMIN_REQUIRED/);
 assert.match(adminRoute,/GAME_BUYOUT_NOT_AVAILABLE/);
 assert.match(adminRoute,/ENCOURAGE_CREATOR_BUYOUT_NOT_AVAILABLE/);
 
+// Reference-layout dashboard keeps the license entry and live certificate status,
+// while the authoritative price list remains in policy + dedicated license page/docs.
 assert.match(dashboard,/BUYOUT LICENSE/);
-assert.match(dashboard,/Personal US\$49/);
-assert.match(dashboard,/Business US\$199/);
-assert.match(dashboard,/Enterprise US\$499/);
+assert.match(dashboard,/Project License/);
 assert.match(dashboard,/app-dashboard\/\$\{id\}\/license/);
+assert.match(dashboard,/buyoutLicense\?\.status/);
 assert.match(licensePage,/Electronic License Certificate/);
 assert.match(licensePage,/LICENSE ID/);
 assert.match(licensePage,/Future LANERIQ AI revenue share after this Buyout License/);
@@ -70,5 +71,6 @@ assert.match(readme,/transactional email copy/);
 console.log("✓ Buyout License pricing remains 49 / 199 / 499 for eligible non-Game projects");
 console.log("✓ Encourage Creator-supported project and Game projects are excluded from Buyout");
 console.log("✓ Admin-only post-payment issuance creates a unique electronic License record");
-console.log("✓ Customer Dashboard exposes the permanent certificate and email delivery is transactional");
+console.log("✓ Reference-layout Dashboard retains Buyout status and permanent certificate entry");
+console.log("✓ Authoritative pricing remains locked in policy, license page and README");
 console.log("✓ Email failure does not invalidate the Dashboard source-of-truth License record");
