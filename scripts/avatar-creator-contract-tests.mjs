@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import {buildLivingCharacterManifest} from '../lib/ai/avatar-character-core.js';
+import {buildAvatarFaceFrame,createAvatarRuntimeState,normalizeVisemeTimeline,reduceAvatarRuntime,selectAvatarPerformanceProfile} from '../lib/ai/avatar-runtime-engine.js';
 
 const root=process.cwd();
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const page=read('app/avatar-studio/page.js');
 const api=read('app/api/avatar/generate/route.js');
 const characterCore=read('lib/ai/avatar-character-core.js');
+const runtimeEngine=read('lib/ai/avatar-runtime-engine.js');
 const gateway=read('lib/ai/image-generation-gateway.js');
 const persistence=read('lib/ai/image-output-persistence.js');
 const save=read('app/api/images/save/route.js');
@@ -113,6 +116,32 @@ assert.match(characterCore,/realtime3DRenderer:false/);
 assert.match(characterCore,/liveVoiceProvider:false/);
 assert.match(characterCore,/motionGenerator:false/);
 
+// Executable runtime: event state transitions, mobile profile selection, viseme normalization and renderer-neutral face frames.
+assert.match(runtimeEngine,/AVATAR_RUNTIME_EVENTS/);
+assert.match(runtimeEngine,/USER_SPEECH_START:"listening"/);
+assert.match(runtimeEngine,/AI_RESPONSE_START:"speaking"/);
+assert.match(runtimeEngine,/ACTION_ERROR:"concerned"/);
+assert.match(runtimeEngine,/selectAvatarPerformanceProfile/);
+assert.match(runtimeEngine,/normalizeVisemeTimeline/);
+assert.match(runtimeEngine,/buildAvatarFaceFrame/);
+const manifest=buildLivingCharacterManifest({characterId:'lc_contract',type:'game',style:'3d',persona:'confident',voiceStyle:'warm',motionProfile:'expressive',language:'en',continuityKey:'contract'});
+assert.equal(manifest.characterId,'lc_contract');
+assert.equal(manifest.dna.persona,'confident');
+assert.equal(manifest.runtime.defaultProfile,'balanced');
+let runtime=createAvatarRuntimeState(manifest);
+assert.equal(runtime.state,'idle');
+runtime=reduceAvatarRuntime(runtime,'USER_SPEECH_START');assert.equal(runtime.state,'listening');assert.equal(runtime.listening,true);
+runtime=reduceAvatarRuntime(runtime,'USER_SPEECH_END');assert.equal(runtime.state,'thinking');assert.equal(runtime.emotion,'focused');
+runtime=reduceAvatarRuntime(runtime,'AI_RESPONSE_START',{emotion:'warm'});assert.equal(runtime.state,'speaking');assert.equal(runtime.speaking,true);assert.equal(runtime.emotion,'warm');
+runtime=reduceAvatarRuntime(runtime,'AI_RESPONSE_END');assert.equal(runtime.state,'idle');
+assert.equal(selectAvatarPerformanceProfile({thermalState:'serious',batteryLevel:.9,deviceTier:'high'}),'eco');
+assert.equal(selectAvatarPerformanceProfile({thermalState:'nominal',batteryLevel:.8,deviceTier:'high'}),'performance');
+assert.equal(selectAvatarPerformanceProfile({thermalState:'fair',batteryLevel:.8,deviceTier:'mid'}),'balanced');
+const visemes=normalizeVisemeTimeline([{atMs:900,viseme:'aa',weight:2},{atMs:100,viseme:'mbp',weight:.5},{atMs:500,viseme:'unknown',weight:1}],{durationMs:1000});
+assert.deepEqual(visemes.map(item=>item.atMs),[100,500,900]);assert.equal(visemes[1].viseme,'sil');assert.equal(visemes[2].weight,1);
+const face=buildAvatarFaceFrame({state:'speaking',emotion:'warm',viseme:'aa',visemeWeight:1,gazeX:2,blink:.25});
+assert.equal(face.channels['jaw-open'],.7);assert.equal(face.channels['eye-look-x'],1);assert.equal(face.channels['blink-left'],.25);assert.ok(face.channels['mouth-smile']>0);
+
 // Model path: billing/refund, durable private capture before browser response, replay from private assets and honest fallback.
 assert.match(api,/getImageGenerationConfig\(\)/);
 assert.match(api,/generateExternalImages/);
@@ -172,4 +201,4 @@ assert.match(replayMigration,/unique \(user_id, request_id\)/i);
 assert.match(replayMigration,/revoke all on table public\.image_generation_requests from public, anon, authenticated/i);
 assert.match(replayMigration,/service_role/i);
 
-console.log('AI Avatar Creator contract passed: consent-safe generation, replay-safe recovery, durable private output, stable Living Character DNA, behavior states, provider-neutral voice/face/memory interfaces and adaptive mobile runtime profiles are locked.');
+console.log('AI Avatar Creator contract passed: consent-safe generation, replay-safe recovery, durable private output, stable Living Character DNA, executable behavior runtime, provider-neutral voice/face/memory interfaces and adaptive mobile performance are locked.');
