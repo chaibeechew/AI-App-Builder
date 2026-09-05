@@ -20,6 +20,7 @@ import "./liui-runtime-capabilities.css";
 import "./liui-adaptive-experience.css";
 import "./liui-simplification-performance.css";
 import "./home-liui-v5.css";
+import "./laneriq-18-reference.css";
 import AccountNav from "./components/AccountNav";
 import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
 import ProductCopyFix from "./components/ProductCopyFix";
@@ -42,6 +43,7 @@ import LIUIContextIntelligence from "./components/LIUIContextIntelligence";
 import LIUIRuntimeCapabilityLayer from "./components/LIUIRuntimeCapabilityLayer";
 import LIUIAdaptiveExperienceLayer from "./components/LIUIAdaptiveExperienceLayer";
 import LIUIInteractionIntegrity from "./components/LIUIInteractionIntegrity";
+import LANERIQ18VisualReference from "./components/LANERIQ18VisualReference";
 import CreatorEncouragement from "./components/CreatorEncouragement";
 import ProjectPortabilityMount from "./components/ProjectPortabilityMount";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
@@ -107,6 +109,7 @@ export default function RootLayout({ children }) {
         <GameProGate />
         <GameCommercialTermsNotice />
         {children}
+        <Suspense fallback={null}><LANERIQ18VisualReference /></Suspense>
         <Suspense fallback={null}><LIUIContextIntelligence /></Suspense>
         <ProjectPortabilityMount />
         <CreatorEncouragement />
