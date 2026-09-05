@@ -77,3 +77,13 @@ for marker in ['label:"Build"','label:"Verify"','label:"Deploy"','label:"Publish
     if marker not in s:
         raise SystemExit(f'Platform Operator marker missing after repair: {marker}')
 p.write_text(s)
+
+# Page 18 — keep exactly the approved wording while staying truthful about external review.
+p = Path('app/publish/[id]/page.js')
+s = p.read_text()
+s = s.replace('Domain &amp; Hosting', 'Domain & Hosting')
+s = s.replace('Official store approval remains external', 'Official store review remains external')
+for marker in ['Publish &', 'Deployment Targets', 'Domain & Hosting', 'App Store Preparation', 'Official store review remains external']:
+    if marker not in s:
+        raise SystemExit(f'Page 18 reference marker missing after repair: {marker}')
+p.write_text(s)
