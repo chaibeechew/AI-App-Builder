@@ -122,6 +122,9 @@ export default function DeviceComputePage() {
     return { deviceClass: classifyDevice(input), cores: input.hardwareConcurrency, memory: input.deviceMemory };
   }, [loading]);
 
+  const mobileLike = device.deviceClass === "mobile" || device.deviceClass === "tablet";
+  const communityPreferenceOffered = !mobileLike;
+
   const budget = useMemo(() => computeDeviceBudget({
     settings,
     deviceClass: device.deviceClass,
@@ -134,14 +137,16 @@ export default function DeviceComputePage() {
 
   function save(patch, success = "Saved on this device.") {
     const now = new Date().toISOString();
-    const communityTurningOn = patch.communityComputeEnabled === true && settings.communityComputeEnabled !== true;
+    const safePatch = mobileLike && patch.communityComputeEnabled === true ? { ...patch, communityComputeEnabled: false } : patch;
+    const communityTurningOn = safePatch.communityComputeEnabled === true && settings.communityComputeEnabled !== true;
     const next = sanitizeDeviceComputeSettings({
       ...settings,
-      ...patch,
+      ...safePatch,
       policyVersion: DEVICE_COMPUTE_POLICY_VERSION,
       installationId: settings.installationId || newInstallationId(),
-      consentAt: patch.decision && patch.decision !== settings.decision ? now : settings.consentAt || now,
-      communityComputeConsentAt: communityTurningOn ? now : patch.communityComputeEnabled === false ? null : settings.communityComputeConsentAt,
+      consentAt: safePatch.decision && safePatch.decision !== settings.decision ? now : settings.consentAt || now,
+      communityComputeConsentAt: communityTurningOn ? now : safePatch.communityComputeEnabled === false ? null : settings.communityComputeConsentAt,
+      backgroundComputeEnabled: mobileLike ? false : safePatch.backgroundComputeEnabled ?? settings.backgroundComputeEnabled,
       crossUserComputeEnabled: false,
       thermalGuardianEnabled: true,
     });
@@ -206,14 +211,20 @@ export default function DeviceComputePage() {
         <p className="note">These are adaptive scheduler ceilings, not a promise that an operating system will expose or hold an exact utilization percentage. Mother AI uses intelligence before compute and yields to the user first.</p>
       </section>
 
-      <section className="panel">
-        <div className="panelHead"><div><h2>Community Compute</h2><p>Optional and separate from Personal Compute.</p></div><button className={settings.communityComputeEnabled ? "toggle on" : "toggle"} type="button" aria-pressed={settings.communityComputeEnabled} disabled={!settings.localComputeEnabled} onClick={() => save({ communityComputeEnabled: !settings.communityComputeEnabled }, settings.communityComputeEnabled ? "Community Compute is OFF on this device." : "Community Compute preference is ON. Secure network execution remains gated until the LANERIQ community runtime is production-ready.")}><span /></button></div>
+      {communityPreferenceOffered ? <section className="panel">
+        <div className="panelHead"><div><h2>Community Compute</h2><p>Desktop-only, optional and separate from Personal Compute.</p></div><button className={settings.communityComputeEnabled ? "toggle on" : "toggle"} type="button" aria-pressed={settings.communityComputeEnabled} disabled={!settings.localComputeEnabled} onClick={() => save({ communityComputeEnabled: !settings.communityComputeEnabled }, settings.communityComputeEnabled ? "Community Compute is OFF on this device." : "Community Compute preference is ON. Secure network execution remains gated until the LANERIQ community runtime is production-ready.")}><span /></button></div>
         <div className="communityCopy">
           <b>Share compute capacity, not personal data.</b>
-          <span>When you explicitly enable this option, Mother AI may use a small amount of otherwise-unused device capacity to support LANERIQ&apos;s distributed AI network. This permission does not grant access to unrelated private files, passwords, contacts, messages or browsing history.</span>
-          <span>Current status: <strong>{settings.communityComputeEnabled ? budget.communityComputeReason.replaceAll("_", " ") : "off"}</strong>. Community workload execution is not yet live in this web runtime; this setting establishes the opt-in boundary for the secure Edge Compute Mesh.</span>
+          <span>When you explicitly enable this option, Mother AI may use a small amount of otherwise-unused Desktop capacity to support LANERIQ&apos;s distributed AI network. This permission does not grant access to unrelated private files, passwords, contacts, messages or browsing history.</span>
+          <span>Current status: <strong>{settings.communityComputeEnabled ? budget.communityComputeReason.replaceAll("_", " ") : "off"}</strong>. Community workload execution is not yet live; this setting establishes the future opt-in boundary for the secure Edge Compute Mesh.</span>
         </div>
-      </section>
+      </section> : <section className="panel">
+        <h2>Community Compute</h2>
+        <div className="communityCopy">
+          <b>Desktop only</b>
+          <span>Mobile LANERIQ clients use Personal Compute only. iPhone, iPad and Android devices are not offered Community Compute, and mobile background work remains controlled by the operating system.</span>
+        </div>
+      </section>}
 
       <section className="panel">
         <h2>Local Storage</h2>
@@ -224,15 +235,15 @@ export default function DeviceComputePage() {
 
       <section className="panel">
         <h2>Cross-device &amp; Background</h2>
-        <label className="row"><div><b>Background compute</b><span>OFF by default. Enable only when you want eligible Mother AI work to continue while LANERIQ is not in the foreground.</span></div><input type="checkbox" checked={settings.backgroundComputeEnabled} disabled={!settings.localComputeEnabled} onChange={(event) => save({ backgroundComputeEnabled: event.target.checked })} /></label>
+        <label className="row"><div><b>Background compute</b><span>{mobileLike ? "Mobile background compute is system-managed and cannot be forced on from this setting." : "OFF by default. Enable only when you want eligible Mother AI work to continue while LANERIQ is not in the foreground."}</span></div><input type="checkbox" checked={mobileLike ? false : settings.backgroundComputeEnabled} disabled={mobileLike || !settings.localComputeEnabled} onChange={(event) => save({ backgroundComputeEnabled: event.target.checked })} /></label>
         <label className="row"><div><b>Use my linked Desktop for heavy work</b><span>This preference becomes active when a LANERIQ Desktop app is linked. Same-user devices remain the preferred remote-compute path.</span></div><input type="checkbox" checked={settings.ownDesktopRemoteComputeEnabled} onChange={(event) => save({ ownDesktopRemoteComputeEnabled: event.target.checked })} /></label>
       </section>
 
       <section className="panel compact">
         <div><b>Thermal Guardian</b><span>Always ON</span></div>
         <div><b>Privacy model</b><span>No tracking-based business model</span></div>
-        <div><b>Community Compute default</b><span>OFF · separate opt-in required</span></div>
-        <div><b>Community execution</b><span>Gated · not live in current web runtime</span></div>
+        <div><b>Mobile Community Compute</b><span>Unavailable · Personal Compute only</span></div>
+        <div><b>Community execution</b><span>Gated · not live in current runtime</span></div>
         <div><b>Cloud fallback</b><span>Available when local or same-user device execution cannot safely finish</span></div>
         <div><b>User-facing Credits required</b><span>No — cost control stays internal at this stage</span></div>
         <div><b>Policy version</b><span>{DEVICE_COMPUTE_POLICY_VERSION}</span></div>
