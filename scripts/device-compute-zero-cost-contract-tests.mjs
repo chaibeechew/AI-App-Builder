@@ -173,6 +173,8 @@ assert.equal(background.route, "cloud_fallback");
 assert.equal(background.reason, "background_compute_disabled");
 assert.equal(background.sustainedCpuShare, 0);
 
+// Generic scheduler preference remains non-executing. Batch 141 adds a stricter
+// native admission layer that hard-blocks Community Compute on all mobile clients.
 const communityMobile = computeDeviceBudget({
   settings: { ...defaults, decision: "local", localComputeEnabled: true, mode: "balanced", communityComputeEnabled: true, communityComputeConsentAt: "2026-09-05T00:00:00.000Z" },
   deviceClass: "mobile",
@@ -185,7 +187,7 @@ const communityMobile = computeDeviceBudget({
 assert.equal(communityMobile.communityComputePreferenceEnabled, true);
 assert.equal(communityMobile.communityComputeEligible, true);
 assert.equal(communityMobile.communityComputeReason, "eligible");
-assert.equal(communityMobile.communityComputeExecutionLive, false, "The opt-in boundary may exist before remote community workload execution is live.");
+assert.equal(communityMobile.communityComputeExecutionLive, false, "Generic scheduler eligibility must never imply live Community execution.");
 assert.equal(communityMobile.crossUserComputeAllowed, false, "No cross-user task execution may occur until the secure community runtime is separately admitted.");
 
 const publicPolicy = publicDeviceComputePolicy();
@@ -220,12 +222,13 @@ for (const [key, expected] of Object.entries({
 for (const pattern of [
   /Allow Mother AI Device Intelligence — Recommended/,
   /Use Cloud Only/,
-  /Community Compute all stay OFF/i,
+  /Mobile clients never execute Community Compute workloads/i,
   /Mother AI is LANERIQ AI/i,
   /0–3%/,
-  /5% scheduler ceiling/,
+  /5% global scheduler ceiling/,
   /__LANERIQ_NATIVE_TELEMETRY__/,
-  /thermalState \|\| "unknown"/,
+  /normalizeNativeTelemetry/,
+  /applyNativeAdmissionToBudget/,
   /navigator\.storage\.persist\(\)/,
   /decision === "local"/,
 ]) assert.match(manager, pattern);
@@ -237,9 +240,10 @@ for (const pattern of [
   /Personal Compute/,
   /Community Compute/,
   /Share compute capacity, not personal data/,
-  /5% ceiling/,
-  /No tracking-based business model/,
-  /separate opt-in required/,
+  /Active compute ceiling/,
+  /Native Resource Guardian/,
+  /Desktop-only; separate opt-in required/,
+  /Mobile Community Compute/,
   /Request persistent local storage/,
 ]) assert.match(settingsPage, pattern);
 
@@ -253,9 +257,9 @@ assert.match(liuiHomeCss, /\.premiumHome \.topActions > a\.credits/);
 assert.match(liuiHomeCss, /display:\s*none\s*!important/);
 
 console.log("✓ Mother AI is LANERIQ AI and Personal Compute still requires an explicit first-use choice");
-console.log("✓ Eco/Balanced/Enhanced enforce a hard 5% adaptive scheduler ceiling and can fall to 0%");
-console.log("✓ Thermal, battery and background guards pause rather than forcing a minimum compute load");
-console.log("✓ Community Compute is a separate explicit opt-in and is never enabled by ordinary Personal Compute consent");
-console.log("✓ Community preference can be recorded while cross-user workload execution remains gated OFF until a secure runtime is admitted");
+console.log("✓ Eco/Balanced/Enhanced keep the global 5% scheduler ceiling while Native Resource Guardian can impose stricter platform caps or 0%");
+console.log("✓ Thermal, battery, Low Power and system-managed background guards pause rather than forcing a minimum compute load");
+console.log("✓ Mobile Community Compute is hard-blocked by the Native Resource Guardian; Desktop Community remains a separate future opt-in");
+console.log("✓ Generic Community preference never implies live cross-user workload execution");
 console.log("✓ Compute permission remains separate from content permission and the product declares no tracking-based business model");
 console.log("✓ Local project storage, same-user Desktop fallback and invisible cost governance remain intact");
