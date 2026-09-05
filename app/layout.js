@@ -34,6 +34,7 @@ import HomeLoadGuard from "./components/HomeLoadGuard";
 import LanguageRuntime from "./components/LanguageRuntime";
 import AuthFlowGuard from "./components/AuthFlowGuard";
 import DeviceComputeManager from "./components/DeviceComputeManager";
+import OfflineRuntimeBootstrap from "./components/OfflineRuntimeBootstrap";
 import LIUIRealProductSurface from "./components/LIUIRealProductSurface";
 import LIUIContextIntelligence from "./components/LIUIContextIntelligence";
 import LIUIRuntimeCapabilityLayer from "./components/LIUIRuntimeCapabilityLayer";
@@ -91,6 +92,7 @@ export default function RootLayout({ children }) {
         <LanguageRuntime />
         <AuthFlowGuard />
         <DeviceComputeManager />
+        <OfflineRuntimeBootstrap />
         <LaunchModeGuard />
         <PremiumJourneyTheme />
         <ProductCopyFix />
