@@ -8,6 +8,9 @@ on:
       - 'lib/ai/creative-media-quality-judge.js'
       - 'lib/ai/creative-media-provider-selection.js'
       - 'lib/ai/creative-image-generation-gateway.js'
+      - 'lib/ai/creative-media-continuity.js'
+      - 'lib/ai/creative-media-observation-judge.js'
+      - 'lib/ai/creative-media-intelligence-engine.js'
       - 'lib/ai/media-capabilities.js'
       - 'lib/ai/image-generation-gateway.js'
       - 'lib/media/reference-policy.js'
@@ -20,6 +23,7 @@ on:
       - 'scripts/upload-ref-contract-tests.mjs'
       - 'scripts/creative-media-control-plane-contract-tests.mjs'
       - 'scripts/creative-media-quality-runtime-contract-tests.mjs'
+      - 'scripts/creative-media-six-layer-contract-tests.mjs'
       - '.github/workflows/creative-media-control-plane.yml'
   push:
     branches:
@@ -33,6 +37,9 @@ on:
       - 'lib/ai/creative-media-quality-judge.js'
       - 'lib/ai/creative-media-provider-selection.js'
       - 'lib/ai/creative-image-generation-gateway.js'
+      - 'lib/ai/creative-media-continuity.js'
+      - 'lib/ai/creative-media-observation-judge.js'
+      - 'lib/ai/creative-media-intelligence-engine.js'
       - 'lib/ai/media-capabilities.js'
       - 'lib/ai/image-generation-gateway.js'
       - 'lib/media/reference-policy.js'
@@ -45,6 +52,7 @@ on:
       - 'scripts/upload-ref-contract-tests.mjs'
       - 'scripts/creative-media-control-plane-contract-tests.mjs'
       - 'scripts/creative-media-quality-runtime-contract-tests.mjs'
+      - 'scripts/creative-media-six-layer-contract-tests.mjs'
       - '.github/workflows/creative-media-control-plane.yml'
 
 jobs:
@@ -70,6 +78,8 @@ jobs:
         run: node scripts/creative-media-control-plane-contract-tests.mjs
       - name: Creative media quality and provider runtime contract
         run: node scripts/creative-media-quality-runtime-contract-tests.mjs
+      - name: Creative media Image 5-layer and Video 6-layer hardening contract
+        run: node scripts/creative-media-six-layer-contract-tests.mjs
       - name: Media preprocessing and exact private reuse regression
         run: npm run test:upload-ref
       - name: Image Studio regression
