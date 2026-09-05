@@ -24,7 +24,7 @@ if 'View details →' not in s or 'Reference only' not in s:
     raise SystemExit('Template detail/reference truth markers missing after repair')
 p.write_text(s)
 
-# Page 14 — retain the approved hero CTA and an explicit truthful action back into creation.
+# Page 14 — retain the approved hero CTA, explicit inspiration-only context and action back into creation.
 p = Path('app/templates/[id]/page.js')
 s = p.read_text()
 if 'Use as inspiration →' not in s:
@@ -32,6 +32,9 @@ if 'Use as inspiration →' not in s:
         s = s.replace('Use This Template →', 'Use as inspiration →', 1)
     else:
         raise SystemExit('Template Detail creation CTA marker not found')
+s = s.replace('application:"inspiration-only"', 'application: "inspiration-only"')
+if 'application: "inspiration-only"' not in s:
+    raise SystemExit('Template Detail inspiration-only context marker missing')
 p.write_text(s)
 
 # Pages 10/15 — keep owner-scoped run data and restore the explicit history heading.
