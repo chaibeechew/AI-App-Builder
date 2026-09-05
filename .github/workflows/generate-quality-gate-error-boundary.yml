@@ -1,0 +1,39 @@
+name: Generate Quality Gate Error Boundary
+
+on:
+  push:
+    branches:
+      - 'batch170-*'
+    paths:
+      - 'app/api/generate/route.js'
+      - 'scripts/generate-quality-gate-error-boundary-tests.mjs'
+      - '.github/workflows/generate-quality-gate-error-boundary.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/api/generate/route.js'
+      - 'scripts/generate-quality-gate-error-boundary-tests.mjs'
+      - '.github/workflows/generate-quality-gate-error-boundary.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  generate-quality-gate-error-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify recoverable generation quality gate boundary
+        run: node scripts/generate-quality-gate-error-boundary-tests.mjs
+      - name: App and Website combined E2E regression
+        run: npm run test:combined-e2e-code
+      - name: Truth boundary
+        run: echo 'A controlled quality-gate rejection is not a successful generation. Unknown server faults must remain 500 errors.'
