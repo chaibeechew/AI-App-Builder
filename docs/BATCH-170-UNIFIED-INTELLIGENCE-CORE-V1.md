@@ -2,13 +2,15 @@
 
 ## Purpose
 
-Turn LANERIQ's separate Creative Media, Reality Intelligence, Project Memory, Provider Router and Security Intelligence foundations into one governed execution spine without pretending that future research capabilities are already LIVE.
+Turn LANERIQ's Creative Media, Reality Intelligence, Project Memory, Provider Router and Security Intelligence foundations into one governed execution spine without pretending that future research capabilities are already LIVE.
 
-## Stacked dependency state
+## Dependency state
 
-This branch is realigned to main `199be09deecc7238dbbd44e2133f40a5eecb861e` and temporarily stacks only the runtime modules required from open PR #312 (Creative Media Image 5-layer / Video 6-layer hardening) and PR #316 (Reality Intelligence Foundation).
+This branch is being realigned to main `6df0f1d5ef8538c3becb3894c8bb3609b85e717a`.
 
-The stacked runtime dependency files are not a claim that #312 or #316 have already merged to Production. When Production Release Control merges those PRs, this branch must be realigned to the new main and duplicate dependency diffs should collapse.
+Reality Intelligence Foundation is now Production-integrated in main by Batch 169, so Unified Core consumes `lib/reality/**` directly from main and no longer carries PR #316 runtime files in its diff.
+
+Creative Media PR #312 is still open, so this branch temporarily stacks only the four runtime modules needed for Image 5-layer / Video 6-layer hardening. When Production Release Control integrates #312, this PR must be realigned again and those duplicate Creative Media runtime diffs should collapse.
 
 ## Unified Core v1
 
@@ -19,9 +21,9 @@ The stacked runtime dependency files are not a claim that #312 or #316 have alre
 5. **Simulation Calibration** — compare simulations with later independently evidenced outcomes; simulation remains simulation and never becomes guaranteed prediction.
 6. **Action Authority** — Security Intelligence supplies defensive risk input but cannot authorize CLEAN; scoped permission, trust evidence and human approval gates remain separate.
 7. **Creative World Bridge** — provider-independent canonical world IDs feed Creative Media continuity; only accepted, signed-observed, evidence-ledger-bound outputs can propose world updates.
-8. **Executable Reality Compiler** — turns semantic Reality plans into an ordered DAG: context → world → simulation (when needed) → fabric → cost admission → execution → judge → repair → evidence → authority (when needed) → world update.
+8. **Executable Reality Compiler** — semantic intent becomes an ordered DAG: context → world → simulation (when needed) → fabric → cost admission → execution → judge → repair → evidence → authority (when needed) → world update.
 9. **Unified Intelligence Orchestrator** — one entry point for planning and admitting observed Creative results into the versioned world.
-10. **Read-only status surface** — exposes CODE truth without implying Production merge or external LIVE capability.
+10. **Read-only status surface** — exposes CODE truth without implying Unified Core or Creative Media #312 have already merged to Production.
 
 ## Fail-closed invariants
 
@@ -43,4 +45,4 @@ This integration does **not** claim a frontier persistent world model, real-worl
 
 ## Production integration rule
 
-Do not merge this stacked branch directly merely because its CI is green. Production Release Control must first account for #312 and #316 dependency order, realign this PR to the latest main, rerun CI on the resulting exact head, and only then consider final integration.
+Do not merge this stacked PR directly merely because CI is green. Production Release Control must integrate or otherwise account for #312, realign this PR to the then-latest main, rerun exact-head CI, and only then consider final integration.
