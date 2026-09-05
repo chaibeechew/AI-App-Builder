@@ -11,6 +11,7 @@ on:
       - "scripts/native-resource-guardian-contract-tests.mjs"
       - "scripts/apple-store-contract-tests.mjs"
       - "scripts/google-play-contract-tests.mjs"
+      - "scripts/device-compute-zero-cost-contract-tests.mjs"
       - ".github/workflows/batch141-native-resource-guardian.yml"
   workflow_dispatch:
 
@@ -26,6 +27,13 @@ jobs:
     name: Native Resource Guardian contract
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # Build-only public placeholders. No production Supabase secret/service-role key is used.
+      # These mirror existing LANERIQ CI gates and only allow @supabase/ssr client construction
+      # during Next.js prerender; contract tests do not depend on a live database connection.
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
     steps:
       - name: Checkout exact PR head
         uses: actions/checkout@v4
@@ -57,4 +65,5 @@ jobs:
       - name: Evidence boundary
         run: |
           echo "Batch 141 verifies source contracts and the web host only."
+          echo "CI uses non-secret Supabase public placeholders for client construction; it does not verify a live database path."
           echo "It does not claim signed iOS/Android builds, physical-device verification, store acceptance, or live Community Compute."
