@@ -6,6 +6,7 @@ const root=process.cwd();
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const page=read('app/avatar-studio/page.js');
 const api=read('app/api/avatar/generate/route.js');
+const characterCore=read('lib/ai/avatar-character-core.js');
 const gateway=read('lib/ai/image-generation-gateway.js');
 const persistence=read('lib/ai/image-output-persistence.js');
 const save=read('app/api/images/save/route.js');
@@ -14,8 +15,10 @@ const replayMigration=read('supabase/migrations/20260903093000_image_generation_
 
 // Customer surface: stable mobile request identity, consent, truthful source labels and already-durable model output.
 assert.match(page,/AI Avatar Creator/);
+assert.match(page,/LANERIQ AI CREATIVE STUDIO/);
 assert.match(page,/← LANERIQ AI/);
 assert.doesNotMatch(page,/AI BUILD APP&WEB/);
+assert.doesNotMatch(page,/SOOLENAI CREATIVE STUDIO/);
 assert.match(page,/useRef/);
 assert.match(page,/generationRequestId\.current\|\|newRequestId\("avatar"\)/);
 assert.match(page,/generationRequestId\.current=requestId/);
@@ -37,6 +40,18 @@ assert.match(page,/already secured in your private Asset Library/);
 assert.match(page,/source==="model"\?"AI model output":"Local visual concept"/);
 assert.match(page,/min-height:44px/);
 assert.match(page,/font-size:16px/);
+
+// Living Character customer controls and truthful phased readiness.
+for(const control of ['Persona','Voice direction','Motion profile','Character language'])assert.match(page,new RegExp(control));
+assert.match(page,/Create Living Avatar/);
+assert.match(page,/LIVING CHARACTER CORE/);
+assert.match(page,/Behavior state preview/);
+assert.match(page,/Real face\/body animation attaches to the same state machine in the renderer phase/);
+assert.match(page,/Voice and real-time 3D are capability contracts in this phase, not falsely presented as active providers/);
+assert.match(page,/setDemoState/);
+assert.match(page,/result\?\.character/);
+assert.match(page,/character\.characterId/);
+assert.match(page,/character\.runtime\?\.profiles\?\.balanced/);
 
 // Server API: verified auth, bounded request, likeness policy and one server-only replay claim before any provider execution.
 assert.match(api,/auth\.getUser\(\)/);
@@ -62,6 +77,41 @@ assert.match(api,/Do not infer sensitive personal attributes or identity facts/)
 assert.match(api,/Do not imitate a celebrity, public figure, copyrighted character or third-party mascot/);
 assert.match(api,/rawReferenceStored:false/);
 assert.match(api,/Cache-Control":"private, no-store/);
+
+// Living Character API: stable identity, normalized character options and provider-neutral manifest on every success/fallback/replay path.
+assert.match(api,/avatar-character-core\.js/);
+assert.match(api,/normalizeCharacterOptions/);
+assert.match(api,/buildLivingCharacterManifest/);
+assert.match(api,/function buildCharacterId/);
+assert.match(api,/characterId=buildCharacterId/);
+assert.match(api,/continuityKey:hash\.slice\(0,32\)/);
+assert.match(api,/character,replayed:true/);
+assert.match(api,/character,replayed:false/);
+assert.match(api,/characterId/);
+
+// Living Character core contract: deterministic states, transition graph, animation/voice/memory interfaces and mobile thermal profiles.
+assert.match(characterCore,/laneriq\.living-character/);
+for(const state of ['idle','listening','thinking','speaking','acting','success','concerned'])assert.match(characterCore,new RegExp(`"${state}"`));
+assert.match(characterCore,/CHARACTER_TRANSITIONS/);
+assert.match(characterCore,/canTransitionCharacter/);
+assert.match(characterCore,/blendshape-v1/);
+assert.match(characterCore,/viseme-timeline-v1/);
+assert.match(characterCore,/target-vector-v1/);
+assert.match(characterCore,/tts-stream-v1/);
+assert.match(characterCore,/character-memory-v1/);
+assert.match(characterCore,/laneriq-agent-action-v1/);
+assert.match(characterCore,/ownerScoped:true/);
+assert.match(characterCore,/optInPersistentMemory:true/);
+assert.match(characterCore,/eco:\{targetFps:24/);
+assert.match(characterCore,/balanced:\{targetFps:30/);
+assert.match(characterCore,/performance:\{targetFps:60/);
+assert.match(characterCore,/thermalPolicy:"reduce-before-hot"/);
+assert.match(characterCore,/adaptiveThermal:true/);
+assert.match(characterCore,/adaptiveBattery:true/);
+assert.match(characterCore,/reducedMotionSupported:true/);
+assert.match(characterCore,/realtime3DRenderer:false/);
+assert.match(characterCore,/liveVoiceProvider:false/);
+assert.match(characterCore,/motionGenerator:false/);
 
 // Model path: billing/refund, durable private capture before browser response, replay from private assets and honest fallback.
 assert.match(api,/getImageGenerationConfig\(\)/);
@@ -122,4 +172,4 @@ assert.match(replayMigration,/unique \(user_id, request_id\)/i);
 assert.match(replayMigration,/revoke all on table public\.image_generation_requests from public, anon, authenticated/i);
 assert.match(replayMigration,/service_role/i);
 
-console.log('AI Avatar Creator contract passed: consent-safe generation, replay-safe mobile recovery, durable private model capture, automatic refund, truthful local fallback and owner-scoped assets are locked.');
+console.log('AI Avatar Creator contract passed: consent-safe generation, replay-safe recovery, durable private output, stable Living Character DNA, behavior states, provider-neutral voice/face/memory interfaces and adaptive mobile runtime profiles are locked.');
