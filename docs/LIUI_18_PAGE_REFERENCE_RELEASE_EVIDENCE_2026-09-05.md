@@ -19,6 +19,7 @@ This document records the release-control boundary for the user-approved LANERIQ
 - Credits are not reintroduced.
 - SMS remains ON HOLD.
 - Mobile Community Compute remains disabled.
+- Source repair at `614c7250b3effcfedb08cb5e58d1dc814a26f149` restored the Page 12 cross-feature runtime entries and the explicit no-paid-SMS login truth boundary; the targeted Game Runtime and Communications 100 contracts plus a Production build passed before this exact-head rerun.
 
 ## Release gate
 
