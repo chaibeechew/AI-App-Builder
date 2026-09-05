@@ -7,10 +7,12 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const modify=read('app/api/modify/route.js');
 const builderDomain=read('lib/cloud/builder-projects.js');
 const builderAdapter=read('lib/cloud-adapters/builder-project-data.js');
+const builderWorldAdapter=read('lib/cloud-adapters/builder-project-world-data.js');
 const precise=read('app/components/PreciseEditAssistant.js');
 const proAssistant=read('app/pro/[id]/ProAssistant.js');
 const proPage=read('app/pro/[id]/page.js');
 const runtime=read('supabase/migrations/20260831181000_harden_professional_modify_runtime.sql');
+const worldRuntime=read('supabase/migrations/20260905064500_app_builder_unified_world_atomic_persistence.sql');
 const memory=read('lib/project-memory.js');
 
 // Request identity and ownership are mandatory; arbitrary unsaved client specs are not a supported persistence path.
@@ -32,21 +34,23 @@ const replayCheck=modify.indexOf('const context=await loadBuilderModificationCon
 const financeStart=modify.indexOf('const entitlement=await consumeAppBuilderEntitlement');
 const aiStart=modify.indexOf('const ai=await withTimeout(runBuilderAi(prompt');
 assert.ok(replayCheck>0&&financeStart>0&&aiStart>0&&replayCheck<financeStart&&replayCheck<aiStart,'Cloud replay/context lookup must happen before finance and AI execution.');
-assert.match(modify,/if\(replayVersion\?\.specification\)return NextResponse\.json\(replayPayload/);
+assert.match(modify,/if\(replayVersion\?\.specification\)/);
+assert.match(modify,/return NextResponse\.json\(replayPayload\(/);
+assert.match(modify,/replay-version-is-not-current-world-head/);
 assert.match(modify,/if\(save\.replayed\)/);
 assert.match(modify,/Saved replay version could not be loaded safely/);
 assert.match(modify,/persisted\.specification/);
 
-// Precise/stale edits are version-bound before credit/AI work begins; adapter re-checks before service-role persistence.
+// Precise/stale edits are version-bound before credit/AI work begins; world-aware adapter re-checks version before privileged persistence.
 assert.match(modify,/expectedVersionId/);
 assert.match(modify,/expectedVersionId!==owned\.current_version_id/);
 assert.match(modify,/changed after the editor loaded/);
 const staleCheck=modify.indexOf('expectedVersionId&&expectedVersionId!==owned.current_version_id');
 assert.ok(staleCheck>0&&staleCheck<financeStart&&staleCheck<aiStart,'Stale editor protection must run before finance and AI.');
 assert.match(modify,/baseVersionId=owned\.current_version_id/);
-const modifySaveBlock=builderAdapter.slice(builderAdapter.indexOf('async saveModification'),builderAdapter.indexOf('async loadPublishPreparation'));
-assert.match(modifySaveBlock,/project\.current_version_id !== expectedVersionId/);
-assert.match(modifySaveBlock,/\.eq\("id", version\.id\)\.eq\("app_id", appId\)/);
+const modifySaveBlock=builderWorldAdapter.slice(builderWorldAdapter.indexOf('async saveModification'));
+assert.match(modifySaveBlock,/project\.current_version_id!==expectedVersionId/);
+assert.match(modifySaveBlock,/\.eq\('id',version\.id\)\.eq\('app_id',appId\)/);
 
 // AI work is bounded, zero-cost-admitted and must not reduce deterministic project quality.
 assert.match(modify,/PRIMARY_AI_TIMEOUT_MS/);
@@ -75,17 +79,21 @@ assert.match(modify,/Preserve existing functionality and remembered project pref
 assert.match(modify,/Never reuse private assets across customers/);
 assert.match(modify,/mergeProjectMemory/);
 assert.match(builderAdapter,/\.from\("project_memory"\)/);
+assert.match(builderWorldAdapter,/project_memory/);
 assert.match(memory,/rawPrivateAssetsReusableAcrossCustomers:false/);
+assert.match(memory,/realityEnvelope:cleanRealityEnvelope/);
 
-// Persistence is Cloud-isolated, atomic, append-only, expected-version bound, request-idempotent and service-only.
+// Persistence remains Cloud-isolated, expected-version bound, request-idempotent and service-only; version + World memory are atomic in the new isolated RPC.
 assert.match(modify,/saveBuilderModification/);
 assert.match(builderDomain,/saveBuilderModification/);
 assert.doesNotMatch(builderDomain,/lib\/supabase\/|@supabase\/|createAdminClient/);
-assert.match(modifySaveBlock,/const admin = createAdminClient\(\)/);
-assert.match(modifySaveBlock,/server_save_app_modification/);
-assert.match(modifySaveBlock,/p_expected_version_id: expectedVersionId/);
-assert.match(modifySaveBlock,/p_request_id: requestId/);
-assert.ok(modifySaveBlock.indexOf('resolvePrincipal')<modifySaveBlock.indexOf('createAdminClient()'),'Cloud adapter must authenticate and re-check ownership/version before privileged persistence.');
+assert.match(builderWorldAdapter,/const admin=createAdminClient\(\)/);
+assert.match(modifySaveBlock,/server_save_app_modification_world/);
+assert.match(modifySaveBlock,/p_expected_version_id:expectedVersionId/);
+assert.match(modifySaveBlock,/p_request_id:requestId/);
+assert.match(modifySaveBlock,/p_memory_json:memoryJson\|\|\{\}/);
+assert.ok(modifySaveBlock.indexOf('base.currentPrincipal')<modifySaveBlock.indexOf('createAdminClient()'),'World-aware Cloud adapter must authenticate before privileged persistence.');
+assert.ok(modifySaveBlock.indexOf('project.current_version_id!==expectedVersionId')<modifySaveBlock.indexOf('createAdminClient()'),'World-aware Cloud adapter must re-check ownership/version before privileged persistence.');
 assert.match(runtime,/create unique index if not exists app_versions_app_request_unique/);
 assert.match(runtime,/for update/i);
 assert.match(runtime,/current_version is distinct from p_expected_version_id/);
@@ -95,6 +103,11 @@ assert.match(runtime,/insert into public\.app_versions/);
 assert.match(runtime,/current_version_id = new_version\.id/);
 assert.match(runtime,/revoke all on function public\.server_save_app_modification[\s\S]*from public, anon, authenticated/);
 assert.match(runtime,/grant execute on function public\.server_save_app_modification[\s\S]*to service_role/);
+assert.match(worldRuntime,/server_save_app_modification_world/);
+assert.match(worldRuntime,/insert into public\.project_memory/);
+assert.match(worldRuntime,/select v\.version_no\+1 into next_version/);
+assert.match(worldRuntime,/current_version is not distinct from existing_version\.id/);
+assert.match(worldRuntime,/grant execute on function public\.server_save_app_modification_world[\s\S]*to service_role/);
 
 // Failed paid modifications refund through the same request-bound financial runtime.
 assert.match(modify,/refundAiCredits/);
@@ -117,9 +130,9 @@ assert.match(proAssistant,/same request ID will safely recover/);
 assert.match(proPage,/currentVersionId=\{current\.id\}/);
 
 console.log('✓ AI Modify requires a saved Cloud-owned project and a stable request identity');
-console.log('✓ Cloud replay returns the exact persisted specification before AI or charging');
-console.log('✓ Precise and Pro edits are expected-version bound and adapter re-checks version before privileged persistence');
+console.log('✓ Cloud replay returns exact persisted specs before AI/charging and cannot label an old replay as current World head');
+console.log('✓ Precise and Pro edits are expected-version bound and the world-aware adapter re-checks version before privileged persistence');
 console.log('✓ Modify, quality repair and self-heal are bounded by user/project-scoped Zero-Cost Admission');
 console.log('✓ Quality regression and structural self-heal failures cannot be persisted');
-console.log('✓ Cloud-isolated service-only persistence appends one replay-safe version and protects concurrent edits');
+console.log('✓ Isolated service-only World persistence atomically advances one replay-safe version plus project Reality memory');
 console.log('✓ Paid failures refund safely and customer retry surfaces reuse the same operation identity');
