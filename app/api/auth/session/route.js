@@ -41,11 +41,22 @@ function setPrimaryCookies(response,token){
   return response;
 }
 
+function compatibilityVerified(user){
+  return Boolean(user?.confirmed_at||user?.email_confirmed_at||user?.phone_confirmed_at);
+}
+
 async function mintFromCompatibilityIdentity({requireFreshSignIn=false}={}){
   const compatibilityClient=await createCompatibilityClient();
   const {data,error}=await compatibilityClient.auth.getUser();
   const user=data?.user;
   if(error||!user?.id)return null;
+
+  // A LANERIQ primary session may only be migrated from an identity whose
+  // verification state is already authoritative in the compatibility bridge.
+  // Unverified legacy cookies must go through LANERIQ Verification instead of
+  // being upgraded into a primary browser session.
+  if(!compatibilityVerified(user))return null;
+
   if(requireFreshSignIn){
     const signedInAt=Date.parse(String(user.last_sign_in_at||""));
     const age=Date.now()-signedInAt;
