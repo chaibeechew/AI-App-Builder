@@ -22,6 +22,7 @@ const {
   getZeroCostAdmissionRuntimeTruth,
 } = await import("../lib/ai/zero-cost-admitted-generation.js");
 const { zeroCostPolicy } = await import("../lib/soolen/cost-policy.js");
+const { MEDIA_ZERO_COST_POLICY, resolveMediaCostAdmission } = await import("../lib/ai/media-cost-admission.js");
 
 assert.equal(ZERO_COST_ADMISSION_POLICY.zeroModePaidRouteAllowed, false);
 assert.equal(ZERO_COST_ADMISSION_POLICY.freeModePaidRouteAllowed, false);
@@ -34,6 +35,11 @@ assert.equal(policy.semanticReuseNetworkV2Required, true);
 assert.equal(policy.scopedPrivateReuseRequired, true);
 assert.equal(policy.crossUserPrivateReuseAllowed, false);
 assert.equal(policy.localBeforeRemoteForAdmittedPaths, true);
+assert.equal(policy.mediaZeroCostAdmissionRequired, true);
+assert.equal(policy.mediaFreeTierHardStopRequired, true);
+assert.equal(policy.zeroSpendComputeCreditsDisabled, true);
+assert.equal(policy.cloudVideoDeviceOrDraftFirstInZeroOrFree, true);
+assert.equal(policy.cloudVideoAllowed, false);
 
 const demand = estimateAdmissionDemand({ promptChars: 32_000, attachmentCount: 2, requestedAgents: 5 });
 assert.ok(demand.estimatedTokens >= 8_000);
@@ -60,6 +66,30 @@ assert.equal(assertAdmissionSafe(freeVerified, { costMode: "free" }), true);
 const balancedPaid = decideZeroCostAdmission({ costMode: "balanced", localEngineAvailable: false, paidProviderAvailable: true, paidFallbackAllowed: true });
 assert.equal(balancedPaid.route, "PAID_PROVIDER");
 assert.equal(balancedPaid.costRisk, 1);
+
+assert.equal(MEDIA_ZERO_COST_POLICY.zeroModeAllowsOnlyDeclaredZeroCostImageRuntime, true);
+assert.equal(MEDIA_ZERO_COST_POLICY.freeModeImageRequiresProviderHardStop, true);
+assert.equal(MEDIA_ZERO_COST_POLICY.zeroAndFreeModeCloudVideoBlocked, true);
+assert.equal(MEDIA_ZERO_COST_POLICY.zeroAndVerifiedFreeDoNotRequireCredits, true);
+const zeroImage = resolveMediaCostAdmission({kind:"image",provider:"local-image",costClass:"zero",connected:true,env:{SOOLEN_COST_MODE:"zero"}});
+assert.equal(zeroImage.route,"EXTERNAL_ZERO");
+assert.equal(zeroImage.externalAllowed,true);
+assert.equal(zeroImage.chargeRequired,false);
+assert.equal(zeroImage.zeroCostExecution,true);
+const freeImageUnverified = resolveMediaCostAdmission({kind:"image",provider:"image-free",costClass:"free",connected:true,env:{SOOLEN_COST_MODE:"free"}});
+assert.equal(freeImageUnverified.route,"BLOCK");
+assert.equal(freeImageUnverified.externalAllowed,false);
+const freeImageVerified = resolveMediaCostAdmission({kind:"image",provider:"image-free",costClass:"free",connected:true,env:{SOOLEN_COST_MODE:"free",IMAGE_GENERATION_FREE_TIER_HARD_STOP_PROVIDERS:"image-free"}});
+assert.equal(freeImageVerified.route,"EXTERNAL_VERIFIED_FREE");
+assert.equal(freeImageVerified.externalAllowed,true);
+assert.equal(freeImageVerified.chargeRequired,false);
+const zeroVideo = resolveMediaCostAdmission({kind:"video",provider:"video-zero",costClass:"zero",connected:true,env:{SOOLEN_COST_MODE:"zero"}});
+assert.equal(zeroVideo.route,"DEVICE_OR_DRAFT");
+assert.equal(zeroVideo.externalAllowed,false);
+assert.equal(zeroVideo.chargeRequired,false);
+const balancedUnverifiedFree = resolveMediaCostAdmission({kind:"image",provider:"maybe-free",costClass:"free",connected:true,env:{SOOLEN_COST_MODE:"balanced"}});
+assert.equal(balancedUnverifiedFree.route,"EXTERNAL_METERED");
+assert.equal(balancedUnverifiedFree.chargeRequired,true);
 
 assert.equal(SEMANTIC_REUSE_POLICY.scopeRequired, true);
 assert.equal(SEMANTIC_REUSE_POLICY.crossUserPrivateReuseAllowed, false);
@@ -138,12 +168,32 @@ assert.match(chatRoute, /allowApproximateReuse:\s*false/);
 assert.match(chatRoute, /paidFallbackAllowed:\s*false/);
 assert.doesNotMatch(chatRoute, /generateWithFallback/);
 
+const imageGateway=fs.readFileSync("lib/ai/image-generation-gateway.js","utf8");
+const videoGateway=fs.readFileSync("lib/video/render-gateway.js","utf8");
+const imageRoute=fs.readFileSync("app/api/images/generate/route.js","utf8");
+const avatarRoute=fs.readFileSync("app/api/avatar/generate/route.js","utf8");
+const videoRoute=fs.readFileSync("app/api/video/projects/[id]/compile/route.js","utf8");
+const finance=fs.readFileSync("lib/app-builder-finance.js","utf8");
+assert.match(imageGateway,/resolveMediaCostAdmission/);
+assert.match(imageGateway,/chargeRequired: admission\.chargeRequired/);
+assert.match(imageGateway,/freeTierHardStopVerified: admission\.freeTierHardStopVerified/);
+assert.match(videoGateway,/resolveMediaCostAdmission/);
+assert.match(videoGateway,/admissionRoute: admission\.route/);
+assert.match(imageRoute,/source:"local"/);
+assert.match(avatarRoute,/source:"local"/);
+assert.match(videoRoute,/status:"draft"/);
+assert.match(finance,/zeroSpendComputeMode/);
+assert.match(finance,/mode==="zero"\|\|mode==="free"/);
+assert.match(finance,/zeroSpendComputeBypass/);
+
 const providerStatus = fs.readFileSync("app/api/ai/provider-router/status/route.js", "utf8");
 assert.match(providerStatus, /zeroCostAdmission:\s*truth\.zeroCostAdmission/);
 assert.doesNotMatch(providerStatus, /scopeId|reuseKeyMaterial|rawPrompt/);
 
 console.log("✓ Zero/Free admission can never escalate to paid compute and free remote capacity requires a verified hard stop");
 console.log("✓ LANERIQ cost policy now requires Admission Controller + Semantic Reuse v2 on admitted zero-cost paths");
+console.log("✓ Media admission rejects unverified free image runtimes, keeps cloud video device/draft-first in zero/free, and treats uncertain free capacity as metered when spend is allowed");
+console.log("✓ Zero/free compute modes suppress AI credit charging while metered modes retain the server-only finance path");
 console.log("✓ Admission estimates workload before execution and prefers deterministic/reuse/local capacity before remote capacity");
 console.log("✓ Semantic Reuse Network v2 isolates full outputs by scope, stores no raw prompt, and blocks approximate private-result reuse");
 console.log("✓ Blueprint-only approximate reuse is permitted inside an explicit scope with a high similarity threshold");
