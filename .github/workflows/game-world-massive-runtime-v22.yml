@@ -1,0 +1,24 @@
+name: Game World Massive Runtime V22 Gate
+on:
+  push:
+    branches: [batch183-game-world-massive-runtime-v22]
+  pull_request:
+    paths:
+      - 'lib/game/game-world-massive-runtime-v22.js'
+      - 'scripts/game-world-massive-runtime-v22-tests.mjs'
+      - '.github/workflows/game-world-massive-runtime-v22.yml'
+jobs:
+  massive-v22:
+    runs-on: ubuntu-24.04
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: npm ci --no-audit --no-fund
+      - run: node scripts/game-world-real-renderer-v21-tests.mjs
+      - run: node scripts/game-world-massive-runtime-v22-tests.mjs
+      - run: npm run build
