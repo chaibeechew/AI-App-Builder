@@ -52,7 +52,7 @@ final class SecurityViewModel: ObservableObject {
     func bankingSafety() {
         statusTitle = "Banking Safety"
         statusLevel = "GUIDED CHECK"
-        statusBody = "Before banking:\n• Do not continue after installing an unknown profile or app.\n• End unexpected screen-sharing or remote-support sessions.\n• Verify the bank app identity and destination account independently.\n• Treat unexpected OTP, password-reset, SIM or notification prompts as suspicious.\n\niOS does not expose unrestricted system-wide antivirus scanning to normal App Store apps, so LANERIQ will not claim BANKING_SAFE without sufficient evidence."
+        statusBody = "Before banking:\n• Do not continue after installing an unknown profile or app.\n• End unexpected screen-sharing or remote-support sessions.\n• Verify the bank app identity and destination account independently.\n• Treat unexpected OTP, password-reset, SIM or notification prompts as suspicious.\n\niOS does not expose unrestricted system-wide malware scanning to normal App Store apps, so LANERIQ will not claim BANKING_SAFE without sufficient evidence."
     }
 
     func refreshTruth() async {
@@ -129,9 +129,9 @@ struct ContentView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("LANERIQ Security")
+            Text("LANERIQ Anti Scam")
                 .font(.system(size: 34, weight: .bold, design: .rounded))
-            Text("iOS Beta • Financial Scam & Malware Defense")
+            Text("iOS Beta • Anti-Scam, Phishing & Malware Defense")
                 .foregroundStyle(.secondary)
             Text("v0.1.0")
                 .font(.caption.monospaced())
@@ -221,7 +221,7 @@ struct ContentView: View {
 
     private var scopeCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("iOS Beta scope")
+            Text("LANERIQ Anti Scam iOS Beta scope")
                 .font(.headline)
             Text("SafeLink • phishing-risk heuristics • user-selected file fingerprinting • Production Truth • banking-safety guidance • privacy-first fail-closed decisions")
                 .font(.subheadline)
