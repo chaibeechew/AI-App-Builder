@@ -1,4 +1,4 @@
-# trigger: 2026-09-05-comprehensive-ui-heal-v2
+# trigger: 2026-09-05-comprehensive-ui-heal-v3
 name: UI reference CI heal one-shot
 
 on:
@@ -49,6 +49,6 @@ jobs:
           git rm .github/workflows/ui-reference-ci-heal-one-shot.yml scripts/ui-reference-ci-heal-once.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app/database/'[id]'/page.js app/templates/page.js app/home-liui-v5.css app/liui-real-product-surface.css app/soolen-ai/page.js
+          git add app/database/'[id]'/page.js app/templates/page.js app/home-liui-v5.css app/liui-real-product-surface.css app/soolen-ai/page.js app/publish/'[id]'/page.js
           git commit -m 'UI: heal all reference layout contracts without weakening gates'
           git push origin HEAD:ui/18-page-reference-layout-v1
