@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "../../lib/supabase/client";
-import { REFERENCE_LIMITS, referenceKindFromMime, validateReferenceFileMeta } from "../../lib/media/reference-policy.js";
+import { REFERENCE_LIMITS, buildReferenceBrief, referenceKindFromMime, validateReferenceFileMeta } from "../../lib/media/reference-policy.js";
+import { buildReferenceReusePlan, referenceIntelligenceFromAsset } from "../../lib/media/reference-reuse.js";
 
 const sizeLabel = (bytes) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 function canvasBase64(canvas, q = .68) { return canvas.toDataURL("image/jpeg", q).split(",")[1] || ""; }
@@ -141,22 +142,44 @@ export default function ReferenceUploader() {
     setReady(false);
   }
 
-  async function saveAssets(intelligence, user) {
-    if (!user?.id) throw new Error("Authentication required.");
-    const byName = new Map((Array.isArray(intelligence) ? intelligence : []).map((item) => [String(item?.sourceName || ""), cleanIntel(item)]));
-    const saved = [];
+  async function fingerprintItems() {
+    const fingerprinted = [];
     for (const item of items) {
       const validation = validateReferenceFileMeta({ mimeType: item.type, size: item.size });
       if (!validation.ok) throw new Error(validation.error);
-      const fingerprint = await hashFile(item.file);
-      const { data: existing, error: existingError } = await supabase.from("asset_library").select("id,file_name,mime_type,category,intelligence,content_fingerprint").eq("user_id", user.id).eq("content_fingerprint", fingerprint).maybeSingle();
-      if (existingError) throw new Error("Unable to check your private asset library.");
-      if (existing) { saved.push(existing); continue; }
+      fingerprinted.push({ ...item, fingerprint: await hashFile(item.file) });
+    }
+    return fingerprinted;
+  }
+
+  async function findExistingAssets(userId, fingerprinted) {
+    const fingerprints = [...new Set(fingerprinted.map((item) => item.fingerprint).filter(Boolean))];
+    if (!fingerprints.length) return [];
+    const { data, error: existingError } = await supabase.from("asset_library")
+      .select("id,file_name,mime_type,category,intelligence,content_fingerprint")
+      .eq("user_id", userId)
+      .in("content_fingerprint", fingerprints);
+    if (existingError) throw new Error("Unable to check your private asset library.");
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function saveAnalyzedAssets(analysisItems, intelligence, user) {
+    if (!user?.id) throw new Error("Authentication required.");
+    const byName = new Map((Array.isArray(intelligence) ? intelligence : []).map((item) => [String(item?.sourceName || ""), cleanIntel(item)]));
+    const saved = [];
+    for (const item of analysisItems) {
+      const validation = validateReferenceFileMeta({ mimeType: item.type, size: item.size });
+      if (!validation.ok) throw new Error(validation.error);
+      const fingerprint = item.fingerprint;
+      const intel = byName.get(item.name) || {};
+      if (item.existingAsset) {
+        saved.push({ ...item.existingAsset, intelligence: { ...intel, purpose: "app_reference", reusableAcrossUsers: false, privateCustomerAsset: true } });
+        continue;
+      }
       const safe = item.name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-100) || "asset";
       const storagePath = `${user.id}/${crypto.randomUUID()}-${safe}`;
       const { error: uploadError } = await supabase.storage.from("user-assets").upload(storagePath, item.file, { contentType: item.type, upsert: false });
       if (uploadError) throw new Error("Unable to save this reference in private storage.");
-      const intel = byName.get(item.name) || {};
       const { data: asset, error: dbError } = await supabase.from("asset_library").insert({
         user_id: user.id,
         file_name: item.name.slice(0, 180),
@@ -189,9 +212,14 @@ export default function ReferenceUploader() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) throw new Error("Authentication required.");
+
+      const fingerprinted = await fingerprintItems();
+      const existingAssets = await findExistingAssets(user.id, fingerprinted);
+      const reusePlan = buildReferenceReusePlan(fingerprinted, existingAssets);
       const references = [];
       let totalBase64 = 0;
-      for (const item of items) {
+
+      for (const item of reusePlan.analysisItems) {
         const prepared = item.kind === "image" ? [await compressImage(item.file)] : await frames(item.file);
         for (const reference of prepared) {
           if (references.length >= REFERENCE_LIMITS.maxAnalysisReferences) break;
@@ -201,21 +229,44 @@ export default function ReferenceUploader() {
         }
         if (references.length >= REFERENCE_LIMITS.maxAnalysisReferences || totalBase64 >= REFERENCE_LIMITS.maxAnalysisBase64Chars) break;
       }
-      if (!references.length) throw new Error("Unable to read media.");
-      const response = await fetch("/api/reference-analyze", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", credentials: "same-origin", body: JSON.stringify({ references }) });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result?.analysis) throw new Error(response.status === 401 ? "Authentication required." : result?.error || "Reference analysis failed.");
-      const assets = await saveAssets(result.assets || [], user);
+
+      let freshIntelligence = [];
+      if (reusePlan.analysisItems.length) {
+        if (!references.length) throw new Error("Unable to read media.");
+        const response = await fetch("/api/reference-analyze", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", credentials: "same-origin", body: JSON.stringify({ references }) });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result?.analysis) throw new Error(response.status === 401 ? "Authentication required." : result?.error || "Reference analysis failed.");
+        freshIntelligence = Array.isArray(result.assets) ? result.assets : [];
+      }
+
+      const analyzedAssets = await saveAnalyzedAssets(reusePlan.analysisItems, freshIntelligence, user);
+      const assets = [...reusePlan.reusedAssets, ...analyzedAssets];
       if (!assets.length) throw new Error("No private references were saved.");
-      const brief = `Use these customer references only as inspiration and requirements context. Reimagine them into an original App + Website; do not copy third-party branding, text, images, code or distinctive layouts.\n\nVISUAL REFERENCE ANALYSIS:\n${String(result.analysis).slice(0, 4000)}`;
+
+      const combinedIntelligence = [
+        ...reusePlan.reusedAssets.map((asset) => referenceIntelligenceFromAsset(asset)),
+        ...freshIntelligence,
+      ];
+      const analysis = buildReferenceBrief(combinedIntelligence);
+      const brief = `Use these customer references only as inspiration and requirements context. Reimagine them into an original App + Website; do not copy third-party branding, text, images, code or distinctive layouts.\n\nVISUAL REFERENCE ANALYSIS:\n${String(analysis).slice(0, 4000)}`;
       const safeMeta = assets.map((asset) => ({ id: asset.id, file_name: asset.file_name, mime_type: asset.mime_type, category: asset.category }));
       try {
         sessionStorage.setItem("soolenReferenceAnalysis", brief);
         sessionStorage.setItem("soolenPendingAssetIds", JSON.stringify(assets.map((item) => item.id)));
         sessionStorage.setItem("soolenPendingAssetMeta", JSON.stringify(safeMeta));
+        sessionStorage.setItem("soolenReferenceReuseStats", JSON.stringify({
+          exactPrivateReuse: reusePlan.reuseCount,
+          analysisRequired: reusePlan.analysisCount,
+          duplicateSelectionsSkipped: reusePlan.duplicateSelectionCount,
+          crossUserReuseAllowed: false,
+        }));
       } catch {}
       const current = String(document.querySelector("textarea")?.value || "").trim();
-      window.dispatchEvent(new CustomEvent("soolen-app-idea", { detail: { idea: current || "Use my uploaded references to help design this App + Website.", assetIds: assets.map((item) => item.id) } }));
+      window.dispatchEvent(new CustomEvent("soolen-app-idea", { detail: {
+        idea: current || "Use my uploaded references to help design this App + Website.",
+        assetIds: assets.map((item) => item.id),
+        referenceReuse: { exactPrivateReuse: reusePlan.reuseCount, analysisRequired: reusePlan.analysisCount },
+      } }));
       setReady(true);
       setOpen(false);
     } catch (caught) {
@@ -231,15 +282,15 @@ export default function ReferenceUploader() {
     <button className="trigger" type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label="Add private project references">＋ <span>{items.length ? `${items.length} references` : ready ? "References ready" : "Add references"}</span></button>
     {open && <section className="panel" role="dialog" aria-modal="true" aria-label="Private project references">
       <header><div><small>PRIVATE PROJECT REFERENCES</small><h3>Show AI what you mean.</h3></div><button type="button" onClick={() => setOpen(false)} aria-label="Close private references">×</button></header>
-      <p>Upload photos, screenshots, video or sketches. LANERIQ analyzes compact local reference frames, saves customer-owned assets privately, and uses the resulting brief without exposing provider details.</p>
+      <p>Upload photos, screenshots, video or sketches. LANERIQ reuses your own exact private matches first, then analyzes only compact local frames that still need understanding.</p>
       <div className="pickerRow">
         <button className="upload" type="button" onClick={() => libraryInputRef.current?.click()}>Photos · Video · Files</button>
         <button className="camera" type="button" onClick={() => cameraInputRef.current?.click()}>Take Photo</button>
       </div>
       <div className="grid">{items.map((item) => <article key={item.id}>{item.kind === "image" ? <img src={item.url} alt="Customer reference" /> : <video src={item.url} muted playsInline />}<div><b>{item.name}</b><small>{sizeLabel(item.size)}</small></div><button type="button" onClick={() => remove(item.id)} aria-label={`Remove ${item.name}`}>×</button></article>)}</div>
-      {items.length > 0 && <button className="analyze" type="button" disabled={busy} onClick={analyze}>{busy ? "AI UNDERSTANDING + SAVING…" : "AI UNDERSTAND + USE →"}</button>}
+      {items.length > 0 && <button className="analyze" type="button" disabled={busy} onClick={analyze}>{busy ? "PREPARING + REUSING…" : "UNDERSTAND + USE →"}</button>}
       {error && <div className="error" role="alert">{error}</div>}
-      <footer>Learn the intent, not copy the asset. Raw private customer media is never reused across customers.</footer>
+      <footer>Exact reuse is same-user only. Raw private customer media is never reused across customers.</footer>
     </section>}
     <style jsx>{`.referenceDock{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(78px,calc(env(safe-area-inset-bottom) + 68px));z-index:90;font-family:Inter,system-ui,-apple-system,sans-serif}.trigger{min-height:44px;border:1px solid #e0bd61aa;border-radius:999px;background:#061611e8;color:#f4d274;padding:11px 14px;font-weight:900;box-shadow:0 14px 45px #0008;backdrop-filter:blur(12px);touch-action:manipulation}.trigger span{margin-left:5px}.panel{position:absolute;right:0;bottom:52px;width:min(430px,calc(100vw - 24px));max-height:min(70svh,720px);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:#f8fbf9;color:#17352d;border:1px solid #ddb95d;border-radius:22px;padding:18px;box-shadow:0 24px 70px #0009}.panel header{display:flex;justify-content:space-between;gap:12px}.panel header small{color:#9c7428;font-size:9px;font-weight:900;letter-spacing:.14em}.panel h3{font-size:25px;margin:4px 0}.panel header>button{border:0;background:#e9efec;border-radius:12px;min-width:44px;min-height:44px;font-size:22px;touch-action:manipulation}.panel>p,.panel footer{color:#63746d;line-height:1.5;font-size:12px}.pickerRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}.upload,.camera,.analyze{width:100%;min-height:44px;border-radius:13px;padding:12px;font-weight:950;touch-action:manipulation}.upload,.camera{border:1px dashed #b89443;background:#fff9e9;color:#244138}.camera{border-style:solid;background:#eef7f2}.analyze{margin-top:10px;border:0;background:linear-gradient(135deg,#f4d981,#c68f2d);color:#102018}.analyze:disabled{opacity:.55}.grid{display:grid;gap:7px;margin-top:10px}.grid article{display:grid;grid-template-columns:62px 1fr auto;gap:9px;align-items:center;background:#fff;border:1px solid #dde5e1;border-radius:12px;padding:7px}.grid img,.grid video{width:62px;height:48px;object-fit:cover;border-radius:8px;background:#102018}.grid b,.grid small{display:block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.grid b{font-size:11px}.grid small{color:#718078;font-size:9px;margin-top:3px}.grid article>button{min-width:44px;min-height:44px;border:0;background:#eef3f0;border-radius:10px;padding:7px;touch-action:manipulation}.error{margin-top:10px;padding:10px;border-radius:10px;background:#fff0ed;color:#9b3b32;font-size:11px}.panel footer{margin-top:12px;padding-top:10px;border-top:1px solid #dde5e1}@media(max-width:640px){.referenceDock{right:max(10px,env(safe-area-inset-right));bottom:max(72px,calc(env(safe-area-inset-bottom) + 62px))}.trigger span{display:none}.panel{position:fixed;inset:0;width:100%;max-height:none;border:0;border-radius:0;padding:calc(16px + env(safe-area-inset-top)) 14px calc(22px + env(safe-area-inset-bottom));box-sizing:border-box}.pickerRow{grid-template-columns:1fr 1fr}}@media(max-width:380px){.pickerRow{grid-template-columns:1fr}}`}</style>
   </div>;
