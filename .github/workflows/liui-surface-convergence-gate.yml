@@ -1,0 +1,40 @@
+name: LANERIQ LIUI Surface Convergence Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, batch155-liui-surface-convergence]
+
+jobs:
+  liui-surface-convergence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    permissions:
+      contents: read
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      GEMINI_API_KEY: ci-placeholder
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Validate LIUI surface convergence
+        run: node scripts/batch155-liui-surface-convergence-tests.mjs
+      - name: Preserve five-layer runtime contract
+        run: node scripts/batch153-liui-five-layer-100-tests.mjs
+      - name: Preserve Runtime v2 and Living Runtime v2 contracts
+        run: npm run test:liui-runtime && npm run test:liui-living
+      - name: Preserve mobile interaction contracts
+        run: npm run test:mobile-ui && npm run test:mobile-performance
+      - name: Build complete Next.js integration
+        run: npm run build
+      - name: Evidence boundary
+        run: echo "Surface convergence proves code/CI integration and observer reduction only. Production exact SHA and physical-device interaction remain separate evidence."
