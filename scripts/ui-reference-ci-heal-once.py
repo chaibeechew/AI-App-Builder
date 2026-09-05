@@ -34,6 +34,18 @@ if 'Use as inspiration →' not in s:
         raise SystemExit('Template Detail creation CTA marker not found')
 p.write_text(s)
 
+# Pages 10/15 — keep owner-scoped run data and restore the explicit history heading.
+p = Path('app/workflows/[id]/page.js')
+s = p.read_text()
+if 'Recent run history' not in s:
+    if 'Automation Activity' in s:
+        s = s.replace('Automation Activity', 'Recent run history', 1)
+    elif '>Run History<' in s:
+        s = s.replace('>Run History<', '>Recent run history<', 1)
+    else:
+        raise SystemExit('Workflow run history heading marker not found')
+p.write_text(s)
+
 # Page 1 mobile — keep approved reference art/layout but restore bounded intent-first viewport and safe nav space.
 p = Path('app/home-liui-v5.css')
 s = p.read_text()
