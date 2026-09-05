@@ -5,8 +5,10 @@ import { useEffect, useRef } from "react";
 import { resolveLiuiRouteContext } from "../../lib/design/liui-runtime-capabilities.js";
 import {
   LIUI_FIVE_LAYER_VERSION,
+  LIUI_SURFACE_CONVERGENCE_VERSION,
   classifyLiuiViewport,
   isLiuiRecoverableState,
+  resolveLiuiAttentionMode,
   resolveLiuiContinuityDirection,
   resolveLiuiRecoveryPolicy,
   sanitizeLiuiContinuitySnapshot,
@@ -50,6 +52,23 @@ function focusRouteLandmark() {
   return true;
 }
 
+function syncAttentionMode() {
+  const root = document.documentElement;
+  const body = document.body;
+  const mode = resolveLiuiAttentionMode({
+    runtimeState: body.dataset.liuiRuntimeState || "idle",
+    creatorOpen: body.dataset.liuiCreatorOpen === "true",
+    keyboardOpen: body.dataset.liuiKeyboard === "open",
+    typing: isTypingTarget(document.activeElement),
+    contextOpen: body.dataset.liuiDecisionOpen === "true",
+    resumeVisible: body.dataset.liuiResumeVisible === "true",
+  });
+  root.dataset.liuiSurfaceConvergence = LIUI_SURFACE_CONVERGENCE_VERSION;
+  body.dataset.liuiAttention = mode;
+  body.dataset.liuiOverlayBudget = mode === "calm" ? "compact" : "single";
+  return mode;
+}
+
 export default function LIUIAdaptiveExperienceLayer() {
   const pathname = usePathname() || "/";
   const previousPath = useRef("");
@@ -90,6 +109,9 @@ export default function LIUIAdaptiveExperienceLayer() {
         root.style.setProperty("--liui-visual-viewport-width", `${Math.round(width)}px`);
         root.style.setProperty("--liui-keyboard-inset", `${Math.round(profile.keyboardInset)}px`);
         root.style.setProperty("--liui-adaptive-columns", String(profile.columns));
+
+        window.dispatchEvent(new CustomEvent("laneriq:viewport-profile", { detail: profile }));
+        syncAttentionMode();
       });
     };
 
@@ -142,6 +164,33 @@ export default function LIUIAdaptiveExperienceLayer() {
   }, []);
 
   useEffect(() => {
+    let focusFrame = 0;
+    const sync = () => {
+      if (focusFrame) cancelAnimationFrame(focusFrame);
+      focusFrame = requestAnimationFrame(syncAttentionMode);
+    };
+    const events = [
+      "laneriq:context-intelligence-state",
+      "laneriq:runtime-surface-state",
+      "laneriq:creator-support-state",
+      "laneriq:viewport-profile",
+    ];
+    syncAttentionMode();
+    window.addEventListener("focusin", sync);
+    window.addEventListener("focusout", sync);
+    for (const eventName of events) window.addEventListener(eventName, sync);
+    return () => {
+      if (focusFrame) cancelAnimationFrame(focusFrame);
+      window.removeEventListener("focusin", sync);
+      window.removeEventListener("focusout", sync);
+      for (const eventName of events) window.removeEventListener(eventName, sync);
+      delete document.documentElement.dataset.liuiSurfaceConvergence;
+      delete document.body.dataset.liuiAttention;
+      delete document.body.dataset.liuiOverlayBudget;
+    };
+  }, []);
+
+  useEffect(() => {
     const context = resolveLiuiRouteContext(pathname, window.location.search || "");
     const next = sanitizeLiuiContinuitySnapshot({
       pageId: context.pageId,
@@ -177,10 +226,10 @@ export default function LIUIAdaptiveExperienceLayer() {
     let lastSignature = "";
     let frame = 0;
 
-    const syncRecovery = () => {
+    const syncRecovery = (event) => {
       if (frame) cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const state = String(body.dataset.liuiRuntimeState || "idle");
+        const state = String(event?.detail?.state || body.dataset.liuiRuntimeState || "idle");
         const policy = resolveLiuiRecoveryPolicy(state, navigator.onLine !== false);
         body.dataset.liuiRecovery = policy.kind;
         body.dataset.liuiRecoverable = isLiuiRecoverableState(state) ? "true" : "false";
@@ -194,13 +243,12 @@ export default function LIUIAdaptiveExperienceLayer() {
     };
 
     syncRecovery();
-    const observer = new MutationObserver(syncRecovery);
-    observer.observe(body, { attributes: true, attributeFilter: ["data-liui-runtime-state"] });
+    window.addEventListener("laneriq:runtime-surface-state", syncRecovery);
     window.addEventListener("online", syncRecovery);
     window.addEventListener("offline", syncRecovery);
     return () => {
-      observer.disconnect();
       if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("laneriq:runtime-surface-state", syncRecovery);
       window.removeEventListener("online", syncRecovery);
       window.removeEventListener("offline", syncRecovery);
       delete body.dataset.liuiRecovery;
