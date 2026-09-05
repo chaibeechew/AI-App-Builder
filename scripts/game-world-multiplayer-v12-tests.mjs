@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import {createAuthoritativeWorldV12,applyAuthoritativeInputV12,snapshotWorldV12,reconcileClientV12,buildInterestSetV12,createPersistentWorldDeltaV12,compileMultiplayerV12} from "../lib/game/game-world-multiplayer-v12.js";
+const w=createAuthoritativeWorldV12({tickRate:30});
+w.entities.set("p1",{id:"p1",x:0,y:0,z:0,revision:0});
+applyAuthoritativeInputV12(w,{entityId:"p1",dx:1,dz:0,speed:6});
+assert.ok(w.entities.get("p1").x>0);
+const snap=snapshotWorldV12(w);assert.equal(snap.entities.length,1);
+assert.equal(reconcileClientV12({x:10,z:0,revision:0},w.entities.get("p1")).rollback,true);
+const interest=buildInterestSetV12(w,{x:0,z:0},{radius:100});assert.equal(interest.length,1);
+const d=createPersistentWorldDeltaV12({worldRevision:0},{worldRevision:w.worldRevision,tick:w.tick,entities:w.entities,events:w.events});assert.equal(d.appendOnly,true);
+const c=compileMultiplayerV12({entities:[{id:"p1",x:0,z:0},{id:"npc1",x:12,z:10}],inputs:[{entityId:"p1",dx:1,dz:1,speed:5}]});
+assert.equal(c.readiness.internal100,true);
+assert.equal(c.truth.liveMultiplayerServerVerified,false);
+console.log("Game World V12 Multiplayer Living World: 100 INTERNAL CODE; live network/server evidence still gated");
