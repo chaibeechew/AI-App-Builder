@@ -1,0 +1,1 @@
+The reference branch now has the shared layout, centralized button system, route-aware 18-page reference surface, visual policy notes and a CI contract. It is ready for Draft PR visual review, not Production merge.
