@@ -90,6 +90,9 @@ export default function LIUIRuntimeCapabilityLayer() {
   const [decisionOpen, setDecisionOpen] = useState(false);
   const [mainTargetId, setMainTargetId] = useState("laneriq-main-content");
   const progress = useMemo(() => getLiuiCreationProgress(context.pageId), [context.pageId]);
+  const visibleState = online ? runtimeState.state : "offline";
+  const critical = criticalStates.has(visibleState);
+  const resumeVisible = context.pageId === 1 && Boolean(safeResume) && visibleState === "idle";
 
   useEffect(() => {
     const currentLanguage = () => {
@@ -157,26 +160,29 @@ export default function LIUIRuntimeCapabilityLayer() {
 
   useEffect(() => {
     const body = document.body;
-    let frame = 0;
-    const syncDecision = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const intelligence = document.querySelector('[data-liui-context-intelligence="true"]');
-        const details = intelligence?.querySelector("details");
-        const present = Boolean(intelligence);
-        setDecisionPresent(present);
-        setDecisionOpen(Boolean(details?.open));
-        if (present) body.dataset.liuiDecisionLayer = "present";
-        else delete body.dataset.liuiDecisionLayer;
-      });
+    const applyDecision = (present, open) => {
+      const nextPresent = Boolean(present);
+      const nextOpen = nextPresent && Boolean(open);
+      setDecisionPresent(nextPresent);
+      setDecisionOpen(nextOpen);
+      if (nextPresent) body.dataset.liuiDecisionLayer = "present";
+      else delete body.dataset.liuiDecisionLayer;
+      if (nextOpen) body.dataset.liuiDecisionOpen = "true";
+      else if (!nextPresent) delete body.dataset.liuiDecisionOpen;
+      else body.dataset.liuiDecisionOpen = "false";
     };
-    syncDecision();
-    const observer = new MutationObserver(syncDecision);
-    observer.observe(body, { subtree: true, childList: true, attributes: true, attributeFilter: ["open"] });
+
+    const intelligence = document.querySelector('[data-liui-context-intelligence="true"]');
+    applyDecision(Boolean(intelligence), Boolean(intelligence?.querySelector("details")?.open));
+
+    const handleDecision = (event) => {
+      applyDecision(event?.detail?.present === true, event?.detail?.open === true);
+    };
+    window.addEventListener("laneriq:context-intelligence-state", handleDecision);
     return () => {
-      observer.disconnect();
-      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("laneriq:context-intelligence-state", handleDecision);
       delete body.dataset.liuiDecisionLayer;
+      delete body.dataset.liuiDecisionOpen;
     };
   }, [pathname]);
 
@@ -203,12 +209,27 @@ export default function LIUIRuntimeCapabilityLayer() {
   }, []);
 
   useEffect(() => {
-    const state = online ? runtimeState.state : "offline";
-    document.body.dataset.liuiRuntimeState = state;
+    const body = document.body;
+    body.dataset.liuiRuntimeState = visibleState;
+    body.dataset.liuiRuntimeSurface = critical ? "critical" : visibleState === "idle" ? "idle" : "active";
+    if (resumeVisible) body.dataset.liuiResumeVisible = "true";
+    else delete body.dataset.liuiResumeVisible;
+
+    window.dispatchEvent(new CustomEvent("laneriq:runtime-surface-state", {
+      detail: {
+        state: visibleState,
+        critical,
+        active: visibleState !== "idle",
+        resumeVisible,
+      },
+    }));
+
     return () => {
-      if (document.body.dataset.liuiRuntimeState === state) delete document.body.dataset.liuiRuntimeState;
+      if (body.dataset.liuiRuntimeState === visibleState) delete body.dataset.liuiRuntimeState;
+      delete body.dataset.liuiRuntimeSurface;
+      delete body.dataset.liuiResumeVisible;
     };
-  }, [online, runtimeState.state]);
+  }, [visibleState, critical, resumeVisible]);
 
   useEffect(() => {
     const handleShortcut = (event) => {
@@ -222,12 +243,9 @@ export default function LIUIRuntimeCapabilityLayer() {
 
   const t = (key) => liuiRuntimeText(key, language);
   const canonical = (text) => translateUiText(String(text || ""), language);
-  const visibleState = online ? runtimeState.state : "offline";
   const visibleMessage = online ? t(runtimeState.message) : t("Offline. Some actions need a connection; LANERIQ will not pretend they completed.");
   const showState = visibleState !== "idle" && (visibleState !== "success" || visibleMessage);
-  const critical = criticalStates.has(visibleState);
   const showStateWithDecision = showState && (!decisionOpen || critical);
-  const showResume = context.pageId === 1 && safeResume && visibleState === "idle";
 
   return <>
     <a className="liuiSkipLink" href={`#${mainTargetId}`}>{t("Skip to main content")}</a>
@@ -241,7 +259,7 @@ export default function LIUIRuntimeCapabilityLayer() {
       </span>}
     </aside>}
 
-    {showResume && <aside className="liuiRuntimeResume" aria-label={t("Continue where you left off")}>
+    {resumeVisible && <aside className="liuiRuntimeResume" aria-label={t("Continue where you left off")}>
       <span className="liuiRuntimeResumeMark" aria-hidden="true">↗</span>
       <span className="liuiRuntimeResumeCopy">
         <small>{t("Last workspace")}</small>

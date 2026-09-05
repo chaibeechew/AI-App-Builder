@@ -80,7 +80,7 @@ assert.ok(component.includes('window.addEventListener("keydown"'), "keyboard mod
 assert.ok(component.includes("sessionStorage.setItem(CONTINUITY_KEY"), "privacy-bounded intent continuity must persist for the session");
 assert.ok(component.includes('new CustomEvent("laneriq:intent-continuity"'), "intent continuity event is required");
 assert.ok(component.includes("focusRouteLandmark"), "route focus restoration is required");
-assert.ok(component.includes('attributeFilter: ["data-liui-runtime-state"]'), "self-healing UX must observe truthful Runtime v2 state");
+assert.ok(component.includes('window.addEventListener("laneriq:runtime-surface-state"'), "self-healing UX must subscribe to truthful Runtime v2 state");
 assert.ok(component.includes('new CustomEvent("laneriq:recovery-policy"'), "safe recovery policy channel is required");
 assert.ok(!component.includes("fetch("), "five-layer UI runtime must not create network side effects");
 assert.ok(!component.includes(".click()"), "five-layer UI runtime must not auto-click consequential controls");

@@ -125,3 +125,73 @@ body[data-liui-recovery="refresh-view"] .liuiRuntimeState{
     box-shadow:none;
   }
 }
+
+/* Batch 155 — Surface Convergence: one prominent attention surface at a time. */
+html[data-liui-surface-convergence]{
+  --liui-z-nav:9600;
+  --liui-z-support:9720;
+  --liui-z-context:9820;
+  --liui-z-runtime:9920;
+  --liui-z-critical:10020;
+}
+.liuiRealBottomNav{z-index:var(--liui-z-nav,9600)!important}
+.creatorEncourage{z-index:var(--liui-z-support,9720)!important;contain:layout style}
+.liuiContextIntelligence{z-index:var(--liui-z-context,9820)!important;contain:layout style}
+.liuiRuntimeContext,.liuiRuntimeResume,.liuiRuntimeState{z-index:var(--liui-z-runtime,9920)!important;contain:layout style}
+.liuiRuntimeState-critical{z-index:var(--liui-z-critical,10020)!important}
+.creationExpansion{
+  content-visibility:auto;
+  contain-intrinsic-size:720px;
+}
+.creatorEncourage,.liuiContextIntelligence,.liuiRuntimeResume{
+  transition:opacity .16s ease,transform .16s ease,visibility .16s step-end;
+}
+body[data-liui-attention="critical"] :where(.creatorEncourage,.liuiContextIntelligence,.liuiRuntimeResume),
+body[data-liui-attention="focused"] :where(.creatorEncourage,.liuiContextIntelligence,.liuiRuntimeResume),
+body[data-liui-attention="creator"] :where(.liuiContextIntelligence,.liuiRuntimeResume),
+body[data-liui-attention="context"] :where(.creatorEncourage,.liuiRuntimeResume),
+body[data-liui-attention="resume"] .creatorEncourage{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  transform:translateY(8px) scale(.985)!important;
+}
+body[data-liui-attention="creator"] .creatorEncourage{
+  z-index:var(--liui-z-critical,10020)!important;
+}
+body[data-liui-attention="context"] .liuiContextIntelligence{
+  z-index:var(--liui-z-critical,10020)!important;
+}
+body[data-liui-attention="focused"] .liuiRuntimeState:not(.liuiRuntimeState-critical){
+  min-height:36px;
+  max-width:min(78vw,520px);
+  padding:6px 10px;
+  opacity:.88;
+}
+body[data-liui-overlay-budget="compact"] .liuiContextDetails:not([open]){
+  box-shadow:0 12px 34px rgba(0,0,0,.28);
+}
+@media (max-width:900px){
+  body[data-liui-attention="calm"] .creatorEncourage:not(.open){
+    width:auto!important;
+    max-width:min(72vw,270px)!important;
+  }
+  body[data-liui-attention="calm"] .creatorEncourage:not(.open) .creatorSpark small{
+    display:none!important;
+  }
+  body[data-liui-attention="calm"] .creatorEncourage:not(.open) .creatorSpark{
+    min-height:44px;
+    padding:9px 12px!important;
+    border-radius:999px!important;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .creatorEncourage,.liuiContextIntelligence,.liuiRuntimeResume{
+    transition:none!important;
+  }
+}
+@media (forced-colors:active){
+  body[data-liui-attention] :where(.creatorEncourage,.liuiContextIntelligence,.liuiRuntimeResume,.liuiRuntimeState){
+    forced-color-adjust:auto;
+  }
+}
