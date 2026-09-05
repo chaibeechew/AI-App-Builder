@@ -1,0 +1,41 @@
+name: LANERIQ Reality Intelligence Foundation Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/reality/**'
+      - 'app/api/system/reality-intelligence/**'
+      - 'scripts/reality-intelligence-foundation-contract-tests.mjs'
+      - 'docs/BATCH-161-REALITY-INTELLIGENCE-FOUNDATION.md'
+      - '.github/workflows/reality-intelligence-foundation.yml'
+  push:
+    branches:
+      - main
+      - 'batch*-reality-*'
+    paths:
+      - 'lib/reality/**'
+      - 'app/api/system/reality-intelligence/**'
+      - 'scripts/reality-intelligence-foundation-contract-tests.mjs'
+      - 'docs/BATCH-161-REALITY-INTELLIGENCE-FOUNDATION.md'
+      - '.github/workflows/reality-intelligence-foundation.yml'
+
+jobs:
+  reality-intelligence-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Reality Intelligence foundation contract
+        run: node scripts/reality-intelligence-foundation-contract-tests.mjs
+      - name: Truth boundary
+        run: echo 'CODE/CI Reality Intelligence foundation does not imply real causal truth, future prediction accuracy, live world-model verification, or authorization for physical-world action.'
