@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {buildLivingCharacterManifest} from '../lib/ai/avatar-character-core.js';
 import {buildAvatarFaceFrame,createAvatarRuntimeState,normalizeVisemeTimeline,reduceAvatarRuntime,selectAvatarPerformanceProfile} from '../lib/ai/avatar-runtime-engine.js';
+import {advanceAvatarFaceRuntime,buildFaceRigCommand,createAvatarFaceRuntime} from '../lib/ai/avatar-face-runtime.js';
+import {appendAvatarVoiceChunk,buildAvatarVoiceProviderRequest,createAvatarVoiceStream,getAvatarVoicePlaybackFrame,interruptAvatarVoice} from '../lib/ai/avatar-voice-runtime.js';
+import {buildAvatarRenderPacket,buildMobileAvatarSurfaceContract,createAvatarRendererPlan,shouldReplanAvatarRenderer} from '../lib/ai/avatar-renderer-adapter.js';
+import {buildCharacterAgentActionEnvelope,buildCharacterAgentContext,buildCharacterMemoryWriteIntent,mapAgentPhaseToAvatarEvent} from '../lib/ai/avatar-agent-bridge.js';
+import {appendLivingAvatarVoiceChunk,applyAgentUpdateToLivingAvatar,applyLivingAvatarEvent,createLivingAvatarSession,interruptLivingAvatarSpeech,tickLivingAvatarSession} from '../lib/ai/avatar-session-orchestrator.js';
 
 const root=process.cwd();
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
@@ -10,6 +15,11 @@ const page=read('app/avatar-studio/page.js');
 const api=read('app/api/avatar/generate/route.js');
 const characterCore=read('lib/ai/avatar-character-core.js');
 const runtimeEngine=read('lib/ai/avatar-runtime-engine.js');
+const faceRuntimeSource=read('lib/ai/avatar-face-runtime.js');
+const voiceRuntimeSource=read('lib/ai/avatar-voice-runtime.js');
+const rendererSource=read('lib/ai/avatar-renderer-adapter.js');
+const agentBridgeSource=read('lib/ai/avatar-agent-bridge.js');
+const orchestratorSource=read('lib/ai/avatar-session-orchestrator.js');
 const gateway=read('lib/ai/image-generation-gateway.js');
 const persistence=read('lib/ai/image-output-persistence.js');
 const save=read('app/api/images/save/route.js');
@@ -92,31 +102,37 @@ assert.match(api,/character,replayed:true/);
 assert.match(api,/character,replayed:false/);
 assert.match(api,/characterId/);
 
-// Living Character core contract: deterministic states, transition graph, animation/voice/memory interfaces and mobile thermal profiles.
+// Living Character v2 contract: stable DNA plus implemented local runtime layers while external providers stay truthful.
+assert.match(characterCore,/CHARACTER_SCHEMA_VERSION=2/);
 assert.match(characterCore,/laneriq\.living-character/);
 for(const state of ['idle','listening','thinking','speaking','acting','success','concerned'])assert.match(characterCore,new RegExp(`"${state}"`));
 assert.match(characterCore,/CHARACTER_TRANSITIONS/);
 assert.match(characterCore,/canTransitionCharacter/);
 assert.match(characterCore,/blendshape-v1/);
+assert.match(characterCore,/procedural-face-runtime-v1/);
 assert.match(characterCore,/viseme-timeline-v1/);
-assert.match(characterCore,/target-vector-v1/);
 assert.match(characterCore,/tts-stream-v1/);
+assert.match(characterCore,/laneriq-avatar-renderer-v1/);
+assert.match(characterCore,/laneriq-mobile-avatar-surface-v1/);
 assert.match(characterCore,/character-memory-v1/);
 assert.match(characterCore,/laneriq-agent-action-v1/);
-assert.match(characterCore,/ownerScoped:true/);
-assert.match(characterCore,/optInPersistentMemory:true/);
+assert.match(characterCore,/laneriq-living-avatar-session-v1/);
+assert.match(characterCore,/userConfirmedWrites:true/);
+assert.match(characterCore,/sensitiveMemoryBlocked:true/);
 assert.match(characterCore,/eco:\{targetFps:24/);
 assert.match(characterCore,/balanced:\{targetFps:30/);
 assert.match(characterCore,/performance:\{targetFps:60/);
-assert.match(characterCore,/thermalPolicy:"reduce-before-hot"/);
-assert.match(characterCore,/adaptiveThermal:true/);
-assert.match(characterCore,/adaptiveBattery:true/);
-assert.match(characterCore,/reducedMotionSupported:true/);
+assert.match(characterCore,/proceduralFaceRuntime:true/);
+assert.match(characterCore,/streamingVoiceRuntime:true/);
+assert.match(characterCore,/voiceBargeInRuntime:true/);
+assert.match(characterCore,/adaptiveRendererAdapter:true/);
+assert.match(characterCore,/agentMemoryBridge:true/);
+assert.match(characterCore,/sessionOrchestrator:true/);
 assert.match(characterCore,/realtime3DRenderer:false/);
 assert.match(characterCore,/liveVoiceProvider:false/);
 assert.match(characterCore,/motionGenerator:false/);
 
-// Executable runtime: event state transitions, mobile profile selection, viseme normalization and renderer-neutral face frames.
+// Executable base runtime: event state transitions, mobile profile selection, viseme normalization and renderer-neutral face frames.
 assert.match(runtimeEngine,/AVATAR_RUNTIME_EVENTS/);
 assert.match(runtimeEngine,/USER_SPEECH_START:"listening"/);
 assert.match(runtimeEngine,/AI_RESPONSE_START:"speaking"/);
@@ -125,9 +141,12 @@ assert.match(runtimeEngine,/selectAvatarPerformanceProfile/);
 assert.match(runtimeEngine,/normalizeVisemeTimeline/);
 assert.match(runtimeEngine,/buildAvatarFaceFrame/);
 const manifest=buildLivingCharacterManifest({characterId:'lc_contract',type:'game',style:'3d',persona:'confident',voiceStyle:'warm',motionProfile:'expressive',language:'en',continuityKey:'contract'});
+assert.equal(manifest.schemaVersion,2);
 assert.equal(manifest.characterId,'lc_contract');
 assert.equal(manifest.dna.persona,'confident');
 assert.equal(manifest.runtime.defaultProfile,'balanced');
+assert.equal(manifest.readiness.proceduralFaceRuntime,true);
+assert.equal(manifest.readiness.liveVoiceProvider,false);
 let runtime=createAvatarRuntimeState(manifest);
 assert.equal(runtime.state,'idle');
 runtime=reduceAvatarRuntime(runtime,'USER_SPEECH_START');assert.equal(runtime.state,'listening');assert.equal(runtime.listening,true);
@@ -141,6 +160,66 @@ const visemes=normalizeVisemeTimeline([{atMs:900,viseme:'aa',weight:2},{atMs:100
 assert.deepEqual(visemes.map(item=>item.atMs),[100,500,900]);assert.equal(visemes[1].viseme,'sil');assert.equal(visemes[2].weight,1);
 const face=buildAvatarFaceFrame({state:'speaking',emotion:'warm',viseme:'aa',visemeWeight:1,gazeX:2,blink:.25});
 assert.equal(face.channels['jaw-open'],.7);assert.equal(face.channels['eye-look-x'],1);assert.equal(face.channels['blink-left'],.25);assert.ok(face.channels['mouth-smile']>0);
+
+// Procedural face runtime: deterministic blink/gaze/head micro motion with a bounded face-rig command.
+assert.match(faceRuntimeSource,/createAvatarFaceRuntime/);
+assert.match(faceRuntimeSource,/advanceAvatarFaceRuntime/);
+assert.match(faceRuntimeSource,/normalizeAttentionTarget/);
+assert.match(faceRuntimeSource,/buildFaceRigCommand/);
+let faceRuntime=createAvatarFaceRuntime(manifest,{nowMs:0});
+faceRuntime=advanceAvatarFaceRuntime(faceRuntime,{nowMs:3000,behaviorState:'listening',emotion:'warm',attentionTarget:{x:.8,y:-.3,confidence:1,kind:'user'}});
+assert.equal(faceRuntime.characterId,manifest.characterId);
+assert.ok(faceRuntime.frame.channels['eye-look-x']>0);
+const rig=buildFaceRigCommand(faceRuntime.frame,{maxChannels:8});
+assert.equal(rig.contract,'blendshape-v1');assert.ok(rig.channels.length<=8);
+
+// Streaming voice runtime: replay-safe chunks, viseme playback, provider-neutral request and user barge-in.
+assert.match(voiceRuntimeSource,/createAvatarVoiceStream/);
+assert.match(voiceRuntimeSource,/appendAvatarVoiceChunk/);
+assert.match(voiceRuntimeSource,/interruptAvatarVoice/);
+assert.match(voiceRuntimeSource,/buildAvatarVoiceProviderRequest/);
+let voice=createAvatarVoiceStream({sessionId:'voice-contract',language:'en',style:'warm'});
+voice=appendAvatarVoiceChunk(voice,{chunkId:'c1',startMs:0,durationMs:1000,visemes:[{atMs:0,viseme:'aa',weight:.8},{atMs:500,viseme:'mbp',weight:.7}],final:true});
+const voiceReplay=appendAvatarVoiceChunk(voice,{chunkId:'c1',startMs:0,durationMs:1000,visemes:[]});assert.equal(voiceReplay.replayedChunkId,'c1');
+const voiceFrame=getAvatarVoicePlaybackFrame(voice,{playbackMs:250});assert.equal(voiceFrame.speaking,true);assert.equal(voiceFrame.viseme,'aa');
+assert.equal(getAvatarVoicePlaybackFrame(voice,{playbackMs:1200}).finished,true);
+const providerRequest=buildAvatarVoiceProviderRequest(manifest,{text:'Hello there',requestId:'voice:req:1'});assert.equal(providerRequest.contract,'tts-stream-v1');assert.equal(providerRequest.providerIdentityExposed,false);
+const interrupted=interruptAvatarVoice(voice,{atMs:300});assert.equal(getAvatarVoicePlaybackFrame(interrupted,{playbackMs:400}).interrupted,true);
+
+// Renderer adapter: device-aware LOD, bounded budgets and semantic motion render packets.
+assert.match(rendererSource,/RENDERER_BUDGETS/);
+assert.match(rendererSource,/createAvatarRendererPlan/);
+assert.match(rendererSource,/buildAvatarRenderPacket/);
+assert.match(rendererSource,/buildMobileAvatarSurfaceContract/);
+const rendererPlan=createAvatarRendererPlan(manifest,{thermalState:'nominal',batteryLevel:.8,deviceTier:'high',viewportWidth:390,viewportHeight:844});
+assert.equal(rendererPlan.profile,'performance');assert.equal(rendererPlan.renderer,'3d');assert.ok(rendererPlan.viewport.internalWidth>0);
+const renderPacket=buildAvatarRenderPacket({plan:rendererPlan,runtimeState:{characterId:manifest.characterId,state:'speaking'},faceFrame:faceRuntime.frame,nowMs:3200});
+assert.equal(renderPacket.contract,'laneriq-avatar-renderer-v1');assert.equal(renderPacket.semanticMotion,'speech-support');
+assert.equal(shouldReplanAvatarRenderer(rendererPlan,{thermalState:'serious',batteryLevel:.8,deviceTier:'high'}),true);
+const iosSurface=buildMobileAvatarSurfaceContract({platform:'ios'});assert.equal(iosSurface.continuousCharacterRendering,'in-app-only');
+
+// Memory/Agent bridge: owner scope, explicit persistent opt-in, user-confirmed writes and sensitive-memory blocking.
+assert.match(agentBridgeSource,/SAFE_MEMORY_CATEGORIES/);
+assert.match(agentBridgeSource,/SENSITIVE_MEMORY_BLOCK/);
+assert.match(agentBridgeSource,/avatarAuthority:"presentation-only"/);
+assert.equal(mapAgentPhaseToAvatarEvent('action_success'),'ACTION_SUCCESS');
+const agentContext=buildCharacterAgentContext({manifest,runtimeState:{state:'thinking',emotion:'focused'},persistentMemoryOptIn:true,persistentMemory:[{category:'preference',text:'Prefers concise summaries'},{category:'project',text:'API key secret should not persist'}]});
+assert.equal(agentContext.memory.ownerScoped,true);assert.equal(agentContext.memory.persistent.length,1);
+const memoryAllowed=buildCharacterMemoryWriteIntent({manifest,category:'preference',text:'Prefers concise summaries',persistentMemoryOptIn:true,userConfirmed:true});assert.equal(memoryAllowed.allowed,true);
+const memoryBlocked=buildCharacterMemoryWriteIntent({manifest,category:'project',text:'My password is 1234',persistentMemoryOptIn:true,userConfirmed:true});assert.equal(memoryBlocked.allowed,false);
+const actionEnvelope=buildCharacterAgentActionEnvelope({manifest,actionId:'a1',name:'open-project',args:{projectId:'p1'},requiresConfirmation:true});assert.equal(actionEnvelope.executionAuthority,'laneriq-agent');assert.equal(actionEnvelope.avatarAuthority,'presentation-only');
+
+// Session orchestrator: one pure pipeline joins Agent state, streaming voice, face runtime and adaptive render packets.
+assert.match(orchestratorSource,/createLivingAvatarSession/);
+assert.match(orchestratorSource,/tickLivingAvatarSession/);
+assert.match(orchestratorSource,/interruptLivingAvatarSpeech/);
+let session=createLivingAvatarSession(manifest,{sessionId:'session-contract',nowMs:0,performanceSignals:{deviceTier:'mid',batteryLevel:.8}});
+session=applyLivingAvatarEvent(session,'USER_SPEECH_START');assert.equal(session.runtime.state,'listening');
+session=applyAgentUpdateToLivingAvatar(session,{phase:'understood'});assert.equal(session.runtime.state,'thinking');
+session=appendLivingAvatarVoiceChunk(session,{chunkId:'s1',startMs:0,durationMs:600,visemes:[{atMs:0,viseme:'aa',weight:.8},{atMs:300,viseme:'ee',weight:.7}],final:true});
+const tick=tickLivingAvatarSession(session,{nowMs:200,playbackMs:200,attentionTarget:{x:.4,y:0,confidence:1}});
+assert.equal(tick.frame.state,'speaking');assert.equal(tick.frame.voice.speaking,true);assert.equal(tick.frame.render.contract,'laneriq-avatar-renderer-v1');
+const stopped=interruptLivingAvatarSpeech(tick.session,{atMs:250});assert.equal(stopped.voice.interrupted,true);assert.notEqual(stopped.runtime.state,'speaking');
 
 // Model path: billing/refund, durable private capture before browser response, replay from private assets and honest fallback.
 assert.match(api,/getImageGenerationConfig\(\)/);
@@ -201,4 +280,4 @@ assert.match(replayMigration,/unique \(user_id, request_id\)/i);
 assert.match(replayMigration,/revoke all on table public\.image_generation_requests from public, anon, authenticated/i);
 assert.match(replayMigration,/service_role/i);
 
-console.log('AI Avatar Creator contract passed: consent-safe generation, replay-safe recovery, durable private output, stable Living Character DNA, executable behavior runtime, provider-neutral voice/face/memory interfaces and adaptive mobile performance are locked.');
+console.log('AI Avatar Creator contract passed: Living Character Runtime v2 now locks stable DNA, executable behavior, procedural face/gaze, streaming viseme voice with barge-in, adaptive mobile renderer plans, owner-scoped memory/Agent boundaries and one orchestrated session pipeline while live providers remain truthfully disabled until connected.');
