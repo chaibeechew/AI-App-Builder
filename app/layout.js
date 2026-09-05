@@ -17,6 +17,7 @@ import "./liui-real-product-surface.css";
 import "./liui-complete-18-page-surface.css";
 import "./liui-context-intelligence.css";
 import "./liui-runtime-capabilities.css";
+import "./liui-adaptive-experience.css";
 import "./home-liui-v5.css";
 import AccountNav from "./components/AccountNav";
 import BuilderGlobalOverlays from "./components/BuilderGlobalOverlays";
@@ -38,6 +39,7 @@ import OfflineRuntimeBootstrap from "./components/OfflineRuntimeBootstrap";
 import LIUIRealProductSurface from "./components/LIUIRealProductSurface";
 import LIUIContextIntelligence from "./components/LIUIContextIntelligence";
 import LIUIRuntimeCapabilityLayer from "./components/LIUIRuntimeCapabilityLayer";
+import LIUIAdaptiveExperienceLayer from "./components/LIUIAdaptiveExperienceLayer";
 import CreatorEncouragement from "./components/CreatorEncouragement";
 import ProjectPortabilityMount from "./components/ProjectPortabilityMount";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
@@ -88,6 +90,7 @@ export default function RootLayout({ children }) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
         <LIUIRuntimeCapabilityLayer />
+        <LIUIAdaptiveExperienceLayer />
         <HomeLoadGuard />
         <LanguageRuntime />
         <AuthFlowGuard />
