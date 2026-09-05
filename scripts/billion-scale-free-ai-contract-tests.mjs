@@ -198,3 +198,5 @@ console.log("✓ Same-user LAN device mesh is allowed by policy while cross-user
 console.log("✓ Free/zero modes cannot enter LANERIQ-managed paid inference; sponsored/BYO paths remain explicit and bounded");
 console.log("✓ Reconnect sync keeps P3 private content local by default, requires encrypted delta opt-in, and blocks P4 automatic sync");
 console.log("✓ Batch 130 remains CODE_READY for native offline model/LAN mesh/key exchange until physical runtime evidence exists");
+
+await import("./offline-runtime-core-contract-tests.mjs");
