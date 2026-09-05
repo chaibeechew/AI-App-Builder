@@ -18,6 +18,14 @@ for (const pattern of [
   /LANERIQ_EXPECTED_PRODUCTION_SHA: \$\{\{ github\.sha \}\}/,
   /LANERIQ_PRODUCTION_URL: https:\/\/laneriq-ai\.vercel\.app/,
   /node scripts\/production-runtime-convergence\.mjs/,
+  /actions\/upload-artifact@v4/,
+  /name: laneriq-production-runtime-\$\{\{ github\.sha \}\}-\$\{\{ github\.run_id \}\}/,
+  /production-runtime-convergence-manifest\.sha256/,
+  /if-no-files-found: error/,
+  /retention-days: 30/,
+  /overwrite: false/,
+  /artifact-digest/,
+  /internal CI evidence package; not permanent external audit storage/,
   /does not deploy, roll back, mutate Vercel\/Supabase\/DNS/,
 ]) assert.match(workflow, pattern);
 
@@ -40,9 +48,13 @@ for (const pattern of [
   /includes\("no-store"\)/,
   /doubleReadStabilityVerified: true/,
   /OBSERVED_PUBLIC_PRODUCTION_RUNTIME/,
+  /permanentImmutableAuditStorageClaimed: false/,
   /PRODUCTION_RUNTIME_DID_NOT_CONVERGE/,
   /production-runtime-convergence-manifest\.json/,
-  /sha256/,
+  /production-runtime-convergence-manifest\.sha256/,
+  /const fileContents = `\$\{json\}\\n`/,
+  /crypto\.createHash\("sha256"\)\.update\(fileContents\)/,
+  /Manifest file SHA-256/,
 ]) assert.match(runtime, pattern);
 
 for (const pattern of [
@@ -68,5 +80,6 @@ for (const forbidden of [
 
 console.log("✓ PR verifies the Runtime Convergence Gate contract without touching Production");
 console.log("✓ Every main push performs bounded public Production convergence observation; path filtering is forbidden");
+console.log("✓ Successful convergence persists a content-addressed JSON + SHA-256 CI evidence package with bounded retention");
 console.log("✓ Runtime evidence binds exact main SHA + main ref + production environment + observed Vercel deployment ID with a double-read stability check");
-console.log("✓ Gate is credential-free, fail-closed and does not deploy, roll back or mutate Production infrastructure");
+console.log("✓ Gate remains credential-free, fail-closed and does not deploy, roll back or mutate Production infrastructure");
