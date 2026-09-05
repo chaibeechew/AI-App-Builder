@@ -10,13 +10,20 @@ public class BootReceiver extends BroadcastReceiver {
         ProtectionLeaseStore leaseStore = new ProtectionLeaseStore(context);
         if (!leaseStore.isUserOptedIn()) return;
 
-        new LocalEventStore(context).recordOnce(
-                "guardian_restore_request",
-                intent == null ? "unknown" : String.valueOf(intent.getAction()),
-                10_000L);
+        String trigger = intent == null ? "unknown" : String.valueOf(intent.getAction());
+        LocalEventStore events = new LocalEventStore(context);
+
+        if (!leaseStore.allowAutomaticRestart(System.currentTimeMillis())) {
+            leaseStore.serviceStopped("restart-circuit-open");
+            events.recordOnce("guardian_restore_blocked", trigger, 60_000L);
+            return;
+        }
+
+        events.recordOnce("guardian_restore_request", trigger, 10_000L);
 
         Intent service = new Intent(context, GuardianService.class)
-                .setAction(GuardianService.ACTION_START);
+                .setAction(GuardianService.ACTION_RESTORE)
+                .putExtra(GuardianService.EXTRA_START_REASON, trigger);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(service);
         } else {
