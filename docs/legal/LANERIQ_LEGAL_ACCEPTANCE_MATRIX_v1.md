@@ -112,7 +112,7 @@ The stamp-duty workflow remains **MANUAL REVIEW ONLY**.
 
 Where a genuine stamping/adjudication process occurs, the private transaction record may store the official reference/status/certificate evidence separately from the signature ledger.
 
-For Buyout, the Customer bears the intended stamping/f filing cost as between the parties except where mandatory law allocates liability differently.
+For Buyout, the Customer bears the intended stamping and filing cost as between the parties except where mandatory law allocates liability differently.
 
 ## 5. Evidence integrity
 
