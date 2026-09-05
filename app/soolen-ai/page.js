@@ -4,118 +4,125 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 const STATUS_LABELS={ready:"Ready",integration_ready:"Ready",upgrade_required:"Professional",setup_required:"Preparing",planned:"Planned"};
-const TOOL_LINKS=[
-  ["Build App + Website","/"],
-  ["My Projects","/my-apps"],
-  ["Image Studio","/image-studio"],
-  ["Video Studio","/video-studio"],
-  ["Media Studio","/media-studio"],
-  ["Vision","/vision"],
-  ["Templates","/templates"],
-  ["Community","/community-chat"],
+const COMMANDS=[
+  ["＋","Add","Add user authentication system"],
+  ["↗","Improve","Improve the UI/UX of the home page"],
+  ["⌁","Integrate","Integrate a payment or business service"],
+  ["◇","Add Feature","Add a feature to the current project"],
+  ["🚀","Optimize","Optimize app performance and speed"],
+  ["▯","Make","Prepare the project for another platform"],
 ];
 
 export default function SoolenAICenter(){
-  const [data,setData]=useState(null);
-  const [loadError,setLoadError]=useState("");
-  const [messages,setMessages]=useState([]);
-  const [message,setMessage]=useState("");
-  const [sending,setSending]=useState(false);
-  const [advanced,setAdvanced]=useState(false);
+  const[data,setData]=useState(null);
+  const[loadError,setLoadError]=useState("");
+  const[messages,setMessages]=useState([]);
+  const[message,setMessage]=useState("");
+  const[sending,setSending]=useState(false);
+  const[advanced,setAdvanced]=useState(false);
 
   useEffect(()=>{
     fetch("/api/soolenai/capabilities",{cache:"no-store"})
-      .then(async(response)=>{const value=await response.json();if(!response.ok)throw new Error(value?.error||"Unable to load capabilities.");setData(value);})
-      .catch((error)=>setLoadError(error?.message||"Unable to load capabilities."));
+      .then(async response=>{const value=await response.json();if(!response.ok)throw new Error(value?.error||"Unable to load capabilities.");setData(value);})
+      .catch(error=>setLoadError(error?.message||"Unable to load capabilities."));
   },[]);
 
-  const groups=useMemo(()=>{
-    const grouped={};
-    for(const capability of data?.capabilities||[])(grouped[capability.category]||=[]).push(capability);
-    return grouped;
-  },[data]);
+  const capabilities=useMemo(()=>Array.isArray(data?.capabilities)?data.capabilities:[],[data]);
+  const ready=useMemo(()=>capabilities.filter(item=>item.status==="ready"||item.status==="integration_ready"),[capabilities]);
+  const advancedReady=Boolean(data?.providers?.premiumRouting);
+  const tier=String(data?.subscription?.tier||"free").toUpperCase();
 
   async function send(event){
-    event.preventDefault();
+    event?.preventDefault?.();
     const text=message.trim();
     if(!text||sending)return;
-    setMessages((items)=>[...items,{role:"user",content:text}]);
+    const history=messages;
+    setMessages(items=>[...items,{role:"user",content:text}]);
     setMessage("");
     setSending(true);
     try{
-      const response=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:text,messages,mode:advanced?"advanced":"standard"})});
+      const response=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:text,messages:history,mode:advanced?"advanced":"standard"})});
       const value=await response.json();
-      if(!response.ok)throw new Error(value?.error||"Soolen AI is unavailable.");
-      setMessages((items)=>[...items,{role:"assistant",content:value.content}]);
+      if(!response.ok)throw new Error(value?.error||"LANERIQ AI Assistant is unavailable.");
+      setMessages(items=>[...items,{role:"assistant",content:value.content}]);
     }catch(error){
-      setMessages((items)=>[...items,{role:"error",content:error?.message||"Soolen AI is unavailable."}]);
+      setMessages(items=>[...items,{role:"error",content:error?.message||"LANERIQ AI Assistant is unavailable."}]);
     }finally{setSending(false);}
   }
 
-  const tier=data?.subscription?.tier||"free";
-  const advancedReady=Boolean(data?.providers?.premiumRouting);
-  const costMode=data?.policy?.mode||"zero";
-  const readyCount=(data?.capabilities||[]).filter((item)=>item.status==="ready"||item.status==="integration_ready").length;
+  const visibleCapabilities=ready.slice(0,6);
   const platformStages=data?.platform?.stages||[
     {id:"build",label:"Build",ready:true},
     {id:"verify",label:"Verify",ready:false},
     {id:"deploy",label:"Deploy",ready:false},
     {id:"publish",label:"Publish",ready:true},
   ];
-
-  return <main className="soolenCenter">
-    <div className="aurora"/>
-    <header>
-      <Link href="/" className="back">← LANERIQ AI</Link>
-      <div className="tier">{tier.toUpperCase()} · {costMode.toUpperCase()} COST · {readyCount} READY</div>
-    </header>
-
-    <section className="hero">
-      <small>SOOLEN AI · PLATFORM OPERATOR</small>
-      <h1>一句话，LANERIQ AI 把后台一起完成。</h1>
-      <p>普通用户不需要理解数据库、验证码供应商、代码仓库、CI 或部署平台。SoolenAI 在 LANERIQ AI 后台统一完成建立、验证、测试、部署与发布；底层基础设施可以替换，但用户的 App 不需要跟着改。</p>
-      <div className="policy"><span>✓ One App</span><span>✓ One-sentence setup</span><span>✓ Provider-opaque</span><span>✓ No infrastructure linking for ordinary users</span><span>✓ Secrets stay server-side</span><span>✓ No paid SMS fallback</span></div>
-    </section>
-
-    <section className="platformFlow" aria-label="LANERIQ managed platform flow">
-      {platformStages.map((stage,index)=><article key={stage.id} className={stage.ready?"ready":"preparing"}>
-        <small>0{index+1}</small><h2>{stage.label}</h2><b>{stage.ready?"READY":"MANAGED SETUP"}</b>
-      </article>)}
-    </section>
-
-    <nav className="tools" aria-label="Soolen AI tools">
-      {TOOL_LINKS.map(([label,href])=><Link key={href} href={href}>{label}<span>→</span></Link>)}
-    </nav>
-
-    <section className="chat">
-      <div className="chatHead">
-        <div><small>SOOLEN CONVERSATION</small><h2>Tell me what the App needs.</h2></div>
-        <label className={!advancedReady?"mode locked":"mode"}><input type="checkbox" checked={advanced} disabled={!advancedReady} onChange={(event)=>setAdvanced(event.target.checked)}/> Advanced reasoning {!advancedReady&&"· Managed setup"}</label>
+  return <main className="assistantReference">
+    <div className="assistantBackdrop"/>
+    <section className="assistantHero">
+      <div className="assistantCopy">
+        <small>PAGE 9 · AI ASSISTANT</small>
+        <h1>AI Assistant</h1>
+        <h2>Your AI Command Center.</h2>
+        <p>Tell LANERIQ AI what you want to build, change or improve. Real actions continue to use the existing project and provider boundaries.</p>
       </div>
-      <div className="messages">
-        {!messages.length&&<div className="welcome"><b>普通用户只要这样说：</b><span>“做一个房地产 App，客户注册用 Email verification。”</span><span>“加 WhatsApp verification code，然后自动部署。”</span><span>“测试全部功能，通过后发布网站。”</span></div>}
-        {messages.map((item,index)=><article key={index} className={item.role}><small>{item.role==="user"?"YOU":item.role==="assistant"?"SOOLEN AI":"NOTICE"}</small><p>{item.content}</p></article>)}
-        {sending&&<article className="assistant thinking"><small>SOOLEN AI</small><p>Planning, checking and operating the LANERIQ platform…</p></article>}
-      </div>
-      <form onSubmit={send}><textarea value={message} onChange={(event)=>setMessage(event.target.value)} placeholder="Describe the result you want. SoolenAI handles the technical setup behind LANERIQ AI."/><button disabled={sending||!message.trim()}>{sending?"Working…":"Send →"}</button></form>
+      <div className="assistantBot" aria-hidden="true"><div className="botHead"><i/><i/><b>⌣</b></div><span>AI</span></div>
     </section>
 
-    <section className="catalog">
-      <div className="sectionTitle"><small>CAPABILITY MAP</small><h2>底层技术隐藏，能力状态保持透明</h2></div>
-      {loadError&&<div className="error">{loadError}</div>}
-      {!data&&!loadError&&<div className="loading">Checking LANERIQ managed capabilities…</div>}
-      {Object.entries(groups).map(([category,capabilities])=><div className="group" key={category}>
-        <h3>{category}</h3><div className="cards">{capabilities.map((capability)=><article key={capability.id} className={capability.status}>
-          <div className="cardTop"><span>{capability.minimumTier==="free"?"PUBLIC":capability.minimumTier.toUpperCase()}</span><b>{STATUS_LABELS[capability.status]||capability.status}</b></div>
-          <h4>{capability.name}</h4><p>{capability.description}</p>
-        </article>)}</div>
-      </div>)}
+    <section className="managedPlatform glass" aria-label="LANERIQ managed platform status">
+      <div className="sectionHead"><div><small>SOOLEN AI · PLATFORM OPERATOR</small><h3>One App · one managed path</h3></div><span>Provider-opaque</span></div>
+      <div className="platformStages">{platformStages.map(stage=><article key={stage.id}><b>{stage.label}</b><small>{stage.ready?"READY":"MANAGED SETUP"}</small></article>)}</div>
+      <div className="operatorPolicy"><span>One App</span><span>One-sentence setup</span><span>Provider-opaque</span><span>No infrastructure linking for ordinary users</span><span>No paid SMS fallback</span></div>
     </section>
 
-    <footer><Link href="/">Build with LANERIQ AI →</Link><span>Soolen Platform Operator · capability version {data?.version||"…"}</span></footer>
+    <form className="commandBar" onSubmit={send}>
+      <span>✦</span>
+      <input value={message} onChange={event=>setMessage(event.target.value)} placeholder="What do you want to build or change?" aria-label="AI command"/>
+      <label className={!advancedReady?"reasoning locked":"reasoning"}><input type="checkbox" checked={advanced} disabled={!advancedReady} onChange={event=>setAdvanced(event.target.checked)}/><span>Advanced</span></label>
+      <button disabled={sending||!message.trim()} aria-label="Send command">{sending?"…":"↑"}</button>
+    </form>
+
+    <section className="commandSection">
+      <div className="sectionHead"><h3>✧ Try these commands</h3><span>{tier} PLAN · {ready.length} READY</span></div>
+      <div className="commandCards">{COMMANDS.map(([icon,title,text])=><button key={title} type="button" onClick={()=>setMessage(text)}><i>{icon}</i><b>{title}</b><small>{text}</small></button>)}</div>
+    </section>
+
+    <div className="assistantGrid">
+      <section className="glass currentContext">
+        <div className="sectionHead"><h3>Current Project Context</h3><Link href="/my-apps">Open Projects →</Link></div>
+        <div className="contextBody"><div className="projectArt">⌂</div><div><b>Connect an owned project</b><p>Open My Projects or the AI Editor to apply commands to a specific saved project. This page does not invent a project when none is bound.</p></div></div>
+        <div className="contextTrack"><i style={{width:ready.length?`${Math.min(100,Math.round(ready.length/Math.max(1,capabilities.length)*100))}%`:"0%"}}/></div>
+      </section>
+      <section className="glass statusCard">
+        <h3>AI Assistant Status</h3>
+        <div className="statusRing"><div className="miniBot">●</div></div>
+        <b className={loadError?"offline":"online"}>{loadError?"Needs attention":"Online"}</b>
+        <p>{loadError?loadError:`${ready.length} managed capabilities are currently ready.`}</p>
+      </section>
+
+      <section className="glass suggestions">
+        <div className="sectionHead"><h3>✧ AI Suggestions For You</h3><span>Real capability shortcuts</span></div>
+        <div className="suggestionCards">{visibleCapabilities.slice(0,4).map((capability,index)=><article key={capability.id||index}><i>{["✺","↗","⌁","✧"][index%4]}</i><b>{capability.name}</b><p>{capability.description}</p><button type="button" onClick={()=>setMessage(`Help me use ${capability.name} for my project.`)}>Ask AI</button></article>)}</div>
+        {!visibleCapabilities.length&&!loadError&&<div className="empty">Checking managed capabilities…</div>}
+      </section>
+      <section className="glass canDo">
+        <h3>What I Can Do</h3>
+        {(visibleCapabilities.length?visibleCapabilities:COMMANDS.map(([,title])=>({name:title}))).map((item,index)=><div key={item.id||item.name||index}><span>✓ {item.name}</span><b>{visibleCapabilities.length?"●":""}</b></div>)}
+      </section>
+
+      <section className="glass activity">
+        <div className="sectionHead"><h3>Recent AI Activity</h3><span>This session</span></div>
+        {!messages.length?<div className="empty">No commands have been run in this session yet.</div>:messages.slice(-6).reverse().map((item,index)=><article key={`${item.role}-${index}`} className={item.role}><i>{item.role==="assistant"?"✦":item.role==="error"?"!":"●"}</i><div><b>{item.role==="assistant"?"LANERIQ AI response":item.role==="user"?"Command submitted":"Command notice"}</b><p>{item.content}</p></div></article>)}
+      </section>
+      <section className="glass proTip">
+        <h3>✧ Pro Tip</h3><p>Be specific about the result, page, data and behavior you want. LANERIQ AI will keep risky or live changes behind the existing approval gates.</p><Link href="/templates">Explore Templates →</Link>
+      </section>
+    </div>
+
+    {messages.length>0&&<section className="glass conversation"><div className="sectionHead"><h3>Conversation</h3><span>{advanced?"Advanced reasoning":"Standard reasoning"}</span></div>{messages.map((item,index)=><article key={index} className={item.role}><small>{item.role==="user"?"YOU":item.role==="assistant"?"LANERIQ AI":"NOTICE"}</small><p>{item.content}</p></article>)}</section>}
 
     <style jsx>{`
-      .soolenCenter{min-height:100vh;background:#020d0a;color:#f4fbf7;padding:24px clamp(16px,5vw,70px) 60px;font-family:Inter,system-ui,sans-serif;position:relative;overflow:hidden}.aurora{position:absolute;inset:0 0 auto;height:760px;background:radial-gradient(circle at 75% 10%,#0b7d5844,transparent 42%),radial-gradient(circle at 20% 0,#d6ad4940,transparent 33%);pointer-events:none}.soolenCenter>header,.hero,.platformFlow,.tools,.chat,.catalog,.soolenCenter>footer{position:relative;max-width:1120px;margin-left:auto;margin-right:auto}.soolenCenter>header{display:flex;justify-content:space-between;align-items:center}.back{color:#e0be66;text-decoration:none;font-weight:800}.tier{padding:9px 12px;border:1px solid #d8b65455;border-radius:999px;color:#81d9b1;font-size:11px;font-weight:900;letter-spacing:.1em}.hero{padding:80px 0 32px}.hero small,.chat small,.sectionTitle small,.platformFlow small{color:#dfb956;letter-spacing:.18em;font-weight:900}.hero h1{font-family:Georgia,serif;font-size:clamp(42px,7vw,78px);max-width:950px;line-height:1.02;margin:14px 0}.hero>p{max-width:880px;color:#a9beb4;font-size:18px;line-height:1.7}.policy{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}.policy span{padding:9px 12px;border:1px solid #ffffff15;border-radius:999px;background:#ffffff08;color:#bcd0c7;font-size:12px}.platformFlow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:4px auto 18px}.platformFlow article{padding:18px;border-radius:18px;border:1px solid #d7b65633;background:#071a13d9;min-height:130px}.platformFlow article.ready{border-color:#4bb68a66}.platformFlow h2{font-family:Georgia,serif;font-size:28px;margin:12px 0}.platformFlow b{font-size:10px;letter-spacing:.12em;color:#7bd5aa}.platformFlow .preparing b{color:#d8ba68}.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:18px}.tools a{display:flex;justify-content:space-between;gap:10px;padding:15px;border:1px solid #d7b6562e;border-radius:15px;background:#071a13cc;color:#d9e8e1;text-decoration:none;font-weight:800}.tools a:hover{border-color:#d7b65688;color:#f0ce72}.tools span{color:#d9b85a}.chat{border:1px solid #d7b65644;border-radius:26px;background:#071a13dd;box-shadow:0 30px 80px #0008;overflow:hidden}.chatHead{padding:22px;display:flex;justify-content:space-between;gap:20px;align-items:center;border-bottom:1px solid #ffffff12}.chat h2{margin:5px 0}.mode{display:flex;align-items:center;gap:8px;color:#dfc36f;font-size:12px;font-weight:800}.mode.locked{opacity:.55}.messages{min-height:240px;max-height:540px;overflow:auto;padding:20px;display:grid;gap:12px}.welcome{display:grid;gap:8px;color:#92a99e}.welcome b{color:#fff}.welcome span{padding:11px;border-radius:12px;background:#ffffff07}.messages article{max-width:82%;padding:13px 15px;border-radius:16px;background:#10291f}.messages article.user{justify-self:end;background:#d6ae4c;color:#102018}.messages article.error{background:#542c29}.messages article p{margin:5px 0;white-space:pre-wrap;line-height:1.55}.thinking{opacity:.7}.chat form{display:grid;grid-template-columns:1fr auto;gap:10px;padding:16px;border-top:1px solid #ffffff12}.chat textarea{min-height:72px;resize:vertical;border:1px solid #ffffff18;border-radius:14px;padding:13px;background:#03110d;color:#fff;font:inherit;font-size:16px}.chat form button{min-height:48px;border:0;border-radius:14px;padding:0 22px;background:linear-gradient(135deg,#f4d981,#c68f2d);color:#102018;font-weight:950}.chat form button:disabled{opacity:.45}.catalog{padding-top:60px}.sectionTitle h2{font-size:34px;margin:8px 0 30px}.group{margin-top:30px}.group>h3{color:#daba63}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.cards article{padding:18px;border:1px solid #ffffff12;border-radius:18px;background:#081a14}.cards article.upgrade_required{border-color:#d6ad4944}.cards article.setup_required,.cards article.planned{opacity:.62}.cardTop{display:flex;justify-content:space-between;gap:8px;font-size:10px;letter-spacing:.1em}.cardTop span{color:#d9ba67;font-weight:900}.cardTop b{color:#79d3a9}.upgrade_required .cardTop b{color:#f0c96e}.planned .cardTop b,.setup_required .cardTop b{color:#9aaca4}.cards h4{font-size:18px;margin:13px 0 7px}.cards p{margin:0;color:#91a89e;line-height:1.5;font-size:13px}.loading,.error{padding:18px;border-radius:14px;background:#ffffff08}.error{color:#ffaaa2}.soolenCenter>footer{display:flex;justify-content:space-between;gap:14px;align-items:center;padding-top:50px;color:#789087;font-size:12px}.soolenCenter>footer a{padding:13px 17px;border-radius:12px;background:#d5ac48;color:#102018;text-decoration:none;font-weight:900}@media(max-width:760px){.platformFlow,.tools{grid-template-columns:1fr 1fr}.hero{padding-top:55px}.hero h1{font-size:44px}.chatHead,.soolenCenter>footer{align-items:flex-start;flex-direction:column}.chat form{grid-template-columns:1fr}.chat form button{padding:14px}.messages article{max-width:94%}}@media(max-width:520px){.platformFlow{grid-template-columns:1fr 1fr}.platformFlow h2{font-size:24px}}
+      .assistantReference{min-height:100vh;position:relative;color:#f7f8ff;padding:116px clamp(22px,5vw,74px) 170px;font-family:Inter,system-ui,sans-serif;background:#03101e;overflow:hidden}.assistantBackdrop{position:fixed;inset:0;background:linear-gradient(180deg,rgba(2,9,24,.16),rgba(2,8,20,.75) 42%,#020a17 82%),radial-gradient(circle at 72% 18%,rgba(104,63,255,.32),transparent 28%),url('/laneriq-future-city-people.webp') center top/cover no-repeat;z-index:0}.assistantReference>section,.assistantGrid,.commandBar{position:relative;z-index:1;max-width:1180px;margin-left:auto;margin-right:auto}.assistantHero{min-height:260px;display:grid;grid-template-columns:minmax(0,1fr) 320px;align-items:end;gap:30px}.assistantCopy small{font-size:11px;letter-spacing:.15em;color:#f2bd5c;font-weight:900}.assistantCopy h1{font-size:clamp(42px,6vw,70px);line-height:.98;margin:10px 0 4px}.assistantCopy h2{font-size:clamp(28px,4vw,48px);margin:0;color:#f4c66e}.assistantCopy p{max-width:640px;color:#d4dcf0;font-size:17px;line-height:1.55}.assistantBot{justify-self:end;width:260px;height:235px;position:relative;filter:drop-shadow(0 0 38px #7d43ff88)}.botHead{position:absolute;inset:18px 20px 26px;border-radius:48% 48% 42% 42%;border:2px solid #a690ff;background:linear-gradient(145deg,#8c73ff 0 8%,#12254d 34%,#050b20 70%);box-shadow:inset 0 0 38px #42b8ff33,0 0 34px #713cff99}.botHead:before,.botHead:after{content:"";position:absolute;top:68px;width:34px;height:42px;border-radius:50%;background:#8f5dff;box-shadow:0 0 20px #a66fff}.botHead:before{left:60px}.botHead:after{right:60px}.botHead b{position:absolute;left:50%;top:107px;transform:translateX(-50%);color:#baa5ff}.assistantBot>span{position:absolute;right:4px;bottom:0;border:1px solid #9e77ff77;background:#141333cc;border-radius:999px;padding:7px 13px;color:#cdbdff}.managedPlatform{position:relative;z-index:1;max-width:1180px;margin:18px auto 0;padding:18px;border:1px solid #8c74ff44;border-radius:20px;background:linear-gradient(145deg,rgba(20,27,62,.74),rgba(8,18,42,.78));backdrop-filter:blur(22px)}.managedPlatform .sectionHead small{display:block;color:#f2bd5c;font-size:9px;letter-spacing:.14em;font-weight:900;margin-bottom:5px}.managedPlatform .sectionHead h3{margin:0}.platformStages{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.platformStages article{padding:12px;border:1px solid #ffffff16;border-radius:13px;background:#07172d99}.platformStages b,.platformStages small{display:block}.platformStages small{margin-top:4px;color:#8edcb9;font-size:9px}.operatorPolicy{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.operatorPolicy span{padding:7px 9px;border:1px solid #ffffff14;border-radius:999px;color:#b9c5dc;font-size:9px}.commandBar{display:grid;grid-template-columns:auto minmax(0,1fr) auto 58px;gap:10px;align-items:center;padding:12px 14px;margin-top:10px;border:1px solid #9578ff88;border-radius:20px;background:linear-gradient(180deg,rgba(28,31,72,.82),rgba(10,17,43,.86));box-shadow:0 0 28px #6738ff55, inset 0 1px #ffffff22;backdrop-filter:blur(22px)}.commandBar>span{font-size:25px;color:#b894ff}.commandBar input{min-width:0;border:0;background:transparent;color:white;font-size:17px;outline:0;padding:11px}.reasoning{display:flex;gap:7px;align-items:center;font-size:11px;color:#b7c1dd}.reasoning.locked{opacity:.5}.commandBar button{width:54px;height:54px;border:1px solid #c9a8ff99;border-radius:17px;background:linear-gradient(145deg,#a35cff,#623bf0);color:#fff;font-size:30px;box-shadow:0 0 22px #793eff88}.commandBar button:disabled{opacity:.42}.commandSection{margin-top:20px}.sectionHead{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:12px}.sectionHead h3{margin:0;font-size:17px}.sectionHead span,.sectionHead a{font-size:12px;color:#88a9e8;text-decoration:none}.commandCards{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.commandCards button,.suggestionCards article,.glass{border:1px solid rgba(164,180,231,.22);background:linear-gradient(180deg,rgba(17,35,67,.86),rgba(7,18,39,.92));border-radius:18px;box-shadow:inset 0 1px rgba(255,255,255,.06),0 15px 40px rgba(0,0,0,.18);backdrop-filter:blur(20px)}.commandCards button{min-height:145px;padding:15px;text-align:left;color:white;display:flex;flex-direction:column;gap:8px}.commandCards button:hover{border-color:#8964ff;transform:translateY(-1px)}.commandCards i,.suggestionCards i{font-style:normal;width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#482a9e;color:#c5a8ff;font-size:23px}.commandCards b{font-size:14px}.commandCards small{color:#aebad5;line-height:1.4}.assistantGrid{margin-top:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(260px,.75fr);gap:14px}.glass{padding:18px}.contextBody{display:grid;grid-template-columns:90px 1fr;gap:15px;align-items:center}.projectArt{height:78px;border-radius:14px;display:grid;place-items:center;font-size:36px;background:linear-gradient(145deg,#5c3dc0,#0d6c8b);box-shadow:0 0 24px #5e49ff44}.contextBody p,.statusCard p,.proTip p,.suggestionCards p,.activity p{color:#aebbd5;line-height:1.45;margin:5px 0}.contextTrack{height:7px;border-radius:999px;background:#182746;margin-top:17px;overflow:hidden}.contextTrack i{display:block;height:100%;background:linear-gradient(90deg,#8b4dff,#5b64ff)}.statusCard{text-align:center}.statusRing{margin:12px auto;width:118px;height:118px;border-radius:50%;padding:8px;background:conic-gradient(#7445ff,#44d8bb,#7445ff);box-shadow:0 0 30px #6c48ff66}.miniBot{height:100%;border-radius:50%;display:grid;place-items:center;font-size:34px;background:#08162d;color:#9d6dff}.statusCard .online{display:block;color:#54da91}.statusCard .offline{display:block;color:#f2b95f}.suggestionCards{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.suggestionCards article{padding:13px;min-height:190px}.suggestionCards b{display:block;margin-top:9px;font-size:13px}.suggestionCards p{font-size:11px}.suggestionCards button{border:1px solid #ffffff22;background:#0d1a35;color:#fff;border-radius:999px;padding:7px 10px}.canDo>div{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #ffffff10;font-size:12px}.canDo b{color:#4ee08d}.activity article{display:grid;grid-template-columns:30px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid #ffffff10}.activity article i{font-style:normal;width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:#5631ae;color:#fff}.activity article p{font-size:12px;max-height:44px;overflow:hidden}.proTip{background:linear-gradient(145deg,rgba(64,28,116,.9),rgba(17,28,60,.9))}.proTip a{color:#7db2ff;text-decoration:none}.conversation{margin-top:15px}.conversation article{padding:11px 13px;margin:8px 0;border-radius:13px;background:#091a34}.conversation article.user{margin-left:16%;background:#35236e}.conversation article.error{border:1px solid #c4626255}.conversation small{font-size:9px;letter-spacing:.12em;color:#8ea7d1}.conversation p{white-space:pre-wrap;margin:5px 0;line-height:1.5}.empty{padding:25px;text-align:center;color:#8da0c1;border:1px dashed #ffffff20;border-radius:14px}@media(max-width:940px){.assistantReference{padding:96px 18px 150px}.assistantHero{grid-template-columns:1fr 210px}.assistantBot{width:200px;height:190px}.commandCards{grid-template-columns:repeat(3,1fr)}.assistantGrid{grid-template-columns:1fr}.suggestionCards{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.assistantReference{padding-top:84px}.assistantHero{min-height:350px;grid-template-columns:1fr}.assistantBot{position:absolute;right:-44px;top:55px;width:190px;opacity:.72}.assistantCopy{position:relative;z-index:2;padding-right:72px}.assistantCopy h1{font-size:40px}.assistantCopy h2{font-size:27px}.assistantCopy p{font-size:14px}.commandBar{grid-template-columns:auto 1fr 50px}.reasoning{display:none}.commandCards{display:flex;overflow:auto}.commandCards button{min-width:142px}.suggestionCards{grid-template-columns:1fr 1fr}.contextBody{grid-template-columns:70px 1fr}}
     `}</style>
   </main>;
 }

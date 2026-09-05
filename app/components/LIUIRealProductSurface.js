@@ -31,8 +31,7 @@ const SURFACES = [
   [/^\/publish\//, "publish"],
 ];
 
-// Approved LIUI-2026.2 global information architecture.
-// The five primary destinations stay stable while creation/project subflows adapt contextually.
+// Keep the approved product navigation semantics intact while matching the new visual shell.
 const NAV = [
   { label: "Home", href: "/", icon: "⌂" },
   { label: "Projects", href: "/my-apps", icon: "▣" },
@@ -41,9 +40,45 @@ const NAV = [
   { label: "More", href: "/studio", icon: "≡" },
 ];
 
+const PROJECT_RAIL = [
+  { label:"Home", href:"/", icon:"⌂" },
+  { label:"Projects", href:"/my-apps", icon:"▣" },
+  { label:"Templates", href:"/templates", icon:"▦" },
+  { label:"Automation", href:"/studio", icon:"⌘" },
+  { label:"AI Assistant", href:"/soolen-ai", icon:"✺" },
+  { label:"More", href:"/studio", icon:"⚙" },
+];
+
+const CREATION_STAGES = ["Idea","Plan","Design","Build","Preview","Launch","Manage"];
+const PAGE_STEPS = [
+  "Idea","Plan","Build","Preview","Launch","Manage","Projects","Templates","Assistant",
+  "Automation","Analytics","More","Editor","Template","Workflow","Database","Testing","Deploy",
+];
+
 function resolveSurface(pathname){
   for(const [pattern,name] of SURFACES) if(pattern.test(pathname || "")) return name;
   return "";
+}
+
+function resolvePageId(pathname){
+  const path=String(pathname||"");
+  if(path==="/")return 1;
+  if(path==="/create"||path==="/create/")return 2;
+  if(path.startsWith("/preview/"))return 4;
+  if(path.startsWith("/release/"))return 5;
+  if(path.startsWith("/app-dashboard/"))return 6;
+  if(path==="/my-apps"||path==="/my-apps/")return 7;
+  if(path==="/templates"||path==="/templates/")return 8;
+  if(path==="/soolen-ai"||path==="/soolen-ai/")return 9;
+  if(path.startsWith("/workflows/"))return 10;
+  if(path.startsWith("/analytics/"))return 11;
+  if(path==="/studio"||path==="/studio/")return 12;
+  if(path.startsWith("/editor/"))return 13;
+  if(path.startsWith("/templates/"))return 14;
+  if(path.startsWith("/database/"))return 16;
+  if(path.startsWith("/operations/"))return 17;
+  if(path.startsWith("/publish/"))return 18;
+  return 0;
 }
 
 function selectedLabel(pathname){
@@ -71,13 +106,7 @@ function suppressLegacyPrimaryNavs(){
   const touched=[];
   for(const nav of document.querySelectorAll("nav.bottomNav")){
     if(nav.classList.contains("liuiRealBottomNav")||nav.dataset.liuiNav==="canonical"||nav.dataset.liuiNavSuperseded==="true")continue;
-    touched.push({
-      nav,
-      hidden:nav.hidden,
-      ariaHidden:nav.getAttribute("aria-hidden"),
-      inert:nav.hasAttribute("inert"),
-      marker:nav.dataset.liuiNavSuperseded,
-    });
+    touched.push({nav,hidden:nav.hidden,ariaHidden:nav.getAttribute("aria-hidden"),inert:nav.hasAttribute("inert"),marker:nav.dataset.liuiNavSuperseded});
     nav.hidden=true;
     nav.setAttribute("aria-hidden","true");
     nav.setAttribute("inert","");
@@ -97,17 +126,46 @@ function restoreLegacyPrimaryNavs(touched){
   }
 }
 
+function ReferenceChrome({pageId,surface}){
+  const projectSurface=Boolean(surface && surface!=="creation" && surface!=="creations" && surface!=="templates" && surface!=="template-detail");
+  const showCreationTrack=pageId>=4&&pageId<=6;
+  const stageIndex=pageId===4?4:pageId===5?5:pageId===6?6:0;
+  if(!projectSurface)return null;
+  return <>
+    <header className="liuiReferenceHeader" aria-label="LANERIQ AI workspace header">
+      <Link href="/" className="liuiReferenceBrand"><span className="liuiReferenceMark" aria-hidden="true">✦</span><span><b>LANERIQ AI</b><small>AI APP &amp; WEB CREATOR</small></span></Link>
+      <Link href="/studio" className="liuiReferenceProfile"><span className="liuiReferenceAvatar" aria-hidden="true">◉</span><span><b>Profile</b><small>LANERIQ User</small></span><span aria-hidden="true">⌄</span></Link>
+    </header>
+    <aside className="liuiReferenceRail" aria-label="LANERIQ AI workspace navigation">
+      <Link href="/" className="liuiRailLogo" aria-label="LANERIQ AI home">✦</Link>
+      {PROJECT_RAIL.map(item=><Link key={item.label} href={item.href}><span aria-hidden="true">{item.icon}</span><small>{item.label}</small></Link>)}
+    </aside>
+    {showCreationTrack&&<div className="liuiCreationStage" aria-label={`Creation stage ${CREATION_STAGES[stageIndex]}`}>
+      <span className="liuiPageBadge">Page {pageId} of 6</span>
+      <div>{CREATION_STAGES.map((stage,index)=><span key={stage} className={index<=stageIndex?"done":""}><i>{index<stageIndex?"✓":index===stageIndex?String(pageId):""}</i>{stage}</span>)}</div>
+    </div>}
+    {pageId>=15&&<div className="liuiEighteenStepStrip" aria-label={`Page ${pageId} of 18`}>
+      {PAGE_STEPS.map((label,index)=><span key={`${label}-${index}`} className={index+1===pageId?"active":index+1<pageId?"done":""}><i>{index+1}</i><small>{label}</small></span>)}
+    </div>}
+  </>;
+}
+
 export default function LIUIRealProductSurface(){
   const pathname=usePathname() || "";
   const surface=useMemo(()=>resolveSurface(pathname),[pathname]);
+  const pageId=useMemo(()=>resolvePageId(pathname),[pathname]);
   const active=selectedLabel(pathname);
 
   useEffect(()=>{
     if(surface) document.body.dataset.liuiSurface=surface;
     else delete document.body.dataset.liuiSurface;
-    document.documentElement.dataset.liuiRealProduct="2026.2";
-    return()=>{ if(document.body.dataset.liuiSurface===surface) delete document.body.dataset.liuiSurface; };
-  },[surface]);
+    if(pageId)document.body.dataset.liuiPage=String(pageId);else delete document.body.dataset.liuiPage;
+    document.documentElement.dataset.liuiRealProduct="2026.3-reference";
+    return()=>{
+      if(document.body.dataset.liuiSurface===surface) delete document.body.dataset.liuiSurface;
+      if(document.body.dataset.liuiPage===String(pageId)) delete document.body.dataset.liuiPage;
+    };
+  },[surface,pageId]);
 
   useEffect(()=>{
     if(!surface)return undefined;
@@ -116,17 +174,17 @@ export default function LIUIRealProductSurface(){
     suppress();
     const observer=new MutationObserver(suppress);
     observer.observe(document.body,{childList:true,subtree:true});
-    return()=>{
-      observer.disconnect();
-      restoreLegacyPrimaryNavs(touched);
-    };
+    return()=>{observer.disconnect();restoreLegacyPrimaryNavs(touched);};
   },[surface]);
 
   if(!surface) return null;
 
-  return <nav className="liuiRealBottomNav" aria-label="LANERIQ AI primary navigation" data-liui-nav="canonical">
-    {NAV.map(item=><Link key={item.label} href={item.href} className={active===item.label?"active":""} aria-current={active===item.label?"page":undefined}>
-      <span aria-hidden="true">{item.icon}</span><small>{item.label}</small>
-    </Link>)}
-  </nav>;
+  return <>
+    <ReferenceChrome pageId={pageId} surface={surface}/>
+    <nav className="liuiRealBottomNav" aria-label="LANERIQ AI primary navigation" data-liui-nav="canonical">
+      {NAV.map(item=><Link key={item.label} href={item.href} className={active===item.label?"active":""} aria-current={active===item.label?"page":undefined}>
+        <span aria-hidden="true">{item.icon}</span><small>{item.label}</small>
+      </Link>)}
+    </nav>
+  </>;
 }

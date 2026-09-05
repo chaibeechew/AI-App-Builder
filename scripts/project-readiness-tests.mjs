@@ -58,15 +58,16 @@ assert.equal(simple.areas.find(area=>area.id==="automation").score,100,"A projec
 assert.match(simple.areas.find(area=>area.id==="data").note,/No data backend is required/);
 assert.match(simple.areas.find(area=>area.id==="automation").note,/No automation is required/);
 
-assert.match(dashboard,/PROJECT READINESS/);
-assert.match(dashboard,/Fix Everything/);
-assert.match(dashboard,/query:\{instruction:readiness\.fixInstruction\}/,"Fix Everything must hand the evidence-based repair instruction to the versioned AI editor");
+// The approved reference UI changed presentation copy, but the readiness behavior and evidence boundaries remain mandatory.
+assert.match(dashboard,/Project Readiness/);
+assert.match(dashboard,/View \/ Apply Insight/);
+assert.match(dashboard,/query:\{instruction:readiness\.fixInstruction\}/,"The reference UI must hand the evidence-based repair instruction to the versioned AI editor");
 assert.match(dashboard,/href=\{`\/operations\/\$\{id\}`\}/,"Project Readiness must expose AI Testing & Self-Heal");
 assert.match(dashboard,/href=\{`\/release\/\$\{id\}`\}/,"Project Readiness must expose the release gate");
-assert.match(dashboard,/saved-project readiness view/);
-assert.match(dashboard,/Live providers, store submission, payments and real-device evidence stay separate/);
+assert.match(dashboard,/Observed state/);
+assert.match(dashboard,/external provider, device and store evidence separate before claiming production completion/i);
 
 console.log("✓ Project Readiness exposes Design, Data, Security, Mobile, Automation and Publishing without faking live production evidence");
 console.log("✓ Missing data/workflow requirements become explicit blockers; genuinely unnecessary infrastructure remains ready without fabrication");
-console.log("✓ Fix Everything carries exact blocker scores into the versioned AI editor and preserves working state, ownership and rollback boundaries");
+console.log("✓ Reference UI carries exact blocker repair instructions into the versioned AI editor and preserves working state, ownership and rollback boundaries");
 console.log("✓ Fully verified saved-project readiness can reach 100 while live provider/store/device evidence remains a separate gate");

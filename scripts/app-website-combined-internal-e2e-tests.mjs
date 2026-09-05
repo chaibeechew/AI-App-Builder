@@ -62,12 +62,18 @@ assert.match(packageJson,/"test:combined-e2e-code": "node scripts\/app-website-c
 
 assert.match(home,/window\.location\.assign\(`\/a\/\$\{id\}\?demo=1`\)/);
 assert.match(appSurface,/query\?\.demo === "1"[\s\S]*redirect\(`\/preview\/\$\{id\}`\)/);
-assert.match(combinedPreview,/ONE PROJECT · ONE CURRENT VERSION/);
+
+// The approved reference Preview UI changed its presentation, but both surfaces must remain pinned to one owner-authorized saved version.
+assert.match(combinedPreview,/App and Website stay pinned to the same project version/);
 assert.match(combinedPreview,/data-project-id=\{id\}/);
 assert.match(combinedPreview,/data-version-id=\{versionId\}/);
-assert.equal((combinedPreview.match(/previewVersion=\$\{pinned\}/g)||[]).length,2,"Both App and Website preview frames must pin the exact same version ID.");
-assert.match(combinedPreview,/data-surface="app"/);
-assert.match(combinedPreview,/data-surface="website"/);
+const appPinnedLinks=(combinedPreview.match(/\/a\/\$\{id\}\?surface=app&previewVersion=\$\{pinned\}/g)||[]).length;
+const websitePinnedLinks=(combinedPreview.match(/\/website\/\$\{id\}\?surface=website&previewVersion=\$\{pinned\}/g)||[]).length;
+assert.equal(appPinnedLinks,2,"Both App preview entry points must pin the exact owner-authorized version ID.");
+assert.equal(websitePinnedLinks,2,"Both Website preview entry points, including the embedded frame, must pin the exact owner-authorized version ID.");
+assert.match(combinedPreview,/Same project ID/);
+assert.match(combinedPreview,/Same saved version ID/);
+assert.match(combinedPreview,/App and Website remain independent customer surfaces/);
 
 assert.match(visibleRuntime,/requestedVersionId && isOwner[\s\S]*app\.current_version_id[\s\S]*app\.published_version_id/);
 assert.match(visibleRuntime,/\.eq\("id", selectedVersionId\)[\s\S]*\.eq\("app_id", app\.id\)/);
@@ -97,7 +103,7 @@ assert.match(visibleRuntime,/isOwner[\s\S]*app\.current_version_id[\s\S]*app\.pu
 
 console.log("✓ App + Website simultaneous E2E uses one Planning decision, one verified specification and one LANERIQ Cloud atomic initial persistence transaction");
 console.log("✓ Dynamic zero-cost provider execution is wired to prove deterministic 100/100 and Release-Gate readiness across multilingual industry cases");
-console.log("✓ Preview Both locks App and Website to the same owner-authorized working version with no shadow Website record");
+console.log("✓ Reference Preview locks App and Website to the same owner-authorized saved version with no shadow Website record");
 console.log("✓ Anonymous App + Website production traffic stays pinned to published_version_id until an explicit new Publish");
 console.log("✓ Cloud adapter isolates generated-project and Modify service-role persistence behind owner/version checks");
 console.log("✓ Customer enquiries and the live owner inbox stay bound to the exact published Website snapshot, never the newer working draft");
