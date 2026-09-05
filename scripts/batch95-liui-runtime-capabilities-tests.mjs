@@ -4,6 +4,7 @@ import {
   LIUI_RUNTIME_CAPABILITIES,
   LIUI_RUNTIME_STATES,
   LIUI_CREATION_JOURNEY,
+  LIUI_ROUTE_CONTEXTS,
   resolveLiuiRouteContext,
   getLiuiCreationProgress,
   sanitizeLiuiMemory,
@@ -54,12 +55,22 @@ const routeCases = [
 for (const [expected, path, search] of routeCases) {
   assert.equal(resolveLiuiRouteContext(path, search).pageId, expected, `wrong LIUI context for ${path}${search}`);
 }
+const canonicalResolvedIds=[...new Set(routeCases.map(([id])=>id))].sort((a,b)=>a-b);
+assert.deepEqual(canonicalResolvedIds,Array.from({length:18},(_,index)=>index+1),"Every canonical Page 1–18 must have a resolvable product route");
+const declaredCanonicalIds=[...new Set(LIUI_ROUTE_CONTEXTS.filter(context=>context.pageId>=1&&context.pageId<=18).map(context=>context.pageId))].sort((a,b)=>a-b);
+assert.deepEqual(declaredCanonicalIds,canonicalResolvedIds,"Declared LIUI route contexts and executable route resolution must cover the same 18-page product inventory");
+assert.equal(resolveLiuiRouteContext("/workflows/project-id","?view=overview").pageId,10,"Workflow overview must stay Page 10");
+assert.equal(resolveLiuiRouteContext("/workflows/project-id","?view=editor").pageId,15,"Workflow editor must stay Page 15 and not collapse into Page 10");
+assert.equal(resolveLiuiRouteContext("/templates","" ).pageId,8,"Template catalog must stay Page 8");
+assert.equal(resolveLiuiRouteContext("/templates/template-id","" ).pageId,14,"Template detail must stay Page 14");
 assert.equal(resolveLiuiRouteContext("/api/ai/provider-router/status").pageId, 0, "non-product routes must not impersonate LIUI product pages");
 
 assert.deepEqual(LIUI_CREATION_JOURNEY.map(step => step.phase), ["Idea", "Plan", "Build", "Preview", "Launch", "Manage"]);
+assert.deepEqual(LIUI_CREATION_JOURNEY.map(step => step.pageId), [1,2,3,4,5,6],"Only Pages 1–6 form the creation journey; Pages 7–18 are destinations/workspaces, not extra wizard steps");
 assert.equal(getLiuiCreationProgress(1).percent, 17);
 assert.equal(getLiuiCreationProgress(6).percent, 100);
 assert.equal(getLiuiCreationProgress(7), null);
+assert.equal(getLiuiCreationProgress(18), null);
 
 const memory = sanitizeLiuiMemory({
   pageId: 13,
@@ -101,4 +112,6 @@ assert.ok(css.includes("@media (forced-colors:active)"), "forced colors support 
 assert.ok(css.includes("min-width:44px"), "44px minimum touch target is required");
 assert.ok(css.includes(":focus-visible"), "visible keyboard focus is required");
 
-console.log("Batch 95 LIUI runtime capabilities: PASS");
+console.log("✓ Batch 95 LIUI runtime capabilities: all canonical Page 1–18 routes are represented and resolvable");
+console.log("✓ Pages 1–6 remain the creation journey; Pages 7–18 remain independent destinations/workspaces rather than an 18-step wizard");
+console.log("✓ Shared runtime state, accessibility, safe memory and Page 10/15 + Page 8/14 route disambiguation remain intact");
