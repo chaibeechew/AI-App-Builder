@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import { createServerClient } from "../../../../lib/supabase/server.js";
-import { getCurrentUserProject } from "../../../../lib/cloud/projects.js";
+import {
+  LANERIQ_SESSION_COOKIE,
+  LANERIQ_SESSION_MODE_COOKIE,
+  isLaneriqPrimarySessionMode,
+  validateLaneriqSessionToken,
+} from "../../../../lib/auth/laneriq-session.js";
+import { getOwnedProductionEvidenceProject } from "../../../../lib/cloud/production-evidence.js";
 
 export const dynamic = "force-dynamic";
 
@@ -54,8 +59,23 @@ function json(body, status = 200) {
       "Cache-Control": "private, no-store, max-age=0",
       "X-Content-Type-Options": "nosniff",
       "X-Robots-Tag": "noindex, nofollow, noarchive",
+      "Vary": "Cookie",
     },
   });
+}
+
+async function currentLaneriqSession(request) {
+  const mode = request.cookies.get(LANERIQ_SESSION_MODE_COOKIE)?.value;
+  if (!isLaneriqPrimarySessionMode(mode)) return { ok: false, code: "SESSION_REQUIRED" };
+
+  const token = String(request.cookies.get(LANERIQ_SESSION_COOKIE)?.value || "");
+  try {
+    const session = await validateLaneriqSessionToken(token);
+    if (!session?.userId) return { ok: false, code: "SESSION_REQUIRED" };
+    return { ok: true, session };
+  } catch {
+    return { ok: false, code: "SESSION_NOT_READY" };
+  }
 }
 
 export async function POST(request) {
@@ -65,11 +85,15 @@ export async function POST(request) {
       return json({ error: "Production evidence attestation is available only on exact Vercel Production main." }, 409);
     }
 
-    const supabase = await createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return json({ error: "Authentication required." }, 401);
+    const authority = await currentLaneriqSession(request);
+    if (!authority.ok) {
+      return json(
+        { error: authority.code === "SESSION_NOT_READY" ? "LANERIQ Session Authority is unavailable." : "Authentication required.", sessionAuthority: "laneriq" },
+        authority.code === "SESSION_NOT_READY" ? 503 : 401,
+      );
+    }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const report = body?.report;
     if (!report || typeof report !== "object" || Array.isArray(report)) {
       return json({ error: "A Production closure evidence report is required." }, 400);
@@ -125,9 +149,13 @@ export async function POST(request) {
       return json({ error: "Evidence report does not satisfy the Production release attestation claim set." }, 422);
     }
 
-    const projectResult = await getCurrentUserProject(projectId);
-    if (!projectResult.ok && projectResult.code === "AUTHENTICATION_REQUIRED") return json({ error: "Authentication required." }, 401);
-    if (!projectResult.ok && projectResult.code === "PROJECT_NOT_FOUND") return json({ error: "Evidence project was not found for this user." }, 404);
+    const projectResult = await getOwnedProductionEvidenceProject({
+      userId: authority.session.userId,
+      projectId,
+    });
+    if (!projectResult.ok && projectResult.code === "PROJECT_NOT_FOUND") {
+      return json({ error: "Evidence project was not found for this authenticated LANERIQ user." }, 404);
+    }
     if (!projectResult.ok) return json({ error: "Unable to verify the evidence project." }, 503);
 
     const project = projectResult.project;
@@ -139,7 +167,8 @@ export async function POST(request) {
     }
 
     const reportHash = sha256(canonicalReport);
-    const userBindingHash = sha256(`laneriq-production-attestation-v1:${user.id}:${build.commitSha}`);
+    const userBindingHash = sha256(`laneriq-production-attestation-v1:${authority.session.userId}:${build.commitSha}`);
+    const sessionBindingHash = sha256(`laneriq-production-session-v1:${authority.session.sessionId}:${build.commitSha}`);
     const attestedAt = new Date().toISOString();
     const attestationId = `laneriq-prod-${build.commitSha.slice(0, 12)}-${reportHash.slice(0, 20)}`;
 
@@ -152,8 +181,10 @@ export async function POST(request) {
       reportHashAlgorithm: "SHA-256",
       reportHash,
       userBindingHash,
+      sessionBindingHash,
       build,
       reportAgeMs: ageMs,
+      sessionAuthority: "laneriq",
       projectSnapshot: {
         id: project.id,
         currentVersionId: project.current_version_id,
@@ -164,6 +195,7 @@ export async function POST(request) {
       },
       claims: {
         authenticatedSessionVerified: true,
+        laneriqPrimarySessionVerified: true,
         projectOwnershipVerified: true,
         exactProductionMainVerified: true,
         exactCurrentVersionVerified: true,
