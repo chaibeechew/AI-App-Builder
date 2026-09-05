@@ -1,0 +1,46 @@
+name: App Builder Template Active Context
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/orchestrate/route.js'
+      - 'lib/build/template-generation-guidance.js'
+      - 'lib/templateCatalog.js'
+      - 'app/templates/**'
+      - 'scripts/app-builder-template-active-context-tests.mjs'
+      - 'scripts/template-contract-tests.mjs'
+      - 'scripts/ai-idea-planning-contract-tests.mjs'
+      - '.github/workflows/app-builder-template-active-context.yml'
+  push:
+    branches:
+      - 'batch159-*'
+    paths:
+      - 'app/api/orchestrate/route.js'
+      - 'lib/build/template-generation-guidance.js'
+      - 'lib/templateCatalog.js'
+      - 'app/templates/**'
+      - 'scripts/app-builder-template-active-context-tests.mjs'
+      - 'scripts/template-contract-tests.mjs'
+      - 'scripts/ai-idea-planning-contract-tests.mjs'
+      - '.github/workflows/app-builder-template-active-context.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  app-builder-template-active-context:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Verify active canonical template generation context
+        run: node scripts/app-builder-template-active-context-tests.mjs
+      - name: Verify canonical 3,000-template catalog regression
+        run: node scripts/template-contract-tests.mjs
+      - name: Verify AI Idea Planning gate regression
+        run: node scripts/ai-idea-planning-contract-tests.mjs
