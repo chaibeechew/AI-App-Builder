@@ -41,6 +41,7 @@ import LIUIRealProductSurface from "./components/LIUIRealProductSurface";
 import LIUIContextIntelligence from "./components/LIUIContextIntelligence";
 import LIUIRuntimeCapabilityLayer from "./components/LIUIRuntimeCapabilityLayer";
 import LIUIAdaptiveExperienceLayer from "./components/LIUIAdaptiveExperienceLayer";
+import LIUIInteractionIntegrity from "./components/LIUIInteractionIntegrity";
 import CreatorEncouragement from "./components/CreatorEncouragement";
 import ProjectPortabilityMount from "./components/ProjectPortabilityMount";
 import { PRODUCT_BRAND } from "../lib/product-brand.js";
@@ -92,6 +93,7 @@ export default function RootLayout({ children }) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
         <LIUIRuntimeCapabilityLayer />
         <LIUIAdaptiveExperienceLayer />
+        <LIUIInteractionIntegrity />
         <HomeLoadGuard />
         <LanguageRuntime />
         <AuthFlowGuard />
