@@ -1,0 +1,4 @@
+import assert from 'node:assert/strict';
+import {buildPlayableWorldIntelligenceV23,stepCrowdV23,applyWorldEventV23} from '../lib/game/game-world-playable-intelligence-v23.js';
+const w=buildPlayableWorldIntelligenceV23({seed:'playable-v23',worldSizeMeters:10000,city:{sizeMeters:720,blockMeters:120,maxBuildings:48}});assert.equal(w.readiness.internal100,true);assert.equal(w.truth.liveTrafficSoakVerified,false);const stepped=stepCrowdV23(w.crowd.agents.slice(0,4));assert.equal(stepped.length,4);const state=applyWorldEventV23({}, {type:'bridge-destroyed'});assert.ok(state.lastConsequences.includes('traffic-reroute'));assert.equal(w.destruction.rollbackReady,true);
+console.log('Game World Playable Intelligence V23: PASS',JSON.stringify({trafficNodes:w.traffic.nodes.length,crowd:w.crowd.agents.length,indoorNodes:w.indoorNav.nodes.length,consequences:state.lastConsequences.length}));
