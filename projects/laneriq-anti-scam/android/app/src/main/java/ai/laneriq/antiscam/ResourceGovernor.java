@@ -5,25 +5,41 @@ import android.os.Build;
 import android.os.PowerManager;
 
 public final class ResourceGovernor {
-    private static final long NORMAL_INTERVAL_MS = 30_000L;
-    private static final long REDUCED_INTERVAL_MS = 120_000L;
-
     private final PowerManager powerManager;
 
     public ResourceGovernor(Context context) {
         powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
     }
 
-    public boolean shouldReduceBackgroundWork() {
-        if (powerManager == null) return false;
-        if (powerManager.isPowerSaveMode()) return true;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            return powerManager.getCurrentThermalStatus() >= PowerManager.THERMAL_STATUS_MODERATE;
+    public Snapshot snapshot() {
+        boolean powerSave = powerManager != null && powerManager.isPowerSaveMode();
+        int thermalStatus = ResourcePolicy.THERMAL_NONE;
+        if (powerManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            thermalStatus = powerManager.getCurrentThermalStatus();
         }
-        return false;
+        ResourcePolicy.Mode mode = ResourcePolicy.evaluate(powerSave, thermalStatus);
+        return new Snapshot(powerSave, thermalStatus, mode, ResourcePolicy.intervalMs(mode));
+    }
+
+    public boolean shouldReduceBackgroundWork() {
+        return snapshot().mode != ResourcePolicy.Mode.NORMAL;
     }
 
     public long nextGuardianIntervalMs() {
-        return shouldReduceBackgroundWork() ? REDUCED_INTERVAL_MS : NORMAL_INTERVAL_MS;
+        return snapshot().intervalMs;
+    }
+
+    public static final class Snapshot {
+        public final boolean powerSaveMode;
+        public final int thermalStatus;
+        public final ResourcePolicy.Mode mode;
+        public final long intervalMs;
+
+        Snapshot(boolean powerSaveMode, int thermalStatus, ResourcePolicy.Mode mode, long intervalMs) {
+            this.powerSaveMode = powerSaveMode;
+            this.thermalStatus = thermalStatus;
+            this.mode = mode;
+            this.intervalMs = intervalMs;
+        }
     }
 }
