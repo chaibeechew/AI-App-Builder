@@ -23,7 +23,8 @@ test("V6 creates a real browser graphics context and sustained frames",async({pa
   expect(evidence.browser.contextCreated).toBe(true);
   expect(["WebGL2","WebGL1"]).toContain(evidence.browser.api);
   expect(evidence.truth.browserRuntimeVerified).toBe(true);
-  expect(evidence.truth.realDeviceFpsVerified).toBe(true);
+  expect(evidence.truth.measuredBrowserFpsVerified).toBe(true);
+  expect(evidence.truth.realDeviceFpsVerified).toBe(false);
   expect(evidence.truth.realDeviceThermalVerified).toBe(false);
   expect(evidence.truth.productionRuntimeVerified).toBe(false);
   expect(evidence.summary.sampleCount).toBeGreaterThanOrEqual(3);
