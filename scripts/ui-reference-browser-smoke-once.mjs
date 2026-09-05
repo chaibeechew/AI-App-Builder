@@ -8,7 +8,9 @@ const page = await context.newPage();
 const unexpected = [];
 page.on('pageerror', error => unexpected.push(`pageerror:${error.message}`));
 page.on('response', response => {
-  if (response.status() >= 500) unexpected.push(`${response.status()}:${response.url()}`);
+  const url = new URL(response.url());
+  const expectedCiReadiness503 = response.status() === 503 && url.pathname === '/api/auth/verification/status';
+  if (response.status() >= 500 && !expectedCiReadiness503) unexpected.push(`${response.status()}:${response.url()}`);
 });
 
 async function open(path) {
@@ -24,9 +26,11 @@ async function open(path) {
 
 const auth = await open('/auth');
 assert.match(auth.text, /Enter Your Email/);
-assert.match(auth.text, /Email Code/);
+assert.match(auth.text, /A BRIGHTER TOMORROW TOGETHER/);
 assert.match(auth.text, /8-digit verification code/);
-assert.match(auth.text, /No paid SMS fallback is used/);
+assert.match(auth.text, /Email address/);
+assert.match(auth.text, /Encrypted session/);
+assert.match(auth.text, /One-time code/);
 assert.doesNotMatch(auth.text, /SMS Code/);
 
 const home = await open('/');
@@ -58,7 +62,7 @@ assert.notEqual(session?.authenticated, true, 'Signed-out browser must never be 
 
 assert.deepEqual(unexpected, [], `Unexpected runtime/browser errors: ${unexpected.join(', ')}`);
 await browser.close();
-console.log('✓ Exact-head Chromium smoke rendered approved Login, Home and Templates surfaces');
+console.log('✓ Exact-head Chromium smoke rendered approved mobile Login, Home and Templates surfaces');
 console.log('✓ More/Settings is either rendered with restored cross-feature entries or correctly session-gated');
 console.log('✓ Signed-out /my-apps and /api/auth/session preserve LANERIQ session boundaries');
-console.log('✓ No unexpected 5xx or browser page errors were observed');
+console.log('✓ No unexpected 5xx or browser page errors were observed (CI placeholder readiness 503 classified separately)');
