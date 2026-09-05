@@ -12,6 +12,7 @@ import {
 } from "../../lib/device-compute/policy.js";
 import {
   NATIVE_RESOURCE_GUARDIAN_VERSION,
+  applyNativeAdmissionToBudget,
   evaluateNativeResourceAdmission,
   normalizeNativeTelemetry,
 } from "../../lib/device-compute/native-resource-guardian.js";
@@ -56,37 +57,6 @@ function deviceInputs() {
     hardwareConcurrency: Number(nav.hardwareConcurrency || 1),
     deviceMemory: Number(nav.deviceMemory || 0),
     maxTouchPoints: Number(nav.maxTouchPoints || 0),
-  };
-}
-
-function capBudgetToAdmission(budget, admission) {
-  if (!admission?.allowed) {
-    return {
-      ...budget,
-      route: budget.internetAvailable ? "cloud_fallback" : budget.ownDeviceMeshAvailable ? "own_desktop" : "offline_queue",
-      reason: `native_guardian_${admission?.reason || "blocked"}`,
-      effectiveWorkerLimit: 0,
-      schedulerDutyCycleShare: 0,
-      sustainedCpuShare: 0,
-      sustainedGpuShare: 0,
-      burstCpuShare: 0,
-      burstGpuShare: 0,
-      nativeGuardianBlocked: true,
-    };
-  }
-  const cap = Math.max(0, Math.min(0.05, Number(admission.maxAllowedShare || 0)));
-  const limit = (value) => Math.min(Number(value || 0), cap);
-  const sustainedCpuShare = limit(budget.sustainedCpuShare);
-  return {
-    ...budget,
-    sustainedCpuShare,
-    sustainedGpuShare: limit(budget.sustainedGpuShare),
-    burstCpuShare: limit(budget.burstCpuShare),
-    burstGpuShare: limit(budget.burstGpuShare),
-    schedulerDutyCycleShare: Math.min(Number(budget.schedulerDutyCycleShare || 0), cap),
-    nativeGuardianBlocked: false,
-    nativeGuardianMaxAllowedShare: cap,
-    effectiveWorkerLimit: sustainedCpuShare <= 0 ? 0 : budget.effectiveWorkerLimit,
   };
 }
 
@@ -176,7 +146,7 @@ export default function DeviceComputeManager() {
       requestedShare: Math.max(rawBudget.burstCpuShare, rawBudget.burstGpuShare, rawBudget.sustainedCpuShare, rawBudget.sustainedGpuShare),
       estimatedNetworkBytes: 0,
     });
-    const budget = settings.localComputeEnabled ? capBudgetToAdmission(rawBudget, nativeAdmission) : rawBudget;
+    const budget = settings.localComputeEnabled ? applyNativeAdmissionToBudget(rawBudget, nativeAdmission) : rawBudget;
 
     return {
       policyVersion: DEVICE_COMPUTE_POLICY_VERSION,
