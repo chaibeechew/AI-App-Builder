@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - "app/game-world-v6/**"
+      - "app/landing/game-world-v6-evidence/**"
       - "app/game-builder/layout.js"
       - "lib/game/game-world-mobile-adaptive-v6.js"
       - "lib/game/game-world-physics-nav-v6.js"
@@ -75,7 +76,7 @@ jobs:
           npm run start -- -p 3000 > /tmp/laneriq-v6.log 2>&1 &
           echo $! > /tmp/laneriq-v6.pid
           for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:3000/game-world-v6 >/dev/null; then exit 0; fi
+            if curl -fsS http://127.0.0.1:3000/landing/game-world-v6-evidence >/dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/laneriq-v6.log
