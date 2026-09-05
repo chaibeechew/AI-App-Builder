@@ -67,6 +67,36 @@ function selectedLabel(pathname){
   return "";
 }
 
+function suppressLegacyPrimaryNavs(){
+  const touched=[];
+  for(const nav of document.querySelectorAll("nav.bottomNav")){
+    if(nav.classList.contains("liuiRealBottomNav")||nav.dataset.liuiNav==="canonical"||nav.dataset.liuiNavSuperseded==="true")continue;
+    touched.push({
+      nav,
+      hidden:nav.hidden,
+      ariaHidden:nav.getAttribute("aria-hidden"),
+      inert:nav.hasAttribute("inert"),
+      marker:nav.dataset.liuiNavSuperseded,
+    });
+    nav.hidden=true;
+    nav.setAttribute("aria-hidden","true");
+    nav.setAttribute("inert","");
+    nav.dataset.liuiNavSuperseded="true";
+  }
+  return touched;
+}
+
+function restoreLegacyPrimaryNavs(touched){
+  for(const item of touched){
+    const nav=item?.nav;
+    if(!nav?.isConnected)continue;
+    nav.hidden=Boolean(item.hidden);
+    if(item.ariaHidden===null)nav.removeAttribute("aria-hidden");else nav.setAttribute("aria-hidden",item.ariaHidden);
+    if(item.inert)nav.setAttribute("inert","");else nav.removeAttribute("inert");
+    if(item.marker===undefined)delete nav.dataset.liuiNavSuperseded;else nav.dataset.liuiNavSuperseded=item.marker;
+  }
+}
+
 export default function LIUIRealProductSurface(){
   const pathname=usePathname() || "";
   const surface=useMemo(()=>resolveSurface(pathname),[pathname]);
@@ -77,6 +107,19 @@ export default function LIUIRealProductSurface(){
     else delete document.body.dataset.liuiSurface;
     document.documentElement.dataset.liuiRealProduct="2026.2";
     return()=>{ if(document.body.dataset.liuiSurface===surface) delete document.body.dataset.liuiSurface; };
+  },[surface]);
+
+  useEffect(()=>{
+    if(!surface)return undefined;
+    const touched=[];
+    const suppress=()=>touched.push(...suppressLegacyPrimaryNavs());
+    suppress();
+    const observer=new MutationObserver(suppress);
+    observer.observe(document.body,{childList:true,subtree:true});
+    return()=>{
+      observer.disconnect();
+      restoreLegacyPrimaryNavs(touched);
+    };
   },[surface]);
 
   if(!surface) return null;
