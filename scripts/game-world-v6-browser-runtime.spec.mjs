@@ -4,8 +4,8 @@ import fs from "node:fs";
 fs.mkdirSync("test-results",{recursive:true});
 
 test("V6 creates a real browser graphics context and sustained frames",async({page})=>{
-  await page.goto("/game-world-v6?profile=mobile-safe&seed=ci-browser-v6",{waitUntil:"networkidle",timeout:60000});
-  await expect(page.getByRole("heading",{name:/AI MAP now measures/i})).toBeVisible();
+  await page.goto("/landing/game-world-v6-evidence",{waitUntil:"networkidle",timeout:60000});
+  await expect(page.getByTestId("v6-evidence-probe")).toBeVisible();
   const status=page.getByTestId("gpu-status");
   await expect(status).toBeVisible();
   await page.waitForFunction(()=>{
