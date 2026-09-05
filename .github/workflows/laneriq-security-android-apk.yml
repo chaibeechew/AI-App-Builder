@@ -1,6 +1,12 @@
 name: LANERIQ Security Android APK
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/laneriq-security-android/**'
+      - '.github/workflows/laneriq-security-android-apk.yml'
   pull_request:
     paths:
       - 'apps/laneriq-security-android/**'
