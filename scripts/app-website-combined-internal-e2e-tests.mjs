@@ -12,6 +12,12 @@ const combinedPreview=fs.readFileSync("app/preview/[id]/page.js","utf8");
 const appSurface=fs.readFileSync("app/a/[id]/page.js","utf8");
 const websiteSurface=fs.readFileSync("app/website/[id]/page.js","utf8");
 const analyticsTracker=fs.readFileSync("app/components/AnalyticsTracker.js","utf8");
+const analyticsRoute=fs.readFileSync("app/api/analytics/event/route.js","utf8");
+const analyticsPage=fs.readFileSync("app/analytics/[id]/page.js","utf8");
+const analyticsMigration=fs.readFileSync("supabase/migrations/20260904150000_anonymous_aggregate_analytics.sql","utf8");
+const analyticsPolicy=fs.readFileSync("docs/LANERIQ_ANONYMOUS_AGGREGATE_ANALYTICS_POLICY.md","utf8");
+const masterProduct=fs.readFileSync("lib/product/laneriq-18-page-master.js","utf8");
+const masterSpec=fs.readFileSync("docs/LANERIQ_AI_18_PAGE_MASTER_PRODUCT_SPEC.md","utf8");
 const visibleRuntime=fs.readFileSync("lib/publishing/public-project-runtime.js","utf8");
 const dynamicE2E=fs.readFileSync("scripts/app-website-dynamic-release-e2e-tests.mjs","utf8");
 const packageJson=fs.readFileSync("package.json","utf8");
@@ -86,6 +92,36 @@ assert.match(analyticsTracker,/params\.has\("previewVersion"\)/);
 assert.match(analyticsTracker,/surface==="app"\|\|surface==="website"/);
 assert.match(analyticsTracker,/if\(isEmbeddedPinnedPreview\(\)\)return;/);
 assert.ok(analyticsTracker.indexOf("if(isEmbeddedPinnedPreview())return;")<analyticsTracker.indexOf("trackProjectEvent({appId,channel"),"Pinned Preview guard must execute before customer analytics tracking.");
+assert.match(analyticsTracker,/sessionStorage\.removeItem\("soolenAnalyticsSession"\)/,"Legacy session-linked analytics IDs must be actively removed.");
+assert.doesNotMatch(analyticsTracker,/crypto\.randomUUID|sessionStorage\.getItem|sessionId|metadata|window\.location\.pathname/,"Browser analytics must not create or transmit visitor-linked identifiers or paths.");
+
+assert.match(analyticsRoute,/createAdminClient/);
+assert.match(analyticsRoute,/server_record_anonymous_analytics_event/);
+assert.match(analyticsRoute,/anonymous-aggregate-only/);
+assert.match(analyticsRoute,/FORBIDDEN_FIELDS/);
+assert.match(analyticsRoute,/"sessionId"[\s\S]*"metadata"[\s\S]*"userId"[\s\S]*"ip"[\s\S]*"path"[\s\S]*"referrer"/);
+assert.doesNotMatch(analyticsRoute,/\.from\("analytics_events"\)|cleanMetadata|insert\(\{[^}]*session_id/,"API must never write legacy event-level analytics or session identifiers.");
+
+assert.match(analyticsPage,/\.from\("analytics_daily_aggregates"\)/);
+assert.match(analyticsPage,/Anonymous Aggregate Analytics Only/);
+assert.match(analyticsPage,/No session IDs, user IDs, IP addresses, device IDs, referrers, page paths/);
+assert.doesNotMatch(analyticsPage,/session_id|SESSIONS · 30D/,"Owner analytics UI must not depend on visitor sessions.");
+
+assert.match(analyticsMigration,/create table if not exists public\.analytics_daily_aggregates/);
+assert.match(analyticsMigration,/primary key \(app_id,event_day,event_name,channel\)/);
+assert.match(analyticsMigration,/security invoker/);
+assert.match(analyticsMigration,/revoke execute on function public\.server_record_anonymous_analytics_event\(uuid,text,text\) from public, anon, authenticated/);
+assert.match(analyticsMigration,/grant execute on function public\.server_record_anonymous_analytics_event\(uuid,text,text\) to service_role/);
+assert.match(analyticsMigration,/truncate table public\.analytics_events/);
+assert.match(analyticsMigration,/revoke all on table public\.analytics_events from public, anon, authenticated, service_role/);
+assert.match(analyticsPolicy,/Anonymous Aggregate Analytics Only/);
+assert.match(analyticsPolicy,/must not answer "What did this specific visitor do\?"/);
+assert.match(masterProduct,/anonymousAggregateAnalyticsOnly:true/);
+assert.match(masterProduct,/neverBuildVisitorBehaviorProfiles:true/);
+assert.match(masterProduct,/data:\["analytics_daily_aggregates","anonymous aggregate counts"\]/);
+assert.doesNotMatch(masterProduct,/data:\["analytics_events"/);
+assert.match(masterSpec,/analytics_daily_aggregates/);
+assert.match(masterSpec,/Anonymous Aggregate Analytics Only/);
 
 // Modify advances the working version only. Cloud adapter owns the service-only atomic write and re-checks the exact version.
 assert.match(modify,/saveBuilderModification/);
@@ -101,4 +137,5 @@ console.log("✓ Preview Both locks App and Website to the same owner-authorized
 console.log("✓ Anonymous App + Website production traffic stays pinned to published_version_id until an explicit new Publish");
 console.log("✓ Cloud adapter isolates generated-project and Modify service-role persistence behind owner/version checks");
 console.log("✓ Customer enquiries and the live owner inbox stay bound to the exact published Website snapshot, never the newer working draft");
+console.log("✓ LANERIQ Analytics stores daily anonymous aggregates only and rejects session, identity, device, path, referrer and arbitrary metadata tracking");
 console.log("✓ Pinned owner snapshots do not inflate customer analytics; real authenticated Production generation remains a separate LIVE evidence gate");
