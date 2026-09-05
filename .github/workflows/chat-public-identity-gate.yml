@@ -1,0 +1,34 @@
+name: LANERIQ Chat Public Identity Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/chat/route.js'
+      - 'scripts/chat-public-identity-contract-tests.mjs'
+      - 'scripts/soolen-platform-operator-contract-tests.mjs'
+      - '.github/workflows/chat-public-identity-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laneriq-chat-public-identity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-identity:
+    name: Chat public identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Verify LANERIQ Chat public identity
+        run: node scripts/chat-public-identity-contract-tests.mjs
+      - name: Verify existing operator safety contract
+        run: node scripts/soolen-platform-operator-contract-tests.mjs
