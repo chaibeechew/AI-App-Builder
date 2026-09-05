@@ -8,6 +8,7 @@ on:
       - "lib/ai/provider-router-truth.js"
       - "app/api/ai/provider-router/status/route.js"
       - "scripts/provider-evidence-control-plane-tests.mjs"
+      - "scripts/provider-router-production-truth-tests.mjs"
       - ".github/workflows/provider-evidence-control-plane-gate.yml"
   push:
     paths:
@@ -16,6 +17,7 @@ on:
       - "lib/ai/provider-router-truth.js"
       - "app/api/ai/provider-router/status/route.js"
       - "scripts/provider-evidence-control-plane-tests.mjs"
+      - "scripts/provider-router-production-truth-tests.mjs"
       - ".github/workflows/provider-evidence-control-plane-gate.yml"
   workflow_dispatch:
 
@@ -40,6 +42,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+
+      - name: Verify existing Provider Router Production truth
+        run: node scripts/provider-router-production-truth-tests.mjs
 
       - name: Verify Provider Evidence Control Plane
         run: node scripts/provider-evidence-control-plane-tests.mjs
