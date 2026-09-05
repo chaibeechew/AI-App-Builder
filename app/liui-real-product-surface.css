@@ -150,3 +150,6 @@ body[data-liui-surface="publish"] .publishPage .actions button:first-child,body[
 }
 
 @media(prefers-reduced-motion:reduce){body[data-liui-surface] *,body[data-liui-surface] *::before,body[data-liui-surface] *::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+
+/* Approved intent surface remains warm/readable underneath the final Page 1 reference layer. */
+body[data-liui-surface="creation"] .premiumHome .promptCard textarea{background:#fffdf6;color:#29313a}

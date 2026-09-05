@@ -6,7 +6,7 @@
   --liui-v5-muted:#a9bac8;
   --liui-v5-glass:rgba(4,20,38,.68);
   --liui-v5-line:rgba(120,185,232,.26);
-  padding-bottom:max(168px,calc(142px + env(safe-area-inset-bottom)))!important;
+  padding-bottom:max(184px,calc(154px + env(safe-area-inset-bottom)))!important;
   scroll-padding-bottom:180px;
 }
 
@@ -104,14 +104,14 @@ body[data-liui-surface="creation"] .bottomNav{display:none!important}
 .creatorEncourage .creatorSpark{border-color:rgba(242,200,98,.42)!important;background:linear-gradient(145deg,rgba(12,20,45,.90),rgba(6,31,37,.88))!important}
 
 @media(max-width:520px){
-  .premiumHome{padding-bottom:max(174px,calc(148px + env(safe-area-inset-bottom)))!important}
+  .premiumHome{padding-bottom:max(184px,calc(154px + env(safe-area-inset-bottom)))!important}
   .premiumHome .frame{padding-inline:12px!important}
   .premiumHome .topbar{min-height:68px!important;padding-top:11px!important}
-  .premiumHome .heroCopy{min-height:305px!important;padding:2px 4px 10px!important;justify-content:flex-start!important}
+  .premiumHome .heroCopy{min-height:clamp(250px,34svh,330px)!important;padding:2px 4px 10px!important;justify-content:flex-start!important}
   .premiumHome .heroCopy h1 span{font-size:clamp(34px,10.3vw,42px)!important}.premiumHome .heroCopy h1 strong{font-size:9px!important;letter-spacing:.17em!important}
   .premiumHome .heroCopy p{margin-top:12px!important}.premiumHome .promptCard{border-radius:25px!important;padding:14px!important}.premiumHome .promptCard textarea{min-height:104px!important;max-height:320px!important;padding:15px!important}
   .premiumHome .featureCards{grid-template-columns:1fr 1fr!important}.premiumHome .feature{min-height:82px!important}.premiumHome .styleRail>*{min-width:92px!important}.premiumHome .templateRail>*{min-width:148px!important}.premiumHome .buildCta{min-height:70px!important;margin-top:13px!important}.premiumHome .buildCta span{font-size:18px!important;letter-spacing:.09em!important}
 }
 
-@media(max-width:360px){.premiumHome .featureCards{grid-template-columns:1fr!important}.premiumHome .heroCopy{min-height:285px!important}}
+@media(max-width:360px){.premiumHome .featureCards{grid-template-columns:1fr!important}.premiumHome .heroCopy{min-height:250px!important}}
 @media(prefers-reduced-motion:reduce){.premiumHome *,.premiumHome *::before,.premiumHome *::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
