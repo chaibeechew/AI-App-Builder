@@ -3,7 +3,7 @@
 **Corpus Version:** LANERIQ-LEGAL-CORPUS-2026.09.05-r1  
 **Review Date:** 2026-09-05  
 **Status:** LEGAL_REVIEW_REQUIRED — NOT ACTIVE / NOT BINDING BY THIS FILE ALONE  
-**Base Repository SHA:** `8b4dc8efa7c51e187e66284f51cf707281fd3415`
+**Base Repository SHA:** `afc4f4d08af0af5ef236c507c5c4388130a5317e`
 
 This Manifest is the authoritative drafting index for the current LANERIQ AI legal corpus. It harmonizes the existing legal documents, the Buyout stamp-duty policy decision, and the Malaysian regulatory baseline verified on 2026-09-05.
 
