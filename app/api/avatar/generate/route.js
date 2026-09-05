@@ -6,6 +6,7 @@ import { generateExternalImages,getImageGenerationConfig,ImageGenerationGatewayE
 import { persistGeneratedImages,replayPersistedImages,DurableImageOutputError } from "../../../../lib/ai/image-output-persistence.js";
 import { buildImagePlacementPrompt,getImagePlacementPolicy } from "../../../../lib/ai/image-placement-policy.js";
 import { buildLivingCharacterManifest,normalizeCharacterOptions } from "../../../../lib/ai/avatar-character-core.js";
+import { knowledgeForAvatarPrompt } from "../../../../lib/ai/avatar-engineering-knowledge.js";
 import { consumeAiCredits,refundAiCredits } from "../../../../lib/app-builder-finance.js";
 
 const MAX_REQUEST_BYTES=24*1024;
@@ -38,7 +39,8 @@ export async function POST(request){
     const characterOptions=normalizeCharacterOptions({type,persona:body?.persona,voiceStyle:body?.voiceStyle,motionProfile:body?.motionProfile,language:body?.language});
     if(likenessMode!=="fictional"&&!consentConfirmed)return noStore({error:"Confirm that you have permission to create this real-person likeness."},400);
     const label=typeLabel(type),placement=getImagePlacementPolicy("image");const likenessRule=likenessMode==="fictional"?"Create a wholly fictional, original person or character. Do not imitate a celebrity, public figure, copyrighted character or third-party mascot.":likenessMode==="self"?"The customer declares this is a description of themself and consents to generating their likeness. Do not infer sensitive personal attributes or identity facts beyond the supplied description.":"The customer declares the described real person gave permission for this likeness. Do not infer sensitive personal attributes or identity facts beyond the supplied description.";
-    const prompt=buildImagePlacementPrompt(`Create an original ${label} for an App, Website or Mobile Game. Style direction: ${style}. Customer description: ${idea}. ${likenessRule} Keep the composition clean, mobile-safe and suitable for profile, character or promotional use. Do not add logos, trademarks or text.`,"image");
+    const engineeringKnowledge=knowledgeForAvatarPrompt({phase:"creator",platform:body?.platform||"web",deviceTier:body?.deviceTier||"mid"});
+    const prompt=buildImagePlacementPrompt(`Create an original ${label} for an App, Website or Mobile Game. Style direction: ${style}. Customer description: ${idea}. ${likenessRule} Keep the composition clean, mobile-safe and suitable for profile, character or promotional use. Do not add logos, trademarks or text.\n\n${engineeringKnowledge}`,"image");
     admin=createAdminClient();const hash=requestHash({idea,type,style,likenessMode,consentConfirmed:likenessMode==="fictional"?false:consentConfirmed,...characterOptions});const characterId=buildCharacterId({userId:user.id,requestId,hash});const character=buildLivingCharacterManifest({characterId,type,style,...characterOptions,continuityKey:hash.slice(0,32)});const claim=await claimRequest(admin,{userId:user.id,requestId,hash});requestRowId=claim.row?.id||null;
     if(claim.state==="conflict")return noStore({error:"This avatar request ID was already used for different inputs.",code:"AVATAR_REQUEST_ID_CONFLICT"},409);
     if(claim.state==="failed")return noStore({error:"This avatar request finished unsuccessfully. Start a new avatar request.",code:"AVATAR_RETRY_NEW_ID"},409);
