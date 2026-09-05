@@ -355,10 +355,10 @@ function AuthForm() {
           ) : (
             <form onSubmit={verify}>
               <div className="sentTo">Code sent to <b>{identifier}</b></div>
-              <label htmlFor="auth-otp" className="otpLabel">{EMAIL_OTP_POLICY.codeLength}-digit verification code</label>
-              <div className="otpCells" aria-label={`${EMAIL_OTP_POLICY.codeLength}-digit verification code`}>
-                {Array.from({ length: EMAIL_OTP_POLICY.codeLength }, (_, index) => <span key={index} className={otp[index] ? "filled" : ""} aria-hidden="true">{otp[index] || ""}</span>)}
-                <input id="auth-otp" className="otpCapture" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, EMAIL_OTP_POLICY.codeLength))} inputMode="numeric" autoComplete="one-time-code" aria-label={`${EMAIL_OTP_POLICY.codeLength}-digit verification code`} pattern="[0-9]*" maxLength={EMAIL_OTP_POLICY.codeLength} required />
+              <label htmlFor="auth-otp" className="otpLabel">{policy.codeLength}-digit verification code</label>
+              <div className="otpCells" aria-label={`${policy.codeLength}-digit verification code`}>
+                {Array.from({ length: policy.codeLength }, (_, index) => <span key={index} className={otp[index] ? "filled" : ""} aria-hidden="true">{otp[index] || ""}</span>)}
+                <input id="auth-otp" className="otpCapture" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, policy.codeLength))} inputMode="numeric" autoComplete="one-time-code" aria-label={`${policy.codeLength}-digit verification code`} pattern="[0-9]*" maxLength={policy.codeLength} required />
               </div>
               <button className="primary" disabled={loading || otp.length !== policy.codeLength || verifyAttempts >= policy.maxVerifyAttemptsPerCode}><span>{loading ? "Verifying…" : "Verify"}</span><i>→</i></button>
               <div className="secondaryRow">
