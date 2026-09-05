@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import {createExportManifestV13,evaluateEngineExportEvidenceV13,evaluateProductionClosureV13,compileProductionWorldV13} from "../lib/game/game-world-production-export-v13.js";
+const m=createExportManifestV13({worldId:"w1",revision:3});
+assert.equal(m.canonical.gameplayTruth,"mesh-collision-nav");
+const e=evaluateEngineExportEvidenceV13({webRuntimeVerified:true,gltfRoundTripVerified:true,openUsdConformanceVerified:true,godotEditorImportVerified:true,unityEditorImportVerified:true,unrealEditorImportVerified:true});
+assert.equal(e.allRequired,true);
+const fail=evaluateProductionClosureV13({githubMainSha:"a",productionSha:"b",runtimeSha:"b",supabaseVerified:true,apiVerified:true,browserVerified:true,malwareVerified:true,appBuilderVerified:true,uiVerified:true,supplyChainVerified:true,realIosDeviceVerified:true,realAndroidDeviceVerified:true,largeWorldSoakVerified:true,engineExportsVerified:true,multiplayerRequired:false});
+assert.equal(fail.production100,false);
+const pass=evaluateProductionClosureV13({githubMainSha:"x",productionSha:"x",runtimeSha:"x",supabaseVerified:true,apiVerified:true,browserVerified:true,malwareVerified:true,appBuilderVerified:true,uiVerified:true,supplyChainVerified:true,realIosDeviceVerified:true,realAndroidDeviceVerified:true,largeWorldSoakVerified:true,engineExportsVerified:true,multiplayerRequired:false});
+assert.equal(pass.production100,true);
+const c=compileProductionWorldV13({});
+assert.equal(c.readiness.internal100,true);
+assert.equal(c.readiness.production100,false);
+console.log("Game World V13 Production Export: 100 INTERNAL CODE; Production 100 only after exact-SHA + all external evidence");
