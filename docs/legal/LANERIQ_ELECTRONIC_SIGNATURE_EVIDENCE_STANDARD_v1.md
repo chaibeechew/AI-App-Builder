@@ -94,7 +94,7 @@ The e-signature system must not:
 
 Where stamp-duty review is relevant, the legal record may store a separate manual-review status and genuine official submission/certificate reference supplied by the responsible person.
 
-For Buyout, the commercial allocation in the Buyout License places the relevant stamping/f filing cost on the Customer as between the parties, except where mandatory law allocates liability differently.
+For Buyout, the commercial allocation in the Buyout License places the relevant stamping and filing cost on the Customer as between the parties, except where mandatory law allocates liability differently.
 
 ## 5. Privacy and security
 
